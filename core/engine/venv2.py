@@ -22,11 +22,13 @@ What this runtime implements of :class:`~core.engine.infinigen2.ProcfuncRuntime`
   ``plant_pot_small_rand``, ``desk_rand`` and ``storage_cell_shelf_rand``).
 * ``render`` — the CLI's render task (``render_cycles``, Cycles on the GPU)
   for the **subject** entry's generator chain, at the ladder's
-  resolution/samples. The bytes are a real PNG — and, honestly, *not*
-  byte-reproducible: Cycles' GPU accumulation order moves 1–3 pixels by ±1
-  LSB between identical requests (experiment §5.4). Rule 3's byte-promise
-  holds for **stages** (the normalized graph above); previews are content
-  per render, and their artifact hash says so by being a plain content hash.
+  resolution/samples. The bytes are a real PNG, and byte-reproducibility is
+  **not promised**: Cycles' GPU accumulation order can move 1–3 pixels by
+  ±1 LSB between identical requests (experiment §5.4 measured this on a
+  room scene; the first live run's object renders happened to come out
+  byte-identical — luck, not a contract). Rule 3's byte-promise holds for
+  **stages** (the normalized graph above); a preview's artifact hash is a
+  plain content hash of that render.
 
 The three ops it refuses, each naming its missing piece: ``replace`` /
 ``execute`` (single-node re-execution needs the call-site instrumentation the
@@ -52,7 +54,7 @@ from pydantic import BaseModel
 
 from core.canon import content_hash
 from core.engine.errors import EngineFailed, EngineUnavailable
-from core.engine.infinigen1 import CommandRunner, subprocess_runner
+from core.engine.infinigen1 import CommandRunner, SubprocessRunner
 from core.records import EnginePin
 
 __all__ = [
@@ -65,10 +67,12 @@ __all__ = [
 ]
 
 #: Resolution names (the ladder's, ``RUNG_LADDER``) → the CLI's ``-r W H``.
-#: 16:9 throughout; a rung is always the same ask.
+#: 16:9 throughout, and each width×18/height integral — the CLI's framing
+#: code asserts the sensor width is a whole number (854×480, the nominal
+#: "480p", fails it; 960×540 is the same ladder rung and passes).
 RESOLUTION_DIMENSIONS: dict[str, tuple[int, int]] = {
     "180p": (320, 180),
-    "480p": (854, 480),
+    "480p": (960, 540),
     "720p": (1280, 720),
     "1080p": (1920, 1080),
 }
@@ -184,7 +188,7 @@ class Venv2Runtime:
         output_dir: Path | str,
         repo: Path | str | None = None,
         repo_name: str | None = None,
-        runner: CommandRunner = subprocess_runner,
+        runner: CommandRunner | None = None,
     ) -> None:
         self._python = Path(python)
         self._cli = self._python.parent / "infinigen"
@@ -192,7 +196,7 @@ class Venv2Runtime:
         self._repo_name = repo_name
         self._generators = dict(generators)
         self._output_dir = Path(output_dir)
-        self._runner = runner
+        self._runner = runner if runner is not None else SubprocessRunner()
         self._report: PackageReport | None = None
         if not self._python.is_file():
             raise EngineUnavailable(

@@ -43,7 +43,13 @@ testpaths = ["tests"]
 # USD backbone's own root, so one pytest run covers every seat without
 # touching any seat's own pyproject.
 pythonpath = [".", "core/usd/src"]
-addopts = "-ra"
+# The real-engine acceptance run is opt-in: its render steps drive Infinigen
+# 2.0 through the v2 venv (minutes of Cycles on the Thor, and the venv must
+# be on the box). The default run deselects it; `-m engine` selects only it.
+addopts = "-ra -m 'not engine'"
+markers = [
+    "engine: the real-engine acceptance run (needs the v2 venv; renders for minutes — select with -m engine)",
+]
 filterwarnings = [
     "ignore::DeprecationWarning:starlette.*",
     "ignore::DeprecationWarning:httpx.*",

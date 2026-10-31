@@ -57,9 +57,11 @@ def build_world(home: Path, run_dir: Path) -> World:
     The seats are the integrated core's own packages (`siblings.load()`):
     the spine is `core.svc.Core` + `core.api.create_app`, the recipe store
     rides the spine's one ledger through `RecipeStoreSeam`, and the engine
-    seat is the `core.engine` seam with the fake engine behind it (the
-    render rungs and the gate's engine half; the critic and the engineer
-    stay stubs — plan §2 M1 risks).
+    seat is the `core.engine` seam with the **fake engine** behind it by
+    default — or the **real v2 venv** when `BUILDER_ENGINE` is set (the
+    `-m engine` run: the render rungs produce real images, and the session
+    performs the explicit pin edit first). The critic and the engineer stay
+    stubs — plan §2 M1 risks.
     """
     seats = siblings.load()
     world = World(home=home, run_dir=run_dir)
@@ -69,7 +71,7 @@ def build_world(home: Path, run_dir: Path) -> World:
     from core.svc import Core
 
     settings = Settings.for_home(home)
-    engine_seat = EngineSeat(seats)
+    engine_seat = EngineSeat(seats, home=home)
     core = Core.open(
         settings,
         telemetry=StubTelemetry(load=0.3),
@@ -190,6 +192,37 @@ def act_boot(ses: Session, world: World) -> None:
         spine_nodes = door.store.scan("node_refs")
         step.check("the spine folded the published nodes", len(spine_nodes) == 3,
                    f"{len(spine_nodes)} node_refs rows")
+
+    # 2b. the explicit engine swap: the recipe is re-pinned to the engine
+    # that will render it — one edit, on the record (X R9). Real-engine run
+    # only: the fake already serves the document's own pin.
+    if world.engine.real:
+        with ses.step("engine-repin", act="boot",
+                      backend=["real:core-recipe(seam)", "real:engine"]) as step:
+            pin = world.engine.engine.describe().pin
+            before = recipe.recipe_document().engine_pin
+            version = recipe.store.apply_edit(
+                recipe.root_version,
+                [recipe.br.Op(op="set", path="engine_pin",
+                              value=pin.model_dump(mode="json"))],
+                author=recipe.owner,
+                message="engine pin: the v2 venv on this box (explicit swap)",
+            )
+            recipe.move_head(MAIN_BRANCH, version.id)
+            after = recipe.refresh_recipe(version.id)
+            step.check("the recipe is pinned to the engine that renders it",
+                       after.engine_pin == pin,
+                       f"{after.engine_pin.repo}@{after.engine_pin.commit}")
+            ops = recipe.diff_ops(recipe.root_version, version.id)
+            step.check("the swap touches only the pin, never silent (X R9)",
+                       ops and all(op["path"].split(".")[0] == "engine_pin"
+                                   for op in ops),
+                       str([op["path"] for op in ops]))
+            S = world.stamps
+            S["engine_repin_version"] = version.id
+            step.note(f"{before.repo}@{before.commit} → "
+                      f"{after.engine_pin.repo}@{after.engine_pin.commit}; "
+                      "every stage key changes with it")
 
     with ses.step("vocabulary", act="boot",
                   backend=["real:vocab(data)", "real:core-api"]) as step:
@@ -365,6 +398,10 @@ def act_evening(ses: Session, world: World) -> None:
                     "word": "props.harbor.crates",
                     "requested_by": "prop-maker",
                 },
+                "acceptance": [
+                    {"kind": "geometry", "spec": {"check": "watertight"}},
+                    {"kind": "critic", "spec": {"rung": 2, "seed": 42}},
+                ],
                 "promote": crates_v2_entry(world),
             },
         )
@@ -526,7 +563,7 @@ def act_night(ses: Session, world: World) -> None:
     # 1. sealed bet one — the crates (edit → seal → render → critic → keep)
     with ses.step("sealed-bet-crates", act="night",
                   backend=["real:core-api", "real:core-recipe(seam)",
-                           "fake:engine(render)", "stub:critic"]) as step:
+                           world.engine.label("render"), "stub:critic"]) as step:
         call = spec.vocab_call(
             "props.harbor.crates",
             {"count": 12, "style": "weathered", "from_library": 6, "seed": 42},
@@ -573,7 +610,7 @@ def act_night(ses: Session, world: World) -> None:
     # 2. sealed bet two — the racks: the critic misses, the batch reverts
     with ses.step("sealed-bet-racks", act="night",
                   backend=["real:core-api", "real:core-recipe(seam)",
-                           "fake:engine(render)", "stub:critic"]) as step:
+                           world.engine.label("render"), "stub:critic"]) as step:
         call = spec.vocab_call(
             "props.harbor.racks", {"count": 8, "length_m": 3.0}, node="racks",
         )
@@ -607,7 +644,7 @@ def act_night(ses: Session, world: World) -> None:
     # 3. the work order's attempt: stub engineer, real gate, real land
     with ses.step("wo-attempt", act="night",
                   backend=["real:core-api", "stub:engineer(aider-local)",
-                           "fake:engine(gate-rungs)"]) as step:
+                           world.engine.label("gate-rungs")]) as step:
         spend = {"gpu_minutes": 20.0, "wall_minutes": 90.0}
         patch = door.put_artifact(b"diff --git a/crates.py b/crates.py\n+lids\n+rope\n",
                                   "crates-v2.patch")
@@ -638,22 +675,19 @@ def act_night(ses: Session, world: World) -> None:
         step.check("no card without an artifact (D)",
                    bool(wo.get("evidence")), f"{len(wo.get('evidence', []))} evidence rows")
         # the preview enters the library with a complete licence row (§1.6)
+        # and the engine's own provenance — real terms and a real artifact
+        # hash when the render behind it was real, the fake's row when not
+        preview_artifact = wo.get("preview") or {}
         asset = spec.create_asset(
-            kind="mesh",
-            provenance={
-                "source": "generated",
-                "generator": {
-                    "method": "fake-engine", "model_id": "fake-engine",
-                    "prompt": "crates v2 preview, quay row", "seed": 42,
-                },
-            },
-            licence={
-                "spdx": "CC0-1.0", "dependency_terms": ["library crate: CC0 (Poly Haven)"],
-                "commercial_ok": True, "checked_by": "core-licence-registry",
-                "checked_at": "2026-10-30T23:40:00Z",
-            },
-            files=[{"role": "master", "path": "artifacts/crates-v2.glb",
-                    "sha256": "sha256:stub", "bytes": 2048}],
+            kind="texture",
+            provenance=world.engine.render_provenance(
+                subject="crates-v2", prompt="crates v2 preview, quay row",
+                seed=42, rung=2),
+            licence=world.engine.licence_row(),
+            files=[{"role": "master",
+                    "path": f"artifacts/{preview_artifact.get('sha256', 'none')}",
+                    "sha256": preview_artifact.get("sha256", "sha256:stub"),
+                    "bytes": preview_artifact.get("bytes", 0)}],
         )
         S["preview_asset"] = asset["asset"]["id"]
 
@@ -925,7 +959,8 @@ def act_morning(ses: Session, world: World) -> None:
                    str(preview["provenance"]) if preview else "missing")
         step.check("the licence row is complete, dependency terms included (X R8)",
                    preview is not None
-                   and preview["licence"].get("spdx") == "CC0-1.0"
+                   and preview["licence"].get("spdx")
+                   == world.engine.licence_row()["spdx"]
                    and preview["licence"].get("dependency_terms"),
                    str(preview["licence"]) if preview else "missing")
         step.check("the sealed bet and its verdict are one tap away",
