@@ -28,7 +28,7 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel).
-- **The core is integrated and renders for real: 1,022 tests pass** in one
+- **The core is integrated and renders for real: 1,063 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
     2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
@@ -169,8 +169,9 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `plan-v2` | Plan draft 2 and the owner's decision sheet | merged |
 | `scene-server` | The resident engine: builder wait 4.7× lower, exact crash recovery | merged |
 | `propmaker-batch` | TRELLIS.2 behind the scheduler; the first real mini-night: 3 props × 3 seeds in 24 min 44 s ([record](docs/lab/mini-night.md)) | merged |
+| `night-budget` | The night's arithmetic from measured numbers: a cost model per job kind (GPU/CPU/wall minutes, cents, iterations, joules; p50/p95) | merged |
 
-**`main` today: 1,022 tests pass** (3 skipped; the real-engine tests are opt-in).
+**`main` today: 1,063 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
