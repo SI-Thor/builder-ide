@@ -164,3 +164,83 @@ def fake_runner():
 @pytest.fixture
 def runtime():
     return RecordingRuntime()
+
+
+class GraphRuntime:
+    """A procfunc-shaped engine double — the graph-edit half of the seam.
+
+    ``trace`` emits one canonical graph per entry (rng → draws → choice →
+    join → outputs, the round-2 shape, with each param a draw node's
+    bound); ``replace`` edits a param node in place (what a splicing engine
+    does to a recorded graph); ``execute`` returns the graph's own bytes.
+    The regenerator's partial path and the graph diff are demonstrated on
+    this double, the way the real engine would have to earn them.
+    """
+
+    boundary = "graph-double"
+
+    def __init__(self) -> None:
+        self.ops: list[tuple] = []
+
+    def trace(self, calls, seeds) -> dict:
+        from core.recipe.stagecache import effective_seed
+
+        self.ops.append(("trace", [c.entry_path for c in calls], dict(seeds)))
+        entries = {}
+        for call in calls:
+            seed = call.seed if call.seed is not None else int(
+                seeds.get(call.entry_path.split(".")[0], 0))
+            nodes = [
+                {"id": "n0", "type": "Constant", "value": {"$type": "rng"}},
+            ]
+            for i, (param, value) in enumerate(sorted(call.params.items())):
+                nodes.append({
+                    "id": f"n{1 + i}", "type": "FunctionCall",
+                    "func": "procfunc.random.uniform",
+                    "args": [],
+                    "kwargs": {"rng": {"$ref": "n0"}, "low": 0,
+                               "high": value, "$param": param},
+                })
+            join_id = f"n{1 + len(call.params)}"
+            nodes.append({
+                "id": join_id, "type": "FunctionCall", "func": "_operator.add",
+                "args": [{"$ref": "n1"}, []] if call.params else [[], []],
+                "kwargs": {},
+            })
+            entries[call.entry_path] = {
+                "name": f"trace_{call.name}", "nodes": nodes,
+                "outputs": {"objects": {"$ref": join_id}, "seed": seed},
+            }
+        return {"engine": "graph-double", "trace_level": "RANDOM_CONTROL",
+                "entries": entries}
+
+    def replace(self, graph, edits) -> dict:
+        import copy
+
+        self.ops.append(("replace", [e.entry_path for e in edits],
+                         [(e.param, e.value) for e in edits]))
+        out = copy.deepcopy(graph)
+        graphs = (
+            out.get("entries", {}).values()
+            if "entries" in out else [out]
+        )
+        for edit in edits:
+            for one in graphs:
+                for node in one["nodes"]:
+                    if node.get("kwargs", {}).get("$param") == edit.param:
+                        node["kwargs"]["high"] = edit.value
+        return out
+
+    def execute(self, graph) -> bytes:
+        import json
+
+        self.ops.append(("execute", sorted(graph.get("entries", {}))))
+        return json.dumps(sorted(graph.keys())).encode("utf-8")
+
+    def render(self, calls, seeds, *, subject, resolution, samples, seed) -> bytes:
+        self.ops.append(("render", [c.entry_path for c in calls], subject))
+        return f"graph-double render {subject} {resolution}".encode()
+
+    def export(self, graph, *, format: str, profile: str) -> bytes:
+        self.ops.append(("export", format))
+        return f"graph-double export {format}".encode()

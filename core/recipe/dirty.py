@@ -118,7 +118,7 @@ def compute_dirty_set(
         if entry is None:
             continue
         dirty_stage_keys.add(
-            entry_stage_key(path, entry, head.engine_pin)
+            entry_stage_key(path, entry, head.engine_pin, seeds=head.seeds)
         )
     for stage, dep_keys in (stages or {}).items():
         hits = sorted(key for key in dep_keys if key in dirty_stage_keys)

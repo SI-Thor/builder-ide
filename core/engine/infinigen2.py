@@ -275,7 +275,15 @@ class Infinigen2Engine:
 
     def generate_stage(self, request: StageRequest) -> StageResult:
         check_pin(self.describe(), request.recipe)
-        graph = self._runtime.trace(generator_calls(request.recipe), dict(request.recipe.seeds))
+        calls = generator_calls(request.recipe)
+        if request.entries is not None:
+            # a per-entry stage asks for one entry's chain, not the whole
+            # recipe's — scoping is what makes a stage miss charge only
+            # the entry that missed
+            wanted = set(request.entries)
+            calls = [call for call in calls if call.entry_path in wanted]
+        started = time.monotonic()
+        graph = self._runtime.trace(calls, dict(request.recipe.seeds))
         data = self._envelope(request, graph)
         return StageResult(
             stage_key=expected_stage_key(request, self.describe()),
@@ -283,6 +291,7 @@ class Infinigen2Engine:
             artifact={"sha256": bytes_hash(data), "kind": "stage",
                       "bytes": len(data)},
             mechanism="graph-edit",
+            wall_ms=(time.monotonic() - started) * 1000.0,
         )
 
     def reexecute(self, request: ReexecuteRequest) -> StageResult:

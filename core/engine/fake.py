@@ -18,6 +18,8 @@ ones it cannot honestly have:
 """
 from __future__ import annotations
 
+from typing import Sequence
+
 from pydantic import BaseModel
 
 from core.canon import bytes_hash, canonical_bytes, content_hash
@@ -34,6 +36,7 @@ from core.engine.contract import (
     check_pin,
     expected_stage_key,
 )
+from core.recipe.stagecache import effective_seed
 from core.records import EnginePin, Recipe, RecipeEntry
 
 __all__ = ["FakeEngine", "FAKE_PIN"]
@@ -87,7 +90,9 @@ class FakeEngine:
     def generate_stage(self, request: StageRequest) -> StageResult:
         self._check(request.recipe, "generate_stage", request.version_hash,
                     stage=request.stage)
-        data = self._stage_data(request.recipe, request.stage, request.dep_keys)
+        data = self._stage_data(
+            request.recipe, request.stage, request.dep_keys,
+            entries=request.entries)
         return self._stage_result(request, data, mechanism="fake")
 
     def reexecute(self, request: ReexecuteRequest) -> StageResult:
@@ -153,18 +158,45 @@ class FakeEngine:
         self.calls.append(_Call(op=op, version_hash=version_hash, **fields))
 
     def _stage_data(
-        self, recipe: Recipe, stage: str, dep_keys: list[str]
+        self,
+        recipe: Recipe,
+        stage: str,
+        dep_keys: list[str],
+        entries: Sequence[str] | None = None,
     ) -> bytes:
-        """One digest per entry — the dirty set made visible in the bytes."""
+        """One digest per entry — the dirty set made visible in the bytes.
+
+        A **scoped** request (one entry's stage) carries only that scope's
+        entries and *effective* seeds (the entry's own, else the recipe
+        seed for its root segment — the same fallback the real adapters
+        apply), so a scoped stage's bytes are a function of exactly what
+        ``entry_stage_key`` hashes: a sibling's edit can change neither the
+        one entry's bytes nor its key, which is the hit-is-byte-identical
+        invariant made demonstrable against the fake.
+        """
+        scope = list(entries) if entries is not None else None
+        paths = sorted(recipe.entries) if scope is None else [
+            path for path in sorted(recipe.entries) if path in set(scope)
+        ]
+        seeds = (
+            dict(sorted(recipe.seeds.items()))
+            if scope is None
+            else {
+                root: effective_seed(path, recipe.entries[path], recipe.seeds)
+                for path in paths
+                for root in [path.split(".")[0]]
+            }
+        )
         doc = {
             "engine": "fake-engine",
             "pin": self._pin.model_dump(mode="json"),
             "stage": stage,
-            "seeds": dict(sorted(recipe.seeds.items())),
+            "seeds": dict(sorted(seeds.items())),
             "dep_keys": sorted(dep_keys),
             "entries": {
                 path: content_hash(entry.model_dump(mode="json"))
                 for path, entry in sorted(recipe.entries.items())
+                if path in paths
             },
         }
         return canonical_bytes(doc)

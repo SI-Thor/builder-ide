@@ -19,6 +19,14 @@ putting our schema above the engine):
   subprocess boundary that renders on the Thor today): trace + render real,
   the pin interrogated from the venv, re-execution and export refused with
   their missing pieces named;
+* :mod:`core.engine.graph` — the procfunc graph, the recipe's lower
+  layer: stored by hash, diffed by node, closed over consumers (the
+  dirty-subtree term of the contract, ``core/engine/DIRTY.md`` §3);
+* :mod:`core.engine.stagecache` — the stage cache on disk: a hit skips
+  the stage, eviction is by size (LRU), every read is hash-verified;
+* :mod:`core.engine.regen` — :class:`Regenerator`, the contract's driver:
+  dirty set in, per-entry hit/miss/partial through this seam, graphs and
+  their diffs reported (``DIRTY.md`` is the contract itself);
 * :mod:`core.engine.gate` — the merge gate's engine rungs over any engine;
 * :mod:`core.engine.resident` — the warm scene server: a resident process
   holding the scene while builders work (plan item 15 — the win is builder
@@ -49,10 +57,21 @@ from core.engine.contract import (
 from core.engine.errors import EngineFailed, EnginePinMismatch, EngineUnavailable
 from core.engine.fake import FAKE_PIN, FakeEngine
 from core.engine.gate import EngineGateEngine
+from core.engine.graph import (
+    GraphDiff,
+    GraphRef,
+    GraphStore,
+    StageGraphs,
+    diff_graphs,
+    graph_hash,
+    graphs_of_stage,
+)
 from core.engine.infinigen1 import Infinigen1xEngine
 from core.engine.infinigen2 import Infinigen2Engine
+from core.engine.regen import EntryOutcome, RegenerationReport, Regenerator
 from core.engine.registry import engine_from_env, open_engine
 from core.engine.resident import ResidentEngine, ResidentPolicy
+from core.engine.stagecache import CachedStage, StageCache
 
 __all__ = [
     "Engine",
@@ -65,19 +84,32 @@ __all__ = [
     "ExportRequest",
     "ExportResult",
     "FAKE_PIN",
+    "CachedStage",
     "FakeEngine",
+    "GraphDiff",
+    "GraphRef",
+    "GraphStore",
+    "StageGraphs",
     "Infinigen1xEngine",
     "Infinigen2Engine",
     "PreviewRequest",
     "ResidentEngine",
     "ResidentPolicy",
     "PreviewResult",
+    "RegenerationReport",
+    "Regenerator",
+    "EntryOutcome",
     "ReexecuteRequest",
+    "StageGraphs",
+    "StageCache",
     "StageMechanism",
     "StageRequest",
     "StageResult",
     "check_pin",
+    "diff_graphs",
     "engine_from_env",
     "expected_stage_key",
+    "graph_hash",
+    "graphs_of_stage",
     "open_engine",
 ]

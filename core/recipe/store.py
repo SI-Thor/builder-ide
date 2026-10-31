@@ -298,12 +298,16 @@ class RecipeStore:
         )
 
     def entry_stage_key(self, version_id: str, entry_path: str) -> str:
-        """The stage-cache key of one entry's stage."""
+        """The stage-cache key of one entry's stage — over its effective
+        inputs, so a fallback-seeded entry's key moves with its recipe
+        seed (the dirty-set contract, ``core/engine/DIRTY.md`` §1)."""
         document = self.get_document(version_id)
         entry = document.entries.get(entry_path)
         if entry is None:
             raise NotFound(f"no entry {entry_path!r} in {version_id!r}")
-        return entry_stage_key(entry_path, entry, document.engine_pin)
+        return entry_stage_key(
+            entry_path, entry, document.engine_pin, seeds=document.seeds
+        )
 
     def dirty_set(
         self,
