@@ -150,6 +150,27 @@ Every generated asset enters the project's library with its **provenance**
 weights are non-commercial: a checked list, not an afterthought), so it can be
 regenerated, traced and swapped when a better Thor-native model arrives.
 
+## The Thor is an iterator (Casey, 2026-10-31)
+
+Don't use the Thor only as a box that runs one big model once. Use it as an
+**iterator**: models and scenes stay resident in unified memory, so many fast
+**propose → critique → refine** cycles are cheap. The builders' work is
+shaped as converging loops, not single shots:
+
+- **At night, breadth.** For each step in the plan, generate many variants
+  (seeds, parameters, alternative recipe edits), score them with the critics,
+  keep the best, and refine from it. The morning report shows the winner *and*
+  what it beat.
+- **By day, warm starts.** A loop starts from the last converged result, not
+  from scratch, so it converges in a few iterations while you watch.
+- **Many agents, one pass.** Builders share resident models and are batched
+  through them together. On the Thor, memory bandwidth is the wall, and
+  batching N agents costs roughly what one does (lab round 3 measures where
+  that stops holding).
+- **Iteration is the budget.** The night's rails are spent as iterations per
+  goal, and the quality gained per iteration (and per joule, from the power
+  rails) decides how deep a loop goes before it stops.
+
 ## Phases
 
 1. **Feasibility spike (days).** Blender 4.2 on the Thor; Infinigen Hello Room
