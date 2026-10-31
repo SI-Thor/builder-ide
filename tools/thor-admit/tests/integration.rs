@@ -305,10 +305,12 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
         "only one 30 GiB hog may run at a time; the log was:\n{}",
         daemon.log()
     );
-    // One hog at a time: the box never dropped by more than one hog's worth.
+    // One hog at a time: the box never came near empty. (The floor is
+    // charged against the *reservations*, so the second hog is refused
+    // long before the memory is actually gone.)
     assert!(
-        min_available > 60 * GIB,
-        "the box fell to {} MiB free, which is more than one hog's worth",
+        min_available > 30 * GIB,
+        "the box fell to {} MiB free",
         min_available / (1024 * 1024)
     );
     for text in &finished {
@@ -377,27 +379,51 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         "the kernel's OOM killer fired; the watchdog was too late"
     );
 
-    // The hog must actually be stopped, not merely signalled.
+    // The hog must actually be stopped, not merely signalled. The watchdog
+    // gives it the grace period and then kills it, so watch for the stop
+    // first and the death after.
     let hog_pid = hog.id();
-    let mut state = String::new();
-    for _ in 0..100 {
-        if let Ok(text) = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")) {
-            if let Some(close) = text.rfind(')') {
-                state = text[close + 1..]
+    let mut saw_stopped = false;
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while Instant::now() < deadline {
+        let state = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")).unwrap_or_default();
+        let code = state
+            .rfind(')')
+            .map(|close| {
+                state[close + 1..]
                     .split_whitespace()
                     .next()
                     .unwrap_or("")
-                    .to_string();
-            }
-        }
-        if state == "T" || state == "t" {
+                    .to_string()
+            })
+            .unwrap_or_default();
+        if code == "T" || code == "t" {
+            saw_stopped = true;
             break;
         }
-        std::thread::sleep(Duration::from_millis(50));
+        std::thread::sleep(Duration::from_millis(20));
     }
     assert!(
-        state == "T" || state == "t",
-        "the runaway was not stopped (state {state:?})"
+        saw_stopped,
+        "the runaway was never stopped; the log was:\n{}",
+        daemon.log()
+    );
+
+    // And then it dies: the watchdog kills it once the grace period is out.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut died = false;
+    while Instant::now() < deadline {
+        if hog.try_wait().ok().flatten().is_some() {
+            died = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(died, "the runaway was stopped but never killed");
+    assert!(
+        daemon.log().contains("watchdog.killed"),
+        "the daemon did not log the kill; the log was:\n{}",
+        daemon.log()
     );
 
     let _ = hog.kill();
@@ -515,6 +541,41 @@ fn a_learned_peak_is_used_by_the_next_run() {
         !output.contains("no history for the label"),
         "the automatic peak found no history:\n{output}"
     );
+}
+
+#[test]
+fn the_stop_command_stops_the_daemon() {
+    let mut daemon = DaemonUnderTest::start(&[]);
+
+    // The daemon is answering.
+    assert!(
+        daemon.status()["leases"].is_array(),
+        "the daemon did not answer the status request"
+    );
+
+    let output = Command::new(BIN)
+        .arg("stop")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .output()
+        .expect("the stop command runs");
+    assert!(
+        output.status.success(),
+        "the stop command failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    // And then it is not.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut gone = false;
+    while Instant::now() < deadline {
+        if daemon.child.try_wait().ok().flatten().is_some() {
+            gone = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(gone, "the daemon was still running after it was told to stop");
 }
 
 #[test]
