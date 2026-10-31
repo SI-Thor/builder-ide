@@ -16,6 +16,7 @@ __all__ = [
     "NIGHT_RUNNER_EVENT_TYPES",
     "DAYTIME_EVENT_TYPES",
     "TILE_EVENT_TYPES",
+    "JUDGE_EVENT_TYPES",
 ]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
@@ -116,6 +117,10 @@ TILE_EVENT_TYPES = frozenset(
     {"tile.authored", "tile.retired", "tile.played", "tile.retrained"}
 )
 
+#: The judge seat's one type (core/judge/events.py). Mirrored here so every
+#: reader of the log agrees on the closed set (§1.8).
+JUDGE_EVENT_TYPES = frozenset({"judge.verdict"})
+
 EVENT_TYPES = (
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -133,6 +138,7 @@ EVENT_TYPES = (
     | CLIENT_EVENT_TYPES
     | SYSTEM_EVENT_TYPES
     | TILE_EVENT_TYPES
+    | JUDGE_EVENT_TYPES
 )
 
 #: The types this seat (the night runner) writes. Everything else in the log
