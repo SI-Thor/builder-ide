@@ -6,7 +6,15 @@ group; the API half owns the rest.
 
 from __future__ import annotations
 
-__all__ = ["EVENT_TYPES", "RECIPE_EVENT_TYPES", "QUESTION_EVENT_TYPES", "DAYTIME_EVENT_TYPES"]
+from core.records import EVENT_TYPES as RECORDS_EVENT_TYPES
+
+__all__ = [
+    "EVENT_TYPES",
+    "RECIPE_EVENT_TYPES",
+    "QUESTION_EVENT_TYPES",
+    "DAYTIME_EVENT_TYPES",
+    "TILE_EVENT_TYPES",
+]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
     {
@@ -100,6 +108,12 @@ SYSTEM_EVENT_TYPES = frozenset(
     {"core.boot", "core.recovered", "projection.rebuilt", "integrity.failure", "call.refused"}
 )
 
+#: The tile seat's four types (core/tiles/events.py). Mirrored here so every
+#: reader of the log agrees on the closed set (§1.8).
+TILE_EVENT_TYPES = frozenset(
+    {"tile.authored", "tile.retired", "tile.played", "tile.retrained"}
+)
+
 EVENT_TYPES = frozenset(
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -116,4 +130,15 @@ EVENT_TYPES = frozenset(
     | CONTINUITY_EVENT_TYPES
     | CLIENT_EVENT_TYPES
     | SYSTEM_EVENT_TYPES
+    | TILE_EVENT_TYPES
 )
+
+#: The union of the groups above must be the shared closed set — this copy
+#: of the list is the recipe store's view of the log it appends to, and a
+#: drift from :mod:`core.records` would fork that view. The comparison is
+#: against ``core.records``' copy under a different name: the local
+#: ``EVENT_TYPES`` is the union itself.
+assert (
+    EVENT_TYPES
+    == RECORDS_EVENT_TYPES
+), "core.recipe's event groups have drifted from core.records.EVENT_TYPES"

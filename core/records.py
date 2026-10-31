@@ -117,6 +117,9 @@ EVENT_TYPES: frozenset[str] = frozenset(
         "budget.spend", "budget.threshold", "kill.switch",
         # assets
         "asset.created", "asset.licence.checked",
+        # tiles (the tile seat: the cloud writes the options, the Thor
+        # learns which ones work)
+        "tile.authored", "tile.retired", "tile.played", "tile.retrained",
         # questions
         "question.parked", "question.answered", "assumption.recorded",
         # continuity

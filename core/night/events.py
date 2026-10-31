@@ -9,9 +9,14 @@ they all append to.
 
 from __future__ import annotations
 
-from core.records import EVENT_TYPES
+from core.records import EVENT_TYPES as RECORDS_EVENT_TYPES
 
-__all__ = ["EVENT_TYPES", "NIGHT_RUNNER_EVENT_TYPES", "DAYTIME_EVENT_TYPES"]
+__all__ = [
+    "EVENT_TYPES",
+    "NIGHT_RUNNER_EVENT_TYPES",
+    "DAYTIME_EVENT_TYPES",
+    "TILE_EVENT_TYPES",
+]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
     {
@@ -105,6 +110,12 @@ SYSTEM_EVENT_TYPES = frozenset(
     {"core.boot", "core.recovered", "projection.rebuilt", "integrity.failure", "call.refused"}
 )
 
+#: The tile seat's four types (core/tiles/events.py). Mirrored here so every
+#: reader of the log agrees on the closed set (§1.8).
+TILE_EVENT_TYPES = frozenset(
+    {"tile.authored", "tile.retired", "tile.played", "tile.retrained"}
+)
+
 EVENT_TYPES = (
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -121,6 +132,7 @@ EVENT_TYPES = (
     | CONTINUITY_EVENT_TYPES
     | CLIENT_EVENT_TYPES
     | SYSTEM_EVENT_TYPES
+    | TILE_EVENT_TYPES
 )
 
 #: The types this seat (the night runner) writes. Everything else in the log
@@ -141,20 +153,11 @@ NIGHT_RUNNER_EVENT_TYPES = frozenset(
 #: The union of the groups above must be the shared closed set — the merge
 #: made them one list, and this pin keeps a future group edit from quietly
 #: forking the runner's view of the log it appends to.
+#:
+#: The comparison is against ``core.records``' copy, under a different
+#: name: the local ``EVENT_TYPES`` is the union itself, so comparing the
+#: union to itself would pin nothing.
 assert (
-    WORK_ORDER_EVENT_TYPES
-    | RECIPE_EVENT_TYPES
-    | PREDICTION_EVENT_TYPES
-    | TASTE_EVENT_TYPES
-    | VOCABULARY_EVENT_TYPES
-    | NIGHT_EVENT_TYPES
-    | DAYTIME_EVENT_TYPES
-    | SCHEDULER_EVENT_TYPES
-    | CRITIC_EVENT_TYPES
-    | BUDGET_EVENT_TYPES
-    | ASSET_EVENT_TYPES
-    | QUESTION_EVENT_TYPES
-    | CONTINUITY_EVENT_TYPES
-    | CLIENT_EVENT_TYPES
-    | SYSTEM_EVENT_TYPES
-) == EVENT_TYPES, "core.night's event groups have drifted from core.records.EVENT_TYPES"
+    EVENT_TYPES
+    == RECORDS_EVENT_TYPES
+), "core.night's event groups have drifted from core.records.EVENT_TYPES"
