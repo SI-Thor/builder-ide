@@ -632,7 +632,11 @@ def _four_numbers(three: ThreeNumbers) -> str:
     their ``[e]``: nobody has measured those yet.
     """
     joules = (
-        f"{three.joules / 1000:.1f} kJ on the box"
+        # kJ, not joules/1000: the field already holds kilojoules (the
+        # rails' watts over the wall's seconds, scaled once — the same
+        # 1000× under-report the honest-week run caught on the owner's
+        # estimate line)
+        f"{three.joules:.1f} kJ on the box"
         if three.joules is not None
         else "joules not measured"
     )
