@@ -101,6 +101,46 @@ class NightRunner:
 
     # -- the log -----------------------------------------------------------
 
+    @classmethod
+    def resume(
+        cls,
+        ledger: Ledger,
+        executor: TaskExecutor,
+        *,
+        night_id: str,
+        clock: Clock,
+        actor: Actor = _DEFAULT_ACTOR,
+        **kwargs,
+    ) -> "NightRunner":
+        """Rebuild a running night from the log, and carry on (§5.2 step 5).
+
+        The rails, the spend, the load counts and the queue are all folds, so
+        a resumed night knows what it has already spent without anybody
+        telling it.
+        """
+        projection = NightProjection(ledger.events())
+        night = projection.night
+        rails = night.rails if night else Rail()
+        load_budget = night.load_budget if night else {}
+        runner = cls(
+            ledger,
+            executor,
+            night_id=night_id,
+            rails=rails,
+            clock=clock,
+            load_budget=load_budget,
+            actor=actor,
+            **kwargs,
+        )
+        runner.budget = RailBudget(ceiling=rails, spent=projection.spend)
+        runner.loads = LoadBudget.from_counts(load_budget, projection.model_loads)
+        runner.queue = TaskQueue.rebuild(ledger, night_id, clock=clock.now)
+        runner.night = night
+        runner._job_counter = len(
+            [event for event in ledger.events() if event.type == "job.enqueued"]
+        )
+        return runner
+
     @property
     def projection(self) -> NightProjection:
         """The night as the log says it is."""
@@ -213,6 +253,10 @@ class NightRunner:
     def _wait_for_batches(self) -> None:
         """Big batches start on detach or the deadline, whichever is first."""
         deadline = self.night.detach_deadline if self.night else None
+        if self._batches_already_started():
+            # The night was interrupted after the batches started; carry on
+            # with the work, not with the wait (§5.2).
+            return
         while True:
             now = self.clock.now()
             if not self._lane_is_free(now):
@@ -231,6 +275,12 @@ class NightRunner:
                 self._batches_tick("deadline", now)
                 return
             self._advance_ticking(self.tick_interval_minutes)
+
+    def _batches_already_started(self) -> bool:
+        """True when the log says the big batches have already started."""
+        return any(
+            event.payload.get("kind") == "batches" for event in self._ledger.events()
+        )
 
     def _batches_tick(self, trigger: str, now: str) -> None:
         started_at = self.night.started_at if self.night else now
@@ -293,10 +343,6 @@ class NightRunner:
                 f"waiting for {plan.model} to drain — the load cap is one load a night",
             )
             return None
-        self.budget.admit(cost)
-        if plan.model:
-            self.loads.record_load(plan.model)
-        self._record_spend(cost)
         return plan
 
     def _cut_the_rest(self, level: ThrottleLevel) -> None:
@@ -354,7 +400,6 @@ class NightRunner:
         now = self.clock.now()
         self._job_counter += 1
         job_id = f"job_{self._job_counter:04d}"
-
         # The bet is sealed and committed before the render job exists (§5.1).
         for prediction in plan.predictions:
             self._append(
@@ -395,33 +440,45 @@ class NightRunner:
         self._advance_ticking(plan.wall_minutes)
         done_at = self.clock.now()
 
-        outcome = plan.outcome
+        # The work itself: the executor runs it and reports what it cost.
+        actual = self._executor.run(task)
+        actual_cost = Rail(
+            gpu_minutes=actual.gpu_minutes,
+            hosted_cents=actual.hosted_cents,
+            wall_minutes=actual.wall_minutes,
+        )
+        self.budget.spend(actual_cost)
+        self._record_spend(actual_cost)
+        if plan.model:
+            self.loads.record_load(plan.model)
+
+        outcome = actual.outcome
         self._append(
             "job.done",
             {
                 "job_id": job_id,
                 "task_id": task.id,
                 "outcome": "failed" if outcome == "failed" else outcome,
-                "reason": plan.reason,
-                "artifact": plan.artifact,
+                "reason": actual.reason,
+                "artifact": actual.artifact,
             },
             at=done_at,
         )
 
-        for branch in plan.branches:
+        for branch in actual.branches:
             self._append(
                 "branch.created",
                 {"branch": branch, "task_id": task.id},
                 at=done_at,
             )
 
-        for verdict in plan.verdicts:
+        for verdict in actual.verdicts:
             self._append(
                 "critic.verdict",
                 {
                     "prediction_id": verdict["prediction_id"],
                     "verdict": verdict["verdict"],
-                    "degraded": bool(verdict.get("degraded", plan.degraded)),
+                    "degraded": bool(verdict.get("degraded", actual.degraded)),
                     "summary": verdict.get("summary", "verdict@scripted"),
                     "task_id": task.id,
                 },
@@ -439,7 +496,7 @@ class NightRunner:
         # The night's keep or revert is a **verdict** write, never a taste
         # write (§1.7): the owner scores taste in the morning.
         state = "reverted" if outcome == "failed" else outcome
-        self.queue.mark(task.id, state, plan.reason)
+        self.queue.mark(task.id, state, actual.reason)
 
     # -- time --------------------------------------------------------------
 

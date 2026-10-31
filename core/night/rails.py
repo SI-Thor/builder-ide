@@ -106,6 +106,15 @@ class RailBudget:
             )
         self._spent = self._spent.add(ask)
 
+    def spend(self, ask: Rail) -> None:
+        """Record a spend that has already happened.
+
+        Admission happens *before* the work; the spend is booked when the work
+        is done. If the two ever disagree the night is over its rail, and the
+        overspend is recorded rather than hidden.
+        """
+        self._spent = self._spent.add(ask)
+
     def throttle_level(self) -> ThrottleLevel:
         """Where the bar says we are (§5.5's graduated throttling)."""
         utilisation = self.utilisation
@@ -128,6 +137,15 @@ class LoadBudget:
     def __init__(self, caps: Mapping[str, int] | None = None) -> None:
         self._caps = dict(caps or {})
         self._loads: dict[str, int] = {}
+
+    @classmethod
+    def from_counts(
+        cls, caps: Mapping[str, int] | None, counts: Mapping[str, int]
+    ) -> "LoadBudget":
+        """Rebuild the load count from the log — a resumed night keeps its caps."""
+        budget = cls(caps)
+        budget._loads = dict(counts)
+        return budget
 
     def cap_for(self, model: str) -> int:
         """The cap for a model: one load per model per night by default."""
