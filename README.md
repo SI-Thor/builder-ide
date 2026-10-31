@@ -28,7 +28,7 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel). The mesher's SDF evaluation in Warp is the third.
-- **The core is integrated and renders for real: 1,263 tests pass** in one
+- **The core is integrated and renders for real: 1,356 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
     2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
@@ -191,8 +191,9 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `daytime-world` | The daytime world between nights: one room, one clock, a cheap tick budget that yields to the night, a morning line on what changed (off by default; decision B3) | merged |
 | `mini-night2` | The second real night, with mesh repair and the cost model; TRELLIS.2 graph capture and the fp8 path measured ([record](docs/lab/mini-night-2.md)) | merged |
 | `critic-calib` | The critic calibrated on real sweep renders: a 30-member reference set with seeded defects, an FP/FN table (8 of 9 defect classes in band, zero false positives; floating objects still out), and nightly growth of the set ([table](core/critic/CALIBRATION.md)) | merged |
+| `tiles` | B2's system that gets better: scripts in the typed vocabulary as tiles, a never-deleted library, play records with outcomes, a contextual-bandit chooser and a nightly retrain; the chooser wins **0.80 vs 0.36** for a uniform pick over 600 plays ([design](docs/design/tiles.md)) | merged |
 
-**`main` today: 1,263 tests pass** (3 skipped; the real-engine tests are opt-in).
+**`main` today: 1,356 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
@@ -200,7 +201,6 @@ Branches are pushed as the agents work and reviewed before they merge into
 - **FP8 for real**: making the generator's fused FP8 path actually run, and pricing the prop stage right.
 - **FP4 for real** (`lab-fp4`): a fast FP4 path on sm_110 (cuBLASLt, CUTLASS, our own kernel), then our own FP4 decision models.
 - **The precision cascade** (`lab-cascade`): Liquid d1 at Q4/Q8/BF16 plus Jev, with decision models cleaning up small and low-precision models, big models calibrating small ones, and a cloud improver on the loop.
-- **Tiles** (B2): the scripts-as-tiles library, play records and the first decision model.
 - **thor-world** ([SI-Thor/thor-world](https://github.com/SI-Thor/thor-world)): the MCP server and the Thor-native world stream and viewer.
 - **An overnight Infinigen scene sweep** on the Thor for the scheduler's timings and the calibration set.
 

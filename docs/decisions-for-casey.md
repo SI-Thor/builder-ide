@@ -32,6 +32,20 @@ Part B is where the team has a view and your call settles it.
 | B6 | Casey plugs it in later today; the Thor must power off and move | Plan for a planned shutdown: drain the seats and the sweep first. |
 | B7 | Casey replugs the drive | After the replug: check what survived before any reformat. |
 
+
+### New: the tiles system's eight open questions (2026-10-31)
+
+From `docs/design/tiles.md` §10. Each has a default that keeps the work moving (A1: permissive, move fast), so **the defaults stand unless you say otherwise**:
+
+1. **Authoring budget:** the night's hosted-cents rail, with a per-family cap.
+2. **Review before play:** nobody; validation plus learning is the filter.
+3. **What trains the chooser:** the critic's verdict at night, with your keep or undo folded in when it arrives.
+4. **May a chooser act alone at night:** yes, after two observations in that context.
+5. **A retired tile's second chance:** a new version supersedes it, and the history is kept.
+6. **Play records:** local and kept forever; they never leave the machine unless you ask.
+7. **Choosers:** one per (character, context family).
+8. **A tile's family:** named by the author. This is the weakest part, and it is next to harden.
+
 ### B2, decided: what the Thor is for
 
 - **Not LLMs.** On the Thor they are slow or weak next to the cloud, and
