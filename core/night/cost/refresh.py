@@ -64,6 +64,56 @@ def _read_index(data_dir: Path) -> dict[str, Any]:
     return json.loads((data_dir / "recorded.json").read_text(encoding="utf-8"))
 
 
+def _block_span(lines: list[str], name: str, lo: int, hi: int) -> tuple[int, int]:
+    """The lines of the block called ``name``: the line it opens on, and the
+    line that closes it."""
+    begin = None
+    for index in range(lo, hi):
+        if lines[index].strip().startswith(f'"{name}":'):
+            begin = index
+            break
+    if begin is None:
+        raise KeyError(name)
+    indent = len(lines[begin]) - len(lines[begin].lstrip())
+    for index in range(begin + 1, hi):
+        line = lines[index]
+        if line.strip() in ("},", "}") and (len(line) - len(line.lstrip())) == indent:
+            return begin, index
+    raise KeyError(name)
+
+
+def _patch(text: str, path: list[str], changes: dict[str, Any]) -> str:
+    """Change some values inside a block of the index, and leave the rest of
+    the file exactly as it was.
+
+    The index is read by people as often as by the model, so a refresh should
+    be a changed number, not a reformatted file.
+    """
+    lines = text.splitlines()
+    if path:
+        lo, hi = 0, len(lines)
+        for name in path:
+            begin, close = _block_span(lines, name, lo, hi)
+            lo, hi = begin + 1, close
+    else:
+        lo, hi = 1, len(lines) - 1
+    indent = 2 if not path else len(lines[hi]) - len(lines[hi].lstrip()) + 2
+    for key, value in changes.items():
+        rendered = json.dumps(value, ensure_ascii=False)
+        for index in range(lo, hi):
+            if lines[index].strip().startswith(f'"{key}":'):
+                # the last key of a block carries no comma: keep it that way
+                comma = "," if lines[index].rstrip().endswith(",") else ""
+                lines[index] = f'{" " * indent}"{key}": {rendered}{comma}'
+                break
+        else:
+            others = [i for i in range(lo, hi) if lines[i].strip().startswith('"')]
+            comma = "," if others else ""
+            lines.insert(lo, f'{" " * indent}"{key}": {rendered}{comma}')
+            hi += 1
+    return "\n".join(lines) + "\n"
+
+
 def _write_index(data_dir: Path, index: dict[str, Any]) -> None:
     (data_dir / "recorded.json").write_text(
         json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
@@ -93,20 +143,21 @@ def refresh_sweep(source: Path | None = None, *, data_dir: Path = DATA_DIR) -> d
     rows = _rows(target)
     md5 = _md5(target)
 
-    index.setdefault("sources", {})["sweep"] = {
-        **recorded,
+    index_path = data_dir / "recorded.json"
+    text = index_path.read_text(encoding="utf-8")
+    text = _patch(text, ["sources", "sweep"], {
         "file": target.name,
         "origin": str(source),
         "rows": rows,
         "md5": md5,
         "note": (
-            f"snapshot taken from the running sweep ({_now()}); "
-            f"{rows} rows, pinned by md5 so the model reads a file that does "
-            f"not move under it"
+            f"snapshot of the sweep recording ({_now()}); {rows} rows, pinned "
+            f"by md5 so the model reads a file that does not move under it — "
+            f"run --check to see whether the recording has moved on since"
         ),
-    }
-    index["recorded_at"] = datetime.now().astimezone().strftime("%Y-%m-%d")
-    _write_index(data_dir, index)
+    })
+    text = _patch(text, [], {"recorded_at": datetime.now().astimezone().strftime("%Y-%m-%d")})
+    index_path.write_text(text, encoding="utf-8")
     return {
         "source": str(source),
         "file": str(target),
@@ -134,8 +185,9 @@ def refresh_night(ledger: Path, *, data_dir: Path = DATA_DIR) -> dict[str, Any]:
     before = target.read_text(encoding="utf-8") if target.exists() else ""
     target.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n",
                       encoding="utf-8")
-    index.setdefault("sources", {})["mini_night"] = {
-        **recorded,
+    index_path = data_dir / "recorded.json"
+    text = index_path.read_text(encoding="utf-8")
+    text = _patch(text, ["sources", "mini_night"], {
         "file": target.name,
         "origin": str(ledger),
         "jobs": document["jobs"],
@@ -143,9 +195,9 @@ def refresh_night(ledger: Path, *, data_dir: Path = DATA_DIR) -> dict[str, Any]:
             f"the night's own ledger, re-extracted {_now()}: "
             f"{document['jobs']} jobs with both lanes measured"
         ),
-    }
-    index["recorded_at"] = datetime.now().astimezone().strftime("%Y-%m-%d")
-    _write_index(data_dir, index)
+    })
+    text = _patch(text, [], {"recorded_at": datetime.now().astimezone().strftime("%Y-%m-%d")})
+    index_path.write_text(text, encoding="utf-8")
     return {
         "source": str(ledger),
         "file": str(target),
