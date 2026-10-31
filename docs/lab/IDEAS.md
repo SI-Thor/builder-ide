@@ -1,9 +1,14 @@
 # IDEAS — Thor-native breakthroughs for builder-ide
 
-**Date:** 2026-10-30 · **Author:** the lab seat (`~/lm-wt/lab1`)
+**Date:** 2026-10-30 (round 1) · 2026-10-31 (round 2) · **2026-10-31 (round 3 — this
+update)** · **Author:** the lab seat (`~/lm-wt/lab1`, `~/lm-wt/lab3`)
 **Sources read:** `~/src/builder-ide/CLAUDE.md`, `docs/vision.md`, `docs/research/split.md`,
-`docs/research/rev-tech.md`. **Measured:** three experiments in this directory —
-`exp-unified-memory.md`, `exp-warp-terrain.md`, `exp-fp8-tensorcores.md`.
+`docs/research/rev-tech.md`. **Measured:** ten experiments in this directory —
+`exp-unified-memory.md`, `exp-warp-terrain.md`, `exp-fp8-tensorcores.md`,
+`exp-nvme-bandwidth.md`, `exp-critic-png-roundtrip.md`, `exp-solver-scoring.md`,
+`exp-warp-terrain-port.md`, and from **round 3**: `exp-engines.md`,
+`exp-batched-shared-model.md`, `exp-adapters.md`, `exp-joules-per-fixed-point.md`,
+`exp-cuda-graphs-nvenc.md`, `exp-nvenc-roundtrip.md`.
 
 CLAUDE.md: *"Thor-native rewrites are welcome, and breakthroughs are the point… Mine ideas
 for breakthroughs by running small experiments: an idea becomes a measured result (or a
@@ -35,6 +40,19 @@ These are the facts the ideas are built on. Full detail in the three `exp-*.md` 
 | FP8 **halves weight residency** | 4 B params: 7.45 GB → 3.73 GB | EXP C |
 | **FP4 is a measured no** on this stack | 13.69 TFLOPS = 1.75× the cost of dequantise+BF16 | EXP C |
 | FP8 weights **alone** buy nothing on a realistic chain | 0.95× vs FP16 — the activation cast eats it | EXP C |
+| **The GPU clock is the first-order measurement trap** | 315 MHz idle → 1575 MHz under load, ~1.4 s to ramp; a cold measurement is **2.6× slow** | **R3** |
+| **FP8 weights *with* FP8 activations are the real multiplier** | **3.00×** on a realistic 8-GEMM chain (weights alone: 1.29×) | **R3** |
+| …but only **1.29× end-to-end**, because the stack is **launch-bound** | CPU issue time 9.35 ms ≈ the whole step; **1.66–2.42×** once graphed | **R3** |
+| FP8 costs **15–22 % output error** on a 16-layer stack | e4m3 has a 3-bit mantissa and the error compounds | **R3** |
+| The box's **weight-stream bandwidth is 166 GB/s eager, ~220 GB/s graphed** | **0.61× the 273 GB/s datasheet** | **R3** |
+| **Batching is free only in the weights-only regime** | step flat N=1…8; **13.6 → 53.7 ms** from N=1 to N=128 at S=1024 (the KV cache is per-agent) | **R3** |
+| **A CUDA Graph removes 99.7 % of the host work** | CPU enqueue 2.38 ms → 0.008 ms; the graphed time varies **6 %** across runs, the eager time **3.4×** | **R3** |
+| **A skill adapter is 15.7 M params / 60 MiB and costs ~14 ms** | PEFT keeps adapters in **FP32** even on a BF16 base; 32 adapters = 1860 MiB | **R3** |
+| **PEFT's `set_adapter` costs 75–120 ms per switch** | O(layers × adapters) in Python — larger than the request it precedes | **R3** |
+| **Warm-starting an equilibrium loop saves 1.4–1.5× the iterations** | 2–3 iterations warm vs 6 cold; joules/fixed-point = 1.39 J × iterations | **R3** |
+| **A lossy video store destroys the warm-start advantage** | an NVENC round trip warms the loop in **6** iterations — the same as a cold start | **R3** |
+| **NVENC does not compete with the tensor cores** | +0.2 % / −1.3 % on a matmul loop running beside the encode | **R3** |
+| **AV1 does not exist on this Thor's NVENC** | `av1_nvenc` fails at every bitrate | **R3** |
 
 Two rules follow, and they shape every idea below:
 
@@ -187,6 +205,13 @@ claims were corrected after a clean re-run — see the note at the end of this f
 - **Status: measured (the hardware half).** FP8 works, 1.6–1.7× FP16, half the weight
   bytes. The end-to-end generator path is untested — rev-tech R9 flags ComfyUI's fp8 flag
   as unvalidated on sm_110.
+- **Status: MEASURED (round 3, `exp-batched-shared-model.md`) — the residency half holds, the
+  speed half needs a graph.** FP8 halves the weights (1.946 GB → 0.973 GB for a 973 M-parameter
+  stack) and the *GEMM chain* runs **3.00×** faster. But end-to-end the step is
+  **1.29×**, because the FP8 path is **launch-bound** (the host spends 9.35 ms issuing the
+  step — as long as the step itself). Capturing the step in a CUDA Graph takes it to
+  **1.66–2.42×**. **And FP8 costs 15–22 % output error** on a 16-layer stack, so the
+  residency unit may be FP8 while the *output* of the thing that checks the work stays BF16.
 
 ### 6. FP8 activations, not just FP8 weights
 
@@ -204,6 +229,16 @@ claims were corrected after a clean re-run — see the note at the end of this f
   the FP16 version. **Kill it if the fused version is under 1.3×** — then the cast was
   never the bottleneck and something else is eating the gain.
 - **Status: unproven, and it is the specific thing that makes idea #5 worth anything.**
+- **Status: MEASURED (round 3, `exp-batched-shared-model.md`) — YES, AND THE MULTIPLIER IS
+  BIGGER THAN ANYONE ASSUMED.** On a realistic 8-GEMM chain (156 GFLOP, the shapes a
+  transformer actually uses): FP8 weights with a cast per layer = **1.29×**; FP8 weights
+  with the activations **kept** in FP8 between the GEMMs = **3.00×** (301.7 TFLOPS against
+  BF16's 100.9). With **calibrated per-tensor activation scales** it is **2.60×** — and
+  the calibrated version is *more accurate* (15.9 % vs 22.0 % output error), because the
+  unscaled version drifts into e4m3's limited range. **Round 1's "FP8 weights alone buy
+  nothing" (0.95×) was right and is now explained: it measured exactly the cast-per-layer
+  path.** The multiplier is real, it is per-shape (1.26× on a skinny GEMM, 2.96× on a fat
+  one), and it only reaches the user if the serving loop captures its step in a CUDA Graph.
 
 ### 7. The critic reads the render buffer, not a PNG
 
@@ -249,6 +284,16 @@ claims were corrected after a clean re-run — see the note at the end of this f
   current 2.4 GHz Wi-Fi and time it. **Kill the "cheap" claim if NVENC pushes the GPU
   above a few percent utilisation or the clip does not fit the wire.**
 - **Status: unproven.** Note the wire interaction with idea #13.
+- **Status: MEASURED (round 3, `exp-nvenc-roundtrip.md`) — THE FREE CLAIM HOLDS, AND ONE
+  DETAIL IS WRONG.** NVENC genuinely does not compete with the tensor cores: a 4096³ BF16
+  matmul loop ran **+0.2 % / −1.3 %** slower while an NVENC encode ran beside it. The video
+  engine is on its own clock domain (`gpu-nvd-0`, max 1692 MHz, separate from the tensor
+  cores' `gpu-gpc-0` at 1575 MHz). The compression is extraordinary: **30 frames of a
+  512×512 field in 38.6 KiB** — 199× smaller than raw uint8 and 134× smaller than
+  *lossless* PNG. **But AV1 does not work on this Thor**: `av1_nvenc` fails at every bitrate
+  with *"Failed locking bitstream buffer: invalid param"*, so the morning report is H.264 or
+  H.265 — and the ProArt's "Ada NVDEC handles AV1" advantage in the idea text does not
+  apply, because nothing here produces AV1.
 
 ### 9. NVDEC: a critic that can see time
 
@@ -266,6 +311,14 @@ claims were corrected after a clean re-run — see the note at the end of this f
   separate flickering from clean frames**, or if NVDEC→torch forces a copy that costs more
   than re-rendering the frames.
 - **Status: unproven.** Pairs with idea #8 (encode) — the two engines face each other.
+- **Status: MEASURED in the adjacent direction (round 3, `exp-nvenc-roundtrip.md`) — THE
+  DECODER IS NOT THE PROBLEM; THE ENCODER'S FIDELITY IS.** The H.264/H.265 round trip leaves
+  **1.72–3.07 % RMSE** on the field (30–35 dB PSNR) even at 5 Mbit/s — the error does
+  **not** go to zero with bitrate, because the limited-range 8-bit YUV pipeline is the floor.
+  That is fine for a film you watch and fatal for a state you warm-start from: fed a warm
+  start that has been through the codec, the equilibrium loop needs **6 iterations —
+  exactly as many as a cold start** (an exact warm start needs 4). **A video codec is a good
+  store for the morning report and a bad store for the world state.**
 
 ### 10. PVA: the only engine that can run while the GPU sleeps
 
@@ -378,6 +431,76 @@ claims were corrected after a clean re-run — see the note at the end of this f
 
 ---
 
+### 15. The decode step is a CUDA Graph, not a Python loop
+
+- **Thor feature:** Blackwell tensor cores plus a host that cannot feed them.
+- **The idea.** EXP 5a measured the thing every model plan on this box has to account
+  for: the FP8 path is **launch-bound**. The host spends **9.35 ms** issuing a decode
+  step, and the step takes 9.35 ms — the GPU is idle a third of the time waiting for
+  Python. Capturing the step in a CUDA Graph removes **99.7 % of the host work**
+  (enqueue **2.38 ms → 0.008 ms**) and turns the FP8 advantage from **1.29×** into
+  **1.66–2.42×**.
+- **What it unlocks for the user.** The whole FP8 story becomes reachable. Right now the
+  plan has to choose between *model quality* (FP8's 15–22 % output error) and *speed*
+  (the launch overhead eats the gain). A graph removes the reason for the trade. And on a
+  shared box the graph is worth more as a **reproducibility** tool than as a speedup: the
+  graphed time varied **6 %** across runs while the eager time varied **3.4×**.
+- **Smallest experiment.** Two hours: capture one real generator's decode step
+  (`torch.cuda.graph`) and record the step time eager vs graphed, the joules per item
+  from the rails, and the CPU issue time. **Kill it if the graph does not change the step
+  time** — which would mean the step was already GPU-bound and the launch overhead was
+  not the constraint.
+- **Status: MEASURED on a synthetic 16-layer stack (round 3, `exp-cuda-graphs-nvenc.md`) —
+  CONFIRMED. Untested on the real generator, and it is the cheapest high-value thing left.**
+
+### 16. Batch the agents by their KV cache, not by their count
+
+- **Thor feature:** unified memory; a 128 GB shared heap.
+- **The idea.** Kimi's claim is that batching N agents costs the bandwidth of one, because
+  the weights stream once. That is true **only while the agents have no context**. EXP 2
+  measured it: in the weights-only regime the step time is **flat from N = 1 to N = 8**,
+  but with a realistic **1024-token** context it grows **13.6 ms → 53.7 ms** from N = 1 to
+  N = 128 — because at N = 128 the per-agent KV cache is **4.3 GB against 1.9 GB of
+  weights**. The cache is per-agent and it scales with N.
+- **What it unlocks for the user.** A scheduler with a *batch limit that is a function of
+  the context length*, not of the model. An agent on a long context should be batched
+  with fewer neighbours; a short-context agent can have many. That is a one-line change
+  to the scheduler's admission rule and it is worth more than any further weight
+  optimisation, because the joules per item fall **186×** between N = 1 and N = 512.
+- **Smallest experiment.** Half a day: sweep N against S on the real context lengths the
+  builder actually holds, and fit the curve. **Kill it if the KV cache is not what breaks
+  the batching** — then the limit is something else and the rule stays simple.
+- **Status: MEASURED on a synthetic stack (round 3, `exp-batched-shared-model.md`) — the
+  effect is real and large. The real context lengths are not yet known.**
+
+### 17. A skill is a merged resident model, not a switched adapter
+
+- **Thor feature:** 128 GB of unified memory; a 15.7 M-parameter adapter is 60 MiB.
+- **The idea.** Kimi's shape is "one shared base, skills as adapters, switch per builder".
+  EXP 3 measured both halves: the **adapter** is cheap (15.7 M params, 60 MiB, ~14 ms on
+  a 1.64 B-parameter forward), but the **switch** is not — PEFT's `set_adapter` costs
+  **75–120 ms of host time** because it is O(layers × adapters) in Python, and it is
+  *flat* in the number of resident adapters, so it never gets cheaper as the craft count
+  grows. PEFT's mixed-adapter batch is **10× worse at 32 adapters** (5 120 one-row
+  GEMMs). The alternative shape is the one the project already believes in for meshes:
+  **recipes, not shared state**. A craft is a *merged* model — the adapter folded into a
+  resident copy of the base — and the scheduler routes requests to the craft model that
+  is already resident, like it routes to a stage.
+- **What it unlocks for the user.** Skills that cost **no per-request switch** at all.
+  The price is 60 MiB + a 2.2 GiB base per craft, so this only works for a **small number
+  of crafts** — which is probably right: a builder has a handful of crafts, not
+  hundreds. It also makes the skill *a model*, which the project's asset/licence rules
+  can reason about.
+- **Smallest experiment.** One day: merge three adapters into three resident copies of a
+  real base and measure (a) the merge cost, (b) the per-request cost of serving from a
+  merged model against serving from the base with an adapter attached, (c) the resident
+  footprint of K merged crafts for K = 4, 8, 16. **Kill it if the merge cost dominates** —
+  then the adapter has to stay attached and the switch has to be optimised instead.
+- **Status: MEASURED on the cost side (round 3, `exp-adapters.md`) — the switch is the
+  problem, and merging is the obvious alternative. Unmeasured on the resident side.**
+
+---
+
 ## Part B — killed by fact (recorded so nobody re-proposes them)
 
 - **OFA as a real-time mesh deformer.** There is **no OFA device node** on this box:
@@ -397,6 +520,36 @@ claims were corrected after a clean re-run — see the note at the end of this f
   box. Eviction must be driven by `/proc/meminfo` + `tegrastats`. (Note: this also means
   the Infinigen spike's `run-timed.sh` records `maxGPUmem=0MiB` on every run — worth
   fixing before SPIKE.md publishes numbers.)
+
+### Killed in round 3 (see the end of this file for the numbers)
+
+- **NVENC/NVDEC as the warm-start store for world-state latents.** The compression is
+  superb (199×) and the engine is free (it does not touch the tensor cores) — but the
+  round trip leaves **1.7–3.1 % RMSE** on the field, and that error is *larger than the
+  perturbation a warm start corrects*. A warm start that has been through the codec
+  converges in **6 iterations — the same as a cold start**, against 4 for an exact one.
+  A lossless 8-bit store keeps the full warm-start advantage at no cost. **Use the codec
+  for the film; use 8 bits for the state.**
+- **"Switch the active adapter per request" (PEFT's multi-LoRA server shape).**
+  `set_adapter` costs **75–120 ms of host time per call** — O(layers × adapters) in
+  Python — which is *more than the request it precedes*, and it is flat in the number of
+  resident adapters, so it does not get cheaper as the skill count grows. The naive
+  "copy the 60 MiB of weights into the active slot" is **faster** (45 ms).
+- **PEFT's mixed-adapter batch as the way to serve many builders at once.** Break-even at
+  N ≤ 8 and **10× worse at N = 32** (1161 ms/request against 109 ms), because it
+  degenerates into 160 layers × 32 one-row GEMMs plus 5 120 index-scatters.
+- **The critic on the CPU.** With the GPU busy, the same 6 iterations take **2.2× longer**
+  and cost **2.5× the joules**. Combined with round 1's finding that there is no spare
+  accelerator on this box, the critic has to share the GPU and the *schedule* has to
+  arbitrate.
+- **Sizing the scheduler against 273 GB/s.** This box delivers **166 GB/s** eager and
+  **~220 GB/s** graphed. Any `T_pass` computed from the datasheet is a `T_pass` that cannot
+  be achieved.
+- **Batching N agents costs the bandwidth of one.** True only while the agents have no
+  context. With a 1024-token context the step time grows **13.6 → 53.7 ms** from N = 1 to
+  N = 128, because each agent's KV cache is its own: at N = 128 the cache is **4.3 GB
+  against 1.9 GB of weights**.
+- **AV1 on this Thor's NVENC.** `av1_nvenc` fails at every bitrate.
 
 ---
 
@@ -431,6 +584,29 @@ guessing at.
 Item 8 is now the natural next experiment, because item 7 answered its sibling
 ("the procedural rewrite is worth it") and left the other half ("is the cost SDF
 evaluation or octree bookkeeping?") untouched.
+
+### Round 3 ran Kimi's six claims, and five of them moved
+
+| # | Kimi's claim | Measured | Verdict | File |
+|---|---|---|---|---|
+| 1 | NVLA / PVA / NVDLA as critic, scheduler or mesh-deformer engines | **No NVDLA device node exists** (`ls /dev`: PVA, two ISP channels, `/dev/v4l2-nvenc`, `/dev/v4l2-nvdec` — no OFA, no NVDLA). PVA is not schedulable from userspace. **AV1 has no NVENC encoder on this Thor.** | **killed** | `exp-engines.md` |
+| 2 | One shared model, N agents batched; weights stream once per pass | Step flat N=1…8, then grows; **13.6 → 53.7 ms** from N=1 to N=128 once the agents have a 1024-token context | **half right** | `exp-batched-shared-model.md` |
+| 3 | FP8 as the multiplier; re-derive it | **3.00×** on the GEMM chain, **1.29×** end-to-end (launch-bound), **1.66–2.42×** graphed, at **15–22 %** output error | **re-derived** | `exp-batched-shared-model.md`, `exp-cuda-graphs-nvenc.md` |
+| 4 | Skills as LoRA adapters on one shared base, switched per builder | Adapter is **15.7 M params / 60 MiB** and costs **~14 ms**; but **switching costs 75–120 ms** and the mixed batch is **10× worse** at 32 adapters | **half right** | `exp-adapters.md` |
+| 5 | Warm-started equilibrium loops, 2–3 iterations; joules per fixed point as the governing metric | **2–3 iterations warm, 6 cold**; joules = **1.39 J × iterations**; a **lossless 8-bit store is free** | **confirmed** | `exp-joules-per-fixed-point.md` |
+| 6 | NVENC/NVDEC for world-state latents between frames (warm start) | The engine is **free** (+0.2 %) and **199×** compressive — but the round trip leaves **1.7–3.1 % RMSE** and **destroys the warm-start advantage** | **killed as a store, confirmed as an engine** | `exp-nvenc-roundtrip.md` |
+
+### What round 3 says to run next, in order
+
+| # | Experiment | Time | What it decides |
+|---|---|---|---|
+| 1 | **Capture the real generator's decode step in a CUDA Graph** | 2 h | Whether the 1.66–2.42× graphed FP8 gain is reachable in the real pipeline, or whether the real model's shapes differ. **This is the highest-value cheap thing in the list.** |
+| 2 | **Re-measure the whole round on a quiet box** (load < 8) | 1 h | The box ran at load 15–113 during round 3. The *ratios* held; the absolutes did not. A clean re-run turns every range in round 3 into a number. |
+| 3 | **Graph-capture PEFT's mixed-adapter batch** | 4 h | The mixed path is 160 layers × N one-row GEMMs — exactly the launch-bound case a graph removes. If it captures, the 10× penalty at N = 32 may vanish. |
+| 4 | **Skill adapters as *merged* resident models**, not switched ones | 1 day | 60 MiB + a 2.2 GiB base per craft group, versus 75–120 ms per switch. Which is cheaper depends on how many crafts and how many requests per second. |
+| 5 | **The real critic's forward pass in FP8 vs BF16** (items 3 and 8 of round 2, re-scoped) | 1 day | Whether the critic can afford FP8's 15–22 % error at all — round 1 says keep it in BF16, and round 3 has the number to argue with. |
+| 6 | **The KV-cache-aware batch limit** | 4 h | Round 3 measured the *shape* of the effect (batching stops being free at N ≈ 2 with a 1024-token context). The scheduler needs the actual curve for the real context length. |
+| 7 | **Part C items 2, 6 and 8 from round 2 are still open** | — | Item 6 needs a human and a cable; item 8 is still the natural next *kernel* experiment. |
 
 ---
 
@@ -491,6 +667,44 @@ them down.
     mid-write and every later access — including `os.sync()` — blocked indefinitely; two
     processes are still in `D` state on it and cannot be signalled. Bound every device
     operation with a timeout and plan the shelf as an archive tier, not a cache tier.
+14. **The GPU clock ramps, and the first measurement of a session is 2.6× slow.** The Thor
+    idles at **315 MHz** and ramps to **1575 MHz** under `nvhost_podgov`, taking ~1.4 s of
+    *sustained* load. Measured: a cold 8-GEMM chain is **3.51 ms**, the same chain after
+    1.4 s of warm-up is **1.40 ms**, and 5 s of idling puts it back to 1.84 ms. **Warm the
+    GPU before timing anything and record the clock beside the number** — this applies to
+    every GPU figure in rounds 1 and 2 as well.
+15. **Time the variants you are comparing in *interleaved* rounds.** On a shared box the
+    absolute time of anything drifts 2–3× with the other seats' load. Two blocks
+    measured back to back are not comparable; two variants measured in the same rounds are.
+    This is what turned exp 5a's 2.8× disagreement between runs into a ratio.
+16. **A CUDA Graph's replay time is the pure GPU cost, so it moves with the box's *GPU*
+    tenants, not with the CPU load.** With another seat's ComfyUI server rendering, the
+    graphed BF16 step measured 8.83 ms on a quiet GPU and 20.29 ms with the tenant
+    rendering. **Every absolute GPU number on this box is a range; only ratios are
+    numbers.**
+17. **The whole-box INA rail needs an idle baseline, and even then it is only good for
+    work that dominates the box.** With three other tenants, the raw whole-box joules for
+    a one-second ffmpeg subprocess came out *below* the idle baseline (negative
+    "joules above baseline"). **Subtract the baseline, and if the result comes out
+    negative, report the wall time instead.**
+18. **PEFT's `set_adapter` is O(layers × adapters) in Python, and it makes the adapter
+    *trainable* while it does it** (`inference_mode=False` is the default). 160 LoRA layers
+    × 32 adapters = 10 240 `requires_grad` rewrites per switch.
+19. **The PEFT adapter is FP32 even when the base model is BF16.** A "15.7 M-parameter
+    skill" is 60 MiB on the device, not 30 MiB. Size the skill budget in *bytes*, not in
+    parameters.
+20. **`torch._scaled_mm`'s scale tensors must be allocated once, outside the timed loop.**
+    Creating them inside is a synchronous H2D copy per GEMM, which costs more than the
+    GEMM.
+21. **A tensor with outliers needs an RMS difference, not a max-abs one.** DINOv2's output
+    has elements up to 15.9 against an RMS of 1.40; a max-abs comparison reported two
+    adapters as "13 apart" when their RMS difference was 1.3 % and the truth was ~10 %.
+22. **Grouped-query attention must not materialise a `repeat_interleave` copy of the KV
+    cache.** The copy is 4× the cache and it turns a bandwidth measurement into a
+    measurement of the attention implementation (234 ms/step against 54 ms).
+23. **This ffmpeg has no `scale` filter.** It cannot convert `rgb24` → `yuv420p`
+    (*"scale filter not present"*); the pixel format has to be produced in Python. NV12 is
+    accepted directly by `*_nvenc`.
 
 ## Licence note for everything in this directory
 
@@ -588,3 +802,93 @@ but the Infinigen spike's **current build does pass an explicit arch flag**: the
 "PTX-JIT tax" is therefore a property of the default, not a wall — but it is still a
 trap for anyone who writes a new `.cu` file without checking, and Warp's native sm_110
 cubin remains the reason to prefer Warp for new work.
+
+---
+
+## Round 3 — what changed
+
+Six experiments, against the six claims in the round-3 brief. One file each, with the
+numbers, the box's state beside every number, and the failures that stayed. The scripts
+are in `docs/lab/lab3-scripts/`.
+
+| file | what it measured | verdict |
+|---|---|---|
+| `exp-engines.md` | the fact-check: does NVLA / PVA / NVDLA / AV1 exist on this Thor? | **kills four claims** |
+| `exp-batched-shared-model.md` | one shared model, N agents batched; the FP8 multiplier; the bandwidth | **half right, and the multiplier is 3×** |
+| `exp-adapters.md` | N LoRA skills on one shared base; switching vs mixing; memory per adapter | **half right — switching is the wrong mechanism** |
+| `exp-joules-per-fixed-point.md` | a toy equilibrium loop, warm vs cold; joules per fixed point | **confirmed** |
+| `exp-cuda-graphs-nvenc.md` | CUDA Graphs against launch overhead | **confirmed, and worth more as reproducibility** |
+| `exp-nvenc-roundtrip.md` | a float field through NVENC/NVDEC, as a warm-start store | **kills the store, confirms the engine** |
+
+### The five things that changed
+
+1. **The GPU clock was silently corrupting every measurement, and now it is a rule.**
+   The Thor idles at 315 MHz and ramps to 1575 MHz over ~1.4 s of sustained load. A cold
+   measurement is **2.6× slow**, and it is the *first* measurement of every session.
+   Every script in `lab3-scripts/` now warms the GPU before timing and records the clock
+   beside the number. *(`exp-batched-shared-model.md` §5.1)*
+2. **The FP8 multiplier is 3×, not 1.6–1.7× — and the reason round 1 measured
+   0.95× is now understood.** Round 1 measured FP8 *weights* with a cast at every layer.
+   Keep the activations in FP8 and the same chain is **3.00×** (301.7 TFLOPS against
+   BF16's 100.9); with calibrated per-tensor activation scales, **2.60×** and *more
+   accurate*. But end-to-end the gain is **1.29×**, because the FP8 path is
+   **launch-bound** — the host spends 9.35 ms issuing the step and the step takes 9.35 ms.
+   **A CUDA Graph takes it to 1.66–2.42×.** And FP8 costs **15–22 % output error**,
+   so the critic and the provenance path stay in BF16.
+   *(`exp-batched-shared-model.md`, `exp-cuda-graphs-nvenc.md`)*
+3. **Batching is free only while the agents have no context.** The step time is flat from
+   N = 1 to N = 8 in the weights-only regime, and then grows; with a realistic 1024-token
+   context it grows **13.6 → 53.7 ms** from N = 1 to N = 128, because each agent's KV cache
+   is its own (4.3 GB of cache against 1.9 GB of weights at N = 128). The scheduler's batch
+   limit has to be a function of the *context length*, not of the model.
+   *(`exp-batched-shared-model.md`)*
+4. **Skills are cheap; switching them is not.** A 15.7 M-parameter adapter is 60 MiB
+   (PEFT keeps it FP32) and costs ~14 ms on a 1.64 B-parameter forward. But PEFT's
+   `set_adapter` costs **75–120 ms per switch** — O(layers × adapters) in Python,
+   larger than the request, and flat in the number of resident adapters — and PEFT's
+   mixed-adapter batch is **10× worse at N = 32** because it degenerates into 5 120
+   one-row GEMMs. **The builder-scheduling layer must not be built on "switch the active
+   adapter".** *(`exp-adapters.md`)*
+5. **The equilibrium loop's governing metric works, and a lossy store destroys it.** Warm
+   starts converge in **2–3 iterations** against 6 for a cold start; joules per fixed point
+   = **1.39 J × iterations**; a **lossless 8-bit warm-start store is free**. But an NVENC
+   round trip leaves **1.7–3.1 % RMSE**, which is larger than the perturbation the warm
+   start was correcting, and the loop then needs **6 iterations — exactly as many as a
+   cold start**. The video engine itself is free (it does not touch the tensor cores) and
+   199× compressive, so it is excellent for the morning report and useless for the world
+   state. *(`exp-joules-per-fixed-point.md`, `exp-nvenc-roundtrip.md`)*
+
+### What this round did not settle
+
+- **The absolute numbers are ranges, not numbers.** The box ran at load 15–113 with two or
+  three other seats resident on the GPU. The *ratios* reproduced; the absolutes moved by up
+  to 3.4×. Every figure in these files is quoted with its range and its load, and
+  round 2's lesson holds: **publish ranges and re-run before publishing a conclusion.**
+  A clean re-run at load < 8 is the first thing to do.
+- **The real generator.** The 16-layer stack is synthetic (seeded weights), which is what
+  makes the byte accounting exact. Whether ComfyUI's own fp8 path reaches 3× is
+  untested — and rev-tech R9 flags ComfyUI's fp8 flag as unvalidated on sm_110.
+- **The real critic.** The adapter experiment used the real DINOv2-giant weights; the
+  equilibrium loop used a synthetic critic. The *engine* results (FP8 multiplier, graph
+  speedup, adapter switching cost) do not depend on which model is in the loop; the
+  joules-per-fixed-point figures do.
+- **Part C items 2, 6 and 8 from round 2** are still open (item 6 needs a human and a
+  cable).
+
+### The corrections this round makes to rounds 1 and 2
+
+1. **"FP8 weights alone buy nothing" (round 1) was right but is easy to misread.** It
+   measured the cast-per-layer path: 0.95× there, 1.29× on a clean rebuild, and
+   **3.00×** with the activations kept in FP8. Both numbers are true; the multiplier
+   depends on which path you mean. **Round 3's version of the claim: the prize is real and
+   large, and it is *not* the thing that makes the serving loop fast — the launch
+   overhead is.**
+2. **The 273 GB/s in the bandwidth formula is not achievable here.** Measured: **166 GB/s**
+   eager, **~220 GB/s** graphed. Any `T_pass` computed from 273 GB/s is a `T_pass` that
+   cannot be achieved.
+3. **Round 1's and round 2's GPU figures need the clock rule.** Trap 14 above applies to
+   every GPU number in this directory. Nothing measured in rounds 1–2 was re-run under it,
+   so those numbers should be read as "at whatever clock the GPU happened to be at".
+4. **Round 2's PNG finding now has its contrast.** PNG is lossless at 5.18 MiB for 30
+   frames; the video path is 38.6 KiB at 3 % error. **The critic wants the PNG (or the
+   render buffer); the world state wants the 8-bit store; the film wants the codec.**
