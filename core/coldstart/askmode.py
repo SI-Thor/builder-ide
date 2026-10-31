@@ -145,10 +145,19 @@ class AskMode:
 
     def begin_session(self) -> AskSession:
         """A session with no questions yet writes nothing — an empty sitting
-        leaves no trace, which is the honest shape for a look around."""
+        leaves no trace, which is the honest shape for a look around.
+
+        The id folds in the ledger's head seq: on one store a sitting is
+        distinguished by *when in the log* it starts, not only by the clock —
+        two sittings at the same clock moment (a fixed test clock; also any
+        clock that repeats) must never share a session id, or the second
+        inherits the first's question budget from the shared `line.spoken`
+        fold (found by the rewired acceptance run, branch m1-real)."""
         started_at = self._clock.now()
         return AskSession(
-            id=f"cs_{short_hash({'started_at': started_at})}", started_at=started_at
+            id=f"cs_{short_hash({'started_at': started_at,
+                                'after': self._ledger.head_seq()})}",
+            started_at=started_at,
         )
 
     # -- asking -----------------------------------------------------------------
