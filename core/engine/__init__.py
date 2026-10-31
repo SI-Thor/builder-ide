@@ -15,6 +15,10 @@ putting our schema above the engine):
   subprocess per stage, config bundle verified against the pin;
 * :mod:`core.engine.infinigen2` — 2.0 + procfunc in-process: the traced
   instance graph out, a recipe diff re-executed in;
+* :mod:`core.engine.venv2` — 2.0 through its own venv's CLI (the
+  subprocess boundary that renders on the Thor today): trace + render real,
+  the pin interrogated from the venv, re-execution and export refused with
+  their missing pieces named;
 * :mod:`core.engine.gate` — the merge gate's engine rungs over any engine;
 * :mod:`core.engine.registry` — :func:`open_engine` / :func:`engine_from_env`:
   pointing the core at a real engine is configuration.

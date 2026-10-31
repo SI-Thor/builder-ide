@@ -7,13 +7,23 @@ one line the acceptance suites hold, and the one line a real engine changes:
     {"flavour": "infinigen-1x", "pin": {...}, "repo": "...",       # the spike
      "python": ".../.venv/bin/python", "config_files": [...],
      "output_dir": "$BUILDER_HOME/stages"}
-    {"flavour": "infinigen-2-procfunc", "pin": {...}}              # the decision
+    {"flavour": "infinigen-2-procfunc", "runtime": "venv",         # the v2
+     "python": "~/lm-wt/v2-thor/.venv/bin/python",                 # venv, today
+     "repo": "~/lm-wt/v2-thor/src/infinigen-upstream",
+     "generators": {"crates": "storage_cell_shelf_rand", ...},
+     "output_dir": "$BUILDER_HOME/engine"}
+    {"flavour": "infinigen-2-procfunc", "pin": {...}}              # in-process,
+                                                                   # when the v2
+                                                                   # gate lands
 
 `engine_from_env()` reads the same shape from ``BUILDER_ENGINE`` (JSON), so
-deploying the real engine to the Thor is one environment variable on the
+deploying a real engine to the Thor is one environment variable on the
 service — no code change, no recipe change (plan §3 week-1 item 3's
-pass/fail). The ``runner``/``runtime`` keys accept the injected doubles and
-never appear in real configuration.
+pass/fail). The venv flavour's pin is *interrogated* from the venv itself
+(the resolved packages are the config), so its SPEC carries no pin — one may
+be given, and drift is refused. The ``runner`` key (any flavour) and a
+non-``"venv"`` ``runtime`` value accept the injected doubles and never
+appear in real configuration.
 """
 from __future__ import annotations
 
@@ -41,8 +51,22 @@ def open_engine(spec: Mapping[str, Any]) -> Engine:
         pin = EnginePin.model_validate(spec.pop("pin"))
         return Infinigen1xEngine(pin=pin, **spec)
     if flavour == "infinigen-2-procfunc":
+        runtime = spec.pop("runtime", None)
+        if runtime == "venv":
+            from core.engine.venv2 import Venv2Runtime
+
+            pinned = spec.pop("pin", None)
+            venv = Venv2Runtime(**spec)
+            pin = venv.engine_pin(
+                EnginePin.model_validate(pinned) if pinned else None)
+            return Infinigen2Engine(pin=pin, runtime=venv)
         pin = EnginePin.model_validate(spec.pop("pin"))
-        return Infinigen2Engine(pin=pin, **spec)
+        if runtime is not None and not callable(getattr(runtime, "trace", None)):
+            raise ValueError(
+                f"unknown runtime {runtime!r}; it is 'venv' (the subprocess "
+                "flavour) or an injected ProcfuncRuntime double"
+            )
+        return Infinigen2Engine(pin=pin, runtime=runtime)
     raise ValueError(
         f"unknown engine flavour {flavour!r}; the flavours are 'fake', "
         "'infinigen-1x' and 'infinigen-2-procfunc'"
