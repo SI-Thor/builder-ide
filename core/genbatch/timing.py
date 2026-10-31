@@ -19,6 +19,7 @@ it does not know.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from typing import Iterable, Sequence
@@ -151,7 +152,7 @@ class PromptTimer:
         self._session = aiohttp.ClientSession()
         url = f"{self.base_url}/ws?clientId={self.client_id}"
         self._ws = await self._session.ws_connect(url, heartbeat=30)
-        self._task = self._session.create_task(self._read())
+        self._task = asyncio.get_running_loop().create_task(self._read())
         return self
 
     async def close(self) -> None:
@@ -223,8 +224,6 @@ class PromptTimer:
         return self.split(prompt_id)
 
     async def _asyncio_sleep(self, seconds: float) -> None:
-        import asyncio
-
         await asyncio.sleep(seconds)
 
     def split(self, prompt_id: str, class_types: dict[str, str] | None = None) -> LaneSplit:

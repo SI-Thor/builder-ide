@@ -25,6 +25,12 @@ from core.genbatch.timing import PromptTimer
 
 __all__ = ["ComfyClient", "ComfyError", "PromptResult"]
 
+#: The node classes that write a file. If a prompt that has one of them
+#: produces no file, the prompt was refused.
+OUTPUT_NODE_TYPES = frozenset(
+    {"SaveGLB", "SaveImage", "SaveImageAdvanced", "PreviewImage", "Save3DAdvanced"}
+)
+
 
 class ComfyError(RuntimeError):
     """ComfyUI said no, or said something we cannot read."""
@@ -41,6 +47,9 @@ class PromptResult:
     #: The lane split of the prompt's time.
     split: LaneSplit = field(default_factory=LaneSplit)
     wall_seconds: float = 0.0
+    #: When the prompt started and ended, on the monotonic clock.
+    started_at: float = 0.0
+    ended_at: float = 0.0
     #: The error, when the prompt failed.
     error: str | None = None
 
@@ -70,7 +79,9 @@ class ComfyClient:
 
     # -- the plain calls ----------------------------------------------------
 
-    async def _session(self):
+    def _session(self):
+        """A fresh session. The client is used once per call, so the
+        session is too."""
         try:
             import aiohttp
         except ImportError as exc:  # pragma: no cover - the extra is optional
@@ -192,10 +203,14 @@ class ComfyClient:
                 outputs=self._outputs(entry),
                 split=split,
                 wall_seconds=time.monotonic() - started,
+                started_at=started,
+                ended_at=time.monotonic(),
             )
             status = (entry.get("status") or {}).get("status_str")
             if status == "error":
                 result.error = self._error_text(entry)
+            if result.error is None:
+                result.error = self._missing_output_text(workflow, result)
             return result
         finally:
             await timer.close()
@@ -221,6 +236,29 @@ class ComfyClient:
             if paths:
                 found[str(node_id)] = paths
         return found
+
+    def _missing_output_text(self, workflow: dict, result: PromptResult) -> str | None:
+        """Name the outputs a refused prompt did not write.
+
+        ComfyUI refuses a workflow it cannot validate — a combo given the
+        wrong type of value, say — by ignoring the output nodes and
+        reporting **success** in its history. The refusal is only in its
+        log. A prompt that was supposed to write a file and wrote none was
+        refused, and the morning has to be able to say so.
+        """
+        missing = [
+            node_id
+            for node_id, node in workflow.items()
+            if isinstance(node, dict)
+            and node.get("class_type") in OUTPUT_NODE_TYPES
+            and not result.outputs.get(node_id)
+        ]
+        if not missing:
+            return None
+        return (
+            "the prompt wrote no output for node(s) "
+            f"{', '.join(sorted(missing))} — ComfyUI refused the workflow"
+        )
 
     def _error_text(self, entry: dict) -> str:
         for message in (entry.get("status") or {}).get("messages") or []:
