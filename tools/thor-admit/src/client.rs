@@ -220,15 +220,14 @@ pub fn run_under_lease(
 
     let pgid = pid as i32;
     let asked_at = std::time::Instant::now();
+    let mut queued_at: Option<(usize, usize)> = None;
     let grant = match client.acquire(
         label,
         peak,
         priority,
         TargetSpec::Group { pgid },
         &mut |position, waiting| {
-            eprintln!(
-                "thor-admit: {label:?} is waiting for room (position {position} of {waiting})"
-            );
+            queued_at = Some((position, waiting));
         },
     ) {
         Ok(grant) => grant,
@@ -244,9 +243,18 @@ pub fn run_under_lease(
         }
     };
 
+    let waited = asked_at.elapsed().as_secs_f64();
+    // The queue is only worth mentioning when the wait was long enough for
+    // the operator to wonder what was going on.
+    if waited > 0.5 {
+        if let Some((position, waiting)) = queued_at {
+            eprintln!(
+                "thor-admit: {label:?} waited {waited:.1}s for room (it was {position} of {waiting} in the queue)"
+            );
+        }
+    }
     eprintln!(
-        "thor-admit: {label:?} admitted after {:.3}s (peak {}, floor {})",
-        asked_at.elapsed().as_secs_f64(),
+        "thor-admit: {label:?} admitted after {waited:.3}s (peak {}, floor {})",
         crate::sizes::human(grant.peak_bytes),
         crate::sizes::human(grant.floor_bytes)
     );
