@@ -192,7 +192,6 @@ Branches are pushed as the agents work and reviewed before they merge into
 
 ### In flight
 
-- **Engine round 3**: the stage splice for higher cache reuse, and the Warp mesher SDF wired into the engine.
 - **The critic's selection** (week 3, item 18), starting from the calibration table; floating objects are the open class.
 - **FP8 for real**: making the generator's fused FP8 path actually run, and pricing the prop stage right.
 - **Lab round 5**: batching the Architect's solver proposals on the GPU.
