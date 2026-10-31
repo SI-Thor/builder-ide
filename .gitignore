@@ -1,0 +1,16 @@
+# The worktree's own venv — dependencies are installed here, never system-wide.
+.venv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.egg-info/
+
+# Local service state (the ledger lives under $BUILDER_HOME, but a dev may
+# point it at the worktree)
+*.db
+*.db-wal
+*.db-shm
+artifacts/
+reports/
