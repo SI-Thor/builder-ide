@@ -184,6 +184,8 @@ struct State {
     waiters: HashMap<u64, Sender<Response>>,
     /// What each waiting request wants to lease.
     targets: HashMap<u64, TargetSpec>,
+    /// When each waiting request arrived.
+    waiting_since: HashMap<u64, Instant>,
     /// Requests that arrived and are not handled yet.
     inbox: Vec<(Request, Sender<Response>)>,
     next_id: u64,
@@ -224,6 +226,7 @@ impl Daemon {
             queue: Queue::new(),
             waiters: HashMap::new(),
             targets: HashMap::new(),
+            waiting_since: HashMap::new(),
             inbox: Vec::new(),
             next_id: 1,
             mem: MemInfo::read().unwrap_or_default(),
@@ -555,6 +558,7 @@ impl Daemon {
         state.queue.push(waiter);
         state.waiters.insert(id, reply.clone());
         state.targets.insert(id, target);
+        state.waiting_since.insert(id, Instant::now());
         let position = state.queue.position(id).unwrap_or(0);
         self.log_event(
             "lease.queued",
@@ -578,6 +582,7 @@ impl Daemon {
             state.queue.remove(id);
             state.waiters.remove(&id);
             state.targets.remove(&id);
+            state.waiting_since.remove(&id);
         }
     }
 
@@ -597,6 +602,7 @@ impl Daemon {
             }
             let waiter = state.queue.pop().expect("the queue had a waiter");
             let reply = state.waiters.remove(&waiter.id);
+            state.waiting_since.remove(&waiter.id);
             let target = state
                 .targets
                 .remove(&waiter.id)
@@ -931,7 +937,11 @@ fn status_report(state: &State, config: &Config) -> StatusReport {
             label: waiter.label.clone(),
             peak_bytes: waiter.peak_bytes,
             priority: waiter.priority,
-            waiting_s: 0.0,
+            waiting_s: state
+                .waiting_since
+                .get(&waiter.id)
+                .map(|since| since.elapsed().as_secs_f64())
+                .unwrap_or(0.0),
         })
         .collect();
     StatusReport {
