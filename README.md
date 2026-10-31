@@ -28,7 +28,7 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel). The mesher's SDF evaluation in Warp is the third.
-- **The core is integrated and renders for real: 1,108 tests pass** in one
+- **The core is integrated and renders for real: 1,156 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
     2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
@@ -174,14 +174,18 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `propmaker-batch` | TRELLIS.2 behind the scheduler; the first real mini-night: 3 props × 3 seeds in 24 min 44 s ([record](docs/lab/mini-night.md)) | merged |
 | `night-budget` | The night's arithmetic from measured numbers: a cost model per job kind (GPU/CPU/wall minutes, cents, iterations, joules; p50/p95) | merged |
 | `stage-cache` | The procfunc graph as the recipe's lower layer, a content-addressed graph store, the stage cache and partial regeneration | merged |
+| `cost-wiring` | The cost model prices the night's plan slate; owner overrides are recorded and marked; a refusal names what it cut; genbatch reads model costs | merged |
+| `mesh-repair` | TRELLIS.2 props made watertight with manifold3d (9/9, silhouette IoU 0.9985–1.0, ~3 s each); the critic checks the repaired mesh and grades repair fidelity | merged |
 
-**`main` today: 1,108 tests pass** (3 skipped; the real-engine tests are opt-in).
+**`main` today: 1,156 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
-- **Engine round 2**: whole scenes traceable, a byte-stable recipe graph, Warp terrain as a 2.0 stage.
-- **Lab round 4** and **the critic's calibration set** on real sweep renders (queued for a provider quota).
-- **An overnight Infinigen scene sweep** on the Thor (8 scene types × 6 seeds) for the scheduler's timings and the calibration set.
+- **Engine round 3**: the stage splice for higher cache reuse, and the Warp mesher SDF wired into the engine.
+- **An honest week**: seven real nights on the integrated core, recorded in `docs/lab/honest-week.md`.
+- **The critic's calibration** (false positives and negatives) on real sweep renders.
+- **The daytime world** (off by default; decision B3).
+- **An overnight Infinigen scene sweep** on the Thor for the scheduler's timings and the calibration set.
 
 ## Machines
 
