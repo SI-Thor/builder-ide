@@ -22,6 +22,14 @@ from ..store import LedgerStore
 # recency weighting: weight decays by half every 10 scored observations
 RECENCY_HALF_LIFE = 10.0
 
+# The Critic's words → the ledger's score (§2.3 → §1.7).
+CRITIC_TO_SCORE = {
+    "keep": "hit",      # the critic found nothing to change
+    "fix": "partial",   # it found something, and it was close
+    "hold": "miss",     # it is not this one
+    "revert": "miss",
+}
+
 
 class PredictionsService:
     def __init__(self, core) -> None:
@@ -135,8 +143,18 @@ class PredictionsService:
         return scored
 
     def score_world_from_critic(self, pr_id: str, critic_verdict: str) -> Prediction:
-        """World-claim predictions are scored by the Critic only."""
-        return self.score(pr_id, critic_verdict, core_actor())
+        """World-claim predictions are scored by the Critic only.
+
+        The Critic speaks in its own words — hold / fix / keep (§2.3) — and
+        the ledger scores in hit / partial / miss. The mapping lives here so
+        the critic's finding and the score are both on the record.
+        """
+        verdict = CRITIC_TO_SCORE.get(critic_verdict)
+        if verdict is None:
+            raise Refused(
+                f"critic verdict {critic_verdict!r} cannot score a world claim; "
+                f"expected one of {sorted(CRITIC_TO_SCORE)}")
+        return self.score(pr_id, verdict, core_actor())
 
     # ------------------------------------------------------------- gates
 

@@ -452,3 +452,29 @@ def test_the_scene_manifest_is_the_other_halfs_door(client):
     r = client.get("/v1/world/scene?branch=br_main", headers=PANEL)
     assert r.status_code == 501
     assert r.json()["error"]["code"] == "other_half_unavailable"
+
+
+def test_a_branch_can_be_opened(client, core):
+    """POST /v1/branches is in §4.2's table too."""
+    r = client.post("/v1/branches", headers=OWNER,
+                    json={"name": "morning A", "base": "ver_1",
+                          "purpose": "morning-option"})
+    assert r.status_code == 200
+    br = r.json()["branch"]
+    assert br["id"].startswith("br_")
+    assert br["purpose"] == "morning-option"
+    assert br["created_by"]["id"] == "casey"
+    listed = client.get("/v1/branches", headers=PANEL).json()["branches"]
+    assert any(b["id"] == br["id"] for b in listed)
+
+
+def test_a_kid_may_not_open_a_branch(client):
+    """A kid's branch is a proposal; opening one is the owner's act."""
+    r = client.post("/v1/branches", headers=KID, json={"name": "morning A"})
+    assert r.status_code == 403
+
+
+def test_the_acp_proxy_is_the_other_halfs_door(client):
+    r = client.get("/acp/proxy/att_1", headers=PANEL)
+    assert r.status_code == 501
+    assert r.json()["error"]["code"] == "other_half_unavailable"

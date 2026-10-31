@@ -190,6 +190,16 @@ class ApplyBranchBody(BaseModel):
     to_version: str | None = None
 
 
+class BranchBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1)
+    base: str | None = None
+    head: str | None = None
+    purpose: Literal["main", "night", "work-order", "morning-option", "standing",
+                     "rejected"] = "morning-option"
+
+
 class AssetBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -502,6 +512,35 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
         ]
         return {"branches": out, "standing": standing}
 
+    @app.post("/v1/branches", tags=["branches"])
+    def create_branch(body: BranchBody,
+                      principal: Principal = Depends(require_adult_owner())):
+        """Open a branch: a morning option, a standing branch, or a
+        work-order's own line.
+
+        The branch is created from a base version and carries its creator,
+        so the kid's branches are his and the owner's are the owner's. The
+        branches are the owner's morning — a kid proposes, the owner opens
+        (§7.15).
+        """
+        from .canon import new_id
+
+        taken = {r["id"] for r in core.store.scan("branches")}
+        br_id = new_id("branch")
+        if br_id in taken:  # pragma: no cover - 12 hex chars of entropy
+            raise ValidationError("branch id collision; retry")
+        ev = core.store.new_event(
+            "branch.created", owner_actor(principal.actor),
+            {"entity_kind": "branch", "entity_id": br_id},
+            {"branch": {"id": br_id, "name": body.name, "base": body.base,
+                        "head": body.head, "purpose": body.purpose,
+                        "protected": body.purpose == "main",
+                        "created_by": {"kind": "owner", "id": principal.actor}}},
+        )
+        core.store.append(ev)
+        row = core.store.get_row("branches", {"id": br_id})
+        return {"branch": {"id": br_id, **(row or {}).get("payload", {})}}
+
     @app.post("/v1/branches/{branch_id}/apply", tags=["branches"])
     def apply_branch(branch_id: str, body: ApplyBranchBody,
                      principal: Principal = Depends(require(OWNER))):
@@ -625,9 +664,10 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
                     idem_key: str | None = Header(default=None, alias="Idempotency-Key")):
         """One-action erase: redaction plus the compensating event, in ONE
         transaction (§1.7, §7.16)."""
+        # the service namespaces its own keys ("taste:erase:"), so the raw
+        # key is passed through
         return TasteService(core).erase(
-            body.author, actor_for(principal),
-            idem_key=scoped_key("taste:erase", idem_key),
+            body.author, actor_for(principal), idem_key=idem_key,
         )
 
     @app.post("/v1/ledger/taste/ratify", tags=["taste"])
@@ -636,8 +676,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
                      idem_key: str | None = Header(default=None, alias="Idempotency-Key")):
         """Ratify a kid actor's keeps — asked once, in the report, in one line."""
         return TasteService(core).ratify(
-            body.author, actor_for(principal),
-            idem_key=scoped_key("taste:ratify", idem_key),
+            body.author, actor_for(principal), idem_key=idem_key,
         )
 
     # ------------------------------------------------------------- assets
@@ -696,6 +735,24 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
             "the scene compiler (recipe half) produces the compiled glTF/USD "
             "manifest; this half owns the endpoint and the node registry it reads",
             branch=branch, lod=lod, since_version=since_version,
+        )
+
+    # ------------------------------------------------------------- acp proxy
+
+    @app.get("/acp/proxy/{attempt}", tags=["other-half"])
+    def acp_proxy(attempt: str,
+                  principal: Principal = Depends(require(OWNER, PANEL))):
+        """The front-end proxy onto an engineer session (§2.4).
+
+        The engineer adapter is the other half's door: this half owns the
+        attempt's ledger and the event stream, but the session it would
+        proxy onto does not exist here. Answered 501 with the seam named.
+        """
+        raise OtherHalfUnavailable(
+            "the ACP engineer adapter (the other half) owns the session this "
+            "proxy would re-broadcast; this half owns the attempt's ledger "
+            "and the /v1/events stream",
+            attempt=attempt,
         )
 
     # ------------------------------------------------------------- SSE

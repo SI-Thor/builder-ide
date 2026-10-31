@@ -145,6 +145,16 @@ class VocabService:
                 validate_params(entry.params, params)
             except Refused as r:
                 refusal = str(r.message if hasattr(r, "message") else r)
+            else:
+                # the target must exist: a node id or a region, resolved
+                # through the registry when given (the recipe half keeps it
+                # current). Once the registry has been published, a call may
+                # not name a node that is not in it.
+                if node:
+                    refs = self.store.scan("node_refs")
+                    known = {r.get("node_id") for r in refs if not r.get("orphaned")}
+                    if refs and node not in known:
+                        refusal = f"node {node!r} is not in the node registry"
         if refusal is not None:
             ev = self.store.new_event(
                 "vocab.call", actor, {"entity_kind": "vocab_word", "entity_id": word},

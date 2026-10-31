@@ -291,6 +291,9 @@ def _h_taste_note(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> None:
     author = doc.get("author", "")
     status = "pending_ratification" if (author in ctx.kid_actors and not _ratified(rows, author)) else "active"
     doc.setdefault("id", tn_id)
+    # the status is part of the note, not only a column on the row: a reader
+    # that reads the note must see that it is still pending
+    doc["status"] = status
     rows.put("taste_notes", {"id": tn_id}, {
         "id": tn_id, "author": author, "status": status,
         "updated_seq": ev.seq, "payload": _dump(doc),
