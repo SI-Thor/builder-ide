@@ -5,21 +5,22 @@ owner); capability rows; two-line estimates everywhere; standing exits in
 every branch set; decision budget at the queue*. This directory plays
 **seven evening → night → morning cycles** against a **simulated owner**
 (`owner.py` — a fixed, seeded taste, stated as rules), reusing the M1
-driver's seats (`../m1`) — the spine (`core-api`), the recipe store, the
-vocabulary, the cold-start seat (whose gate and sealer *are* the melt), and
-M1's stubs for the render rungs, the scripted critic and the engineer.
-Every step asserts its outcome and its budget and records what served it,
-exactly as in M1; the run ends with the per-night table — G §1.9's melt
-table, reproduced **from the ledger alone**.
+driver's seats (`../m1`) — **rewired to the integrated core** (branch
+`m1-real`): the spine, the recipe store and the cold-start seat are the
+merged `core.*` packages, the melt's whole ledger **is the spine's one
+ledger** (`core.ports.SpineLedgerPort`; the three mirror bridges are
+deleted), and M1's stubs remain for the render rungs, the scripted critic
+and the engineer. Every step asserts its outcome and its budget and
+records what served it, exactly as in M1; the run ends with the per-night
+table — G §1.9's melt table, reproduced **from the ledger alone**.
 
 ## Run it
 
+One venv for the repo:
+
 ```sh
-cd tests/acceptance/week
-python3 -m venv .venv                        # once
-.venv/bin/pip install "pydantic>=2.7,<3" "fastapi>=0.115" "httpx>=0.27" "pytest>=8"
-.venv/bin/python -m pytest . -q               # as a test
-.venv/bin/python meltweek.py                  # headless; prints the tables
+.venv/bin/python -m pytest tests/acceptance/week -q   # as a test
+.venv/bin/python tests/acceptance/week/meltweek.py    # headless; prints the tables
 ```
 
 105 steps, seven cycles, one fresh `$BUILDER_HOME`. The step table and the
@@ -102,54 +103,60 @@ a night later. The bank codes melt the Companion, which is why the
 
 ## The seats, and what is real
 
-Same map as M1 (see `../m1/README.md`); the week adds **persistence**: one
-ask-mode ledger for the whole seven sittings (`weekseat.WeekAsker`), the
-melt's seal policy over it, and three bridges — taste rows mirrored into
-the spine, policy-sealed bets mirrored into the spine's prediction ledger,
-verdicts mirrored back so the melt's world axis sees its denominators.
-`bridge:queue-half` is the decision-budget admission (the rule is G §4.3 /
-spec §3.2.8-7; the spine owns the dam, the week's adapter owns the
-admission). Stubs, as the plan expects (M1 risks): the render rungs, the
-scripted critic (`verdict@scripted` on its face), the stub engineer and
-gate engine.
+Same map as M1 (see `../m1/README.md`), with the week's own persistence now
+free: **one ledger** — the week's ask-mode sittings, the melt's gate, its
+seal policy and its scored bets all read and write the spine's one SQLite
+log (`core.ports.SpineLedgerPort` through the door), so the melt survives
+sittings, kills and reboots by construction (the `night/n4-gate-rebuild`
+check rebuilds the gate from that log). The mirrors this directory used to
+carry — taste rows, policy-sealed bets, verdicts mirrored back, the
+apply-scores-taste bridge — are deleted; what they were papering over is
+fixed in the core (see `tests/test_integration_melt_ledger.py`).
 
-## Honest notes (what this run is, and is not)
+**One bridge remains** (`bridge:queue-half`): the decision-budget admission
+(G §4.3 / spec §3.2.8-7) — the spine owns the blocking dam, but the queue
+service that would enforce the morning's budget of 10 AT the queue does not
+exist yet; `weekseat.admit_ask_cards` performs it, cutting and naming.
+Stubs, as the plan expects (M1 risks): the render rungs, the scripted
+critic (`verdict@scripted` on its face), the stub engineer and gate
+engineer — the same four engine-side pieces as M1, each with its missing
+piece named in `../m1/README.md`.
+
+## Honest notes (what this run is and is not)
 
 * **The latencies are in-process microseconds**, kept as the regression
   gate for the day real services stand behind the same interfaces.
-* **There are still two ledgers.** The melt folds the cold-start seat's
-  in-memory ledger; the panels read the spine's. The bridges above keep
-  them row-for-row and verdict-for-verdict (asserted every evening and at
-  the gate rebuild); after the seats merge, one store.
-* **Drifts this run found** (each a merge-time decision, not a quiet fix):
-  1. *The three-number line is cumulative.* The spine's
-     `attention_decisions` counts owner decision events across the whole
-     project — by night 7 the report reads "15 decisions (budget 10)"
-     while no morning ever asked more than 10. The budget is per morning;
-     the line should scope to the night. This run counts per morning by
-     seq range and records the drift.
-  2. *A promotion resets the word's capability counter.* `vocab.word.added`
-     overwrites the row with `calls: 0` — after night 1's keep, crates
-     reads "built 0" again (asserted, named in
-     `morning/n1-capability-and-estimates`). X C12's counts should survive
-     their own promotion.
-  3. *The dam's one-liner is not in the report.* The parked task carries
-     "would have needed a 4th blocking answer" in its audited `last_reason`,
-     but the report renders no parked-task line (spec §3.2.6 says it says
-     so "in one line"). The cut tasks are named; the parked one is not.
+* **There is one ledger** — the melt table below was folded from the
+  spine's own log, and it reproduces the stand-in run's numbers exactly
+  (the melt is a mechanism; the store it folds changed underneath it).
+* **Two README findings of the stand-in run, fixed in the core** (branch
+  `m1-real`, with tests):
+  1. *the three-number line counted decisions cumulatively* — it now
+     scopes to the night (decisions since its `night.started`, and G §4.3's
+     full decision list); morning seven reads its own morning, not the
+     week's 15.
+  2. *a promotion reset the word's capability counter* — `vocab.word.added`
+     keeps the calls the word already earned; morning one now asserts
+     `built 1` through the keep where it used to name the drift.
+  3. *(still open, unchanged)* the dam's one-liner is not in the report:
+     the parked task carries "would have needed a 4th blocking answer" in
+     its audited `last_reason`, but the report renders no parked-task line
+     (spec §3.2.6 says it says so "in one line"). The cut tasks are named;
+     the parked one is not.
   4. *Every night reads "ran degraded" — honestly.* Until a critic model is
      chosen and calibrated (week 3 item 18), every verdict is a scripted
-     check and the degraded flag rides it (RV patch 15), so the computed
-     status names scripted-only verdicts each morning. Night one reads "ran
-     short" because its queue cuts win the precedence — also correct.
+     check and the degraded flag rides it (RV patch 15). Night one reads
+     "ran short" because its queue cuts win the precedence — also correct.
+* **What the one-store run exposed beyond the two findings** (all fixed in
+  the core, all with tests): the spine's apply fast-forwarded the night
+  branch instead of the world (main), so this driver moved main by hand —
+  and that hand-move read as an 11th owner decision on a morning budgeted
+  for 10; apply now moves the world and scores the night's taste bets
+  inside the one transaction (§1.2, §1.7).
 * **The spine's night ids carry the real run date** (2026-10-31…) while the
   branch names carry the fictional week (2026-10-24…, G §0's continuity
   note). Ids are opaque; the dates that matter to the script are the
   branch names'.
-* **One fix landed in `../m1`**: `siblings.load()` was not idempotent per
-  process — a second load re-executed `core-api`'s package `__init__` and
-  handed out a `sib_api` missing its bound submodules. The week's reuse
-  exposed it; `siblings.py` now caches the seats per process.
 * **The simulated owner is not a model.** It is five rules over a table —
   the point of item 13 is the *melt*, and the melt's input had to be
   exactly reproducible. The evening-seven "corrected return line" is
@@ -163,10 +170,10 @@ gate engine.
 owner.py         the simulated owner: the seeded taste table and its five rules
 script.py        the seven nights as scripted facts (edits, bets, flaws, WOs, the
                  twelve ask cards, the expected question counts)
-weekseat.py      the week's adapters: one melt ledger, the spine mirrors, the
-                 queue's decision-budget admission, the per-morning decision count
+weekseat.py      the week's adapters: the melt over the ONE ledger, the queue's
+                 decision-budget admission, the per-morning decision count
 meltweek.py      the driver: boot → seven cycles → the melt table; `main()` headless
 conftest.py      sys.path to m1 (its seats) + a fresh $BUILDER_HOME per run
 test_week_session.py   the pytest wrapper (plays the week; re-derives the checks)
-run/, .venv/     scratch, gitignored
+run/             scratch, gitignored
 ```

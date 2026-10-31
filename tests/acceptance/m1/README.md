@@ -9,20 +9,21 @@ its latency budget from the experience spine** (`budgets.py`; spec v2 §4.1
 and the plan's §6 measures table), and marking each step **stub / real**
 in its output.
 
-Nothing here merges anything. The core's parts that are not on `main` yet
-live on sibling branches; `siblings.py` materializes them with
-`git show <branch>:<path>` into a gitignored scratch dir and imports them
-behind thin adapters, so that **after the seats merge onto `main`, only the
-adapters change** — the session script stays as it is.
+**Rewired to the integrated core** (branch `m1-real`): the seats are the
+merged `core.*` packages — `siblings.load()` imports them from this tree,
+the recipe store rides the spine's **one ledger** through the real
+`RecipeStoreSeam`, ask-mode writes its rows straight into that log through
+`core.ports.SpineLedgerPort`, and the mirrors are gone. What the rewiring
+exposed in the core is fixed there, with tests; what is still a stub is
+listed below with the exact missing piece.
 
 ## Run it
 
+One venv for the repo (the seats need no separate one anymore):
+
 ```sh
-cd tests/acceptance/m1
-python3 -m venv .venv                        # once
-.venv/bin/pip install "pydantic>=2.7,<3" "fastapi>=0.115" "httpx>=0.27" "pytest>=8"
-.venv/bin/python -m pytest . -q               # as a test
-.venv/bin/python driver.py                   # headless; prints the step table
+.venv/bin/python -m pytest tests/acceptance/m1 -q   # as a test
+.venv/bin/python tests/acceptance/m1/driver.py      # headless; prints the step table
 ```
 
 The table (also written to `run/<timestamp>/steps.txt`):
@@ -30,10 +31,10 @@ The table (also written to `run/<timestamp>/steps.txt`):
 ```
 STEP                               CLK             MS  BUDGET BACKEND                                      RESULT
 -----------------------------------------------------------------------------------------------------------------
-evening/cold-open                  Talk           0.2      2s real:cold-start+bridge:spine-ledger          PASS
+evening/cold-open                  Talk           0.2      2s real:cold-start+real:core-api(ledger)        PASS
 evening/slate                      Workshop       9.5     30s real:core-api                                PASS
-night/sealed-bet-crates            —             17.7       — real:core-api+real:core-recipe(seam)+stub:... PASS
-night/kill-9                       Watch         81.6       — real:core-api                                PASS
+night/sealed-bet-crates            —              17.7       — real:core-api+real:core-recipe(seam)+stub:... PASS
+night/kill-9                       Watch          81.6       — real:core-api                                PASS
 morning/computer-call              Workshop      14.1     20s real:core-api+real:core-recipe(registry)     PASS
 ...
 M1 session played end to end: 30 steps, 30/30 passed.
@@ -41,9 +42,10 @@ M1 session played end to end: 30 steps, 30/30 passed.
 
 ## The session, and where each step is served from
 
-The **spine** is `core-api`'s FastAPI service (branch `core-api`,
-materialized), driven over HTTP through Starlette's in-process `TestClient`
-— a real §4.2 client. Everything else plugs into it or runs beside it:
+The **spine** is the core's FastAPI service (`core.api` + `core.svc`),
+driven over HTTP through Starlette's in-process `TestClient` — a real §4.2
+client. Everything else is the merged core's own code, on the same one
+ledger:
 
 | step (act/name) | what it asserts | budget | served by |
 |---|---|---|---|
@@ -85,36 +87,58 @@ read goes through the client recreated after the kill, the cold-open test
 
 ## The seats, and what is real
 
-| seat | branch | status per its own README | what it serves here |
-|---|---|---|---|
-| the spine | `core-api` | in progress | the whole §4.2 surface over HTTP: call, work orders, questions, slate/tasks, night + pre-flight, budget, report, branches/apply, vocab, seal, tally, taste, assets, SSE — and the SQLite ledger the kill -9 test actually closes and reopens |
-| recipe store | `core-recipe` | done or near | Fjellvik as a typed recipe; vocabulary-validated edits; the node registry (§1.4.0) that the two-referent test resolves through; the branch flip as a pointer move — reached from the spine through the `RecipeStore` seam (`recipe_sync: ok`) |
-| vocabulary | `vocab` | done or near | the three words (data + schemas), the call door's refusals, sealed predictions with the confidence gate, and the Prop-maker's scripted loop as the night's reference implementation |
-| cold start | `cold-start` | done or near | the opener (computed from counts) and ask-mode policy (≤ 6, sequential, skip writes nothing) |
-| night runner | `night-runner` | done or near | the reference night: rails, graduated throttle, detach-or-deadline, heartbeats, the computed status line — parity-checked against the spine's status after the kill |
-| why kernel | `why-kernel` | done or near | materialized (its `core.why` + `core.justification`) but not yet load-bearing in this session — M1's "why?" is the provenance one-tap, which the spine serves; goal-chains belong to a later morning |
-| USD backbone | `usd-backbone` | done or near | **not materialized** — it needs the `usd-core`/`build123d` wheels, and M1's render rungs run on the stub generator by design (plan §2 M1 risks). It plugs in where `stub_render` stands, through `/v1/world/scene`'s 501 seam |
+One tree, one ledger. Every seat below is the merged package; the step
+table's `real:*` labels point at it.
 
-**Stubs the plan expects** (all labelled `stub:` in the step table): the
-render rungs (deterministic bytes — same seed, same bytes; the engine
-spike replaces them), the scripted critic (`verdict@scripted` on its face,
-per RV patch 15), the stub engineer behind the merge gate, and the stub
-gate engine (core-api's own seam).
+| seat | package | what it serves here |
+|---|---|---|
+| the spine | `core.api`, `core.svc`, `core.store` | the whole §4.2 surface over HTTP: call, work orders, questions, slate/tasks, night + pre-flight, budget, report, branches/apply (which scores the night's taste bets and moves the world), vocab, seal, tally, taste, assets, SSE — and the SQLite ledger the kill -9 test actually closes and reopens |
+| recipe store | `core.recipe` behind `core.svc.recipes.RecipeStoreSeam` | Fjellvik as a typed recipe **in the one log**; vocabulary-validated edits; the node registry (§1.4.0) that the two-referent test resolves through; the branch flip as a pointer move — the spine's `/v1/branches/{id}/apply` reports `recipe_sync: ok` because the seam really moved the store |
+| vocabulary | `core.vocab` | the three words (data + schemas), the call door's refusals, sealed predictions with the confidence gate, and the Prop-maker's scripted loop as the night's reference implementation |
+| cold start | `core.coldstart` | the opener (computed from counts in the one log) and ask-mode (≤ 6, sequential, skip writes nothing) — its rows land directly in the spine's ledger through `core.ports.SpineLedgerPort` |
+| night runner | `core.night` | the reference night for the kill -9 parity check: rails, graduated throttle, detach-or-deadline, heartbeats, the computed status line |
+| why kernel | `core.why`, `core.justification` | merged, not yet load-bearing in this session — M1's "why?" is the provenance one-tap, which the spine serves; goal-chains belong to a later morning |
+| USD backbone | `builder_usd` | present on the tree (its tests run in the suite) but not in this session — M1's render rungs run on the stub generator by design (plan §2 M1 risks). It plugs in where `stub_render` stands, through `/v1/world/scene`'s 501 seam |
 
-**Bridges** (labelled `bridge:`) — real code on both sides, joined here:
-ask-mode rows mirrored into the spine's taste ledger; the recipe seat
-committing the spine's typed calls and following its branch applies; the
-runner-half actions at the bar (the 80% cut). These are the seams that
-disappear when the seats share one store.
+**Still a stub — each with the exact missing piece** (labelled `stub:` in
+the step table; all of them engine-side, no seat owns them yet):
+
+* `stub:render-rung` — the render itself. Missing: the engine lane
+  (infinigen-thor on the Thor, the repo's own spike) behind the scheduler's
+  two-method executor seam. `stub_render` keeps the one property consumers
+  depend on: same seed, same bytes.
+* `stub:critic` — the verdict. Missing: a chosen, calibrated critic model
+  (week 3 item 18); until then every verdict wears `verdict@scripted`
+  (RV patch 15).
+* `stub:engineer(aider-local)` — the work order's deliverable. Missing: the
+  engineer adapter behind the attempt loop (the bake-off's pick, wired to
+  the local lane).
+* `stub:gate-engine` — the merge gate's engine rungs (§2.3 steps 1–6:
+  deterministic rebuild, render ladder, analytic checks). Missing: the same
+  engine lane; the gate's orchestration itself is the spine's real code.
+
+**One bridge remains** (`bridge:runner-half`, `night/cut-at-the-bar`): the
+80% bar's cut is performed as the runner's action by the driver — real
+spine writes, but the night runner's own queue loop (`core.night`'s
+iterator) is not the thing driving this session's queue. Missing: the
+runner resident in the core process, working the spine's queue.
+
+**Also honest**: `night/reference-loop` runs the vocabulary seat's
+Prop-maker on its own in-memory world — real vocab code on the seat's own
+test seams (its `SchedulerPort` is engine-side; INTEGRATION.md keeps it
+that way), never on the spine's write path. And `night/kill-9`'s parity
+check runs night-runner's reference night on its in-memory ledger for the
+same reason — the spine's ledger is the log of record.
 
 ## Layout
 
 ```
 budgets.py       the spine's latency budgets, with citations
-siblings.py      git show <branch>:<path> → scratch import (no merges, ever)
+siblings.py      loads the integrated core's packages (core.*) — one tree
 spec_client.py   SpecClient (§4.2 over HTTP) + CoreDoor (the resident core's own hands)
 session.py       the step recorder: outcome, budget, backend, per-step table
-seats/           one thin adapter per sibling branch + the stubs
+seats/           the thin adapters that remain: cold-start's ledger routing,
+                 the recipe seat over the seam, the vocab loop's world, the stubs
 driver.py        the session script itself (acts 0–3); `main()` runs it headless
 test_m1_session.py   the pytest wrapper (plays the script, asserts the gates)
 conftest.py      a fresh $BUILDER_HOME per run
@@ -127,18 +151,19 @@ conftest.py      a fresh $BUILDER_HOME per run
   real services, models and renders stand behind the same interfaces —
   a step that is honest but late, or fast but fabricated, is equally a
   failure (plan §6).
-* **There are more ledgers than one.** The spine's SQLite ledger is the
-  only one the panels read; the recipe seat and the vocab reference loop
-  run on their own (the seats are not merged yet). The bridges above are
-  the visible seams. After integration, one store.
-* **Cross-seat drifts found by this session** (also in
-  `seats/recipe.py::DRIFTS`): vocab's shipped Fjellvik document writes
-  entry kind `prop` where spec §1.1 and core-recipe say `prop_set`;
-  core-recipe's `SQLiteLedger` connection is thread-bound, so the seat
-  runs on its conforming `InMemoryLedger` (an artifact of the in-process
-  TestClient). Both are merge-time decisions, not quiet fixes.
+* **There is one ledger.** The spine's SQLite store is the only store; the
+  recipe seat's commits, ask-mode's rows and the melt's seals all land in
+  it. The two DRIFTS this run used to carry are resolved at the source
+  (the shipped Fjellvik document loads unchanged; `SpineRecipeLedger` is
+  the single writer's path). What the rewiring exposed in the core is
+  fixed there with tests — see the commits on `m1-real` and
+  `tests/test_integration_melt_ledger.py`: the seam's branch context (a
+  night's call committed onto main), the session-id collision, the
+  vocabulary's seal dialect invisible to the spine's fold, the gate blind
+  to the spine's scored events, apply neither scoring taste bets nor
+  moving the world.
 * The calibration batch is filed as the queue's third item and cut at the
   bar — the M1 beat. Its internals (seeded-defect members, the FP/FN
-  table) are week-2 item 12, tested on the `cold-start` branch.
-* `run/` and `.siblings/` are scratch, gitignored; `.siblings/` rebuilds
-  when a branch head moves (the run's first note pins every seat's commit).
+  table) are week-2 item 12, tested in the `cold-start` seat's suite.
+* `run/` is scratch, gitignored. `.siblings/` is gone — nothing is
+  materialized from branches anymore.

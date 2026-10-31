@@ -1,12 +1,11 @@
 """Pytest plumbing for the M1 acceptance session.
 
-Run it with the directory's own venv (the brief allows PyPI test libraries
-in a venv here):
+One venv for the repo (the seats are the integrated core's own packages;
+`siblings.py` loads them from this tree):
 
-    tests/acceptance/m1/.venv/bin/python -m pytest tests/acceptance/m1 -q
+    .venv/bin/python -m pytest tests/acceptance/m1 -q
 
-The sibling seats are materialized from their branches on first use
-(`siblings.py`); the session gets a fresh `$BUILDER_HOME` per run.
+The session gets a fresh `$BUILDER_HOME` per run.
 """
 
 from __future__ import annotations

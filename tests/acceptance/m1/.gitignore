@@ -1,6 +1,4 @@
 # Scratch state of the acceptance run — never committed.
-.venv/
-.siblings/
 run/
 __pycache__/
 *.pyc

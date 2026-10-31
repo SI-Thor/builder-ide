@@ -23,10 +23,14 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel).
-- **The core is integrated on `main`: 831 tests pass** in one suite (seven
-  branches merged, every stand-in replaced; see [INTEGRATION.md](INTEGRATION.md)). The M1 acceptance session plays one evening, night
-  and morning end to end in 30 steps, all passing (many still against stand-ins
-  until it is rewired to the integrated core).
+- **The core is integrated, and the acceptance suites play it for real.**
+  842 tests pass in one suite (seven seats merged, every stand-in replaced;
+  see [INTEGRATION.md](INTEGRATION.md)). On `m1-real` both acceptance runs
+  were rewired off the stand-ins onto the merged packages and the **one
+  ledger**: the M1 session plays one evening, night and morning end to end
+  in 30 steps (30/30), and the seven-night melt week reproduces its melt
+  table in 105 steps (105/105) — every remaining stub is engine-side and
+  named with its missing piece ([tests/acceptance/m1](tests/acceptance/m1)).
 - **Research complete, plan drafted.** 18 reports, three cross-reviews, a
   synthesized understanding and plan, and a core spec (v2). Plan draft 2 and a
   condensed decision sheet for the owner come next.
@@ -135,9 +139,9 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `night-runner` | The night: queue, rails, heartbeat and lease, resume after reboot, the **iterator loop**, the morning report | merged into main, ~197 tests |
 | `cold-start` | New builders ask before they act (the switch to acting at two observations); the critic's calibration set | merged into main, 63 tests |
 | `usd-backbone` | Recipe → layered USD, build123d → STEP → GLB, provenance, byte-identical re-emission | merged into main, 79 tests |
-| `m1-acceptance` | The M1 session as an automated test: evening → night → morning, 30 steps | done, 30/30 |
-| `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | **merged: 831 tests** |
-| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | done, 105/105 steps |
+| `m1-acceptance` | The M1 session as an automated test: evening → night → morning, 30 steps | **rewired to the integrated core on `m1-real`: 30/30, one ledger** |
+| `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | merged: 831 tests (842 on `m1-real`) |
+| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | **rewired to the integrated core on `m1-real`: 105/105, melt table reproduced** |
 
 ### In flight
 
