@@ -38,6 +38,14 @@ class Settings:
             "dev-token-panel": {"class": "panel", "actor": "panel"},
             "dev-token-propmaker": {"class": "character", "actor": "prop-maker"},
             "dev-token-companion": {"class": "character", "actor": "companion"},
+            # Per-agent tokens: an agent claim names the agent that acts on
+            # the actor's behalf — one actor, many agents. The claim is
+            # recorded on every audit row (which agent acted for whom) and
+            # gates nothing (A1 is permissive).
+            "dev-token-casey-world-mcp": {"class": "owner", "actor": "casey",
+                                          "agent": "world-mcp"},
+            "dev-token-props-world-mcp": {"class": "character", "actor": "prop-maker",
+                                          "agent": "world-mcp"},
         }
     )
     # Actors who may not submit free text, by class, in code (§4.1).

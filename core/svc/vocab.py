@@ -126,11 +126,13 @@ class VocabService:
 
     def call(self, character_id: str, word: str, params: dict,
              node: str | None = None, region: str | None = None,
-             *, idem_key: str | None = None) -> dict:
+             *, idem_key: str | None = None,
+             agent: str | None = None) -> dict:
         """POST /v1/vocab/call {word, node|region, params} → a validated
         RecipeEdit authored {kind: character, via: word}. Refusals are
-        audited (vocab.call with refused=true)."""
-        actor = character_actor(character_id, via=word)
+        audited (vocab.call with refused=true). ``agent`` is the per-agent
+        token's claim, recorded on the row and gating nothing."""
+        actor = character_actor(character_id, via=word, agent=agent)
         try:
             entry = self.get(word)
         except NotFound:
@@ -172,7 +174,7 @@ class VocabService:
             id=new_id("edit"), base="head", ops=[
                 Op(op="set", path=f"{target or 'scene'}.params", value=params)
             ] if target else [Op(op="set", path="params", value=params)],
-            author=character_actor(character_id, via=word),
+            author=character_actor(character_id, via=word, agent=agent),
             message=f"{word} → {target}"[:80],
         )
         ev = self.store.new_event(

@@ -32,7 +32,8 @@ class TasksService:
     def create(self, author: str, intention: str, *, owner_character: str = "",
                recipe_scope: list[str] | None = None, cost_estimate: Rail | None = None,
                rail: Rail | None = None, kind: str = "", night: str | None = None,
-               ends_at: str | None = None, idem_key: str | None = None) -> Task:
+               ends_at: str | None = None, idem_key: str | None = None,
+               agent: str | None = None) -> Task:
         if idem_key is not None:
             cached = self.store.idem_get(idem_key)
             if cached:
@@ -60,8 +61,9 @@ class TasksService:
             kind=job_kind, ask_source=ask_source, ask_basis=ask_basis,
         )
         ev = self.store.new_event(
-            "night.task.created", Actor(kind="character", id=owner_character or "companion")
-            if owner_character else Actor(kind="owner", id=author),
+            "night.task.created",
+            Actor(kind="character", id=owner_character or "companion", agent=agent)
+            if owner_character else Actor(kind="owner", id=author, agent=agent),
             {"entity_kind": "task", "entity_id": task.id},
             {"task": task.model_dump(mode="json"), "night": night},
         )

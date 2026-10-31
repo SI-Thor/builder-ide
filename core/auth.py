@@ -35,11 +35,17 @@ TOKEN_CLASSES = frozenset({OWNER, PANEL, CHARACTER, SEAT})
 
 @dataclass(frozen=True)
 class Principal:
-    """Who is calling. ``actor`` is the id that lands in the audit log."""
+    """Who is calling. ``actor`` is the id that lands in the audit log.
+
+    ``agent`` is the per-agent token's agent claim — one actor, many
+    agents (the world-mcp round's extension of §4.1). It rides onto every
+    audit row the caller writes and gates nothing (A1 is permissive).
+    """
 
     token_class: str
     actor: str
     kid: bool = False
+    agent: str | None = None
 
     @property
     def is_owner(self) -> bool:
@@ -62,7 +68,7 @@ class Principal:
 
 
 def registry(settings) -> dict[str, dict]:
-    """The token registry: {token: {class, actor, kid?}}."""
+    """The token registry: {token: {class, actor, kid?, agent?}}."""
     return settings.load_tokens()
 
 
@@ -76,7 +82,8 @@ def principal_for(token: str, settings) -> Principal:
                         token_class=token_class)
     actor = entry.get("actor") or token_class
     kid = bool(entry.get("kid")) or actor in settings.kid_actors
-    return Principal(token_class=token_class, actor=actor, kid=kid)
+    agent = entry.get("agent") or None
+    return Principal(token_class=token_class, actor=actor, kid=kid, agent=agent)
 
 
 async def current_principal(

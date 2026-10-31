@@ -220,12 +220,17 @@ class AssetBody(BaseModel):
 
 
 def actor_for(principal: Principal) -> Actor:
-    """The audit actor for a caller (§4.1: the actor is a fact in every event)."""
+    """The audit actor for a caller (§4.1: the actor is a fact in every event).
+
+    A per-agent token's agent claim rides along — the row then answers
+    "which agent acted for whom" by itself. Recorded, never gated (A1):
+    a token without the claim produces exactly the actor it always did.
+    """
     if principal.token_class == OWNER:
-        return owner_actor(principal.actor)
+        return owner_actor(principal.actor, agent=principal.agent)
     if principal.token_class == CHARACTER:
-        return character_actor(principal.actor)
-    return Actor(kind="core", id=principal.actor)
+        return character_actor(principal.actor, agent=principal.agent)
+    return Actor(kind="core", id=principal.actor, agent=principal.agent)
 
 
 def scoped_key(scope: str, key: str | None) -> str | None:
@@ -442,6 +447,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
             recipe_scope=body.recipe_scope, cost_estimate=estimate,
             kind=body.kind,
             ends_at=body.ends_at, night=body.night,
+            agent=principal.agent,
         )
         return {"task": task.model_dump(mode="json")}
 
@@ -540,7 +546,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
         if br_id in taken:  # pragma: no cover - 12 hex chars of entropy
             raise ValidationError("branch id collision; retry")
         ev = core.store.new_event(
-            "branch.created", owner_actor(principal.actor),
+            "branch.created", actor_for(principal),
             {"entity_kind": "branch", "entity_id": br_id},
             {"branch": {"id": br_id, "name": body.name, "base": body.base,
                         "head": body.head, "purpose": body.purpose,
@@ -567,7 +573,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
         to = body.to_version or head
         if principal.kid:
             ev = core.store.new_event(
-                "branch.proposed", owner_actor(principal.actor),
+                "branch.proposed", actor_for(principal),
                 {"entity_kind": "branch", "entity_id": branch_id},
                 {"by": principal.actor, "from_head": head, "to": to,
                  "note": "a kid actor proposes; the owner confirms (§7.15)"},
@@ -578,7 +584,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
         # the owner's apply: the head move is a ledger event with a
         # compare-and-swap on the expected head (§5.3).
         ev = core.store.new_event(
-            "branch.head.moved", owner_actor(principal.actor),
+            "branch.head.moved", actor_for(principal),
             {"entity_kind": "branch", "entity_id": branch_id},
             {"from_head": head, "to": to, "via": "owner apply"},
         )
@@ -587,7 +593,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
         # taste bets on that branch (a critic keep never does). Found by the
         # rewired melt week, which had to bridge this call in by hand.
         taste_scored = PredictionsService(core).score_taste_keep_on_branch(
-            branch_id, owner_actor(principal.actor), "apply")
+            branch_id, actor_for(principal), "apply")
         recipe_sync = "ok"
         try:
             # §1.2 — applying a branch moves *the world*: the store's main
@@ -630,6 +636,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
         return VocabService(core).call(
             principal.actor, body.word, body.params, body.node, body.region,
             idem_key=scoped_key(f"vocab:{body.word}", idem_key),
+            agent=principal.agent,
         )
 
     # ------------------------------------------------------------- predictions
@@ -644,7 +651,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
         if body.builder and not principal.is_kid:
             # An owner may record a seal on a builder's behalf (the critic's
             # own doors are not HTTP); a kid may not seal as anyone else.
-            builder = Actor(kind="character", id=body.builder)
+            builder = Actor(kind="character", id=body.builder, agent=principal.agent)
         p = PredictionsService(core).seal(
             builder, body.branch_ref, body.claim, body.claim_type, body.confidence,
             basis=body.basis, render_spec=body.render_spec,

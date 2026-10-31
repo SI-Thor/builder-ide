@@ -28,16 +28,18 @@ __all__ = [
 ]
 
 
-def core_actor() -> Actor:
-    return Actor(kind="core", id="core")
+def core_actor(agent: str | None = None) -> Actor:
+    return Actor(kind="core", id="core", agent=agent)
 
 
-def owner_actor(actor_id: str) -> Actor:
-    return Actor(kind="owner", id=actor_id)
+def owner_actor(actor_id: str, via: str | None = None,
+                agent: str | None = None) -> Actor:
+    return Actor(kind="owner", id=actor_id, via=via, agent=agent)
 
 
-def character_actor(character_id: str, via: str | None = None) -> Actor:
-    return Actor(kind="character", id=character_id, via=via)
+def character_actor(character_id: str, via: str | None = None,
+                    agent: str | None = None) -> Actor:
+    return Actor(kind="character", id=character_id, via=via, agent=agent)
 
 
 MAX_PAYLOAD_BYTES = 4096
