@@ -36,6 +36,12 @@ EXPECTED_PEAK_GB=16
 SPARE_GB=25
 NEED_GB=$((EXPECTED_PEAK_GB + SPARE_GB))
 WAIT_SECONDS="${HEAVY_WAIT_SECONDS:-1800}"
+# The lock wait is longer than the memory wait on purpose: every seat's
+# heavy step queues on this lock, and a queue is measured in the other
+# seats' step lengths, not in this one's. An arm that gave up after a short
+# wait would fail just because the box was popular — and a failed arm is a
+# hole in the round.
+LOCK_WAIT_SECONDS="${HEAVY_LOCK_WAIT_SECONDS:-14400}"
 
 available_gb() {
   free -g | awk '/^Mem:/{print $7}'
@@ -62,7 +68,7 @@ for ROUND in $(seq 1 "$ROUNDS"); do
     echo "################ round $ROUND: $ARM  ($(date -u +%H:%M:%SZ))"
     export TRG_SUFFIX="-r$ROUND"
     wait_for_room
-    flock -w "$WAIT_SECONDS" "$HEAVY_LOCK" \
+    flock -w "$LOCK_WAIT_SECONDS" "$HEAVY_LOCK" \
       "$HERE/run_experiment.sh" "$ARM" "${SEEDS[@]}" || echo "!! $ARM round $ROUND failed"
   done
 done
