@@ -26,6 +26,7 @@ from tests.genbatch.glb_fixtures import build_glb, cube_mesh
 
 TEMPLATE = {
     "10": {"class_type": "LoadImage", "inputs": {"image": "x.png"}},
+    "30": {"class_type": "UNETLoader", "inputs": {"unet_name": "trellis_2_bf16.safetensors"}},
     "51": {"class_type": "KSampler", "inputs": {"seed": 56, "steps": 12}},
     "52": {"class_type": "VaeDecodeStructureTrellis2", "inputs": {"resolution": 32}},
     "54": {"class_type": "KSampler", "inputs": {"seed": 42, "steps": 20}},
@@ -139,13 +140,15 @@ def _executor(tmp_path, requests, **kwargs):
     return executor, plan, store, client
 
 
-def _request() -> PropRequest:
-    return PropRequest(
-        id="crate",
-        prompt="a weathered wooden crate",
-        expected_aspect=(1.0, 1.0, 1.0),
-        seeds=1,
-    )
+def _request(**overrides) -> PropRequest:
+    payload = {
+        "id": "crate",
+        "prompt": "a weathered wooden crate",
+        "expected_aspect": (1.0, 1.0, 1.0),
+        "seeds": 1,
+    }
+    payload.update(overrides)
+    return PropRequest(**payload)
 
 
 def test_the_plan_declares_the_model_only_for_the_first_job():
@@ -226,6 +229,46 @@ def test_the_prop_is_recorded_as_an_asset_with_its_recipe(tmp_path):
     assert recipe["weights_revision"].startswith("430a9d0")
     assert recipe["workflow_sha256"]
     assert asset.licence.spdx == "MIT"
+
+
+def test_the_dtype_is_part_of_the_recipe_and_defaults_to_bf16(tmp_path):
+    """A prop made in fp8 is not the same prop as one made in bf16, so the
+    dtype belongs in the recipe — and the default is bf16 until fp8 earns
+    its place."""
+    executor, plan, store, client = _executor(tmp_path, [_request()])
+    seed = plan.seeds("crate")[0]
+    image_task = next(t for t in plan.tasks if t.id == "img:crate")
+    executor.run(image_task, Variant(id="v0", seed=seed))
+    task = next(t for t in plan.tasks if t.id == "prop:crate")
+
+    executor.run(task, Variant(id="prop:crate_r1_v1", seed=seed))
+
+    asset = store.asset("prop:crate", "prop:crate_r1_v1")
+    assert asset is not None
+    assert asset.provenance.generator["weight_dtype"] == "default"
+    assert _request().weight_dtype == "default"
+
+
+def test_the_request_asks_for_the_dtype_it_wants(tmp_path):
+    """A request that asks for fp8 gets a workflow that asks for fp8."""
+    executor, plan, store, client = _executor(
+        tmp_path, [_request(weight_dtype="fp8_e4m3fn_fast")]
+    )
+    seed = plan.seeds("crate")[0]
+    image_task = next(t for t in plan.tasks if t.id == "img:crate")
+    executor.run(image_task, Variant(id="v0", seed=seed))
+    task = next(t for t in plan.tasks if t.id == "prop:crate")
+
+    executor.run(task, Variant(id="prop:crate_r1_v1", seed=seed))
+
+    sent = client.prompts[-1]
+    loaders = [
+        node
+        for node in sent.values()
+        if isinstance(node, dict) and node.get("class_type") == "UNETLoader"
+    ]
+    assert loaders
+    assert loaders[0]["inputs"]["weight_dtype"] == "fp8_e4m3fn_fast"
 
 
 def test_the_asset_records_the_repair_it_was_given(tmp_path):

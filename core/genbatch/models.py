@@ -72,6 +72,21 @@ class PropRequest(BaseModel):
     fill_ratio: tuple[float, float] = (0.005, 1.0)
     #: The TRELLIS.2 resolution: 512 or 1024.
     resolution: int = Field(default=512, ge=64)
+    #: The dtype the TRELLIS.2 weights are loaded in.
+    #:
+    #: "default" is the model's own dtype — bfloat16 on this box — and it is
+    #: the default because fp8 has to earn its place before it is asked for
+    #: (docs/lab/exp-fp8-real.md). "fp8_e4m3fn_fast" is the fused fp8 path:
+    #: the weights are stored in fp8 and the matmul itself runs in fp8.
+    #: "fp8_e4m3fn" stores the weights in fp8 but casts them back to the
+    #: compute dtype at every use.
+    #:
+    #: Asking for fp8 needs two things: this parameter, and a ComfyUI with
+    #: the fp8 fix installed (the fused path declines without it — see
+    #: docs/lab/trellis-graph-scripts/comfy-base/custom_nodes/fp8_real).
+    weight_dtype: Literal[
+        "default", "fp8_e4m3fn", "fp8_e4m3fn_fast", "fp8_e5m2"
+    ] = "default"
     #: The image stage's knobs (SDXL).
     image_steps: int = Field(default=30, ge=1)
     image_cfg: float = Field(default=7.0, ge=0.0)
