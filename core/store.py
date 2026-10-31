@@ -8,6 +8,7 @@ Side effects (bus notifications, seats, jobs) happen only after commit.
 """
 from __future__ import annotations
 
+import functools
 import json
 import sqlite3
 import threading
@@ -45,6 +46,35 @@ class EventBus:
             self._cond.wait(timeout)
 
 
+def _serialized(fn):
+    """A read of the shared connection, taken under the store's one lock.
+
+    The store serves every read door from a single ``sqlite3.Connection``
+    opened with ``check_same_thread=False``, and FastAPI runs the sync
+    endpoints on a threadpool — so two GETs in one tick share the
+    connection from two threads. pysqlite's statement cache and cursor
+    state are not safe under that even though libsqlite is serialized:
+    the calls collide and the door answers 500 (``sqlite3.InterfaceError``
+    in ``count_events``; measured 20–37% of concurrent GETs before this
+    lock — ``tests/test_store_race.py`` and ``docs/lab/exp-store-race.md``).
+
+    The lock was chosen over per-thread connections by that measurement:
+    a serialized read is microseconds against a sub-millisecond query, so
+    at every concurrency the doors actually see (≤ 16 in flight) locked
+    throughput matched per-thread connections within noise — while keeping
+    the one connection's semantics (one page cache, one statement cache,
+    one ``in_transaction`` truth) and adding nothing to manage. The single
+    writer is unchanged: the lock it already held now covers reads too.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(self, *args, **kwargs):
+        with self._write_lock:
+            return fn(self, *args, **kwargs)
+
+    return wrapper
+
+
 class LedgerStore:
     def __init__(self, db_path: str | Path, artifacts: ArtifactStore,
                  kid_actors: frozenset[str] = frozenset({"magnus"})):
@@ -52,6 +82,14 @@ class LedgerStore:
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.artifacts = artifacts
         self.kid_actors = kid_actors
+        # The ONE lock over the ONE connection. Writes need it for the
+        # transaction boundaries; reads need it because pysqlite's shared
+        # connection is not safe under concurrent use even with
+        # check_same_thread=False — its statement cache and cursor state
+        # race, and the doors answer 500 (sqlite3.InterfaceError,
+        # measured: 20–37% of concurrent GETs, tests/test_store_race.py).
+        # It is an RLock: append() and batch() run reads of their own
+        # (idempotency, boot verification) inside the same lock.
         self._write_lock = threading.RLock()
         # isolation_level=None puts the driver in autocommit mode: it never
         # opens a transaction on our behalf, so the BEGIN/COMMIT pairs below
@@ -81,6 +119,7 @@ class LedgerStore:
         if self._meta("schema_version") is None:
             self._set_meta("schema_version", SCHEMA_VERSION)
 
+    @_serialized
     def _meta(self, key: str) -> str | None:
         row = self.conn.execute("SELECT value FROM meta WHERE key=?", (key,)).fetchone()
         return row["value"] if row else None
@@ -96,13 +135,16 @@ class LedgerStore:
 
     # ------------------------------------------------------------- reads
 
+    @_serialized
     def max_seq(self) -> int:
         row = self.conn.execute("SELECT COALESCE(MAX(seq),0) AS s FROM audit").fetchone()
         return int(row["s"])
 
+    @_serialized
     def fold_seq(self) -> int:
         return int(self._meta("fold_seq") or 0)
 
+    @_serialized
     def events_since(self, since_seq: int, types: list[str] | None = None,
                      limit: int = 10000) -> list[AuditEvent]:
         sql = "SELECT * FROM audit WHERE seq > ?"
@@ -114,6 +156,7 @@ class LedgerStore:
         args.append(limit)
         return [self._row_to_event(r) for r in self.conn.execute(sql, args)]
 
+    @_serialized
     def events_for(self, entity_kind: str, entity_id: str,
                    types: list[str] | None = None) -> list[AuditEvent]:
         sql = "SELECT * FROM audit WHERE subject_kind=? AND subject_id=?"
@@ -124,6 +167,7 @@ class LedgerStore:
         sql += " ORDER BY seq ASC"
         return [self._row_to_event(r) for r in self.conn.execute(sql, args)]
 
+    @_serialized
     def count_events(self, types: list[str], since_at: str | None = None,
                      actor_id: str | None = None, payload_where: str = "",
                      payload_args: tuple = ()) -> int:
@@ -140,6 +184,7 @@ class LedgerStore:
             args += list(payload_args)
         return int(self.conn.execute(sql, args).fetchone()["c"])
 
+    @_serialized
     def get_event(self, event_id: str) -> AuditEvent | None:
         row = self.conn.execute("SELECT * FROM audit WHERE id=?", (event_id,)).fetchone()
         return self._row_to_event(row) if row else None
@@ -156,6 +201,7 @@ class LedgerStore:
 
     # ------------------------------------------------------------- entity reads
 
+    @_serialized
     def get_row(self, table: str, pk: dict) -> dict | None:
         row = self.rows.get(table, pk)
         if row is None:
@@ -165,6 +211,7 @@ class LedgerStore:
             out["payload"] = json.loads(out["payload"])
         return out
 
+    @_serialized
     def scan(self, table: str) -> list[dict]:
         out = []
         for row in self.rows.scan(table):
@@ -176,6 +223,7 @@ class LedgerStore:
 
     # ------------------------------------------------------------- the write path
 
+    @_serialized
     def idem_get(self, key: str) -> dict | None:
         row = self.conn.execute(
             "SELECT status, response FROM idempotency WHERE key=?", (key,)
