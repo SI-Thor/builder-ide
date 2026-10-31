@@ -119,7 +119,9 @@ exercised before the engine lands.
 
 The **learned ranker** and the **RL** rung of the chooser ladder, the
 **policies** of the motion section (a trained policy is a tile-chooser of
-another kind — see the design), the cloud transport's real endpoint, the
+another kind — see the design), the **resident, batched serving** the
+ladder is meant to run under (the chooser is an in-process object for now,
+and picks in 0.05 ms), the cloud transport's real endpoint, the
 **recipe-store integration** (playing a tile end to end), and the morning
 report's tile column. Each is a small step after this one, and the seams
 for them are already named: `TileChooser` for the next rung, `TileAuthor`

@@ -388,7 +388,7 @@ itself.
 | **the ledger** | append an event; read it back | `core-api` — the tiles seat writes through `LedgerPort` |
 | **the vocabulary** | is this word known? are these params in schema? | `core/vocab` — the tiles seat refuses against it |
 | **the recipe store** | does this tile's edit validate and commit? | `core/recipe` — the tiles seat does not write the recipe |
-| **the cloud author** | write me a tile for this family, here is why the last one lost | the cloud, through `TileAuthor`; a scripted fake stands in for tests |
+| **the cloud author** | write me a tile for this family, here is why the last one lost | the cloud, through `TileAuthorProtocol`; a scripted fake stands in for tests |
 | **the game** | what happened when this tile was played? | the engine and the critic; the tiles seat writes the record |
 
 The tiles seat **writes audit events and nothing else** (the night runner's
@@ -414,10 +414,20 @@ above a uniform pick **with a stated confidence**. No real LLM call is made
 in any test: the author sits behind an adapter, and the adapter's fake is
 deterministic.
 
-**Not in this slice:** the learned ranker, RL, the policies of §6, the cloud
-transport's real endpoint, the recipe-store integration (playing a tile
-end-to-end), and the morning report's tile column. Each is a small step
-after this one, and the seams for them are already named.
+**Not in this slice:** the learned ranker, RL, the policies of §6, the
+resident/batched serving the ladder is meant to run under (the chooser is
+an in-process object for now), the cloud transport's real endpoint, the
+recipe-store integration (playing a tile end-to-end), and the morning
+report's tile column. Each is a small step after this one, and the seams
+for them are already named.
+
+**What the slice measured** (Thor, aarch64, 2026-10-31 12:30 AKDT): the
+chooser's win rate over 600 plays was **479/600 = 0.798** against a
+uniform pick's **215/600 = 0.358** — a difference of **+0.440**, with a
+95% interval (Newcombe's method 10) of **[0.388, 0.488]**, which does not
+include zero. The win rate rose over the night (232/300 in the first half,
+247/300 in the second), and a choice costs 0.05 ms. The full numbers and
+the box's state are in `core/tiles/README.md`.
 
 ---
 
