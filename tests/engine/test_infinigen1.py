@@ -23,7 +23,7 @@ from core.engine.contract import (
 )
 from core.engine.infinigen1 import RUNG_LADDER, config_bundle_hash
 
-from .conftest import PIN_V2, FakeCommandRunner, fjellvik, param_ops
+from .conftest import PIN_V2, fjellvik, param_ops
 
 VERSION = "sha256:" + "a" * 64
 

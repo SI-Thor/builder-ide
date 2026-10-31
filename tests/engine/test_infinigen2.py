@@ -10,6 +10,7 @@ is there to use.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 
 import pytest
@@ -21,11 +22,7 @@ from core.engine.contract import (
     ReexecuteRequest,
     StageRequest,
 )
-from core.engine.infinigen2 import (
-    ImportedProcfuncRuntime,
-    generator_calls,
-    graph_edits,
-)
+from core.engine.infinigen2 import generator_calls, graph_edits
 
 from .conftest import PIN_V1, PIN_V2, RecordingRuntime, fjellvik, param_ops
 
@@ -113,7 +110,7 @@ def test_reexecution_edits_the_graph_and_executes_the_reachable_part(runtime):
     kinds = [op[0] for op in rt.ops]
     assert kinds == ["trace", "replace", "execute"]
     # the edit landed in the graph the runtime was handed
-    replace_graph, replace_edits = rt.ops[1][1], rt.ops[1][2]
+    replace_edits = rt.ops[1][2]
     assert replace_edits[0]["entry_path"] == "harbor.crates"
     executed_graph = rt.ops[2][1]
     assert executed_graph["nodes"]["n0"]["params"]["count"] == 9
@@ -177,12 +174,9 @@ def test_without_procfunc_the_missing_piece_is_named():
     """On this core (Python 3.12) procfunc cannot import — the engine
     decision's own fact (E §2: bpy==4.2.0 pins Python ==3.11.*). The
     default runtime says so instead of throwing an import traceback."""
-    try:
-        import procfunc  # noqa: F401
+    if importlib.util.find_spec("procfunc") is not None:
         pytest.skip("procfunc is importable on this box; the refusal path "
                     "cannot be exercised here")
-    except ImportError:
-        pass
     engine = Infinigen2Engine(pin=PIN_V2)  # the ImportedProcfuncRuntime
     with pytest.raises(EngineUnavailable) as caught:
         engine.generate_stage(_stage())
