@@ -614,7 +614,7 @@ fn a_learned_peak_is_used_by_the_next_run() {
     assert_eq!(history[0]["label"], "auto-label");
     let measured = history[0]["peak_rss_bytes"].as_u64().unwrap();
     assert!(
-        measured > 1 * GIB,
+        measured > GIB,
         "the peak was {measured} bytes, which is not the 2 GiB the hog took"
     );
 

@@ -151,7 +151,7 @@ pub fn parse_tegrastats_line(line: &str) -> Option<GpuSample> {
         let count: u64 = count.trim().parse().ok()?;
         // The block is written "4MB)" — take the token and strip the suffix.
         let block_text = block.split_whitespace().next().unwrap_or("");
-        let block_text = block_text.trim_end_matches(|c: char| c == ')' || c == 'B' || c == 'M');
+        let block_text = block_text.trim_end_matches([')', 'B', 'M']);
         let block: u64 = block_text.parse().ok()?;
         sample.largest_free_block = Some(count * block * 1024 * 1024);
     }
