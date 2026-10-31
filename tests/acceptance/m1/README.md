@@ -13,9 +13,13 @@ in its output.
 merged `core.*` packages — `siblings.load()` imports them from this tree,
 the recipe store rides the spine's **one ledger** through the real
 `RecipeStoreSeam`, ask-mode writes its rows straight into that log through
-`core.ports.SpineLedgerPort`, and the mirrors are gone. What the rewiring
-exposed in the core is fixed there, with tests; what is still a stub is
-listed below with the exact missing piece.
+`core.ports.SpineLedgerPort`, and the mirrors are gone. **The render rungs
+and the merge gate's engine half now run on the core's engine seam**
+(`core/engine`, behind the **fake engine** — `seats/engine.py` holds the
+one configuration line), so pointing the session at a real engine is
+configuration, not rewiring. What the rewiring exposed in the core is
+fixed there, with tests; what is still a stub is listed below with the
+exact missing piece.
 
 ## Run it
 
@@ -33,7 +37,7 @@ STEP                               CLK             MS  BUDGET BACKEND           
 -----------------------------------------------------------------------------------------------------------------
 evening/cold-open                  Talk           0.2      2s real:cold-start+real:core-api(ledger)        PASS
 evening/slate                      Workshop       9.5     30s real:core-api                                PASS
-night/sealed-bet-crates            —              17.7       — real:core-api+real:core-recipe(seam)+stub:... PASS
+night/sealed-bet-crates            —              17.7       — real:core-api+real:core-recipe(seam)+fake:... PASS
 night/kill-9                       Watch          81.6       — real:core-api                                PASS
 morning/computer-call              Workshop      14.1     20s real:core-api+real:core-recipe(registry)     PASS
 ...
@@ -61,9 +65,9 @@ ledger:
 | `evening/work-order-confirm` | go → queued; a doubled Go is one Go (idempotency) | Talk ≤ 2 s | core-api |
 | `evening/handoff` | night running; the pre-flight names lane, queue and detach rule, and proposes nothing when the lane is free | Watch ≤ 10 s | core-api |
 | `night/reference-loop` | the Prop-maker's loop on the cold world: guess-sealed world bet, taste claim refused by the gate, hollow crates 7/11 to the library, question parked not decided, seal seq < enqueue seq | — | vocab (its own ledger) |
-| `night/sealed-bet-crates` | the crates bet on the spine: typed call commits through the recipe seam, seal → render → `verdict@scripted` critic → hit; **gate (c)**: `prediction.sealed` strictly before `job.enqueued` | — | core-api + core-recipe(seam) + stub render/critic |
-| `night/sealed-bet-racks` | the racks bet: critic misses (`wrong_scale`), scored not hidden, task reverted | — | core-api + core-recipe(seam) + stubs |
-| `night/wo-attempt` | stub engineer delivers, the merge gate passes (licence scan, budget audit, engine rungs), `landed` with preview + evidence before the owner is notified | — | core-api + stub engineer/gate |
+| `night/sealed-bet-crates` | the crates bet on the spine: typed call commits through the recipe seam, seal → render → `verdict@scripted` critic → hit; **gate (c)**: `prediction.sealed` strictly before `job.enqueued` | — | core-api + core-recipe(seam) + fake engine(render) + stub critic |
+| `night/sealed-bet-racks` | the racks bet: critic misses (`wrong_scale`), scored not hidden, task reverted | — | core-api + core-recipe(seam) + fake engine(render) + stub critic |
+| `night/wo-attempt` | stub engineer delivers, the merge gate passes (licence scan, budget audit, engine rungs — the rebuild check really byte-compares through the seam), `landed` with preview + evidence before the owner is notified | — | core-api + stub engineer + fake engine(gate rungs) |
 | `night/heartbeats-and-rails` | ticks, spend against the bar, the 80% graduation computed, the per-model load cap at its cap | — | core-api |
 | `night/cut-at-the-bar` | the calibration batch (queue item three) is cut at the 80% bar and requeued — named, never dropped | — | core-api + the runner half |
 | `night/peek` | cold join is a ledger replay ≤ 5 s, a card legible ≤ 5 s, rewind free, never fast-forward past the head | Watch ≤ 5 s | core-api (SSE) |
@@ -96,26 +100,29 @@ table's `real:*` labels point at it.
 | recipe store | `core.recipe` behind `core.svc.recipes.RecipeStoreSeam` | Fjellvik as a typed recipe **in the one log**; vocabulary-validated edits; the node registry (§1.4.0) that the two-referent test resolves through; the branch flip as a pointer move — the spine's `/v1/branches/{id}/apply` reports `recipe_sync: ok` because the seam really moved the store |
 | vocabulary | `core.vocab` | the three words (data + schemas), the call door's refusals, sealed predictions with the confidence gate, and the Prop-maker's scripted loop as the night's reference implementation |
 | cold start | `core.coldstart` | the opener (computed from counts in the one log) and ask-mode (≤ 6, sequential, skip writes nothing) — its rows land directly in the spine's ledger through `core.ports.SpineLedgerPort` |
+| the engine | `core.engine` behind the **fake engine** | the render rungs and the gate's engine half through the seam: the door's `render_job` renders the **committed version** via `Engine.render_preview`, and the spine's `gate_engine` port is `EngineGateEngine` — whose deterministic-rebuild rung really byte-compares two generated stages. The fake is deterministic in the whole request and its bytes say `fake-engine` inside themselves; `seats/engine.py::SPEC` is the one line a real engine changes |
 | night runner | `core.night` | the reference night for the kill -9 parity check: rails, graduated throttle, detach-or-deadline, heartbeats, the computed status line |
 | why kernel | `core.why`, `core.justification` | merged, not yet load-bearing in this session — M1's "why?" is the provenance one-tap, which the spine serves; goal-chains belong to a later morning |
-| USD backbone | `builder_usd` | present on the tree (its tests run in the suite) but not in this session — M1's render rungs run on the stub generator by design (plan §2 M1 risks). It plugs in where `stub_render` stands, through `/v1/world/scene`'s 501 seam |
+| USD backbone | `builder_usd` | present on the tree (its tests run in the suite) but not in this session — M1's render rungs run on the fake engine by design (plan §2 M1 risks). It plugs in where the fake engine stands, through `/v1/world/scene`'s 501 seam |
 
 **Still a stub — each with the exact missing piece** (labelled `stub:` in
-the step table; all of them engine-side, no seat owns them yet):
+the step table):
 
-* `stub:render-rung` — the render itself. Missing: the engine lane
-  (infinigen-thor on the Thor, the repo's own spike) behind the scheduler's
-  two-method executor seam. `stub_render` keeps the one property consumers
-  depend on: same seed, same bytes.
 * `stub:critic` — the verdict. Missing: a chosen, calibrated critic model
   (week 3 item 18); until then every verdict wears `verdict@scripted`
-  (RV patch 15).
+  (RV patch 15). The *render* under it is the seam's (`fake:engine`);
+  only the verdict is scripted.
 * `stub:engineer(aider-local)` — the work order's deliverable. Missing: the
   engineer adapter behind the attempt loop (the bake-off's pick, wired to
   the local lane).
-* `stub:gate-engine` — the merge gate's engine rungs (§2.3 steps 1–6:
-  deterministic rebuild, render ladder, analytic checks). Missing: the same
-  engine lane; the gate's orchestration itself is the spine's real code.
+
+**No longer a stub** — the render rungs and the gate's engine rungs. They
+run on the core's engine seam (`core/engine`) behind the **fake engine**,
+labelled `fake:engine(render)` / `fake:engine(gate-rungs)` in the step
+table — the honest label for "the real seam, a fake engine". Missing piece,
+named: a real engine adapter (`infinigen-1x` or `infinigen-2-procfunc`)
+pointed at the infinigen-thor checkout — **configuration** in
+`seats/engine.py::SPEC` (`core.engine.registry.open_engine`), not code.
 
 **One bridge remains** (`bridge:runner-half`, `night/cut-at-the-bar`): the
 80% bar's cut is performed as the runner's action by the driver — real
@@ -135,10 +142,12 @@ same reason — the spine's ledger is the log of record.
 ```
 budgets.py       the spine's latency budgets, with citations
 siblings.py      loads the integrated core's packages (core.*) — one tree
-spec_client.py   SpecClient (§4.2 over HTTP) + CoreDoor (the resident core's own hands)
+spec_client.py   SpecClient (§4.2 over HTTP) + CoreDoor (the resident core's own hands;
+                 the door's render_job renders through the engine seam)
 session.py       the step recorder: outcome, budget, backend, per-step table
 seats/           the thin adapters that remain: cold-start's ledger routing,
-                 the recipe seat over the seam, the vocab loop's world, the stubs
+                 the recipe seat over the seam, the vocab loop's world, the
+                 engine seat (one configuration line), the lane telemetry
 driver.py        the session script itself (acts 0–3); `main()` runs it headless
 test_m1_session.py   the pytest wrapper (plays the script, asserts the gates)
 conftest.py      a fresh $BUILDER_HOME per run
@@ -151,6 +160,12 @@ conftest.py      a fresh $BUILDER_HOME per run
   real services, models and renders stand behind the same interfaces —
   a step that is honest but late, or fast but fabricated, is equally a
   failure (plan §6).
+* **The engine is the fake one, and the bytes say so.** The seam
+  (`core/engine`) is the real code — the door renders the committed
+  version through `Engine.render_preview`, the gate byte-compares real
+  stage generations — but the engine behind it is the deterministic fake.
+  Its artifacts name `fake-engine` inside themselves, so nothing on this
+  run can be mistaken for a render that came off the box.
 * **There is one ledger.** The spine's SQLite store is the only store; the
   recipe seat's commits, ask-mode's rows and the melt's seals all land in
   it. The two DRIFTS this run used to carry are resolved at the source

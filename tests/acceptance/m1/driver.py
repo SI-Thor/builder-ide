@@ -41,9 +41,10 @@ from budgets import (
 from session import Session, StepFailure, World
 from spec_client import CoreDoor, SpecClient, SpecError
 from seats.coldstart import AskModeRunner, ColdStartSeat
+from seats.engine import EngineSeat
 from seats.nightrunner import NightRunnerSeat
 from seats.recipe import MAIN_BRANCH, RecipeSeat
-from seats.stubs import StubGateEngine, StubTelemetry, stub_render
+from seats.stubs import StubTelemetry
 from seats.vocabloop import build_cold_world, run_cold_night, sealed_before_render
 
 
@@ -55,9 +56,10 @@ def build_world(home: Path, run_dir: Path) -> World:
 
     The seats are the integrated core's own packages (`siblings.load()`):
     the spine is `core.svc.Core` + `core.api.create_app`, the recipe store
-    rides the spine's one ledger through `RecipeStoreSeam`, and the stubs
-    are the engine-side pieces no seat owns yet (render rungs, critic,
-    engineer, gate engine — plan §2 M1 risks).
+    rides the spine's one ledger through `RecipeStoreSeam`, and the engine
+    seat is the `core.engine` seam with the fake engine behind it (the
+    render rungs and the gate's engine half; the critic and the engineer
+    stay stubs — plan §2 M1 risks).
     """
     seats = siblings.load()
     world = World(home=home, run_dir=run_dir)
@@ -67,12 +69,14 @@ def build_world(home: Path, run_dir: Path) -> World:
     from core.svc import Core
 
     settings = Settings.for_home(home)
+    engine_seat = EngineSeat(seats)
     core = Core.open(
         settings,
         telemetry=StubTelemetry(load=0.3),
-        gate_engine=StubGateEngine(),
+        gate_engine=engine_seat.gate_engine(),
     )
     recipe_seat = RecipeSeat(seats, core)  # wires core.recipes; one store
+    engine_seat.bind(recipe_seat)
     from core.api import create_app
     from fastapi.testclient import TestClient
 
@@ -81,8 +85,9 @@ def build_world(home: Path, run_dir: Path) -> World:
     http.__enter__()  # lifespan: stream counters etc.
 
     world.spec = SpecClient(http)
-    world.door = CoreDoor(seats, core, settings)
+    world.door = CoreDoor(seats, core, settings, engine=engine_seat.engine)
     world.recipe = recipe_seat
+    world.engine = engine_seat
     world.cold = ColdStartSeat(seats)
     world.night_seat = NightRunnerSeat(seats)
     world.vocab_world = build_cold_world(seats)
@@ -113,7 +118,7 @@ def reconnect(world: World) -> None:
             pass
     core = world.door.reopen(
         telemetry=StubTelemetry(load=0.3),
-        gate_engine=StubGateEngine(),
+        gate_engine=world.engine.gate_engine(),
     )
     world.recipe.rebind(core)  # the store survived in the one log
     http = TestClient(create_app(world.stamps["settings"], core=core))
@@ -521,7 +526,7 @@ def act_night(ses: Session, world: World) -> None:
     # 1. sealed bet one — the crates (edit → seal → render → critic → keep)
     with ses.step("sealed-bet-crates", act="night",
                   backend=["real:core-api", "real:core-recipe(seam)",
-                           "stub:render-rung", "stub:critic"]) as step:
+                           "fake:engine(render)", "stub:critic"]) as step:
         call = spec.vocab_call(
             "props.harbor.crates",
             {"count": 12, "style": "weathered", "from_library": 6, "seed": 42},
@@ -542,7 +547,6 @@ def act_night(ses: Session, world: World) -> None:
         job = door.render_job(
             branch_ref=branch_ref, entry_paths=["harbor.crates"], rung=2, seed=42,
             prediction_id=pr_id, night=night_id,
-            render=stub_render(42, 2, "crates"),
         )
         door.critic_verdict(
             job_id=job["job_id"], verdict="keep", code="reads_as_asked",
@@ -569,7 +573,7 @@ def act_night(ses: Session, world: World) -> None:
     # 2. sealed bet two — the racks: the critic misses, the batch reverts
     with ses.step("sealed-bet-racks", act="night",
                   backend=["real:core-api", "real:core-recipe(seam)",
-                           "stub:render-rung", "stub:critic"]) as step:
+                           "fake:engine(render)", "stub:critic"]) as step:
         call = spec.vocab_call(
             "props.harbor.racks", {"count": 8, "length_m": 3.0}, node="racks",
         )
@@ -586,7 +590,6 @@ def act_night(ses: Session, world: World) -> None:
         job = door.render_job(
             branch_ref=branch_ref, entry_paths=["harbor.racks"], rung=2, seed=43,
             prediction_id=pr_id, night=night_id,
-            render=stub_render(43, 2, "racks"),
         )
         door.critic_verdict(
             job_id=job["job_id"], verdict="hold", code="wrong_scale",
@@ -604,7 +607,7 @@ def act_night(ses: Session, world: World) -> None:
     # 3. the work order's attempt: stub engineer, real gate, real land
     with ses.step("wo-attempt", act="night",
                   backend=["real:core-api", "stub:engineer(aider-local)",
-                           "stub:gate-engine"]) as step:
+                           "fake:engine(gate-rungs)"]) as step:
         spend = {"gpu_minutes": 20.0, "wall_minutes": 90.0}
         patch = door.put_artifact(b"diff --git a/crates.py b/crates.py\n+lids\n+rope\n",
                                   "crates-v2.patch")
@@ -624,8 +627,7 @@ def act_night(ses: Session, world: World) -> None:
         }
         door.record_spend(night_id, spend, job=S["wo"])
         gate = door.run_engineer_attempt(
-            S["wo"], deliverable=deliverable, preview=stub_render(42, 2, "crates-v2"),
-            night=None,
+            S["wo"], deliverable=deliverable, subject="crates-v2", night=None,
         )
         step.check("the merge gate passed every check",
                    gate.get("passed") is True, str(gate.get("checks")))
@@ -641,7 +643,7 @@ def act_night(ses: Session, world: World) -> None:
             provenance={
                 "source": "generated",
                 "generator": {
-                    "method": "stub_generator", "model_id": "stub-engine",
+                    "method": "fake-engine", "model_id": "fake-engine",
                     "prompt": "crates v2 preview, quay row", "seed": 42,
                 },
             },

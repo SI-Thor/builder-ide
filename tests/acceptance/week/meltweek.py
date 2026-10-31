@@ -41,7 +41,6 @@ from budgets import (  # noqa: E402
 )
 from seats.coldstart import ColdOpenView  # noqa: E402
 from seats.recipe import MAIN_BRANCH  # noqa: E402
-from seats.stubs import stub_render  # noqa: E402
 from session import Session, StepFailure, World  # noqa: E402
 from spec_client import SpecError  # noqa: E402
 
@@ -404,7 +403,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
     with ses.step(f"n{n}-bets", act="night",
                   backend=["real:core-api", "real:core-recipe(seam)",
                            "real:cold-start(policy)", "real:core-api(ledger)",
-                           "stub:render-rung", "stub:critic"]) as step:
+                           "fake:engine(render)", "stub:critic"]) as step:
         recipe.new_branch(alias=f"night{n}", name=f"night-{spec_night.date}",
                           purpose="night", spine_id=f"br_night{n}")
         door.publish_branch(f"br_night{n}", name=f"night-{spec_night.date}",
@@ -478,8 +477,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
         job = door.render_job(
             branch_ref=branch_ref,
             entry_paths=[".".join(spec_night.edit.word.split(".")[1:])],
-            rung=2, seed=seed, prediction_id=world_pr, night=night_id,
-            render=stub_render(seed, 2, f"night-{n}"))
+            rung=2, seed=seed, prediction_id=world_pr, night=night_id)
         events = door.raw_events(0)
         seal_seq = next(int(e.seq) for e in events
                         if e.type == "prediction.sealed"
@@ -636,7 +634,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
     # 3. the work order's attempt: stub engineer, real gate, real land
     with ses.step(f"n{n}-wo-attempt", act="night",
                   backend=["real:core-api", "stub:engineer(aider-local)",
-                           "stub:gate-engine"]) as step:
+                           "fake:engine(gate-rungs)"]) as step:
         wo_id = S[f"wo_{n}"]
         spend = {"gpu_minutes": 20.0, "wall_minutes": 90.0}
         patch = door.put_artifact(
@@ -659,8 +657,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
         }
         door.record_spend(night_id, spend, job=wo_id)
         gate = door.run_engineer_attempt(
-            wo_id, deliverable=deliverable,
-            preview=stub_render(seed, 2, f"wo-n{n}"), night=None)
+            wo_id, deliverable=deliverable, subject=f"wo-n{n}", night=None)
         step.check("the merge gate passed every check",
                    gate.get("passed") is True, str(gate.get("checks")))
         board = {w["id"]: w for w in spec.work_orders()}
