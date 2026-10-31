@@ -28,7 +28,7 @@ Part B is where the team has a view and your call settles it.
 | B2 | **No LLMs on the Thor.** LLMs come from cloud subscriptions (z.ai, MiniMax, Claude; more can be added; Opus only where its cost is worth it). | See "B2, decided" below: the Thor is for motion, assets, world models and decision models, and the system learns from the scripts. |
 | B3 | **Yes, on by default.** The UX matters most: the always-on world renders precalculated assets so the world is better every time the human joins. Experiment with turning it off to speed other growth cycles. | `Settings.daytime_enabled` now defaults to True. |
 | B4 | **MIT.** "More important that we allow people to use it and change it and evolve it." | `LICENSE` (MIT) added; the fork stays BSD-3 (upstream's terms). |
-| B5 | Needs more information | See the expanded B5 below. |
+| B5 | **Build the missing half ourselves**, custom-fit to the Thor (Casey, 2026-10-31). No contact needed. | A new repo, `thor-world` (working name): an MCP server over the core, plus a deterministic recipe-to-glTF stream with real LODs, GPU texture compression and deltas, and a live browser viewer. Two zcode seats started on the ProArt. |
 | B6 | Casey plugs it in later today; the Thor must power off and move | Plan for a planned shutdown: drain the seats and the sweep first. |
 | B7 | Casey replugs the drive | After the replug: check what survived before any reformat. |
 
