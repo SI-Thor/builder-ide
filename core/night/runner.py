@@ -436,23 +436,37 @@ class NightRunner:
         self._append("job.started", {"job_id": job_id, "task_id": task.id}, at=now)
         self.queue.mark(task.id, "running")
 
-        # The core keeps ticking the window while the work runs (§3.4).
-        self._advance_ticking(plan.wall_minutes)
-        done_at = self.clock.now()
-
-        # The work itself: the executor runs it and reports what it cost.
+        # The work itself: the executor runs it and reports what it cost. If
+        # the box dies here, the night dies with it — and the time the work
+        # would have taken is the time the morning will call lost.
         actual = self._executor.run(task)
         actual_cost = Rail(
             gpu_minutes=actual.gpu_minutes,
             hosted_cents=actual.hosted_cents,
             wall_minutes=actual.wall_minutes,
         )
+
+        # The core keeps ticking the window while the work runs (§3.4).
+        if plan.stall_minutes:
+            # The batch waited on the lane. The core was alive the whole time,
+            # so this is contention, not lost time — and it is named (§3.3).
+            self.heartbeat.stall(plan.stall_minutes, note=plan.stall_reason)
+            self._advance_ticking(plan.stall_minutes)
+        self._advance_ticking(plan.wall_minutes)
+        done_at = self.clock.now()
+
         self.budget.spend(actual_cost)
         self._record_spend(actual_cost)
         if plan.model:
             self.loads.record_load(plan.model)
 
         outcome = actual.outcome
+        overrun = 0.0
+        if not task.rail.is_zero and actual.wall_minutes > task.rail.wall_minutes:
+            # The seat hard-kills at the per-attempt rail (§5.5): the work is
+            # stopped, not trusted, and it waits for tomorrow.
+            overrun = actual.wall_minutes - task.rail.wall_minutes
+            outcome = "cut"
         self._append(
             "job.done",
             {
@@ -497,7 +511,10 @@ class NightRunner:
         # The night's keep or revert is a **verdict** write, never a taste
         # write (§1.7): the owner scores taste in the morning.
         state = "reverted" if outcome == "failed" else outcome
-        self.queue.mark(task.id, state, actual.reason)
+        reason = actual.reason
+        if overrun:
+            reason = f"the seat stopped it at its own rail — {overrun:.0f} min over"
+        self.queue.mark(task.id, state, reason)
 
     # -- time --------------------------------------------------------------
 

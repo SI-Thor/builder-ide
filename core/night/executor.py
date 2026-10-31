@@ -33,6 +33,8 @@ class ExecutionPlan(BaseModel):
     gpu_minutes: float = 0.0
     hosted_cents: int = 0
     wall_minutes: float = 0.0
+    stall_minutes: float = 0.0
+    stall_reason: str | None = None
     outcome: TaskOutcome = "kept"
     reason: str | None = None
     degraded: bool = False
@@ -53,6 +55,9 @@ class ScriptedTask(BaseModel):
     gpu_minutes: float | None = None
     hosted_cents: int = 0
     wall_minutes: float | None = None
+    actual_wall_minutes: float | None = None
+    stall_minutes: float = 0.0
+    stall_reason: str | None = None
     outcome: TaskOutcome = "kept"
     reason: str | None = None
     degraded: bool = False
@@ -113,6 +118,8 @@ class ScriptedExecutor:
             reason=script.reason,
             degraded=script.degraded,
             artifact=script.artifact,
+            stall_minutes=script.stall_minutes,
+            stall_reason=script.stall_reason,
             branches=list(script.branches),
             predictions=[dict(prediction) for prediction in script.predictions],
             verdicts=[dict(verdict) for verdict in script.verdicts],
@@ -121,4 +128,10 @@ class ScriptedExecutor:
     def run(self, task: Task) -> ExecutionPlan:
         if task.id not in self._scripts:
             raise KeyError(f"no script for task {task.id!r}")
-        return self.plan(task)
+        plan = self.plan(task)
+        script = self._scripts[task.id]
+        if script.actual_wall_minutes is not None:
+            # The work overran its projection; the rail decides what happens
+            # to it, not the script (§5.5).
+            plan = plan.model_copy(update={"wall_minutes": script.actual_wall_minutes})
+        return plan

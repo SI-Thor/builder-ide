@@ -28,11 +28,15 @@ import re
 from core.night.clock import ScriptedClock
 from core.night.executor import ScriptedExecutor, ScriptedTask
 from core.night.ledger import InMemoryLedger
-from core.night.models import Rail, Task
+from core.night.models import Actor, Rail, Task
 from core.night.report import build_report, render_html, render_text, write_report
 from core.night.runner import NightRunner
 
 NIGHT = "night_2026-10-30"
+
+
+def runner_actor() -> Actor:
+    return Actor(kind="scheduler", id="night-runner")
 
 
 def a_task(task_id: str = "task_0001", **kwargs) -> Task:
@@ -242,6 +246,38 @@ def test_the_wall_time_is_the_nights_own_clock_and_not_the_machines():
     """Regression: every row of the night carries the night's clock."""
     report = build_report(run_a_night())
     assert report.numbers.wall_time_minutes == 45.0
+
+
+def test_a_did_not_run_morning_re_offers_the_plan_verbatim():
+    """§3.4 — the plan survives every one of these nights, and is re-offered."""
+    ledger = InMemoryLedger()
+    ledger.append(
+        type="night.task.created",
+        actor=runner_actor(),
+        subject={"entity_kind": "task", "entity_id": "task_0001"},
+        payload={
+            "task": {
+                "id": "task_0001",
+                "night": None,
+                "author": "casey",
+                "owner_character": "prop-maker",
+                "intention": "Weather the harbour crates",
+                "recipe_scope": [],
+                "cost_estimate": {"gpu_minutes": 30.0, "hosted_cents": 0, "wall_minutes": 45.0},
+                "rail": {"gpu_minutes": 40.0, "hosted_cents": 0, "wall_minutes": 60.0},
+                "state": "slated",
+                "predictions": [],
+                "branches": [],
+            }
+        },
+    )
+    report = build_report(ledger.events())
+    assert report.status.status == "did not run"
+    assert report.status.variant == "off"
+    assert "start now" in report.recovery
+    assert "tonight" in report.recovery
+    assert "drop it" in report.recovery
+    assert "start now" in render_html(report)
 
 
 def test_writing_the_report_writes_the_page_its_json_and_its_text(tmp_path):

@@ -196,6 +196,28 @@ def test_at_the_eighty_percent_bar_the_queue_stops_and_the_rest_are_cut():
     assert "80" in projection.reason_for("task_0002")
 
 
+def test_a_task_that_runs_past_its_own_rail_is_stopped_at_the_rail():
+    """The seat hard-kills at the per-attempt rail (§5.5)."""
+    ledger = InMemoryLedger()
+    executor = ScriptedExecutor(
+        {
+            "task_0001": ScriptedTask(
+                gpu_minutes=30.0,
+                wall_minutes=45.0,
+                actual_wall_minutes=300.0,
+            )
+        }
+    )
+    runner = a_runner(ledger, executor)
+    runner.start([a_task("task_0001", rail=Rail(gpu_minutes=40.0, wall_minutes=60.0))])
+    runner.run()
+    runner.stop()
+
+    projection = NightProjection(ledger.events())
+    assert projection.task("task_0001").state == "cut"
+    assert "rail" in projection.reason_for("task_0001")
+
+
 def test_a_sealed_bet_is_committed_before_its_render_job_is_enqueued():
     ledger = InMemoryLedger()
     executor = ScriptedExecutor(

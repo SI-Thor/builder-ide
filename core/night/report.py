@@ -184,6 +184,7 @@ class NightReport(BaseModel):
     tally: list[TallyRow] = Field(default_factory=list)
     three_numbers: ThreeNumbers = Field(default_factory=ThreeNumbers)
     the_box: list[BoxRow] = Field(default_factory=list)
+    recovery: str | None = None
 
 
 # -- building ------------------------------------------------------------
@@ -258,7 +259,22 @@ def build_report(events: Sequence[AuditEvent]) -> NightReport:
         tally=tally,
         three_numbers=three_numbers,
         the_box=_the_box(projection, events),
+        recovery=_recovery(status, projection),
     )
+
+
+def _recovery(status: StatusLine, projection: NightProjection) -> str | None:
+    """The one-tap recovery every ``did not run`` morning carries (§3.4).
+
+    The plan is a recipe — kilobytes — so it survives every one of these
+    nights by construction, and it is re-offered verbatim: *start now ·
+    tonight · drop it*.
+    """
+    if status.status != "did not run":
+        return None
+    if not projection.tasks:
+        return None
+    return "Your plan is unstarted, unchanged — start now · tonight · drop it."
 
 
 def _numbers(projection: NightProjection, events: Sequence[AuditEvent]) -> NightNumbers:
@@ -466,6 +482,8 @@ def render_html(report: NightReport) -> str:
     add(f'<p class="status">{_escape(report.status.first_line)}</p>')
     if report.status.variant:
         add(f'<p class="reason">Nothing ran: {_escape(report.status.variant)}.</p>')
+    if report.recovery:
+        add(f'<p class="reason">{_escape(report.recovery)}</p>')
     add("</section>")
 
     # 2 — the failures, first.
@@ -650,6 +668,8 @@ def render_text(report: NightReport) -> str:
     add(report.status.first_line)
     if report.status.variant:
         add(f"Variant: {report.status.variant}")
+    if report.recovery:
+        add(report.recovery)
     add("")
     add("WHAT FAILED")
     if not report.failures:
