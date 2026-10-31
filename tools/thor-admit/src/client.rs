@@ -195,21 +195,19 @@ pub fn run_under_lease(
     }
     if pid == 0 {
         // The child: its own process group, then wait for the go-ahead.
+        // The go-ahead is one byte: "g" means run. End of file (the parent
+        // died, or the lease was refused) means **do not run**: nothing may
+        // start without a lease.
         unsafe {
             libc::setpgid(0, 0);
             libc::close(write_fd);
             let mut byte = [0u8; 1];
-            loop {
-                let n = libc::read(read_fd, byte.as_mut_ptr() as *mut libc::c_void, 1);
-                if n <= 0 {
-                    break;
-                }
-                if byte[0] == b'g' {
-                    break;
-                }
-            }
+            let read = libc::read(read_fd, byte.as_mut_ptr() as *mut libc::c_void, 1);
             libc::close(read_fd);
-            exec_command(command);
+            if read == 1 && byte[0] == b'g' {
+                exec_command(command);
+            }
+            libc::_exit(126);
         }
     }
 
@@ -232,11 +230,9 @@ pub fn run_under_lease(
     ) {
         Ok(grant) => grant,
         Err(error) => {
-            // Nothing will run: let the child go, then reap it.
-            unsafe {
-                libc::write(write_fd, b"g".as_ptr() as *const libc::c_void, 1);
-                libc::close(write_fd);
-            }
+            // No lease, so no run: closing the pipe is the refusal, and the
+            // child exits without exec'ing anything.
+            unsafe { libc::close(write_fd) };
             let mut status = 0;
             unsafe { libc::waitpid(pid, &mut status, 0) };
             return Err(error);

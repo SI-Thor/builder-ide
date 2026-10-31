@@ -670,6 +670,31 @@ fn the_stop_command_stops_the_daemon() {
 }
 
 #[test]
+fn a_refused_lease_does_not_run_the_command() {
+    let daemon = DaemonUnderTest::start(&[]);
+    let marker = daemon.state_dir.join("ran.txt");
+
+    // "--peak auto" for a label with no history is refused.
+    let mut child = leased(
+        &daemon,
+        "never-seen-before",
+        "auto",
+        &["touch", marker.to_str().unwrap_or_default()],
+    );
+    let status = child.wait().expect("the client finishes");
+    assert!(!status.success(), "the client should have failed");
+    let output = output_of(&mut child);
+    assert!(
+        output.contains("no history for the label"),
+        "the refusal was not explained:\n{output}"
+    );
+    assert!(
+        !marker.exists(),
+        "the command ran without a lease — that is the whole point of the admission"
+    );
+}
+
+#[test]
 fn the_queue_is_ordered_by_priority() {
     // The default floor (25 GiB) and a 50 GiB reservation: the first lease
     // fits (118 - 50 = 68 free, above the floor) and the second does not
