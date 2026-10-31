@@ -19,6 +19,7 @@ the night's output is a catalogue of props rather than a render.
 | `repair.py` | the repair stage: welding the seams the generator leaves, and undoing the self-crossings | no |
 | `fidelity.py` | the silhouette IoU: how much of the prop a repair left alone | no |
 | `critic.py` | the scripted critic — the judgement that picks the winner | no |
+| `plausibility.py` | the **other** side of the judge: a prior over real-object features, and the ambiguity gate ([`PLAUSIBILITY.md`](PLAUSIBILITY.md)) | no |
 | `assets.py`, `licences.py` | the asset record: the file, the recipe, the licence row | no |
 | `models.py`, `store.py` | the records, and where the night's output is kept | no |
 | `workflow.py` | the two API workflows, patched from the TRELLIS.2 environment's own templates | no |
@@ -29,6 +30,25 @@ the night's output is a catalogue of props rather than a render.
 Two thirds of the seat never touches the GPU, and that is the point: the
 judgement can be tested without one, and the night can be rehearsed on a
 fake box.
+
+## The judge has two sides, and only one of them was built
+
+Every check in `critic.py` is a **consistency** check: is the prop a valid
+solid, is it inside its budget, did the repair keep its silhouette. Not one
+of them asks whether the shape is a shape a real object has — so a prop
+that matches its image perfectly and depicts nothing that exists passes
+all eight.
+
+`plausibility.py` is the other side: a prior over the features of real
+objects, fitted on the **approved assets**, and the **ambiguity gate** that
+says the image did not determine the shape. The note is
+[`PLAUSIBILITY.md`](PLAUSIBILITY.md); the measured numbers and the two
+design bugs the controls caught are in
+[`docs/lab/exp-genbatch-plausibility.md`](../../docs/lab/exp-genbatch-plausibility.md).
+
+```bash
+.venv/bin/python -m pytest -q tests/genbatch/test_plausibility.py   # 16 tests
+```
 
 ## Running it
 
