@@ -66,8 +66,10 @@ works.
 - **Keep the READMEs current** (Casey, 2026-10-31). Every package or directory
   a seat creates gets a README (what it is, how to run its tests, what it
   stubs, how it connects to the rest), and every change updates it. The top
-  README's status, document map and branch table are refreshed whenever a
-  report lands or a branch merges.
+  README's status, document map and branch table are refreshed by the
+  **director only**, when a report lands or a branch merges. Seats must not
+  edit the top README on their branches (parallel edits conflict at every
+  merge); they put their status in their package README and summary.
 - **Measure, with the box's state beside every number.** "Works" carries its
   proof: a render, a timing, a test.
 - **Licences are a checked list**, especially for models: some image models are
