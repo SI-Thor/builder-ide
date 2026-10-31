@@ -573,14 +573,24 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
             {"from_head": head, "to": to, "via": "owner apply"},
         )
         core.store.append(ev)
+        # §1.7 — the owner's apply is *the* event that scores the night's
+        # taste bets on that branch (a critic keep never does). Found by the
+        # rewired melt week, which had to bridge this call in by hand.
+        taste_scored = PredictionsService(core).score_taste_keep_on_branch(
+            branch_id, owner_actor(principal.actor), "apply")
         recipe_sync = "ok"
         try:
-            core.recipes.fast_forward(branch_id, to)
+            # §1.2 — applying a branch moves *the world*: the store's main
+            # follows the applied head (the branch itself is already there;
+            # fast-forwarding it was a pointer no-op that forced the callers
+            # to move main by hand). The store's move rides a core actor —
+            # one owner decision, one transaction, not two decisions.
+            core.recipes.fast_forward("br_main", to)
         except CoreError:
             recipe_sync = "unavailable"  # the ledger event is the record
         fresh = core.store.get_row("branches", {"id": branch_id})
         return {"branch": branch_id, "head": (fresh or {}).get("payload", {}).get("head"),
-                "recipe_sync": recipe_sync}
+                "recipe_sync": recipe_sync, "taste_bets_scored": taste_scored}
 
     # ------------------------------------------------------------- budget
 
