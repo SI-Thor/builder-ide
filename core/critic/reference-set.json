@@ -1,0 +1,1309 @@
+{
+ "bases": [
+  {
+   "height": 540,
+   "id": "arctic-s1",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "57d484b299f1d846d8ab41a2864d1044405372ad60c5704dacd52d4a5855b2bf",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s1/fine/scene.blend",
+   "mesh_sha256": "09ac513a6211704d334ccc823d12b2f75c9111fb320cd2058ac673b1824b74d7",
+   "scene": "arctic",
+   "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "arctic-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "9e03a07c0d0961cc0baaf5bed9c9ffe0af5328b2117f530321a184c748f0c8e4",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "arctic",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "arctic-s4",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "acdf1b172c1d45e9464d5aa5ebb905c933f88cbe0c3438ff1ab176819994f41a",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s4/fine/scene.blend",
+   "mesh_sha256": "36b006c7f3b2eedc1da732b2d198a5de3a76c88067180151f6030892e9a3a99f",
+   "scene": "arctic",
+   "seed": 4,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "arctic-s5",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "915e332bf73353cc6c2130bc41bb210ddc98da20d4aecc014cf47bc05fcf94b0",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s5/fine/scene.blend",
+   "mesh_sha256": "c406565f65a1095cfdf408b750711f80cb4f1f476dd46b0aea34a92e7699897a",
+   "scene": "arctic",
+   "seed": 5,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "arctic-s6",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s6/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "3befb380c9a824e760d74c6e2aafbb51d277c9c909ebf178d8a4dc325a174739",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s6/fine/scene.blend",
+   "mesh_sha256": "80e26a3010b88c53c7571b15a8463e0536e11e57b221a8bc27c3971558df15bd",
+   "scene": "arctic",
+   "seed": 6,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "arctic-s7",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s7/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "aecc534655c33d89e7cfbf3faa14e690769fff7497a369ed4905141673f80986",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "arctic",
+   "seed": 7,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "arctic-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "576882802dbf2023e639d023dd33455a72336e14c16124f931de3aeb1a47fe76",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "arctic",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "canyon-s1",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e3ff5b7daf018066d54342429e40d7cd96ccb4f9f3f2d03654eb408a9d78d9da",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "canyon",
+   "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "canyon-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "1cae7723c47ff97540c391e41640c6b71b7816423e30e0de82fcac3f717922d7",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "canyon",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "canyon-s4",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e19271eb5eb648e58327932542e57e1ed5e5887ea637f934cc60eaf94b14140a",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "canyon",
+   "seed": 4,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "canyon-s5",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "10fcb3a5592bfafd5e222424b09d447796640863c6cb0f021db93fac984a31b8",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "canyon",
+   "seed": 5,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "canyon-s6",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s6/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "b81f42a8304695bc03d0756897b30e7f7664f5f25ae6b77656938def7a09f16e",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/canyon-s6/fine/scene.blend",
+   "mesh_sha256": "8b1f1b32c06a2d2da475802bb429571c58fda7eb4e998f361b5cb3f94d7225a8",
+   "scene": "canyon",
+   "seed": 6,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "canyon-s7",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s7/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "9e3a2eec0b57444229699f63c85f4b164b8dba3b58c09c03f997da4fa78086ce",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "canyon",
+   "seed": 7,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "canyon-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "20904aa6d2e113f03a954f60fd2d57190d7d061b24ff35632c263db5d163627b",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "canyon",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s1",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "2e4df55eb34de057368812daf12268e724e8766a673cfce2d2e023a9ecb46cec",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "coast",
+   "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "bd3b638489ba890f62018061ceb419235d3d4239eba48721b398a23b61be2f3e",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "coast",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s4",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "4cc7ecbb5540089febd1224895a9aee2c840adbff7e933ba226e9912a433e0ae",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "coast",
+   "seed": 4,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s5",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "3a6a6e5a99de6329edc29a60ef6687d10a5c3f1b0dffa1543a34cf3a80f7fac4",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s5/fine/scene.blend",
+   "mesh_sha256": "8541ea1e40eb88abada97466f3e0d3164d52cd5b0565bf8f27be05a06529d7fb",
+   "scene": "coast",
+   "seed": 5,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s6",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s6/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "5c69ad6e96b301713933a8c636ceecaa2a602e90c6b403c951288b9267fee980",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend",
+   "mesh_sha256": "78e3db8b75818f782e3810184bd021e210370bea155f622d085b8312db1c5bf1",
+   "scene": "coast",
+   "seed": 6,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s7",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s7/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e8432e31d595f72bdaa8a96a93bb41a4a95f4ce464a6f52ecb3b0f117d9e8584",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "coast",
+   "seed": 7,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "ff9a18ed8ac8a3d14290f10fb4fcfe889b0596ddd3a0e5af88ef52ad7b9da851",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "coast",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s9",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s9/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e090e7ace2bdf3a9a5f0bffc12abe2fd3ea138c5db889551d7756a4e9fb81327",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "coast",
+   "seed": 9,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s1",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "83b2b7a4574f0c2d5ce69fc5482c4e6022c62a942c89415c62d8e250a5178365",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "desert",
+   "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "055fb9d130d067548a463b8c979af9f9e41c0f6e5406052e04f13e3f36903ec1",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "desert",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s4",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "bf139c648a3b87a17884cc2dfc9dab6118222a8d61457f04982e1644a2e30df6",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "desert",
+   "seed": 4,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s5",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "4ebdbba70ebf594b5715a47de9d02cea3606fc3e5e2f99cc740a39566382e7de",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "desert",
+   "seed": 5,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s6",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s6/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "80a355e8821cae1c40e30c04a010b6b6e6e974c590440e041fc3405f75e04449",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend",
+   "mesh_sha256": "c25e0428cb65ac8258432ce564026f678b9ffa811a518f1d92dc1e951ea79f79",
+   "scene": "desert",
+   "seed": 6,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s7",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s7/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e3f6d23e49bbd6b60c3aa19aeff092f2c7224fa72b164696d1d9b8af5b36208a",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "desert",
+   "seed": 7,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "2f721f12bfbefbcce5168c79e8b8d276faa7960f85333e4c5825e0e909a1a8f7",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "desert",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s9",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s9/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "a6ea980abd76e1fdfa859677371b44a52edac54fc16db536e40550cc76af82ac",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "desert",
+   "seed": 9,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "forest-s1",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/forest-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "d9c2f8dc6636cad932977e4d90b48187cbbdf0bc45566cc8a33cbd33d3818178",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "forest",
+   "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "forest-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/forest-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "bd441ef238588ef337f658888dea9fe4f171bc32930a87e908fca201329c8482",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "forest",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "forest-s4",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/forest-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "df0b38933f4819e4178f9349160f8fff1a93f9e4285c2bf2520cb15b65e428c5",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "forest",
+   "seed": 4,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "forest-s5",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/forest-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "b4b8c926656ad10daeaede88e0937cb796560434aed8c043f0dc8dba64aae74a",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "forest",
+   "seed": 5,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "forest-s6",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/forest-s6/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "a128744bc5d9f3c972cf2c71ddcadb1861b9cd239ff852298cb004d18f72f6b8",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/forest-s6/fine/scene.blend",
+   "mesh_sha256": "20d9a5253ab6bce860e4f0a66714c7e04cb42f0082b3c87c0a2695bfab1137e1",
+   "scene": "forest",
+   "seed": 6,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "forest-s7",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/forest-s7/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "4a4f2374c3b378ca64c5178a877090992b27f7546afdbf667e2e00672033aff9",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "forest",
+   "seed": 7,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "forest-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/forest-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e2d953a26c96e17d12af8a189e6ef29e4a1315ef4ef9701cb1a0dc677f845515",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "forest",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "mountain-s1",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "a3f06c729fa1096bdd5a62e674bc1cbb56ba5586800fd6bb47c3ef453b03c84c",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "mountain",
+   "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "mountain-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "6431885a58b89d623b547b1753cf7cd374e24c7f002c25cff3d8837b8a78c0e5",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "mountain",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "mountain-s4",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "347e73f3764cc247d2388703fd609775d5b0813c91d53bb0a74081d175609348",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "mountain",
+   "seed": 4,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "mountain-s5",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "6bb96a03ef1c1a3002d0ae3fa67b837b257dbcd42c2216694700da636e6681dd",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "mountain",
+   "seed": 5,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "mountain-s6",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s6/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "1b7e430b83dc91635889da711e93d39e1da1a905d0c72d426cd21b91f90f02fd",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend",
+   "mesh_sha256": "21f5d293ebdecedc53ce41ef0785a22ff1ae7b5c65aa2412d46be034cb7172d2",
+   "scene": "mountain",
+   "seed": 6,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "mountain-s7",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s7/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "f1fa0d5551be3a2158823773737ac086ea3118d60186f1ef2e7888c5a905cf3d",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "mountain",
+   "seed": 7,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "mountain-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "d7696307fc479797547917f6e0b402abbc237571026f6712c9aa3b1579ea7df2",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "mountain",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "mountain-s9",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s9/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "bdc216a68ffd08521a5a89675d7dc5f989af6122f5bea39e35e22c060e1e95e3",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "mountain",
+   "seed": 9,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "plain-s1",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/plain-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "083cbc67e8bdc56a81e3db0d792625b595b8854d83822e5a1b6bdd14768d67bb",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "plain",
+   "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "plain-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/plain-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "39575c106295da621eea6fc8eee457e1d3b00798ca7fb512ee5ecf25d2fa7142",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "plain",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "plain-s4",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/plain-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "0dcf132eae52eebe76cb1d323c1daae2f12194c3fbe66aea6d3219a0fb386a87",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "plain",
+   "seed": 4,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "plain-s5",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/plain-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e9615fece74d454b219e3145653dd5504e67722b48dfe0fba5642d0de5b97d4c",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend",
+   "mesh_sha256": "858b53f36ef696e3372f3a2fff22c4b7863cf599e7daf63a0a3acfb0d821ed0b",
+   "scene": "plain",
+   "seed": 5,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "plain-s6",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/plain-s6/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e5d7b0ef4a3405d2dfa7cc6228bf1dfcd766645410e6fa3dee0bafc323693c76",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/plain-s6/fine/scene.blend",
+   "mesh_sha256": "49a76f7cac2cf37b04f0e607515ae117e6be632e70e1916c46f73b57b0217310",
+   "scene": "plain",
+   "seed": 6,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "plain-s7",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/plain-s7/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "f43a0bba6c015933429354fac661785e2b28eb1ee3d9ba551f369b6c426db570",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "plain",
+   "seed": 7,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "plain-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/plain-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "9e45f669fd880b55aee528d66ec30b0a1c1f62e88f79196c6fc1145688a4e337",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "plain",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s1",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "81be651c5c0f83e06ae0f8497b15491667e3bb741d4ea04cadf67f8197139434",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "river",
+   "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "20ef5fe618e5fb17f07aa3814a660e798590d135b9c50e61ea3826bc2d8ea55a",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "river",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s4",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "8a2f4037cd2a3a6723a4e95b29cbfbd6bec6ae31edb17c918fe93d0f629f111c",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "river",
+   "seed": 4,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s5",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "2bb8e035925a1be3de1dd0cf3173e059c0cbab2a3c5f221b909f491578e15771",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/river-s5/fine/scene.blend",
+   "mesh_sha256": "46f29983d0a9ae45b6a6e746ad97a87568c909a996d38962991cd4f8e088ae4c",
+   "scene": "river",
+   "seed": 5,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s6",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s6/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "6ec41755ee5a432f5928144218180c49ade7c9a483ae4c48c1181dfb68f56858",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/river-s6/fine/scene.blend",
+   "mesh_sha256": "a0d0998ca1d34dd574cba1601fb8fc54e5915dd4e3548ffeeeef95b580d614be",
+   "scene": "river",
+   "seed": 6,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s7",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s7/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "90d33a69c89f5b07b642a1ef0e376606e05394405096fcf754316f9718815be0",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "river",
+   "seed": 7,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "a11523b60772af2e2ede1cf94c07e06381184d4994e4e415cdce0704feffa867",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "river",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s9",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s9/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "f216f3ac30ff2b970297fedb764810d2ae91b3a1ab1c92bd0b010f98a87495ac",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "river",
+   "seed": 9,
+   "width": 960
+  }
+ ],
+ "members": [
+  {
+   "base_id": "arctic-s1",
+   "defect": "wrong_scale",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_69f02f82cd2f7e59",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s1/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/arctic-s1/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s1",
+   "defect": "black_frame",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_21488ad67db1666b.png",
+   "derived_sha256": "3a693f9f9c1c0e9b7f64c92339813a291b629eddc90b3a2293e5b480cb90b66d",
+   "layer": "image",
+   "member_id": "mem_21488ad67db1666b",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s1/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "57d484b299f1d846d8ab41a2864d1044405372ad60c5704dacd52d4a5855b2bf",
+    "kind": "image",
+    "mode": "zero",
+    "shape": [
+     540,
+     960
+    ]
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s4",
+   "defect": "hollow_mesh",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_dcbf6d7d5d9f175d",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s4/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/arctic-s4/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s4",
+   "defect": "noise_fireflies",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_f95ee685896a09c0.png",
+   "derived_sha256": "85cfb94a8cb12692d3f6450efcf9071b617a60e72477723d30ae924b4f59ffba",
+   "layer": "image",
+   "member_id": "mem_f95ee685896a09c0",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s4/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "acdf1b172c1d45e9464d5aa5ebb905c933f88cbe0c3438ff1ab176819994f41a",
+    "contrasting": true,
+    "count": 320,
+    "kind": "image",
+    "min_spacing": 4,
+    "values": [
+     0,
+     255
+    ]
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s5",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_9aa7eec1d2c8f19d.png",
+   "derived_sha256": "4f75a1a5ee4dbf6865485aa649ce3ad3e9e61f867a02db064b6eaa020a2fb227",
+   "layer": "image",
+   "member_id": "mem_9aa7eec1d2c8f19d",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s5/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "915e332bf73353cc6c2130bc41bb210ddc98da20d4aecc014cf47bc05fcf94b0",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s6",
+   "defect": "wrong_scale",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_0ff4313697ac01e2",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/canyon-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/canyon-s6/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s6",
+   "defect": "missing_object",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_b5828303072b1a3c.png",
+   "derived_sha256": "82a8fb3189dc23424c05003f9c84e126aac79ffb9e754064371ee646c838cb76",
+   "layer": "image",
+   "member_id": "mem_b5828303072b1a3c",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/arctic-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "area_frac": 0.03289,
+    "base_sha256": "3befb380c9a824e760d74c6e2aafbb51d277c9c909ebf178d8a4dc325a174739",
+    "bbox": [
+     613,
+     151,
+     767,
+     260
+    ],
+    "fill": [
+     178,
+     181,
+     180
+    ],
+    "kind": "image"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s6",
+   "defect": "hollow_mesh",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_2ba7b269c74cf927",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s7",
+   "defect": "holes",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_307101c469654adf.png",
+   "derived_sha256": "b16e9a514dd83c03b1a05464e110fdf0a50e42c64dea4548cd2025096a4d789d",
+   "layer": "image",
+   "member_id": "mem_307101c469654adf",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "aecc534655c33d89e7cfbf3faa14e690769fff7497a369ed4905141673f80986",
+    "bbox": [
+     350,
+     16,
+     489,
+     106
+    ],
+    "darkness": 76,
+    "holes": [
+     [
+      454,
+      45,
+      15
+     ],
+     [
+      437,
+      42,
+      7
+     ],
+     [
+      428,
+      87,
+      15
+     ],
+     [
+      366,
+      60,
+      13
+     ],
+     [
+      431,
+      38,
+      15
+     ],
+     [
+      404,
+      26,
+      9
+     ]
+    ],
+    "kind": "image"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "desert-s6",
+   "defect": "clipped_geometry",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_a21404915b3a75d9",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s8",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_f2de39875e8a21f9.png",
+   "derived_sha256": "08c4efb520fc3e274aefff75c69b0d6a6134c3d0df7492d69da5744043d7a52a",
+   "layer": "image",
+   "member_id": "mem_f2de39875e8a21f9",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "576882802dbf2023e639d023dd33455a72336e14c16124f931de3aeb1a47fe76",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "mountain-s6",
+   "defect": "wrong_scale",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_638b4da28c2244d0",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s1",
+   "defect": "texture_swap",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_adc321874fe5a328.png",
+   "derived_sha256": "3109f68c3e309ac8b20ded427d8756a4b9db9435a15f7b674069e81bfb6fd30f",
+   "layer": "image",
+   "member_id": "mem_adc321874fe5a328",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "e3ff5b7daf018066d54342429e40d7cd96ccb4f9f3f2d03654eb408a9d78d9da",
+    "bbox": [
+     288,
+     21,
+     437,
+     132
+    ],
+    "donor": "canyon-s4",
+    "donor_bbox": [
+     627,
+     271,
+     776,
+     382
+    ],
+    "edge_distance": 0.8206,
+    "kind": "image",
+    "visible": true
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "plain-s5",
+   "defect": "hollow_mesh",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_ddf85bcdbb0c8356",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_718023ba022732d4.png",
+   "derived_sha256": "c2e8b0f03351b8867928a83cadc175d6f4aa1507fd2c24c97852db89c1fef46a",
+   "layer": "image",
+   "member_id": "mem_718023ba022732d4",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "e19271eb5eb648e58327932542e57e1ed5e5887ea637f934cc60eaf94b14140a",
+    "contrast": 274.1593,
+    "dest_bbox": [
+     103,
+     79,
+     176,
+     178
+    ],
+    "gap": 0.1204,
+    "kind": "image",
+    "pasted_px": 3371,
+    "placed": true,
+    "source_bbox": null
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "river-s5",
+   "defect": "clipped_geometry",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_a2946b36f70d9c7a",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/river-s5/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/river-s5/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s5",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_006310cbdf937f74.png",
+   "derived_sha256": "091fc9542704892e015cf0343d65b6588be8597ee1df3aebb7776a63d7e035d3",
+   "layer": "image",
+   "member_id": "mem_006310cbdf937f74",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "10fcb3a5592bfafd5e222424b09d447796640863c6cb0f021db93fac984a31b8",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "river-s6",
+   "defect": "wrong_scale",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_42e3d184b92682d1",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/river-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/river-s6/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s6",
+   "defect": "black_frame",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_e5097025648d7b9c.png",
+   "derived_sha256": "3a693f9f9c1c0e9b7f64c92339813a291b629eddc90b3a2293e5b480cb90b66d",
+   "layer": "image",
+   "member_id": "mem_e5097025648d7b9c",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/canyon-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "b81f42a8304695bc03d0756897b30e7f7664f5f25ae6b77656938def7a09f16e",
+    "kind": "image",
+    "mode": "zero",
+    "shape": [
+     540,
+     960
+    ]
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s7",
+   "defect": "noise_fireflies",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_966194306043c892.png",
+   "derived_sha256": "399bb7ad80054637a47d0005d9c40f53b64710d397c1cb4a38707ce24f57f997",
+   "layer": "image",
+   "member_id": "mem_966194306043c892",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "9e3a2eec0b57444229699f63c85f4b164b8dba3b58c09c03f997da4fa78086ce",
+    "contrasting": true,
+    "count": 320,
+    "kind": "image",
+    "min_spacing": 4,
+    "values": [
+     0,
+     255
+    ]
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s8",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_9d6d264ba8126d40.png",
+   "derived_sha256": "ae2ff988b61ae0a61f11cece58178254f137c77530fa064d718631c168bc986b",
+   "layer": "image",
+   "member_id": "mem_9d6d264ba8126d40",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "20904aa6d2e113f03a954f60fd2d57190d7d061b24ff35632c263db5d163627b",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_65684b3ca047a1ae.png",
+   "derived_sha256": "7cec84ca235b743ec226ce5ae09abb2ad917e75d7b85ba992bacee1edbccb91c",
+   "layer": "image",
+   "member_id": "mem_65684b3ca047a1ae",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "area_frac": 0.03574,
+    "base_sha256": "2e4df55eb34de057368812daf12268e724e8766a673cfce2d2e023a9ecb46cec",
+    "bbox": [
+     619,
+     214,
+     775,
+     331
+    ],
+    "fill": [
+     96,
+     121,
+     95
+    ],
+    "kind": "image"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s2",
+   "defect": "holes",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_f718dd9be64c17e4.png",
+   "derived_sha256": "bb46270f3945b01fa08edfaea484ea3dcc91858e96e715255f11ca9173aad46f",
+   "layer": "image",
+   "member_id": "mem_f718dd9be64c17e4",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "bd3b638489ba890f62018061ceb419235d3d4239eba48721b398a23b61be2f3e",
+    "bbox": [
+     602,
+     82,
+     806,
+     184
+    ],
+    "darkness": 76,
+    "holes": [
+     [
+      621,
+      127,
+      11
+     ],
+     [
+      692,
+      116,
+      7
+     ],
+     [
+      773,
+      153,
+      14
+     ],
+     [
+      752,
+      158,
+      13
+     ],
+     [
+      755,
+      144,
+      13
+     ]
+    ],
+    "kind": "image"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s4",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_5dce9a3310b1eba5.png",
+   "derived_sha256": "ee46a563b160a78633ce49bcf65eb61b8b613eb4d7acf9c372794cb9b0d29edb",
+   "layer": "image",
+   "member_id": "mem_5dce9a3310b1eba5",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "4cc7ecbb5540089febd1224895a9aee2c840adbff7e933ba226e9912a433e0ae",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s5",
+   "defect": "texture_swap",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_1d6e6ecc9529fb17.png",
+   "derived_sha256": "212fd1c5ba449562de5d1c9d8928c449b1ee8a6ce9dd08f741482df0696ae9ca",
+   "layer": "image",
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s5/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "3a6a6e5a99de6329edc29a60ef6687d10a5c3f1b0dffa1543a34cf3a80f7fac4",
+    "bbox": [
+     691,
+     358,
+     918,
+     442
+    ],
+    "donor": "coast-s6",
+    "donor_bbox": [
+     502,
+     421,
+     729,
+     505
+    ],
+    "edge_distance": 0.7559,
+    "kind": "image",
+    "visible": true
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s6",
+   "defect": "floating_object",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_d5c1c6cc24413705.png",
+   "derived_sha256": "db55d33ed83c53751e11ffdcf12319f7db9e597e58bbcc1b54a30db91b4e224a",
+   "layer": "image",
+   "member_id": "mem_d5c1c6cc24413705",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "5c69ad6e96b301713933a8c636ceecaa2a602e90c6b403c951288b9267fee980",
+    "contrast": 179.3453,
+    "dest_bbox": [
+     74,
+     275,
+     185,
+     372
+    ],
+    "gap": 0.1204,
+    "kind": "image",
+    "pasted_px": 4601,
+    "placed": true,
+    "source_bbox": null
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s7",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_b521f152359d1cde.png",
+   "derived_sha256": "8262584c06abd6be78a5762c4bd3c52fa5db4ce7973f5f23cdb590d1cde4af4d",
+   "layer": "image",
+   "member_id": "mem_b521f152359d1cde",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "e8432e31d595f72bdaa8a96a93bb41a4a95f4ce464a6f52ecb3b0f117d9e8584",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s8",
+   "defect": "black_frame",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_202aa986e4168c4c.png",
+   "derived_sha256": "3a693f9f9c1c0e9b7f64c92339813a291b629eddc90b3a2293e5b480cb90b66d",
+   "layer": "image",
+   "member_id": "mem_202aa986e4168c4c",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "ff9a18ed8ac8a3d14290f10fb4fcfe889b0596ddd3a0e5af88ef52ad7b9da851",
+    "kind": "image",
+    "mode": "zero",
+    "shape": [
+     540,
+     960
+    ]
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "desert-s1",
+   "defect": "noise_fireflies",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_8bb3f801d0caa8b4.png",
+   "derived_sha256": "2c7afd1d9d634f2f07ec1a04cad34c2ab72989958bf9b218c7a11ca4aeac3152",
+   "layer": "image",
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "83b2b7a4574f0c2d5ce69fc5482c4e6022c62a942c89415c62d8e250a5178365",
+    "contrasting": true,
+    "count": 320,
+    "kind": "image",
+    "min_spacing": 4,
+    "values": [
+     0,
+     255
+    ]
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s2",
+   "defect": "noise_fireflies",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_f187020297fd5c58.png",
+   "derived_sha256": "215b22f8afa379427c4db1596f65ecdfd5926646bf69371a82232d8776d2ddc9",
+   "layer": "image",
+   "member_id": "mem_f187020297fd5c58",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "9e03a07c0d0961cc0baaf5bed9c9ffe0af5328b2117f530321a184c748f0c8e4",
+    "contrasting": true,
+    "count": 320,
+    "kind": "image",
+    "min_spacing": 4,
+    "values": [
+     0,
+     255
+    ]
+   },
+   "seed": 902
+  }
+ ],
+ "version": 1
+}

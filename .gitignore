@@ -33,3 +33,7 @@ docs/lab/trellis-graph-scripts/comfy-base/input/
 docs/lab/trellis-graph-scripts/comfy-base/user/
 docs/lab/trellis-graph-scripts/comfy-base/datasets/
 docs/lab/trellis-graph-scripts/comfy-base/models/
+
+# The critic seat's derived images and probed geometry are caches, not
+# sources: the recipe is the source of truth.
+core/critic/.cache/
