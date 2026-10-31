@@ -24,11 +24,11 @@ seat you work from.
   4,231 ([v2-thor-experiment](docs/research/v2-thor-experiment.md),
   [ig2-procfunc](docs/research/ig2-procfunc.md)). Infinigen's `fine_terrain` is
   now deterministic on CPU and CUDA, at no speed cost (fork, phase 3).
-- **Two lab breakthroughs.** Unified memory lets NumPy, PyTorch and CUDA kernels
+- **Three lab breakthroughs.** Unified memory lets NumPy, PyTorch and CUDA kernels
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
-  than its own CUDA kernel).
-- **The core is integrated and renders for real: 1,063 tests pass** in one
+  than its own CUDA kernel). The mesher's SDF evaluation in Warp is the third.
+- **The core is integrated and renders for real: 1,108 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
     2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
@@ -144,6 +144,9 @@ seat you work from.
 | [Joules per fixed point](docs/lab/exp-joules-per-fixed-point.md) | Warm starts converge in 2–3 iterations (6 cold), 1.39 J each; the critic belongs on the GPU |
 | [Adapters](docs/lab/exp-adapters.md) | Skill adapters are cheap to hold (60 MiB) but slow to switch (73–119 ms) |
 | [CUDA Graphs](docs/lab/exp-cuda-graphs-nvenc.md) · [NVENC round-trip](docs/lab/exp-nvenc-roundtrip.md) | Graphs pay; NVENC is free but not a warm-start store |
+| [Warp mesher SDF](docs/lab/exp-warp-mesher-sdf.md) | **Breakthrough** on the SDF half: live re-meshing is answered |
+| [Critic in a CUDA Graph](docs/lab/exp-critic-cuda-graph.md) | Verdicts in milliseconds, bit-exact |
+| [Skill switch](docs/lab/exp-skill-switch.md) | Switching skills can be nearly free: swap the weights, not the metadata |
 | [IDEAS.md](docs/lab/IDEAS.md) | The mined candidates, what's next, and the killed-by-fact list |
 
 ## The code
@@ -170,8 +173,9 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `scene-server` | The resident engine: builder wait 4.7× lower, exact crash recovery | merged |
 | `propmaker-batch` | TRELLIS.2 behind the scheduler; the first real mini-night: 3 props × 3 seeds in 24 min 44 s ([record](docs/lab/mini-night.md)) | merged |
 | `night-budget` | The night's arithmetic from measured numbers: a cost model per job kind (GPU/CPU/wall minutes, cents, iterations, joules; p50/p95) | merged |
+| `stage-cache` | The procfunc graph as the recipe's lower layer, a content-addressed graph store, the stage cache and partial regeneration | merged |
 
-**`main` today: 1,063 tests pass** (3 skipped; the real-engine tests are opt-in).
+**`main` today: 1,108 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
