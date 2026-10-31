@@ -219,9 +219,11 @@ class Tile(BaseModel):
 
         The status is **not** in it: retiring a tile does not change what
         the tile is, and two tiles that differ only in status are the same
-        tile.
+        tile. The *family* is in it — what a tile is **for** is part of what
+        it is, so the same script serving two families is two options.
         """
         return {
+            "family": self.family,
             "kind": self.kind,
             "title": self.title,
             "steps": [step.model_dump() for step in self.steps],
@@ -377,6 +379,7 @@ def build_tile(
     does not get to claim a version number.
     """
     body = {
+        "family": family,
         "kind": kind,
         "title": title,
         "steps": [step.model_dump() for step in steps],
