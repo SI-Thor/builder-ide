@@ -1,0 +1,12 @@
+# The worktree's own venv (per the brief: venv inside this worktree)
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/

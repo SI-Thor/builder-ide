@@ -1,0 +1,18 @@
+[project]
+name = "builder-ide"
+version = "0.1.0"
+description = "The core service of builder-ide: cold-start ask-mode, the melt, and the calibration batch"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.6,<3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<9"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# `core` is a namespace package on purpose: the sibling seats (vocab,
+# core-api, core-recipe, night-runner) drop their modules into `core/`
+# without clashing with ours.
+pythonpath = ["."]
+addopts = "-ra"
