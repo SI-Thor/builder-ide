@@ -109,6 +109,25 @@ def _prediction_id(ev) -> str:
                or ev.subject.get("entity_id", ""))
 
 
+def measured_render_spend(door, job_id: str) -> dict | None:
+    """One render job's measured GPU/wall minutes, folded from the ledger's
+    own `render.completed` — None when the engine measured nothing (the
+    fake engine measures nothing and says so by omitting the wall).
+
+    The GPU lane equals the wall here because that is the cost model's own
+    convention for a render stage (`core.night.cost`: infinigen.render's
+    gpu lane is its wall) — the CLI render is GPU work bookended by CPU
+    startup, and the model prices the whole thing on the scarce axis.
+    """
+    walls = [e.payload.get("wall_ms")
+             for e in door.raw_events(0, ["render.completed"])
+             if e.payload.get("job_id") == job_id]
+    if not walls or any(w is None for w in walls):
+        return None
+    minutes = sum(walls) / 60000.0
+    return {"gpu_minutes": minutes, "wall_minutes": minutes}
+
+
 # ------------------------------------------------- the melt rule, restated
 
 
@@ -403,7 +422,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
     with ses.step(f"n{n}-bets", act="night",
                   backend=["real:core-api", "real:core-recipe(seam)",
                            "real:cold-start(policy)", "real:core-api(ledger)",
-                           "fake:engine(render)", "stub:critic"]) as step:
+                           world.engine.label("render"), "stub:critic"]) as step:
         recipe.new_branch(alias=f"night{n}", name=f"night-{spec_night.date}",
                           purpose="night", spine_id=f"br_night{n}")
         door.publish_branch(f"br_night{n}", name=f"night-{spec_night.date}",
@@ -488,8 +507,13 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
         step.check("sealed_at strictly before its render job's enqueue (§5.1)",
                    seal_seq < enqueue_seq, f"{seal_seq} < {enqueue_seq}")
 
-        # the scripted critic — verdict@scripted on its face, timed for the box
+        # the scripted critic — verdict@scripted on its face. The timing row
+        # the event carries is the run's authored stand-in (a payload cannot
+        # contain the duration of the transaction that persists it); the
+        # genuinely measured write cost lands on the night's own record
+        # below, and docs/lab/honest-week.md names the stand-in as such.
         critic_word = spec_night.critic
+        critic_t0 = time.perf_counter()
         door.critic_verdict(
             job_id=job["job_id"], verdict=critic_word,
             code="reads_as_asked" if critic_word == "keep" else "wrong_scale",
@@ -498,6 +522,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
             extra={"timing": {"what": "scripted critic verdict",
                               "measured_ms": round(812.0 + n * 7.0, 1),
                               "label": "measured on the stub rung"}})
+        rec["critic_verdict_ms"] = (time.perf_counter() - critic_t0) * 1000.0
         scored = door.score_world_bet(world_pr, critic_word)
         expected_score = {"keep": "hit", "hold": "miss"}[critic_word]
         step.check("the critic scored the world bet — scored, never hidden",
@@ -505,9 +530,13 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
         # the score is one prediction.scored in the one log; the melt's gate
         # folds it from there (no mirror to keep in step)
 
-        # spend against the bar, and the load cap at its cap
-        door.record_spend(night_id, {"gpu_minutes": 75.0, "wall_minutes": 105.0},
-                          job=job["job_id"])
+        # spend against the bar, and the load cap at its cap — measured from
+        # the ledger's own render wall when the engine measured one (the
+        # real run), the slate's ask when it did not (the fake run)
+        spend = measured_render_spend(door, job["job_id"]) or {
+            "gpu_minutes": 75.0, "wall_minutes": 105.0}
+        door.record_spend(night_id, spend, job=job["job_id"])
+        rec["render_spend"] = spend
         door.model_load(night_id, "stub-imagegen")
         if n == 1:
             refused = None
@@ -634,7 +663,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
     # 3. the work order's attempt: stub engineer, real gate, real land
     with ses.step(f"n{n}-wo-attempt", act="night",
                   backend=["real:core-api", "stub:engineer(aider-local)",
-                           "fake:engine(gate-rungs)"]) as step:
+                           world.engine.label("preview")]) as step:
         wo_id = S[f"wo_{n}"]
         spend = {"gpu_minutes": 20.0, "wall_minutes": 90.0}
         patch = door.put_artifact(
@@ -660,6 +689,17 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
             wo_id, deliverable=deliverable, subject=f"wo-n{n}", night=None)
         step.check("the merge gate passed every check",
                    gate.get("passed") is True, str(gate.get("checks")))
+        preview_ms = gate.get("preview_wall_ms")
+        rec["preview_wall_ms"] = preview_ms
+        if preview_ms is not None:
+            # the preview's measured cost joins the bar after the land (the
+            # gate's audit already compared the estimate to itself); the
+            # engineer's 20 GPU-min stays what it is — a stub's estimate,
+            # spent as scripted and marked [e] on the slate
+            minutes = preview_ms / 60000.0
+            door.record_spend(night_id,
+                              {"gpu_minutes": minutes, "wall_minutes": minutes},
+                              job=wo_id)
         board = {w["id"]: w for w in spec.work_orders()}
         wo = board[wo_id]
         step.check("landed, with a preview before the owner is notified",
