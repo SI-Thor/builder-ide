@@ -94,8 +94,11 @@ def test_a_night_where_the_loop_stalls_is_still_ran_as_planned():
     assert night.report.status.status == "ran as planned"
 
 
-def test_every_iteration_morning_reports_the_joules_as_unmeasured():
+def test_every_iteration_morning_reports_the_joules_it_measured():
+    """Lab round 3 supplied the rails, so the morning quotes a number."""
     for night in (iteration_night(), iteration_rail_cut_night(), iteration_stalled_night()):
         for card in night.report.iterations:
-            assert card.joules is None, night.name
-        assert "not measured" in night.html(), night.name
+            assert card.joules is not None, night.name
+            assert card.joules > 0, night.name
+        assert "not measured" not in night.html(), night.name
+        assert "J" in night.html(), night.name

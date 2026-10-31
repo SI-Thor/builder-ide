@@ -32,6 +32,7 @@ from core.night.iterate import (
     IterationPolicy,
     NullPowerMeter,
     PerturbationSource,
+    RailPowerMeter,
     ScriptedCritic,
     ScriptedVariantSource,
     Variant,
@@ -126,8 +127,33 @@ def test_the_critic_refuses_to_invent_a_score_for_a_variant_it_does_not_know():
 
 
 def test_the_null_power_meter_measures_nothing_yet():
-    """Lab round 3 supplies the Thor's rails; until then the joules stay empty."""
+    """The stand-in still reads nothing: it is here for a box with no rails."""
     assert NullPowerMeter().joules(gpu_minutes=30.0, wall_minutes=45.0) is None
+
+
+def test_the_rail_power_meter_reads_the_boards_measured_rails():
+    """Lab round 3 supplied the rails (exp-engines §4.4): the whole box drew
+    47.5 W on the VIN rail, so a minute of wall time is 47.5 x 60 joules."""
+    meter = RailPowerMeter()
+    assert meter.joules(gpu_minutes=1.0, wall_minutes=1.0) == pytest.approx(47.5 * 60.0 / 1000.0)
+
+
+def test_the_rail_power_meter_reads_the_wall_time_not_the_gpu_lane():
+    """A job that spends an hour on the CPU lane still costs the box an hour."""
+    meter = RailPowerMeter()
+    assert meter.joules(gpu_minutes=0.0, wall_minutes=60.0) == pytest.approx(
+        47.5 * 3600.0 / 1000.0
+    )
+
+
+def test_the_rail_power_meter_reports_the_joules_above_the_idle_floor_too():
+    """The box's idle floor is 26.5 W; the work above it is the other reading."""
+    meter = RailPowerMeter()
+    joules = meter.joules(gpu_minutes=1.0, wall_minutes=1.0)
+    above = meter.joules_above_idle(gpu_minutes=1.0, wall_minutes=1.0)
+    assert joules is not None and above is not None
+    assert joules > above
+    assert above == pytest.approx((47.5 - 26.5) * 60.0 / 1000.0)
 
 
 def test_a_variant_carries_its_seed_its_parameters_and_its_edit():

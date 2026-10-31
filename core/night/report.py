@@ -30,6 +30,7 @@ from typing import Any, Sequence
 
 from pydantic import BaseModel, Field
 
+from core.night.cost.model import get_model
 from core.night.heartbeat import lost_minutes
 from core.night.models import AuditEvent
 from core.night.projection import NightProjection
@@ -59,8 +60,9 @@ DECISION_BUDGET = 10
 
 #: The attention estimate — how long a decision is expected to take the
 #: owner. It is an **estimate**, and the page says so; this is the number
-#: nobody measures (§3.2.9).
-MINUTES_PER_DECISION = 15
+#: nobody measures (§3.2.9). It lives in the cost model with the rest of
+#: the night's numbers, so every estimate the night quotes is in one place.
+MINUTES_PER_DECISION = get_model().attention_minutes_per_decision()
 
 
 class FailureCard(BaseModel):
@@ -122,13 +124,22 @@ class TallyRow(BaseModel):
 
 
 class ThreeNumbers(BaseModel):
-    """The three-number morning line (§3.2.9 item 7)."""
+    """The three-number morning line (§3.2.9 item 7) — and its fourth.
+
+    The line is what the owner reads first: hours of your Thor, hosted
+    money, hours of your attention. Plan item 17 added a fourth — the
+    **joules** the night drew on the board's measured rails — and it is
+    measured, not estimated.
+    """
 
     thor_hours: float
     hosted_cents: int
     attention_hours: float
     decisions: int
     decision_budget: int = DECISION_BUDGET
+    #: The night's energy, in joules: the whole-box ``VIN`` rail over the
+    #: night's wall time. ``None`` only if nobody measured the rails.
+    joules: float | None = None
 
 
 class NightNumbers(BaseModel):
@@ -239,6 +250,8 @@ class NightReport(BaseModel):
     the_box: list[BoxRow] = Field(default_factory=list)
     iterations: list[IterationCard] = Field(default_factory=list)
     recovery: str | None = None
+    #: The owner's two lines, as they were written when the night started.
+    estimate: dict[str, Any] | None = None
 
 
 # -- building ------------------------------------------------------------
@@ -290,12 +303,9 @@ def build_report(events: Sequence[AuditEvent]) -> NightReport:
     numbers.iterated_tasks = len(iterations)
     numbers.variants_scored = len(projection.attempts)
     numbers.quality_gained = sum(card.quality_gained for card in iterations)
-    joules = [card.joules for card in iterations]
-    numbers.joules = (
-        sum(value for value in joules if value is not None)
-        if joules and all(value is not None for value in joules)
-        else None
-    )
+    # The night's joules are the whole box's draw over the night's wall time
+    # — the rails were measured, so this is a measurement and not a guess.
+    numbers.joules = _night_joules(numbers.wall_time_minutes)
 
     decisions = (1 if branches else 0) + len(questions) + len(projection.work_orders)
     three_numbers = ThreeNumbers(
@@ -303,6 +313,7 @@ def build_report(events: Sequence[AuditEvent]) -> NightReport:
         hosted_cents=numbers.hosted_cents,
         attention_hours=round(decisions * MINUTES_PER_DECISION / 60.0, 1),
         decisions=decisions,
+        joules=numbers.joules,
     )
 
     return NightReport(
@@ -325,6 +336,7 @@ def build_report(events: Sequence[AuditEvent]) -> NightReport:
         the_box=_the_box(projection, events),
         iterations=iterations,
         recovery=_recovery(status, projection),
+        estimate=projection.estimate,
     )
 
 
@@ -599,6 +611,41 @@ def _total_joules(rounds: Sequence[dict[str, Any]]) -> float | None:
     return float(sum(values))
 
 
+def _night_joules(wall_minutes: float) -> float | None:
+    """The energy the whole box drew while the night was running.
+
+    The board's ``VIN`` rail was measured at 47.5 W under load
+    (``docs/lab/exp-engines.md`` §4.4), and the box belongs to this project,
+    so every joule it drew that night was this night's.
+    """
+    if wall_minutes <= 0:
+        return None
+    rails = get_model().data.rails
+    return rails.vin_w * wall_minutes * 60.0 / 1000.0
+
+
+def _four_numbers(three: ThreeNumbers) -> str:
+    """The morning's line: hours, money, joules, attention.
+
+    Three numbers in the spec, and the joules that plan item 17 added — the
+    one that is measured rather than estimated. The attention hours keep
+    their ``[e]``: nobody has measured those yet.
+    """
+    joules = (
+        f"{three.joules / 1000:.1f} kJ on the box"
+        if three.joules is not None
+        else "joules not measured"
+    )
+    return (
+        f"{three.thor_hours:.1f} h of your Thor · "
+        f"${three.hosted_cents / 100:.2f} hosted (local) · "
+        f"{joules} · "
+        f"{three.attention_hours:.1f} h of your attention [e] "
+        f"({three.decisions} decision{'s' if three.decisions != 1 else ''}; "
+        f"budget {three.decision_budget})"
+    )
+
+
 # -- rendering ------------------------------------------------------------
 
 _CSS = """
@@ -715,6 +762,10 @@ def render_html(report: NightReport) -> str:
     # 4 — the numbers.
     add('<section id="numbers">')
     add("<h2>The night's numbers</h2>")
+    if report.estimate:
+        add('<p class="note">What the night was asked to do:</p>')
+        add(f"<p>{_escape(str(report.estimate.get('line_one', '')))}</p>")
+        add(f"<p>{_escape(str(report.estimate.get('line_two', '')))}</p>")
     add("<ul>")
     add(f"<li>{_hours(numbers.wall_time_minutes)} on the clock</li>")
     add(f"<li>{numbers.recipe_edits} recipe edits</li>")
@@ -868,15 +919,9 @@ def render_html(report: NightReport) -> str:
         add("</table>")
     add("</section>")
 
-    # 7 — the three-number line.
+    # 7 — the three-number line, and its fourth.
     add('<section id="three-numbers">')
-    add(
-        f'<p class="three">{three.thor_hours:.1f} h of your Thor · '
-        f"${three.hosted_cents / 100:.2f} hosted (local) · "
-        f"{three.attention_hours:.1f} h of your attention [e] "
-        f"({three.decisions} decision{'s' if three.decisions != 1 else ''}; "
-        f"budget {three.decision_budget})</p>"
-    )
+    add(f'<p class="three">{_four_numbers(three)}</p>')
     add("</section>")
 
     # The box — the machine's own growth beat, after the spec's order.
@@ -933,6 +978,9 @@ def render_text(report: NightReport) -> str:
         )
     add("")
     add("THE NIGHT'S NUMBERS")
+    if report.estimate:
+        add(f"  asked: {report.estimate.get('line_one', '')}")
+        add(f"  {report.estimate.get('line_two', '')}")
     add(f"  {_hours(numbers.wall_time_minutes)} on the clock")
     add(f"  {numbers.recipe_edits} recipe edits")
     add(f"  {numbers.sealed_bets} sealed bets")
@@ -944,12 +992,7 @@ def render_text(report: NightReport) -> str:
     add(
         f"  {numbers.gpu_minutes_spent / 60:.1f} of {numbers.gpu_minutes_budget / 60:.1f} GPU-h"
     )
-    add(
-        f"  {three.thor_hours:.1f} h of your Thor · ${three.hosted_cents / 100:.2f} hosted "
-        f"(local) · {three.attention_hours:.1f} h of your attention [e] "
-        f"({three.decisions} decision{'s' if three.decisions != 1 else ''}; "
-        f"budget {three.decision_budget})"
-    )
+    add(f"  {_four_numbers(three)}")
     add("")
     add("WHAT THE NIGHT DID")
     for task in report.tasks:
