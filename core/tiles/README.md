@@ -94,7 +94,7 @@ cd ~/lm-wt/tiles
 .venv/bin/python -m pytest -q                     # the whole core
 ```
 
-88 tests for this seat, no network, no GPU, no LLM: the seat's whole point
+93 tests for this seat, no network, no GPU, no LLM: the seat's whole point
 is that the loop, the library, the chooser and the learning can be
 exercised before the engine lands.
 

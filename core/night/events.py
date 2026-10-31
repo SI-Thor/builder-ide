@@ -11,7 +11,12 @@ from __future__ import annotations
 
 from core.records import EVENT_TYPES as RECORDS_EVENT_TYPES
 
-__all__ = ["EVENT_TYPES", "NIGHT_RUNNER_EVENT_TYPES", "DAYTIME_EVENT_TYPES"]
+__all__ = [
+    "EVENT_TYPES",
+    "NIGHT_RUNNER_EVENT_TYPES",
+    "DAYTIME_EVENT_TYPES",
+    "TILE_EVENT_TYPES",
+]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
     {

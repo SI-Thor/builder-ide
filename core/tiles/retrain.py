@@ -136,19 +136,23 @@ def retrain(
         chooser.fit(records)
 
     scores = _score(records, library, measure, chooser)
+    # Only a tile that is still an option can be a loser tonight: a tile
+    # that was retired last night has already had its feedback, and asking
+    # the cloud to replace it again every night is how a family's history
+    # turns into noise.
     losers = [
         score
         for score in scores
-        if score.plays >= min_plays and score.win_rate < retire_below
+        if score.plays >= min_plays
+        and score.win_rate < retire_below
+        and _is_active(library, score.tile_id)
     ]
     feedback = _feedback_packets(losers, library, measure)
 
     retired: list[str] = []
     if retire:
         for score in losers:
-            tile = library.get(score.tile_id)
-            if tile is None or tile.status != "active":
-                continue
+            tile = library.require(score.tile_id)
             library.retire(
                 tile.id,
                 reason=(
@@ -248,6 +252,12 @@ def _score(
     return scores
 
 
+def _is_active(library: TileLibrary, tile_id: str) -> bool:
+    """True when the tile is in the library and still an option."""
+    tile = library.get(tile_id)
+    return tile is not None and tile.status == "active"
+
+
 def _feedback_packets(
     losers: Sequence[TileScore], library: TileLibrary, measure: str
 ) -> list[FeedbackPacket]:
@@ -259,7 +269,7 @@ def _feedback_packets(
             FeedbackPacket(
                 tile_id=score.tile_id,
                 family=score.family,
-                kind=score.kind,  # type: ignore[arg-type]
+                kind=tile.kind if tile else "recipe_edit",  # type: ignore[arg-type]
                 words=tile.words if tile else (),
                 plays=score.plays,
                 wins=score.wins,

@@ -191,6 +191,25 @@ def test_the_retrain_says_where_the_losers_lost(library, ledger, make_tile):
     assert report.scores[0].contexts_lost == ("phase=dusk", "phase=noon")
 
 
+def test_a_retired_tile_does_not_ask_the_cloud_twice(library, ledger, make_tile):
+    """A tile retired last night has already had its feedback."""
+    from core.tiles.author import ScriptedAuthor
+
+    bad = library.add(make_tile(title="stained crates"))
+    for _ in range(4):
+        _play(library, ledger, bad, result="lose")
+
+    author = ScriptedAuthor([])
+    first = retrain(events=ledger.events(), library=library, author=author)
+    assert len(first.feedback) == 1
+    assert first.retired == (bad.id,)
+
+    second = retrain(events=ledger.events(), library=library, author=author)
+    assert second.feedback == ()
+    assert second.retired == ()
+    assert len(author.calls) == 1
+
+
 def test_the_retrain_refuses_a_measure_it_cannot_train_on(library, ledger, make_tile):
     with pytest.raises(ValueError):
         retrain(events=ledger.events(), library=library, measure="vibes")
