@@ -28,7 +28,7 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel). The mesher's SDF evaluation in Warp is the third.
-- **The core is integrated and renders for real: 1,356 tests pass** in one
+- **The core is integrated and renders for real: 1,378 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
     2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
@@ -192,8 +192,9 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `mini-night2` | The second real night, with mesh repair and the cost model; TRELLIS.2 graph capture and the fp8 path measured ([record](docs/lab/mini-night-2.md)) | merged |
 | `critic-calib` | The critic calibrated on real sweep renders: a 30-member reference set with seeded defects, an FP/FN table (8 of 9 defect classes in band, zero false positives; floating objects still out), and nightly growth of the set ([table](core/critic/CALIBRATION.md)) | merged |
 | `tiles` | B2's system that gets better: scripts in the typed vocabulary as tiles, a never-deleted library, play records with outcomes, a contextual-bandit chooser and a nightly retrain; the chooser wins **0.80 vs 0.36** for a uniform pick over 600 plays ([design](docs/design/tiles.md)) | merged |
+| `core-doors` | What the MCP server found missing: the store's shared-connection race closed (it failed 10/10 under concurrent reads), per-agent tokens on every audit row, `GET /v1/recipe/{version}` with diffs, and agents' plan intentions priced by the cost model ([note](docs/design/core-doors.md)) | merged |
 
-**`main` today: 1,356 tests pass** (3 skipped; the real-engine tests are opt-in).
+**`main` today: 1,378 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
