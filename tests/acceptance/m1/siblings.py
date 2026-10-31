@@ -153,8 +153,22 @@ def _alias_import(name: str, pkg_dir: Path):
     return module
 
 
+_LOADED: "Seats | None" = None
+
+
 def load() -> Seats:
-    """Materialize every seat and import it. Returns the seat modules."""
+    """Materialize every seat and import it. Returns the seat modules.
+
+    Idempotent per process: the alias import re-executes `core-api`'s package
+    `__init__` and replaces `sys.modules["sib_api"]` with a fresh module that
+    has none of the submodules a first load bound to it — so a second load
+    in one process (the week's driver reusing this scaffold) would hand out
+    a broken `sib_api`. The seats are process-wide anyway; cache them.
+    """
+    global _LOADED
+    if _LOADED is not None:
+        return _LOADED
+
     import json
 
     for branch, (paths, drop_core_init, _note) in MATERIALIZE.items():
@@ -165,7 +179,7 @@ def load() -> Seats:
     ns = CACHE / "ns"
     heads = {b: _branch_head(b) for b in MATERIALIZE}
     stamp = ns / ".stamp"
-    ns_stamp = f"{__import__('json').dumps(heads, sort_keys=True)}\nlayout:{_LAYOUT_VERSION}"
+    ns_stamp = f"{json.dumps(heads, sort_keys=True)}\nlayout:{_LAYOUT_VERSION}"
     if not stamp.exists() or stamp.read_text() != ns_stamp:
         if ns.exists():
             shutil.rmtree(ns)
@@ -196,4 +210,5 @@ def load() -> Seats:
         night=night, why=why, justification=justification,
     )
     seats._heads = heads  # type: ignore[attr-defined]
+    _LOADED = seats
     return seats
