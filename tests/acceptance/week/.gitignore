@@ -1,0 +1,6 @@
+# Scratch state of the acceptance run — never committed.
+.venv/
+run/
+__pycache__/
+*.pyc
+.pytest_cache/
