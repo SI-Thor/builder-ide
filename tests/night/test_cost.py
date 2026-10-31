@@ -287,9 +287,9 @@ def test_the_joules_come_from_the_boards_measured_vin_rail(model):
     assert rails.vdd_cpu_soc_mss_w == pytest.approx(8.27)
     band = model.band("rung.3")
     # 1307 s at 47.5 W is 62 kJ drawn by the whole box
-    assert band.p50.joules_whole_box == pytest.approx(47.5 * 1307.0 / 1000.0)
-    # and the number the night quotes is that minus the box's idle floor
-    assert band.p50.joules == pytest.approx(
+    assert band.p50.joules == pytest.approx(47.5 * 1307.0 / 1000.0)
+    # and the reading above the box's idle floor is that minus 26.5 W
+    assert band.p50.joules_above_idle == pytest.approx(
         (47.5 - 26.5) * 1307.0 / 1000.0
     )
 
@@ -297,8 +297,8 @@ def test_the_joules_come_from_the_boards_measured_vin_rail(model):
 def test_the_joules_are_never_a_zero_pretending_to_be_a_measurement(model):
     for kind in model.kinds():
         band = model.band(kind)
-        assert band.p50.joules is not None, kind
         assert band.p50.joules > 0.0, kind
+        assert band.p50.joules_above_idle is not None, kind
 
 
 def test_the_marginal_cost_of_one_more_iteration_is_the_measured_one(model):

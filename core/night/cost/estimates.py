@@ -56,9 +56,13 @@ class OwnerEstimate(BaseModel):
 
 
 def _joules_for(ask: Rail, model: CostModel) -> float | None:
-    """The energy the plan's wall time will draw, above the box's idle floor."""
-    marginal = model.data.rails.marginal_vin_w * ask.wall_minutes * 60.0 / 1000.0
-    return marginal if marginal > 0 else None
+    """The energy the plan's wall time will draw on the box.
+
+    The whole-box ``VIN`` rail over the wall time — the same reading the
+    morning quotes, so the two lines and the four numbers agree.
+    """
+    joules = model.data.rails.vin_w * ask.wall_minutes * 60.0 / 1000.0
+    return joules if joules > 0 else None
 
 
 def owner_estimate(

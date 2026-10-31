@@ -96,12 +96,14 @@ class CostEstimate(BaseModel):
     cpu_lane_minutes: float = 0.0
     wall_minutes: float = 0.0
     hosted_cents: int = 0
-    #: The energy above the box's idle floor; ``None`` when the job is too
+    #: The energy the whole box drew while the job ran: the measured ``VIN``
+    #: rail over the job's wall time. The box belongs to this project, so
+    #: every joule it drew that night was this night's.
+    joules: float = 0.0
+    #: The energy above the box's idle floor. ``None`` when the job is too
     #: short to dominate the box and the wall time is the number to read
     #: (``docs/lab/IDEAS.md`` #17).
-    joules: float | None = None
-    #: The energy the whole box drew while the job ran, idle floor included.
-    joules_whole_box: float = 0.0
+    joules_above_idle: float | None = None
     #: How many iterations of this kind one goal costs.
     iterations: int = 1
     #: How many recorded samples the figure rests on.
@@ -255,8 +257,6 @@ class CostModel:
 
         p50 = self._sum([band.p50 for band in parts], iterations=iterations)
         p95 = self._sum([band.p95 for band in parts], iterations=iterations)
-        p50.joules = self._combine_joules(p50)
-        p95.joules = self._combine_joules(p95)
         return CostBand(
             kind=kind,
             label=label,
@@ -276,7 +276,7 @@ class CostModel:
             cpu_lane_minutes=sum(part.cpu_lane_minutes for part in parts),
             wall_minutes=sum(part.wall_minutes for part in parts),
             hosted_cents=sum(part.hosted_cents for part in parts),
-            joules_whole_box=sum(part.joules_whole_box for part in parts),
+            joules=sum(part.joules for part in parts),
             iterations=iterations,
             samples=sum(part.samples for part in parts),
         )
@@ -284,11 +284,14 @@ class CostModel:
             total.gpu_minutes *= iterations
             total.cpu_lane_minutes *= iterations
             total.wall_minutes *= iterations
-            total.joules_whole_box *= iterations
+            total.joules *= iterations
+        total.joules_above_idle = self._combine_joules(total)
         return total
 
     def _combine_joules(self, estimate: CostEstimate) -> float | None:
-        """The marginal joules of a summed estimate."""
+        """The joules above the box's idle floor — ``None`` if it comes out
+        negative, which is the lab's rule for work too small to dominate the
+        box (``docs/lab/IDEAS.md`` #17)."""
         marginal = self.data.rails.marginal_vin_w * estimate.wall_minutes * 60.0 / 1000.0
         return marginal if marginal > 0 else None
 
@@ -324,11 +327,11 @@ class CostModel:
             cpu_lane_minutes=cpu / 60.0,
             wall_minutes=wall / 60.0,
             hosted_cents=0,
-            joules_whole_box=self.data.rails.vin_w * wall / 1000.0,
+            joules=self.data.rails.vin_w * wall / 1000.0,
             iterations=iterations,
             samples=len(samples),
         )
-        estimate.joules = self._combine_joules(estimate)
+        estimate.joules_above_idle = self._combine_joules(estimate)
         return estimate
 
     # -- the night's own numbers ------------------------------------------
