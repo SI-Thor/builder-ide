@@ -13,6 +13,7 @@ from core.models import Asset
 
 from core.genbatch.models import ImageResult, LaneSplit, PromptRecord
 from core.genbatch.mesh import MeshReport
+from core.genbatch.repair import RepairReport
 
 __all__ = ["PropStore"]
 
@@ -28,6 +29,7 @@ class PropStore:
         self._seeds: dict[tuple[str, str], int] = {}
         self._images: dict[str, dict[int, ImageResult]] = {}
         self._prompts: list[PromptRecord] = []
+        self._repairs: dict[tuple[str, str], RepairReport] = {}
 
     # -- the meshes --------------------------------------------------------
 
@@ -67,6 +69,18 @@ class PropStore:
 
     def seconds(self, task_id: str, variant_id: str) -> float:
         return self._seconds.get((task_id, variant_id), 0.0)
+
+    # -- the repair --------------------------------------------------------
+
+    def record_repair(
+        self, task_id: str, variant_id: str, report: RepairReport
+    ) -> None:
+        """Record what the repair stage did to one attempt's mesh."""
+        self._repairs[(task_id, variant_id)] = report
+
+    def repair(self, task_id: str, variant_id: str) -> RepairReport | None:
+        """The repair stage's report for one attempt."""
+        return self._repairs.get((task_id, variant_id))
 
     def attempts(self, task_id: str) -> list[str]:
         """The variant ids recorded for a task, in the order they arrived."""

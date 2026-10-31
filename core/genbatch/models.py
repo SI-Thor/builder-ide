@@ -12,6 +12,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from core.genbatch.repair import RepairRecipe
+
 __all__ = [
     "CheckResult",
     "ImageResult",
@@ -84,6 +86,11 @@ class PropRequest(BaseModel):
     #: The anchor the request's seeds are derived from, so the night's work
     #: replays.
     base_seed: int = Field(default=0, ge=0)
+    #: The repair stage: what the pipeline does to the mesh between the
+    #: generator and the critic. It is part of the recipe because it is part
+    #: of what the night does — and because a different repair is a different
+    #: prop.
+    repair: RepairRecipe = Field(default_factory=RepairRecipe)
 
     @field_validator("expected_aspect")
     @classmethod
