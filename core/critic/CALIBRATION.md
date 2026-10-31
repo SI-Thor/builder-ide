@@ -5,7 +5,7 @@
 
 Plan item 12 (week 2): *the critic's calibration set, first members* — a fixed reference set of ~30 **real renders** with seeded defects, run through the scripted checks, publishing false-positive and false-negative rates **per defect class**.
 
-Every verdict in this table wears **`verdict@scripted`** on its face: the critic is a **parameter**, and the name on the verdict says which one answered. The bake-off that chose it is `docs/lab/exp-critic-select.md`; the candidates it measured, and their own tables, are in the selection below.
+**This table is the `scripted` critic's** — the default, the fallback, and the row every other candidate has to beat. The critic is a **parameter** now, and the name is on each verdict's face (`verdict@scripted`, `verdict@hybrid`), so a verdict always says which critic made it. The bake-off that chose it is `docs/lab/exp-critic-select.md`; the candidates it measured, their own tables, and the **chosen critic's table** are in the selection below.
 
 ## The reference set
 
@@ -44,7 +44,7 @@ Totals: TP 23, FP 0, FN 1, TN 39.
 
 §1.9's band: **catch the seeded defects** (no false negatives) and **reject no more than one in 10 of the clean ones**.
 
-**Out of band.** The scripted checks do not yet hold the band, and the verdicts stay `verdict@scripted` — the plan's M2 named risk, as a measurement rather than a worry.
+**Out of band.** The `scripted` critic does not hold the band on its own — the plan's M2 named risk, as a measurement rather than a worry. For the scripted checks this is the **baseline** row: it is what the chosen critic was measured against, and it is what the critic falls back to.
 
 - `floating_object` (check `floating_blob`): 1 missed.
 
