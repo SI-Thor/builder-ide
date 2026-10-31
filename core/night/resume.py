@@ -92,7 +92,7 @@ def recover(
     now = clock.now()
 
     requeued_jobs = _requeue_dead_jobs(ledger, projection, now=now, actor=actor)
-    requeued_tasks = _requeue_running_tasks(ledger, projection, actor=actor)
+    requeued_tasks = _requeue_running_tasks(ledger, projection, now=now, actor=actor)
 
     night = projection.night
     if night is None:
@@ -210,7 +210,7 @@ def _requeue_dead_jobs(
 
 
 def _requeue_running_tasks(
-    ledger: Ledger, projection: NightProjection, *, actor: Actor
+    ledger: Ledger, projection: NightProjection, *, now: str, actor: Actor
 ) -> list[str]:
     """A task that was running when the box died goes back in the queue.
 
@@ -230,6 +230,7 @@ def _requeue_running_tasks(
                 "state": "queued",
                 "reason": "re-queued after the restart — the work re-runs from the seed",
             },
+            at=now,
         )
         requeued.append(task.id)
     return requeued

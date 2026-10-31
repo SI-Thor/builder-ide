@@ -102,8 +102,9 @@ class NightProjection:
         if task is None:
             return
         task.state = payload["state"]
-        if payload.get("reason"):
-            self.task_reasons[task.id] = payload["reason"]
+        # The reason belongs to the state: a task that is merely running has
+        # no reason, and must not keep the reason of the state before it.
+        self.task_reasons[task.id] = payload.get("reason")
 
     def _on_budget_spend(self, event: AuditEvent) -> None:
         payload = event.payload

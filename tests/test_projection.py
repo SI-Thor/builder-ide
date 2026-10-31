@@ -149,6 +149,49 @@ def test_the_fold_collects_the_sealed_bets_and_their_verdicts():
     assert projection.predictions["pr_0001"]["builder"] == "prop-maker"
 
 
+def test_a_state_change_without_a_reason_clears_the_previous_reason():
+    """The reason belongs to the state, not to the task forever."""
+    ledger = InMemoryLedger()
+    ledger.append(
+        type="night.task.created",
+        actor=CORE,
+        subject={"entity_kind": "task", "entity_id": "task_0001"},
+        payload={
+            "task": {
+                "id": "task_0001",
+                "night": "night_2026-10-30",
+                "author": "casey",
+                "owner_character": "prop-maker",
+                "intention": "Rope the jetty",
+                "recipe_scope": [],
+                "cost_estimate": {"gpu_minutes": 30.0, "hosted_cents": 0, "wall_minutes": 45.0},
+                "rail": {"gpu_minutes": 40.0, "hosted_cents": 0, "wall_minutes": 60.0},
+                "state": "queued",
+                "predictions": [],
+                "branches": [],
+            }
+        },
+    )
+    ledger.append(
+        type="night.task.state",
+        actor=CORE,
+        subject={"entity_kind": "task", "entity_id": "task_0001"},
+        payload={
+            "task_id": "task_0001",
+            "state": "queued",
+            "reason": "re-queued after the restart",
+        },
+    )
+    ledger.append(
+        type="night.task.state",
+        actor=CORE,
+        subject={"entity_kind": "task", "entity_id": "task_0001"},
+        payload={"task_id": "task_0001", "state": "kept"},
+    )
+    projection = NightProjection(ledger.events())
+    assert projection.reason_for("task_0001") is None
+
+
 def test_the_fold_keeps_the_failure_cards():
     ledger = InMemoryLedger()
     ledger.append(

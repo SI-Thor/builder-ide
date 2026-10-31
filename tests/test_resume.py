@@ -218,6 +218,40 @@ def test_a_night_with_no_rails_left_stops_cleanly_and_names_the_lost_minutes():
     assert "min lost" in outcome.status.reason
 
 
+def test_the_recovery_writes_its_rows_with_the_nights_clock():
+    """Every row the boot sequence writes carries the night's clock, not the
+    machine's — otherwise the morning's wall time is a lie."""
+    ledger = InMemoryLedger()
+    executor = CrashingExecutor(
+        {
+            "task_0001": ScriptedTask(gpu_minutes=30.0, wall_minutes=45.0),
+            "task_0002": ScriptedTask(gpu_minutes=30.0, wall_minutes=45.0),
+        }
+    )
+    runner = NightRunner(
+        ledger,
+        executor,
+        night_id=NIGHT,
+        rails=Rail(gpu_minutes=360.0, wall_minutes=560.0),
+        clock=ScriptedClock("2026-10-30T21:14:00Z"),
+    )
+    runner.start([a_task("task_0001"), a_task("task_0002")])
+    try:
+        runner.run()
+    except RuntimeError:
+        pass
+
+    recover(
+        ledger,
+        executor,
+        night_id=NIGHT,
+        clock=ScriptedClock("2026-10-30T23:30:00Z"),
+    )
+    for event in ledger.events():
+        assert event.at.startswith("2026-10-30"), event.at
+        assert event.at < "2026-11-01", event.at
+
+
 def test_the_resumed_night_finishes_its_queue_and_says_what_it_lost():
     ledger = InMemoryLedger()
     executor = CrashingExecutor(
