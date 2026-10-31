@@ -14,8 +14,8 @@ deliberately honest:
 * **nothing is narrated** — the status line is computed from the log, never
   written by hand;
 * **nothing is invented** — the critic refuses to score a variant it has no
-  score for, and the power meter returns "not measured" rather than a
-  plausible-looking zero.
+  score for, and the power meter reads the board's *measured* rails, so the
+  morning's joules are a measurement rather than a plausible-looking zero.
 
 It is built against **core-spec v2** (`docs/design/core-spec.md`), and the
 seat's handover note — what was built, the mornings it produces, where it
@@ -69,6 +69,27 @@ night.report.iterations[0].winner.label   # "refined c"
 night.html()              # the whole page, as a string
 ```
 
+## The night's arithmetic
+
+The budget is not a set of typed-in numbers. It is arithmetic over
+measurements taken on this box, and it lives in
+[`core/night/cost/`](cost/README.md):
+
+* a **cost model** — what each job kind costs (an Infinigen stage by scene
+  type, a TRELLIS.2 prop at each resolution, a render at each rung of the
+  ladder, a critic's verdict), with p50 and p95 from the recorded samples,
+  in GPU-minutes, CPU-lane minutes, wall minutes, hosted cents, iterations
+  per goal and **joules**;
+* an **admission check** — does tonight's plan fit the rails, and what is
+  cut, **named**;
+* the owner's **two lines** — what tonight will cost, and whether it fits —
+  written into `night.started` and read back by the morning.
+
+The joules are the board's **measured** rails, so the morning's line has a
+fourth number that is a measurement rather than an estimate. The only
+estimate left in the model is the owner's attention per decision, and the
+page still marks it `[e]`.
+
 ## The seams it stubs
 
 Everything below is a small protocol, implemented here by a scripted stand-in.
@@ -82,7 +103,7 @@ The real implementations land later without changing the night runner.
 | **the work** (`executor.py`) | *what will this cost and which model does it need* (checked before the spend) and *run it* — now for a **variant**, not only a task | `ScriptedExecutor` with scripted failures, stalls and per-variant scripts |
 | **the critic** (`iterate.py`) | *how good is this variant?* — the score that picks the winner | `ScriptedCritic`; it **raises** on a variant it has no score for |
 | **the variant source** (`iterate.py`) | *what else could we try?* — seeds, parameter perturbations, alternative recipe edits | `PerturbationSource` (deterministic) and `ScriptedVariantSource` |
-| **the power meter** (`iterate.py`) | *what did the attempt cost in joules?* | `NullPowerMeter` — reads nothing yet; **lab round 3** supplies the Thor's rails |
+| **the power meter** (`iterate.py`) | *what did the attempt cost in joules?* | `RailPowerMeter` — reads the board's **measured** rails (`docs/lab/exp-engines.md` §4.4: the whole box drew 47.5 W on the `VIN` rail); `NullPowerMeter` is the stand-in for a box with no rails |
 | **the client's presence** (`runner.py`) | is the ProArt still watching? | a `presence` callable; the API half's `client.attach` / `client.detach` events are the durable form |
 | **the lane** (`runner.py`) | is the GPU free of somebody else's job? | a `lane_free` callable; "blind" is an answer the status line respects |
 
@@ -118,6 +139,7 @@ The real implementations land later without changing the night runner.
 | Module | What it owns |
 |---|---|
 | `models.py` | the records: `Rail`, `Task`, `Job`, `Night`, `Actor`, `AuditEvent`, `IterationPolicy` |
+| `cost/` | the measured cost table, the admission check and the owner's two lines (see [its README](cost/README.md)) |
 | `events.py` | the closed set of audit event types (§1.8) |
 | `ledger.py` | the ledger seam: `append` / `events` / `last_seq` |
 | `projection.py` | the fold: the night, its tasks, ticks, spend, loads, failures and the loop's attempts |
