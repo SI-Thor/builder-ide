@@ -32,13 +32,17 @@ works.
 
 ## Repositories
 
-- `~/src/infinigen-thor` on the Thor: a clone of princeton-vl/infinigen, with
-  the remote renamed to `upstream`. It is to become **SI-Thor/infinigen-thor**,
-  a fork that keeps the BSD-3 licence and attribution.
-- `~/projects/builder-ide` on the ProArt (this repo): the IDE, the builders,
-  the overnight loop and the client. It is to become **SI-Thor/builder-ide**.
-- **Creating the public GitHub repos needs Casey's go-ahead**; until then they
-  are local.
+- **SI-Thor/infinigen-thor** (github.com/SI-Thor/infinigen-thor, public): a fork
+  of princeton-vl/infinigen, BSD-3 with attribution kept. The Thor's working
+  tree is `~/src/infinigen-thor` (remote `upstream` = Princeton); the spike's
+  branch is `thor-spike`.
+- **SI-Thor/builder-ide** (github.com/SI-Thor/builder-ide, public): this repo.
+  The canonical `main` is the ProArt's `~/projects/builder-ide`; the Thor's
+  `~/src/builder-ide` holds the seats' branches and worktrees.
+- **Push often** (Casey, 2026-10-30): `~/lm-ops/push-all.sh` on the ProArt
+  pushes `main` plus every seat branch from the Thor (the Thor's GitHub keyring
+  locks after a reboot, so pushes go through the ProArt). Seat branches are
+  pushed as they are; review comes before a merge to `main`.
 
 ## How work is done
 
