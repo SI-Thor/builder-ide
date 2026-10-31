@@ -28,29 +28,45 @@ fn heavy_lock_path() -> PathBuf {
     PathBuf::from(home).join("lm-wt/heavy.lock")
 }
 
-/// Take the box's stopgap lock, so the test does not collide with a seat.
-///
-/// The heavy tests wait for it: the box's queue of seats is exactly the
-/// contention this daemon is meant to replace. `THOR_ADMIT_HEAVY_WAIT_SECS`
-/// says how long to wait (zero skips the test).
-struct HeavyLock {
-    _file: std::fs::File,
+/// The box's stopgap lock, and what a heavy test may do about it.
+enum Gate {
+    /// Skip the test: another seat is working and the wait was not allowed.
+    Skip,
+    /// Run the test. The file is the lock, when it could be taken.
+    Run(Option<std::fs::File>),
 }
 
-impl HeavyLock {
-    fn take() -> Option<HeavyLock> {
+impl Gate {
+    /// Take the box's stopgap lock, so the test does not collide with a seat.
+    ///
+    /// The heavy tests wait for it: the box's queue of seats is exactly the
+    /// contention this daemon is meant to replace.
+    /// `THOR_ADMIT_HEAVY_WAIT_SECS` says how long to wait (zero skips the
+    /// test); `THOR_ADMIT_SKIP_HEAVY_LOCK=1` runs the test without it, which
+    /// is only for a small, bounded demonstration.
+    fn take() -> Gate {
         use std::os::unix::io::AsRawFd;
+        if std::env::var("THOR_ADMIT_SKIP_HEAVY_LOCK").as_deref() == Ok("1") {
+            eprintln!(
+                "WARNING: running without the box's heavy lock — only for a small, \
+                 bounded demonstration"
+            );
+            return Gate::Run(None);
+        }
         let path = heavy_lock_path();
         if let Some(parent) = path.parent() {
             let _ = std::fs::create_dir_all(parent);
         }
-        let file = std::fs::OpenOptions::new()
+        let file = match std::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .truncate(false)
             .open(&path)
-            .ok()?;
+        {
+            Ok(file) => file,
+            Err(_) => return Gate::Skip,
+        };
         let fd = file.as_raw_fd();
         let wait: u64 = std::env::var("THOR_ADMIT_HEAVY_WAIT_SECS")
             .ok()
@@ -62,10 +78,10 @@ impl HeavyLock {
             // steps aside rather than fighting for the box.
             let rc = unsafe { libc::flock(fd, libc::LOCK_EX | libc::LOCK_NB) };
             if rc == 0 {
-                return Some(HeavyLock { _file: file });
+                return Gate::Run(Some(file));
             }
             if Instant::now() >= deadline {
-                return None;
+                return Gate::Skip;
             }
             eprintln!("waiting for the box's heavy lock...");
             std::thread::sleep(Duration::from_secs(5));
@@ -250,33 +266,64 @@ fn output_of(child: &mut Child) -> String {
     text
 }
 
+/// How big a hog the heavy tests use. The brief's scale is 30 GiB; a
+/// smaller one is for a box that is already busy.
+fn hog_gb() -> u64 {
+    std::env::var("THOR_ADMIT_HOG_GB")
+        .ok()
+        .and_then(|text| text.parse().ok())
+        .unwrap_or(30)
+}
+
+/// The floor that lets exactly one hog run at a time.
+///
+/// The box has `available` free; a hog of `hog` GiB must fit while a second
+/// one must not. The floor is set from the box's own headroom with a
+/// margin, so the test does not depend on the exact number of gigabytes
+/// free at that moment.
+fn floor_for_one_hog(hog_bytes: u64) -> u64 {
+    let available = mem_available();
+    let margin = 8 * GIB;
+    available
+        .saturating_sub(hog_bytes)
+        .saturating_sub(margin)
+        .max(GIB)
+}
+
 #[test]
 fn three_thirty_gigabyte_hogs_are_serialised() {
-    let Some(_lock) = HeavyLock::take() else {
-        eprintln!("skipping: another seat holds the box's heavy lock");
-        return;
+    let _lock = match Gate::take() {
+        Gate::Skip => {
+            eprintln!("skipping: another seat holds the box's heavy lock");
+            return;
+        }
+        Gate::Run(file) => file,
     };
-    // A floor of 65 GiB means only one 30 GiB hog fits at a time on a
-    // 122 GiB box: 122 - 30 = 92 free, and the second hog would take it to
-    // 62, below the floor. The default floor is 25 GiB, which would let two
-    // run at once; this test is about the *serialisation*, so it raises the
-    // floor to make it visible.
-    let daemon = DaemonUnderTest::start(&["--floor", "65G"]);
+    let hog_gb = hog_gb();
+    let hog_bytes = hog_gb * GIB;
+    // A floor of (available - hog - 8 GiB) means one hog fits and a second
+    // one does not: the daemon charges the running hog's reservation, so
+    // the second hog is refused while the first is still growing.
+    let floor = floor_for_one_hog(hog_bytes);
+    let daemon = DaemonUnderTest::start(&[
+        "--floor",
+        &format!("{}", floor),
+    ]);
 
     let mut hogs = Vec::new();
     for index in 0..3 {
         hogs.push(leased(
             &daemon,
             &format!("hog{index}"),
-            "30G",
-            &[HOG, "--bytes", "30G", "--hold", "4"],
+            &format!("{hog_gb}G"),
+            &[HOG, "--bytes", &format!("{hog_gb}G"), "--hold", "4"],
         ));
     }
 
     // Watch the box while they run.
     let mut max_active = 0usize;
     let mut min_available = u64::MAX;
-    let deadline = Instant::now() + Duration::from_secs(40);
+    let deadline = Instant::now() + Duration::from_secs(60);
     while Instant::now() < deadline {
         let status = daemon.status();
         let active = status["leases"].as_array().map(|a| a.len()).unwrap_or(0);
@@ -302,7 +349,7 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
 
     assert_eq!(
         max_active, 1,
-        "only one 30 GiB hog may run at a time; the log was:\n{}",
+        "only one {hog_gb} GiB hog may run at a time; the log was:\n{}",
         daemon.log()
     );
     // One hog at a time: the box never came near empty. (The floor is
@@ -319,26 +366,48 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
             "a hog did not finish:\n{text}"
         );
     }
+    eprintln!(
+        "serialisation: {hog_gb} GiB hogs, floor {}, at most {max_active} at a time, \
+         the box never fell below {} MiB free",
+        floor,
+        min_available / (1024 * 1024)
+    );
+    for line in daemon.log().lines() {
+        if line.contains("\"lease.granted\"") || line.contains("\"lease.released\"") {
+            eprintln!("  {line}");
+        }
+    }
 }
 
 #[test]
 fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
-    let Some(_lock) = HeavyLock::take() else {
-        eprintln!("skipping: another seat holds the box's heavy lock");
-        return;
+    let _lock = match Gate::take() {
+        Gate::Skip => {
+            eprintln!("skipping: another seat holds the box's heavy lock");
+            return;
+        }
+        Gate::Run(file) => file,
     };
     // The emergency floor is scaled down: the real one is 8 GiB, and driving
     // the box to 8 GiB free would need 110 GiB of allocation, which is not
-    // safe on a box that is also running a seat's work. 100 GiB of free
-    // memory is the same rule, measured 92 GiB earlier.
-    let daemon = DaemonUnderTest::start(&["--emergency-floor", "100G", "--min-victim-rss", "2G"]);
+    // safe on a box that is also running a seat's work. The floor here is
+    // (available - 8 GiB), so the same rule fires after the runaway has
+    // taken 8 GiB — and it fires with the whole box still free.
+    let hog_gb = hog_gb();
+    let emergency = mem_available().saturating_sub(8 * GIB).max(GIB);
+    let daemon = DaemonUnderTest::start(&[
+        "--emergency-floor",
+        &format!("{emergency}"),
+        "--min-victim-rss",
+        "2G",
+    ]);
 
     let oom_before = oom_kills();
     let mut hog = leased(
         &daemon,
         "runaway",
-        "40G",
-        &[HOG, "--bytes", "40G", "--hold", "60"],
+        &format!("{hog_gb}G"),
+        &[HOG, "--bytes", &format!("{hog_gb}G"), "--hold", "60"],
     );
 
     // Wait for the watchdog to act.
@@ -348,14 +417,18 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
     while Instant::now() < deadline {
         let available = mem_available();
         min_available = min_available.min(available);
-        let log = daemon.log();
-        if let Some(index) = log.find("watchdog.stopped") {
-            // The event carries the free memory at the moment of the stop.
-            let line = log[index..].lines().next().unwrap_or("").to_string();
-            if let Ok(event) = serde_json::from_str::<Value>(&line) {
-                stopped_at_available = event["mem_available_bytes"].as_u64();
-                break;
+        // The event carries the free memory at the moment of the stop.
+        for line in daemon.log().lines() {
+            if !line.contains("\"watchdog.stopped\"") {
+                continue;
             }
+            if let Ok(event) = serde_json::from_str::<Value>(line) {
+                stopped_at_available = event["mem_available_bytes"].as_u64();
+            }
+            break;
+        }
+        if stopped_at_available.is_some() {
+            break;
         }
         std::thread::sleep(Duration::from_millis(50));
     }
@@ -379,33 +452,37 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         "the kernel's OOM killer fired; the watchdog was too late"
     );
 
-    // The hog must actually be stopped, not merely signalled. The watchdog
-    // gives it the grace period and then kills it, so watch for the stop
-    // first and the death after.
-    let hog_pid = hog.id();
-    let mut saw_stopped = false;
+    // The hog must actually be stopped, not merely signalled. The hog is
+    // the command the client spawned, in its own process group: the group's
+    // leader *is* the hog, and that is the pid the watchdog signalled.
     let deadline = Instant::now() + Duration::from_secs(5);
+    let mut hog_pid = 0i64;
+    let mut saw_stopped = false;
     while Instant::now() < deadline {
-        let state = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")).unwrap_or_default();
-        let code = state
-            .rfind(')')
-            .map(|close| {
-                state[close + 1..]
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("")
-                    .to_string()
-            })
-            .unwrap_or_default();
-        if code == "T" || code == "t" {
-            saw_stopped = true;
-            break;
+        let status = daemon.status();
+        if let Some(lease) = status["leases"].as_array().and_then(|leases| leases.first()) {
+            hog_pid = lease["pgid"].as_i64().unwrap_or(0);
+            let state = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")).unwrap_or_default();
+            let code = state
+                .rfind(')')
+                .map(|close| {
+                    state[close + 1..]
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .to_string()
+                })
+                .unwrap_or_default();
+            if code == "T" || code == "t" {
+                saw_stopped = true;
+                break;
+            }
         }
         std::thread::sleep(Duration::from_millis(20));
     }
     assert!(
         saw_stopped,
-        "the runaway was never stopped; the log was:\n{}",
+        "the runaway was never stopped (pid {hog_pid}); the log was:\n{}",
         daemon.log()
     );
 
@@ -424,6 +501,20 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         daemon.log().contains("watchdog.killed"),
         "the daemon did not log the kill; the log was:\n{}",
         daemon.log()
+    );
+    eprintln!(
+        "watchdog: the runaway was stopped with {} MiB free (the emergency floor was \
+         {} MiB) and killed {} ms later; the kernel's OOM killer fired {} times",
+        available_at_stop / (1024 * 1024),
+        emergency / (1024 * 1024),
+        daemon
+            .log()
+            .lines()
+            .find(|line| line.contains("\"watchdog.killed\""))
+            .and_then(|line| serde_json::from_str::<Value>(line).ok())
+            .and_then(|event| event["waited_ms"].as_u64())
+            .unwrap_or(0),
+        oom_kills() - oom_before
     );
 
     let _ = hog.kill();
