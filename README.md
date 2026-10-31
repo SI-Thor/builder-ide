@@ -41,7 +41,13 @@ seat you work from.
 - **The first real night ran.** TRELLIS.2 behind the scheduler made 3 props × 3
   seeds in 24 min 44 s, one model load, provenance on every asset
   ([record](docs/lab/mini-night.md)). It found that TRELLIS.2 meshes are never
-  watertight; repair is the next round.
+  watertight. **The second night repaired them all**: 9/9 watertight, silhouette
+  IoU ≥ 0.9999, ~3.5 s a prop, 30 min 43 s end to end
+  ([record](docs/lab/mini-night-2.md)). It also found the cost model prices the
+  prop stage 3.4× low, and that **the fused FP8 path never runs** in the real
+  generator (its weights arrive as bf16); graph-capturing the generator's dense
+  steps is bit-identical but saves only CPU time, since they are GPU-bound
+  ([exp](docs/lab/exp-trellis-graph.md)).
 - **Plan draft 2 and a decision sheet.** 20+ reports, three cross-reviews, a
   synthesized understanding, a core spec (v2), the plan
   ([docs/plan.md](docs/plan.md)), and the owner's open decisions, condensed
@@ -179,6 +185,7 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `mesh-repair` | TRELLIS.2 props made watertight with manifold3d (9/9, silhouette IoU 0.9985–1.0, ~3 s each); the critic checks the repaired mesh and grades repair fidelity | merged |
 | `honest-week` | The seven-night melt week on real Infinigen 2.0 renders: 106/106 steps, 14 real renders, budgeted from the cost model; found and fixed a kJ figure off by 1,000× ([record](docs/lab/honest-week.md)) | merged |
 | `daytime-world` | The daytime world between nights: one room, one clock, a cheap tick budget that yields to the night, a morning line on what changed (off by default; decision B3) | merged |
+| `mini-night2` | The second real night, with mesh repair and the cost model; TRELLIS.2 graph capture and the fp8 path measured ([record](docs/lab/mini-night-2.md)) | merged |
 
 **`main` today: 1,196 tests pass** (3 skipped; the real-engine tests are opt-in).
 
