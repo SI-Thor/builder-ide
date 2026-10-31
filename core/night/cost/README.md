@@ -16,7 +16,8 @@ over measurements taken on this box.
 | `pricing.py` | the **price**: a job kind as a task carries it — the ask (p50) and the rail (p95) |
 | `admission.py` | the **admission check**: does tonight's plan fit, and what is cut, named |
 | `estimates.py` | the **two lines** the owner reads this evening |
-| `data/` | the measurements themselves — the sweep, the mini-night, the critic |
+| `memory.py` | the **memory column**: how much memory a job kind takes, as the admission daemon measured it |
+| `data/` | the measurements themselves — the sweep, the mini-night, the critic, the peaks |
 | `measure_critic.py` | the one new measurement this package made |
 | `extract_mini_night.py` | extracts the mini-night's lane splits from its ledger |
 | `refresh.py` | re-pins the data when the box records something new |
@@ -220,3 +221,46 @@ so the file is a snapshot of a moment, not the finished sweep: it carries its
 row count and its checksum in `data/recorded.json`, and `--check` says
 whether the recording has moved on since. Refresh it whenever the sweep has
 recorded new timings, and the model's numbers follow.
+
+## The memory column
+
+The model answers *what a job costs*. The box runs out of **memory**, so the
+model also needs to answer *how much memory a job takes* — and nobody had
+measured that. The admission daemon (`tools/thor-admit`) does: every lease
+records the peak resident set it reached, and writes one JSON line per
+lease.
+
+`memory.py` reads those lines and turns them into the same band the model
+already speaks — a p50 and a p95, with the number of samples and the source
+beside them — using the same percentile convention, so a number here and a
+number in the model mean the same thing.
+
+```python
+from core.night.cost import default_memory_column
+
+column = default_memory_column()
+peak = column.peak_for("hog.4g")
+peak.p50_bytes, peak.p95_bytes, peak.samples
+```
+
+**Where the numbers come from.** The daemon writes the live history to
+`~/.local/state/thor-admit/peaks.jsonl` (or wherever `THOR_ADMIT_PEAKS`
+points). `data/peaks.jsonl` is the snapshot kept in this package, so the
+model's numbers all have a source in the repo:
+
+| Label | What it is | Peak (bytes) | Source |
+|---|---|---|---|
+| `hog.4g` | the synthetic memory hog, 4 GiB asked for | 4 296 847 360 (4.0016 GiB) | 3 runs, `rusage` |
+| `hog.8g` | the same hog, 8 GiB asked for | 8 591 884 288 (8.0017 GiB) | 1 run, `rusage` |
+| `seat.py` | a plain Python seat process | 9 830 400 (9.4 MiB) | 1 run, `rusage` |
+
+The hog is the daemon's own test instrument, not a production workload: the
+real job kinds get their peaks as the seats take leases. The numbers above
+are here to show the column works and to pin the convention; the rows for
+`prop.*`, `rung.*` and `infinigen.*` arrive when those seats lease.
+
+**Re-deriving it.** The snapshot is the daemon's own history file, copied:
+
+```bash
+cp ~/.local/state/thor-admit/peaks.jsonl core/night/cost/data/peaks.jsonl
+```
