@@ -30,14 +30,19 @@ from pathlib import Path
 import pytest
 
 from core.night.cost import (
+    DEFAULT_KIND,
     CostModel,
     NightPlan,
     PlannedJob,
+    PricedAsk,
     admission_check,
     get_model,
+    hold_to,
+    known_kinds,
     load_recorded,
     owner_estimate,
     percentile,
+    price_job,
 )
 from core.night.cost.records import DATA_DIR
 from core.night.models import Rail
@@ -422,3 +427,67 @@ def test_the_recorded_data_loads_from_the_package(tmp_path: Path):
     data = load_recorded()
     assert data.job("prop.image").samples
     assert load_recorded(DATA_DIR).index == data.index
+
+
+# -- the price: a job kind as a task carries it -------------------------------
+
+
+def test_a_priced_job_is_the_bands_p50_and_p95(model):
+    """The ask is the median run; the rail is the bad one."""
+    band = model.band("prop.image")
+    priced = price_job("prop.image")
+    assert priced.ask.gpu_minutes == pytest.approx(band.p50.gpu_minutes)
+    assert priced.ask.wall_minutes == pytest.approx(band.p50.wall_minutes)
+    assert priced.rail.gpu_minutes == pytest.approx(band.p95.gpu_minutes)
+    assert priced.rail.wall_minutes == pytest.approx(band.p95.wall_minutes)
+    assert priced.rail.wall_minutes >= priced.ask.wall_minutes
+
+
+def test_a_price_carries_the_bands_basis_and_source(model):
+    """A number that does not say where it came from is a number somebody typed."""
+    priced = price_job("prop.image")
+    assert priced.basis == model.band("prop.image").basis
+    assert priced.source == model.band("prop.image").source
+    assert priced.samples == model.band("prop.image").p50.samples
+    assert priced.quantile == "p50"
+    assert not priced.is_estimate
+
+
+def test_a_derived_price_says_it_is_derived(model):
+    priced = price_job(DEFAULT_KIND)
+    assert priced.basis == "derived"
+    assert priced.kind == "prop.goal"
+
+
+def test_three_of_a_kind_cost_three_of_it(model):
+    """Three seeds of a prop cost three p50s — the count is the night's, the
+    price is the model's."""
+    one = price_job("prop.image")
+    three = price_job("prop.image", count=3)
+    assert three.ask.gpu_minutes == pytest.approx(one.ask.gpu_minutes * 3)
+    assert three.rail.wall_minutes == pytest.approx(one.rail.wall_minutes * 3)
+    assert three.samples == one.samples
+
+
+def test_the_known_kinds_are_the_recorded_ones_and_the_two_derived(model):
+    kinds = known_kinds()
+    assert set(model.kinds()).issubset(set(kinds))
+    assert "prop.goal" in kinds and "scene.goal" in kinds
+
+
+def test_the_rail_is_never_below_the_ask(model):
+    """An owner who asked for more is held to their own number."""
+    priced = price_job("prop.image")
+    big = Rail(gpu_minutes=999.0, hosted_cents=0, wall_minutes=999.0)
+    held = hold_to(big, priced)
+    assert held.gpu_minutes == pytest.approx(999.0)
+    assert held.wall_minutes == pytest.approx(999.0)
+    # and a model ask is held to the model's own p95
+    held = hold_to(priced.ask, priced)
+    assert held.wall_minutes == pytest.approx(priced.rail.wall_minutes)
+
+
+def test_pricing_an_unknown_kind_is_refused_by_name(model):
+    with pytest.raises(KeyError) as caught:
+        price_job("prop.gigantic")
+    assert "prop.gigantic" in str(caught.value)
