@@ -151,6 +151,12 @@ class NightNumbers(BaseModel):
     stage_cache_total: int = 0
     power_mode: int = 0
     wall_overrun_minutes: float = 0.0
+    #: The loop's own numbers — how many goals were iterated on, how many
+    #: variants were scored, and the quality the extra rounds bought.
+    iterated_tasks: int = 0
+    variants_scored: int = 0
+    quality_gained: float = 0.0
+    joules: float | None = None
 
 
 class BoxRow(BaseModel):
@@ -162,6 +168,53 @@ class BoxRow(BaseModel):
     measured_gpu_minutes: float
     ask_wall_minutes: float
     measured_wall_minutes: float
+
+
+class WinnerCard(BaseModel):
+    """The variant the loop kept."""
+
+    variant_id: str
+    label: str
+    score: float
+    round: int
+    reason: str = ""
+
+
+class RunnerUpCard(BaseModel):
+    """A variant the winner beat — with the score and the reason it lost."""
+
+    variant_id: str
+    label: str
+    score: float
+    round: int
+    why: str
+
+
+class RoundCard(BaseModel):
+    """One round of the loop: what it scored, what it gained, what it cost."""
+
+    round: int
+    variants: int = 0
+    best_score: float = 0.0
+    gain: float = 0.0
+    gpu_minutes: float = 0.0
+    wall_minutes: float = 0.0
+    joules: float | None = None
+
+
+class IterationCard(BaseModel):
+    """One goal the night iterated on: the winner, and what it beat."""
+
+    task_id: str
+    intention: str
+    winner: WinnerCard
+    runner_ups: list[RunnerUpCard] = Field(default_factory=list)
+    rounds: list[RoundCard] = Field(default_factory=list)
+    stop: str = ""
+    stop_detail: str = ""
+    attempts: int = 0
+    quality_gained: float = 0.0
+    joules: float | None = None
 
 
 class NightReport(BaseModel):
@@ -184,6 +237,7 @@ class NightReport(BaseModel):
     tally: list[TallyRow] = Field(default_factory=list)
     three_numbers: ThreeNumbers = Field(default_factory=ThreeNumbers)
     the_box: list[BoxRow] = Field(default_factory=list)
+    iterations: list[IterationCard] = Field(default_factory=list)
     recovery: str | None = None
 
 
@@ -232,6 +286,16 @@ def build_report(events: Sequence[AuditEvent]) -> NightReport:
     branches = _branches(projection)
     questions, questions_total = _questions(projection)
     tally = _tally(projection)
+    iterations = _iterations(projection)
+    numbers.iterated_tasks = len(iterations)
+    numbers.variants_scored = sum(card.attempts for card in iterations)
+    numbers.quality_gained = sum(card.quality_gained for card in iterations)
+    joules = [card.joules for card in iterations]
+    numbers.joules = (
+        sum(value for value in joules if value is not None)
+        if joules and all(value is not None for value in joules)
+        else None
+    )
 
     decisions = (1 if branches else 0) + len(questions) + len(projection.work_orders)
     three_numbers = ThreeNumbers(
@@ -259,6 +323,7 @@ def build_report(events: Sequence[AuditEvent]) -> NightReport:
         tally=tally,
         three_numbers=three_numbers,
         the_box=_the_box(projection, events),
+        iterations=iterations,
         recovery=_recovery(status, projection),
     )
 
@@ -406,8 +471,17 @@ def _the_box(projection: NightProjection, events: Sequence[AuditEvent]) -> list[
         if event.type != "job.done":
             continue
         task_id = event.payload.get("task_id")
-        if task_id:
-            measured[task_id] = event.payload.get("cost", {})
+        if not task_id:
+            continue
+        # A task that iterated was measured more than once; the box did all
+        # of it, so the measured cost is the sum of the attempts.
+        cost = measured.setdefault(
+            task_id, {"gpu_minutes": 0.0, "wall_minutes": 0.0, "hosted_cents": 0}
+        )
+        for axis in ("gpu_minutes", "wall_minutes", "hosted_cents"):
+            cost[axis] = float(cost.get(axis, 0.0)) + float(
+                (event.payload.get("cost") or {}).get(axis, 0.0)
+            )
     rows: list[BoxRow] = []
     for task in projection.tasks.values():
         cost = measured.get(task.id, {})
@@ -422,6 +496,106 @@ def _the_box(projection: NightProjection, events: Sequence[AuditEvent]) -> list[
             )
         )
     return rows
+
+
+def _iterations(projection: NightProjection) -> list[IterationCard]:
+    """The loop's cards: the winner, and everything it beat.
+
+    The winner comes from the task's own row (the loop's record); the
+    runner-ups come from the attempts the log holds, so the morning can say
+    what the winner beat and why each one lost.
+    """
+    cards: list[IterationCard] = []
+    for task_id, record in projection.iterations.items():
+        task = projection.tasks.get(task_id)
+        winner = record.get("winner") or {}
+        if not winner:
+            continue
+        attempts = projection.attempts_for(task_id)
+        first_try = attempts[0] if attempts else None
+        quality_gained = (
+            float(winner.get("score", 0.0)) - first_try.score if first_try else 0.0
+        )
+        cards.append(
+            IterationCard(
+                task_id=task_id,
+                intention=task.intention if task else "",
+                winner=WinnerCard(
+                    variant_id=winner.get("variant_id", ""),
+                    label=winner.get("label", ""),
+                    score=float(winner.get("score", 0.0)),
+                    round=int(winner.get("round", 1)),
+                    reason=winner.get("reason", ""),
+                ),
+                runner_ups=_runner_ups(attempts, winner),
+                rounds=[
+                    RoundCard(
+                        round=int(row.get("round", 0)),
+                        variants=int(row.get("variants", 0)),
+                        best_score=float(row.get("best_score", 0.0)),
+                        gain=float(row.get("gain", 0.0)),
+                        gpu_minutes=float(row.get("gpu_minutes", 0.0)),
+                        wall_minutes=float(row.get("wall_minutes", 0.0)),
+                        joules=row.get("joules"),
+                    )
+                    for row in record.get("rounds", [])
+                ],
+                stop=str((record.get("stop") or {}).get("reason", "")),
+                stop_detail=str((record.get("stop") or {}).get("detail", "")),
+                attempts=int(record.get("attempts", len(attempts))),
+                quality_gained=quality_gained,
+                joules=_total_joules(record.get("rounds", [])),
+            )
+        )
+    return cards
+
+
+def _runner_ups(attempts: Sequence[Any], winner: dict[str, Any]) -> list[RunnerUpCard]:
+    """The variants the winner beat, with the score and the reason each lost.
+
+    A runner-up that became the warm start for a later round is named as
+    such: "it lost, and then the loop narrowed in from it" is a different
+    fact from "it lost".
+    """
+    winner_id = winner.get("variant_id", "")
+    winner_score = float(winner.get("score", 0.0))
+    # The round each variant was refined from — the warm start's lineage.
+    children: dict[str, int] = {}
+    for attempt in attempts:
+        if attempt.parent_id:
+            children[attempt.parent_id] = attempt.round
+    runner_ups: list[RunnerUpCard] = []
+    for attempt in attempts:
+        if attempt.variant_id == winner_id:
+            continue
+        gap = winner_score - attempt.score
+        if attempt.outcome != "kept":
+            why = (
+                f"scored {attempt.score:.2f}, but the work was not kept — "
+                f"{attempt.reason or 'it failed'}"
+            )
+        else:
+            why = f"scored {attempt.score:.2f}, {gap:.2f} below the winner"
+        if attempt.variant_id in children:
+            why += f" — it was the warm start for round {children[attempt.variant_id]}"
+        runner_ups.append(
+            RunnerUpCard(
+                variant_id=attempt.variant_id,
+                label=attempt.label,
+                score=attempt.score,
+                round=attempt.round,
+                why=why,
+            )
+        )
+    return runner_ups
+
+
+def _total_joules(rounds: Sequence[dict[str, Any]]) -> float | None:
+    """The night's joules — unmeasured until the power meter reads them."""
+    values = [row.get("joules") for row in rounds]
+    if not values or any(value is None for value in values):
+        return None
+    return float(sum(values))
 
 
 # -- rendering ------------------------------------------------------------
@@ -550,6 +724,16 @@ def render_html(report: NightReport) -> str:
             f"<li>stage-cache hits {numbers.stage_cache_hits}/{numbers.stage_cache_total}</li>"
         )
     add(f"<li>power mode: MAXN ({numbers.power_mode})</li>")
+    if numbers.iterated_tasks:
+        add(f"<li>{numbers.iterated_tasks} goal(s) iterated on</li>")
+        add(f"<li>{numbers.variants_scored} variants scored</li>")
+        add(f"<li>quality gained over the first tries: {numbers.quality_gained:.2f}</li>")
+        joules = (
+            f"{numbers.joules:.0f} J"
+            if numbers.joules is not None
+            else "not measured yet (lab round 3)"
+        )
+        add(f"<li>joules: {joules}</li>")
     add("</ul>")
     add("</section>")
 
@@ -561,6 +745,49 @@ def render_html(report: NightReport) -> str:
         reason = f" — {_escape(task.reason)}" if task.reason else ""
         add(f"<li>{_escape(task.intention)}: {task.state}{reason}</li>")
     add("</ul>")
+
+    if report.iterations:
+        add("<h2>What the night iterated</h2>")
+        for card in report.iterations:
+            add('<div class="card">')
+            add(f"<div>{_escape(card.intention)}</div>")
+            add(
+                f'<div>the winner: {_escape(card.winner.label or card.winner.variant_id)} '
+                f"(variant {_escape(card.winner.variant_id)}) — scored "
+                f"{card.winner.score:.2f} in round {card.winner.round}</div>"
+            )
+            if card.quality_gained:
+                add(
+                    f'<div class="why">it beat the first try by '
+                    f"{card.quality_gained:.2f}</div>"
+                )
+            if card.rounds:
+                add("<table><tr><th>Round</th><th>Variants</th><th>Best</th>"
+                    "<th>Gained</th><th>Lane-min</th></tr>")
+                for row in card.rounds:
+                    add(
+                        f"<tr><td>{row.round}</td><td>{row.variants}</td>"
+                        f"<td>{row.best_score:.2f}</td><td>{row.gain:.2f}</td>"
+                        f"<td>{row.gpu_minutes:.0f}</td></tr>"
+                    )
+                add("</table>")
+            if card.stop_detail:
+                add(f'<div class="why">stopped: {_escape(card.stop_detail)}</div>')
+            if card.runner_ups:
+                add("<div>what it beat:</div><ul>")
+                for runner_up in card.runner_ups:
+                    add(
+                        f"<li>{_escape(runner_up.label or runner_up.variant_id)} "
+                        f'<span class="why">({_escape(runner_up.why)})</span></li>'
+                    )
+                add("</ul>")
+            joules = (
+                f"{card.joules:.0f} J"
+                if card.joules is not None
+                else "not measured yet (lab round 3)"
+            )
+            add(f'<div class="why">joules: {joules}</div>')
+            add("</div>")
 
     add("<h2>Branches to choose</h2>")
     add("<ul>")
@@ -707,6 +934,37 @@ def render_text(report: NightReport) -> str:
     add("WHAT THE NIGHT DID")
     for task in report.tasks:
         add(f"  {task.intention}: {task.state}" + (f" — {task.reason}" if task.reason else ""))
+    if report.iterations:
+        add("")
+        add("WHAT THE NIGHT ITERATED")
+        for card in report.iterations:
+            add(f"  {card.intention}")
+            add(
+                f"    the winner: {card.winner.label or card.winner.variant_id} "
+                f"(variant {card.winner.variant_id}) — scored {card.winner.score:.2f} "
+                f"in round {card.winner.round}"
+            )
+            if card.quality_gained:
+                add(f"    it beat the first try by {card.quality_gained:.2f}")
+            for row in card.rounds:
+                add(
+                    f"    round {row.round}: {row.variants} variants · best "
+                    f"{row.best_score:.2f} · gained {row.gain:.2f} · "
+                    f"{row.gpu_minutes:.0f} lane-min"
+                )
+            if card.stop_detail:
+                add(f"    stopped: {card.stop_detail}")
+            for runner_up in card.runner_ups:
+                add(
+                    f"    beat: {runner_up.label or runner_up.variant_id} "
+                    f"({runner_up.why})"
+                )
+            joules = (
+                f"{card.joules:.0f} J"
+                if card.joules is not None
+                else "not measured yet (lab round 3)"
+            )
+            add(f"    joules: {joules}")
     add("")
     add("BRANCHES TO CHOOSE")
     for branch in report.branches:
