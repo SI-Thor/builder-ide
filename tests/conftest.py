@@ -97,7 +97,9 @@ def fjellvik(pin: EnginePin) -> Recipe:
             "terrain.harbor": RecipeEntry(
                 path="terrain.harbor",
                 kind="terrain",
-                params={"slope": 0.08},
+                # clearance_m is what the project-level drip-line constraint
+                # measures, so the recipe carries it (the constraint rests on it)
+                params={"slope": 0.08, "clearance_m": 0.4},
                 seed=4471,
                 origin="builtin",
             ),
@@ -136,7 +138,10 @@ def schemas() -> StaticSchemaRegistry:
             "terrain.harbor": {
                 "type": "object",
                 "additionalProperties": False,
-                "properties": {"slope": {"type": "number", "minimum": 0.0, "maximum": 1.0}},
+                "properties": {
+                    "slope": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                    "clearance_m": {"type": "number", "minimum": 0.0, "maximum": 10.0},
+                },
             },
             "props.harbor.crates": {
                 "type": "object",

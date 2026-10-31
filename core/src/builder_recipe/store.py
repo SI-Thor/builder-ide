@@ -25,11 +25,12 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Protocol, Sequence
+from typing import Any, Iterable, Mapping, Protocol, Sequence
 
 from builder_recipe.blobs import BlobStore, MemoryBlobStore
 from builder_recipe.canonical import canonical_bytes, content_hash
 from builder_recipe.constraints import ConstraintChecker
+from builder_recipe.dirty import AssetProducers, DirtySet, compute_dirty_set
 from builder_recipe.edits import apply_ops, diff_recipes, touched_entries
 from builder_recipe.errors import (
     BranchError,
@@ -55,6 +56,7 @@ from builder_recipe.models import (
 )
 from builder_recipe.noderegistry import NodeRegistryProvider
 from builder_recipe.schema import ParamViolation, StaticSchemaRegistry, validate_params
+from builder_recipe.stagecache import entry_stage_key, stage_cache_key
 
 __all__ = ["RecipeStore", "ApplyHook", "QuestionSink"]
 
@@ -276,6 +278,156 @@ class RecipeStore:
     def diff(self, base: str, head: str) -> list[Op]:
         """The op list between two versions."""
         return diff_recipes(self.get_document(base), self.get_document(head))
+
+    # -- the stage cache and the dirty set ----------------------------------
+
+    def stage_key(
+        self, version_id: str, stage_name: str, dep_keys: Sequence[str] = ()
+    ) -> str:
+        """The stage-cache key of a stage at a version (§1.9)."""
+        version = self.get_version(version_id)
+        document = self.get_document(version_id)
+        return stage_cache_key(
+            version.root_hash, document.engine_pin, stage_name, dep_keys
+        )
+
+    def entry_stage_key(self, version_id: str, entry_path: str) -> str:
+        """The stage-cache key of one entry's stage."""
+        document = self.get_document(version_id)
+        entry = document.entries.get(entry_path)
+        if entry is None:
+            raise NotFound(f"no entry {entry_path!r} in {version_id!r}")
+        return entry_stage_key(entry_path, entry, document.engine_pin)
+
+    def dirty_set(
+        self,
+        base: str,
+        head: str,
+        *,
+        stages: Mapping[str, Sequence[str]] | None = None,
+        asset_producers: AssetProducers | None = None,
+    ) -> DirtySet:
+        """The dirty set between two versions (§1.1)."""
+        return compute_dirty_set(
+            self.get_document(base),
+            self.get_document(head),
+            registry=self._registry_for(head),
+            asset_producers=asset_producers,
+            stages=stages,
+        )
+
+    # -- the vocabulary door ----------------------------------------------
+
+    def build_vocab_edit(
+        self,
+        *,
+        word: str,
+        node: str | None,
+        params: dict[str, Any],
+        author: Actor,
+        message: str,
+        base: str,
+        entry_path: str | None = None,
+    ) -> RecipeEdit:
+        """Validate a typed word call and build the edit it produces (§1.5).
+
+        Anything outside the schema is refused here, at the door: the
+        character hears "I can't do rope yet" instead of the world silently
+        changing.
+        """
+        if self.schemas is not None and word not in self.schemas.words():
+            raise SchemaViolation(
+                [
+                    ParamViolation(
+                        "",
+                        f"the word {word!r} is not in the vocabulary",
+                        code="unknown-word",
+                    )
+                ]
+            )
+
+        path = entry_path or self._entry_for_node(node, base)
+        if path is None:
+            raise SchemaViolation(
+                [
+                    ParamViolation(
+                        "",
+                        f"the node {node!r} is not in the node registry",
+                        code="no-referent",
+                    )
+                ]
+            )
+
+        schema = self.schemas.schema_for(path) if self.schemas else None
+        if schema is None:
+            raise SchemaViolation(
+                [
+                    ParamViolation(
+                        path,
+                        "there is no vocabulary schema for this entry",
+                        code="no-schema",
+                    )
+                ]
+            )
+
+        violations = validate_params(params, schema)
+        if violations:
+            raise SchemaViolation(violations)
+
+        ops = [
+            Op(op="set", path=f"{path}.params.{key}", value=value)
+            for key, value in sorted(params.items())
+        ]
+        edit_id = _next_id(self._edits.keys(), "ed_")
+        return RecipeEdit(
+            id=edit_id, base=base, ops=ops, author=author, message=message
+        )
+
+    def vocab_call(
+        self,
+        *,
+        word: str,
+        node: str | None,
+        params: dict[str, Any],
+        author: Actor,
+        message: str,
+        base: str,
+        entry_path: str | None = None,
+    ) -> RecipeVersion:
+        """A character's typed call: validate at the door, then apply.
+
+        Refused calls are audited — the edges are the story (D §5.5).
+        """
+        try:
+            edit = self.build_vocab_edit(
+                word=word,
+                node=node,
+                params=params,
+                author=author,
+                message=message,
+                base=base,
+                entry_path=entry_path,
+            )
+        except SchemaViolation as exc:
+            self._audit_vocab_call(
+                word=word,
+                node=node,
+                params=params,
+                author=author,
+                ok=False,
+                reason=str(exc),
+            )
+            raise
+
+        self._audit_vocab_call(
+            word=word,
+            node=node,
+            params=params,
+            author=author,
+            ok=True,
+            reason="",
+        )
+        return self.apply_edit(base, edit.ops, author=author, message=message)
 
     # -- writes: recipes and versions --------------------------------------
 
@@ -676,6 +828,42 @@ class RecipeStore:
         if version_id is None or self.registry_provider is None:
             return None
         return self.registry_provider.registry_for(version_id)
+
+    def _entry_for_node(self, node: str | None, version_id: str) -> str | None:
+        if node is None:
+            return None
+        registry = self._registry_for(version_id)
+        if registry is None:
+            return None
+        ref = registry.resolve_node(node)
+        return ref.entry_path if ref is not None else None
+
+    def _audit_vocab_call(
+        self,
+        *,
+        word: str,
+        node: str | None,
+        params: dict[str, Any],
+        author: Actor,
+        ok: bool,
+        reason: str,
+    ) -> None:
+        recorded = params
+        if len(canonical_bytes(params)) > 1024:
+            recorded = {"truncated": True, "keys": sorted(params)}
+        self.ledger.append(
+            type="vocab.call",
+            actor=author,
+            at=self.clock(),
+            subject={"entity_kind": "vocabulary_word", "entity_id": word},
+            payload={
+                "word": word,
+                "node": node,
+                "params": recorded,
+                "ok": ok,
+                "reason": reason,
+            },
+        )
 
     def _validate(
         self, document: Recipe, touched: set[str], version_id: str | None
