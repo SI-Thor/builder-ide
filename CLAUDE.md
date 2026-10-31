@@ -57,6 +57,11 @@ works.
   writing Blender code, and they **predict before they render** (the Vibe
   Dictionary pattern proven in last-mile: sealed prediction, test, verdict,
   undo).
+- **Keep the READMEs current** (Casey, 2026-10-31). Every package or directory
+  a seat creates gets a README (what it is, how to run its tests, what it
+  stubs, how it connects to the rest), and every change updates it. The top
+  README's status, document map and branch table are refreshed whenever a
+  report lands or a branch merges.
 - **Measure, with the box's state beside every number.** "Works" carries its
   proof: a render, a timing, a test.
 - **Licences are a checked list**, especially for models: some image models are
