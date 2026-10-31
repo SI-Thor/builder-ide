@@ -27,10 +27,10 @@ Three things it does on purpose:
 from __future__ import annotations
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Mapping, Protocol, Sequence, runtime_checkable
 
-from .models import Json, PlayRecord, Tile, TileRefusal
+from .models import PlayRecord, Tile, TileRefusal
 
 __all__ = ["Choice", "TileChooser", "ContextualBandit", "DEFAULT_EPSILON"]
 

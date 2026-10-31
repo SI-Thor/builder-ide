@@ -21,7 +21,7 @@ become the builder's taste, and would make every win rate ambiguous.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Mapping, Sequence
+from typing import Any, Callable, Sequence
 
 from core.canon import now_utc
 from core.records import Actor
@@ -29,7 +29,7 @@ from core.records import Actor
 from .author import AuthorRequest, TileAuthorProtocol
 from .chooser import ContextualBandit
 from .library import TileLibrary
-from .models import FeedbackPacket, Json, PlayRecord, Tile
+from .models import FeedbackPacket, PlayRecord, Tile
 from .plays import fold_plays
 from .ports import LedgerPort
 from .stats import wilson_interval

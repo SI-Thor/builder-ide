@@ -129,9 +129,11 @@ immutable tiles**, with a version index per family.
 ### Rules
 
 1. **Content addressing.** A tile's `id` is `tile_<sha256-12>` over the
-   canonical body (kind, title, steps, preconditions, author). The same script
+   canonical body (family, kind, title, steps, preconditions, author). The same script
    written twice is the same tile: adding it twice is a no-op, not a second
-   version.
+   version. The **family** is part of the body — what a tile is *for* is
+   part of what it is, so the same script serving two families is two
+   options, not one.
 2. **Versioning.** A tile belongs to a **family** — what it is *for*. A new
    body in a family is the next version of that family. The library assigns
    the version; the author does not get to claim it.
