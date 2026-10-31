@@ -44,6 +44,7 @@ class ReportBuilder:
         ]
         tally = PredictionsService(self.core).tally()
         three = self._three_number_line(night_id, bdoc)
+        away = self._while_you_were_away(night_id)
 
         doc = {
             "night": night.model_dump(mode="json"),
@@ -60,6 +61,7 @@ class ReportBuilder:
             "tally": tally["tally"],
             "three_number_line": three,
             "the_box": self._the_box(night),
+            "while_you_were_away": away,
         }
         return {
             "doc": doc,
@@ -179,6 +181,21 @@ class ReportBuilder:
             "attention_decisions": decisions, "attention_budget": 10,
         }
 
+    def _while_you_were_away(self, night_id: str) -> dict:
+        """What the world did while nobody was watching (plan item 19).
+
+        The daytime world (core.daytime) keeps the room living between
+        sessions, and the ledger is its only state — so this section is a
+        fold over the same log as every other section, not a panel's own
+        memory. When the daytime is off, the line says the room stood
+        still.
+        """
+        from core.daytime.projection import DayProjection
+        from core.daytime.report import while_you_were_away
+
+        projection = DayProjection(self.store.events_since(0))
+        return while_you_were_away(projection.day_before(night_id))
+
     def _the_box(self, night) -> list[dict]:
         """The machine's own growth beat: measured numbers replacing the
         slate's [e] fields (G §1)."""
@@ -216,7 +233,8 @@ class ReportBuilder:
         ]
         for t in doc["tally"]:
             lines.append(f"   - {t['line']} · recency-weighted {t['recency_weighted']}")
-        lines.append(f"7. {doc['three_number_line']['line']}")
+        lines.append(f"7. WHILE YOU WERE AWAY: {doc['while_you_were_away']['line']}")
+        lines.append(f"8. {doc['three_number_line']['line']}")
         if doc["model_change_notices"]:
             lines.append("MODEL CHANGES (announced, never silent):")
             for notice in doc["model_change_notices"]:
@@ -233,6 +251,7 @@ class ReportBuilder:
             ("failures", doc["failure_line"]),
             ("the cut", doc["cut"]["line"]),
             ("numbers", doc["night_numbers"]["line"]),
+            ("while you were away", doc["while_you_were_away"]["line"]),
             ("three-number line", doc["three_number_line"]["line"]),
         ]
         body = "\n".join(
