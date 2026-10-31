@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from pxr import Sdf, Usd
+from pxr import Usd
 
 from builder_usd.canonical import hash_bytes
 from builder_usd.provenance import ASSET_KEY, PROVENANCE_KEY, from_usd_value

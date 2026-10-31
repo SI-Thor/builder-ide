@@ -227,12 +227,6 @@ class AssetRecord:
 
     files: tuple[AssetFile, ...] = ()
 
-    def by_role(self, role: str) -> AssetFile | None:
-        for item in self.files:
-            if item.role == role:
-                return item
-        return None
-
     def to_dict(self) -> dict[str, Any]:
         return {item.role: item.to_dict() for item in self.files}
 

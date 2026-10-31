@@ -14,9 +14,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
-
 def _run(repo_root: Path, *args: str) -> subprocess.CompletedProcess:
     env = dict(os.environ)
     env["PYTHONPATH"] = str(repo_root / "core" / "usd" / "src")
@@ -27,6 +24,18 @@ def _run(repo_root: Path, *args: str) -> subprocess.CompletedProcess:
         env=env,
         cwd=str(repo_root),
     )
+
+
+def test_the_fixture_recipe_is_the_demo_recipe(repo_root):
+    """The file the CLI reads and the recipe the CLI builds in are one recipe."""
+    from builder_usd.demo import demo_bundle
+
+    fixture = json.loads(
+        (repo_root / "tests" / "usd" / "fixtures" / "fjellvik_recipe.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert fixture == demo_bundle(), "the fixture has drifted from the demo recipe"
 
 
 def test_compile_writes_the_stage(tmp_path, repo_root):
