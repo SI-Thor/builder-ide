@@ -173,6 +173,9 @@ def test_the_joules_on_the_line_come_from_the_measured_rails():
     report = build_report(run_a_night())
     expected = 47.5 * report.numbers.wall_time_minutes * 60.0 / 1000.0
     assert report.three_numbers.joules == pytest.approx(expected)
+    # and the rendered line quotes that kJ figure, not a thousandth of it
+    # (the honest-week run caught the line printing 0.4 kJ for a 400 kJ night)
+    assert f"{expected:.1f} kJ" in render_text(report)
 
 
 def test_the_attention_estimate_is_the_cost_models_number():

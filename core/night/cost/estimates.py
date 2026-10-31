@@ -42,6 +42,9 @@ class OwnerEstimate(BaseModel):
     ask: Rail = Field(default_factory=Rail)
     rails: Rail = Field(default_factory=Rail)
     fits: bool = True
+    #: The energy the plan's wall time will draw, in **kJ** — the package's
+    #: convention (every ``joules`` field holds kilojoules; the rails are
+    #: read in watts, ``tests/night/test_cost.py`` pins the arithmetic).
     joules: float | None = None
     cut: list[str] = Field(default_factory=list)
     parked: list[str] = Field(default_factory=list)
@@ -61,13 +64,13 @@ class OwnerEstimate(BaseModel):
 
 
 def _joules_for(ask: Rail, model: CostModel) -> float | None:
-    """The energy the plan's wall time will draw on the box.
+    """The energy the plan's wall time will draw on the box, in **kJ**.
 
     The whole-box ``VIN`` rail over the wall time — the same reading the
     morning quotes, so the two lines and the four numbers agree.
     """
-    joules = model.data.rails.vin_w * ask.wall_minutes * 60.0 / 1000.0
-    return joules if joules > 0 else None
+    kjoules = model.data.rails.vin_w * ask.wall_minutes * 60.0 / 1000.0
+    return kjoules if kjoules > 0 else None
 
 
 def owner_estimate(
@@ -97,7 +100,10 @@ def owner_estimate(
         f"${ask.hosted_cents / 100:.2f} hosted (local)"
     )
     if joules is not None:
-        line_one += f" · {joules / 1000:.1f} kJ on the rails"
+        # kJ, not joules/1000: _joules_for already scaled watts×seconds to
+        # kilojoules (the honest-week run caught the line printing 0.0 kJ
+        # for a 14 kJ plan — a 1000× under-report on the owner's line one)
+        line_one += f" · {joules:.1f} kJ on the rails"
 
     if verdict.fits:
         spare_gpu = verdict.remaining.gpu_minutes / 60

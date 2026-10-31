@@ -421,17 +421,26 @@ class CoreDoor:
             {"job_id": job_id},
         )
         desc = self.put_artifact(preview.data, f"render-r{rung}-{seed}.png")
+        completed = {
+            "job_id": job_id, "rung": rung, "seed": seed,
+            "engine": self.engine.describe().source,
+            "engine_flavour": self.engine.describe().flavour,
+            # the measured render wall (None only for the fake, which
+            # measures nothing and says so by omitting it)
+            "wall_ms": preview.wall_ms,
+            "resolution": preview.resolution,
+            "artifact": {"sha256": desc["sha256"], "kind": "render",
+                         "bytes": desc["bytes"]},
+        }
+        if preview.wall_ms is not None:
+            # the morning's box section quotes the measured render (G §1:
+            # the [e] fields the slate marked are replaced by measurements)
+            completed["timing"] = {
+                "what": "render", "measured_ms": round(preview.wall_ms, 1),
+                "label": f"measured (engine render, rung {rung})"}
         self.event(
             "render.completed", actor, {"entity_kind": "job", "entity_id": job_id},
-            {"job_id": job_id, "rung": rung, "seed": seed,
-             "engine": self.engine.describe().source,
-             "engine_flavour": self.engine.describe().flavour,
-             # the measured render wall (None only for the fake, which
-             # measures nothing and says so by omitting it)
-             "wall_ms": preview.wall_ms,
-             "resolution": preview.resolution,
-             "artifact": {"sha256": desc["sha256"], "kind": "render",
-                          "bytes": desc["bytes"]}},
+            completed,
             artifact=desc,
         )
         self.event(
@@ -560,7 +569,7 @@ class CoreDoor:
         wos.land(wo_id, desc, evidence, gate=gate)
         if night:
             wos.record_spend(wo_id, night, deliverable.get("budget_spend") or {})
-        return gate
+        return {**gate, "preview_wall_ms": preview.wall_ms}
 
     # -- the recipe half's publishing convention (§1.4.0, ports.py) -----------------
 

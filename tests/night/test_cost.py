@@ -386,6 +386,18 @@ def test_the_owner_estimate_is_two_lines_and_says_what_it_costs(model):
     assert estimate.fits
 
 
+def test_line_ones_kJ_is_the_rails_arithmetic_not_a_thousandth_of_it(model):
+    """The honest-week run caught line one printing "0.0 kJ" for a plan
+    whose wall time draws 14 kJ on the measured VIN rail — the field holds
+    kilojoules and the line divided by 1000 a second time."""
+    plan = _plan(("a", 30.0, 45.0))  # 45 wall-min
+    estimate = owner_estimate(plan, Rail(gpu_minutes=360.0, hosted_cents=0, wall_minutes=560.0))
+    vin_w = model.data.rails.vin_w
+    expected_kj = vin_w * 45.0 * 60.0 / 1000.0
+    assert estimate.joules == pytest.approx(expected_kj)
+    assert f"{expected_kj:.1f} kJ" in estimate.line_one, estimate.line_one
+
+
 def test_the_owner_estimate_names_the_cut_when_the_plan_does_not_fit(model):
     plan = _plan(("a", 10.0, 20.0), ("b", 400.0, 20.0))
     estimate = owner_estimate(plan, Rail(gpu_minutes=100.0, hosted_cents=0, wall_minutes=560.0))

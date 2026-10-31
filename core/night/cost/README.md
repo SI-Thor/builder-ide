@@ -149,7 +149,7 @@ from core.night.cost import owner_estimate
 
 estimate = owner_estimate(plan, rails)
 estimate.lines()
-# ["Tonight: 1 goal — 0.1 GPU-h of the 6.0 h bar · 0.4 wall-h of the 9.3 h · $0.00 hosted (local) · 0.4 kJ on the rails",
+# ["Tonight: 1 goal — 0.1 GPU-h of the 6.0 h bar · 0.4 wall-h of the 9.3 h · $0.00 hosted (local) · 67.0 kJ on the rails",
 #  "It fits, with 5.9 GPU-h to spare. Nothing is cut."]
 ```
 
