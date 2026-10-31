@@ -5,7 +5,7 @@
 
 Plan item 12 (week 2): *the critic's calibration set, first members* — a fixed reference set of ~30 **real renders** with seeded defects, run through the scripted checks, publishing false-positive and false-negative rates **per defect class**.
 
-Every verdict in this table wears **`verdict@scripted`** on its face, because no critic *model* has been chosen and measured yet (X R4: the critic is "the largest unchosen dependency in the whole stack"). This row is the **baseline** that the model choice (week 3 item 18) has to beat.
+Every verdict in this table wears **`verdict@scripted`** on its face: the critic is a **parameter**, and the name on the verdict says which one answered. The bake-off that chose it is `docs/lab/exp-critic-select.md`; the candidates it measured, and their own tables, are in the selection below.
 
 ## The reference set
 
@@ -47,6 +47,43 @@ Totals: TP 23, FP 0, FN 1, TN 39.
 **Out of band.** The scripted checks do not yet hold the band, and the verdicts stay `verdict@scripted` — the plan's M2 named risk, as a measurement rather than a worry.
 
 - `floating_object` (check `floating_blob`): 1 missed.
+
+## The selection
+
+The candidates, measured on **this** set with **this** counting rule. The chosen critic is the one that holds the band; the scripted checks are the baseline and the fallback.
+
+| candidate | layers | TP | FP | FN | TN | in band | median ms/verdict |
+|---|---|---|---|---|---|---|---|
+| `scripted` | image,mesh | 23 | 0 | 1 | 39 | no | 1059 |
+| `scripted-warm` | image,mesh | 23 | 0 | 1 | 39 | no | 673 |
+| `dino-knn-base` | image | 5 | 5 | 10 | 31 | no | 3 |
+| `dino-knn-member` | image | 5 | 5 | 10 | 31 | no | 1 |
+| `dino-linear-base` | image | 7 | 12 | 8 | 24 | no | 1397 |
+| `dino-linear-member` | image | 7 | 12 | 8 | 24 | no | 804 |
+| `vlm` | image | 10 | 2 | 5 | 34 | no | 107211 |
+| `jev-verify-measurements` | image | 10 | 3 | 5 | 33 | no | 3829 |
+| `jev-classify-measurements` | image | 8 | 3 | 7 | 33 | no | 2972 |
+| `jev-verify-description+measurements` | image | 14 | 3 | 1 | 33 | no | 1007 |
+| `jev-classify-description+measurements` | image | 10 | 2 | 5 | 34 | no | 1047 |
+| `jev-verify-description` | image | 10 | 4 | 5 | 32 | no | 183 |
+| `jev-classify-description` | image | 10 | 6 | 5 | 30 | no | 200 |
+| `hybrid` **(chosen)** | image,mesh | 24 | 0 | 0 | 39 | yes | 696 |
+
+### The chosen critic's table — `hybrid`
+
+| defect class | check | TP | FP | FN | TN | FP rate | FN rate | caught? |
+|---|---|---|---|---|---|---|---|---|
+| `black_frame` | `black_frame` | 3 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `noise_fireflies` | `fireflies` | 4 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `missing_object` | `flat_patch` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `holes` | `dark_holes` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `texture_swap` | `patch_seam` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `floating_object` | `floating_blob` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `wrong_scale` | `scale_bounds` | 4 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
+| `hollow_mesh` | `watertight` | 3 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
+| `clipped_geometry` | `edge_cut` | 2 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
+
+The full tables, the setup and the reasoning: `docs/lab/exp-critic-select.md`.
 
 ## The thresholds, and what they were measured on
 
