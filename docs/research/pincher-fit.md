@@ -70,3 +70,27 @@ The first mile gets faster the more you use it, which is "builders that grow wit
 - **E1, offline replay over the tiles logs.** Embedding fast path at ≥ 0.80, falling back to the bandit's logged choice. It beats the bandit if it covers ≥ 30 % of contexts, its reward is within ε of the bandit's, and p95 is under 50 ms. The new OPE estimators (PR #1) make this an honest offline test.
 - **E2, a live A/B in the world.** Pincher bands plus a WASM-sandboxed compile of new tiles, against the bandit. It also counts sandbox vetoes, which must show zero unsafe executions.
 - **E3, a voice first-responder A/B** on 100–200 scripted intents. It beats the bandit if the fast path takes ≥ 50 % of intents at equal accuracy and under 50 ms.
+
+## Part 2 of the chat (`new2.md`): the DeepSeek library's extraction ($0.02)
+
+Part 2 turns from the reflex idea to **Rust systems plumbing**. The new mechanisms, and where each fits:
+
+| Mechanism in new2 | Our reading |
+|---|---|
+| Telemetry from `/proc` (loadavg, meminfo, the fd count) into a typed `SystemState` | Already being built: **thor-admit** (the Rust admission daemon) reads `MemAvailable` and the load |
+| Guest WASM calling **virtualized** host primitives (`get_cpu_load`, `trigger_state_reset`) against a fake state | Good for tiles that touch the host: the veto runs them against a virtual machine state first |
+| Cranelift JIT of a validated trace, hot-swapped via `memfd_create` + `mmap` and a pointer flip | Clever, but premature; our tiles are vocabulary scripts, not native code. A seed for much later |
+| A reactive cell DAG (Quilt): `StableGraph`, `link_dependency`, BFS cascade; a per-cell logic slot (static / WASM / JIT) | **The same shape as our stage cache's dirty-set** (`core/engine/DIRTY.md`); a cell is a stage. Nothing new to adopt; a good cross-check |
+| A double-buffered atomic mailbox (64-byte header, write the inactive slot, `sfence`, release store) | Correct **within one machine's shared memory**. The chat aims it at ProArt → Thor, which share **no** memory (they are on Wi-Fi), so there it is false. Within the Thor (render buffer → critic) it is sound and matches our zero-copy finding |
+| A lock-free ring event loop (mpsc 1024 + a task per event) | Standard; fine for the first mile's event intake |
+
+**Metaphor only:** resonant catastrophe, crystalline necrosis, epigenetic methylation, the phylogenetic "evolutionary sieve", skeletal remodelling, "myelination" for JIT hardening.
+
+**Experiments, under a day each:**
+- **A mailbox race test** (10⁶ toggles; zero torn reads; p99 handoff under 1 ms).
+- **A cascade test:** a compiled trampoline against BFS with an `RwLock`, ≥ 5× at p50. The cycle check must reject a 1→2→1 edge, which the chat's code does not do.
+
+**Three checkable questions for the chat's author** (all are code defects in its own listings):
+1. `link_dependency` has no cycle check, despite its comment ("Internal loop checking must happen here…"). Does a 1→2→1 link deadlock the BFS, or double-fire cell 2?
+2. The trampoline calls `call_indirect` with a no-argument, no-return signature. What is the calling-convention contract when a target takes arguments?
+3. The mailbox's second buffer sits at `base + 64 + stride` (4160 for stride 4096), which is not 64-byte aligned. Was only the header meant to be cache-line isolated?
