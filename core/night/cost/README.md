@@ -41,9 +41,15 @@ of `p50` (the median run) and `p95` (the bad one). Each band carries its
 | `rung.3` | the full render (8192 spp, all passes) | `docs/research/spike-phase1.md` §3 | 1 |
 | `infinigen.coarse` / `.fine` / `.render` | the Infinigen stages, **by scene type** | the seed sweep | 4–5 per cell |
 
-Two kinds are **derived** rather than recorded: `prop.goal` (a picture, a
-prop and a verdict, times the goal's depth) and `scene.goal` (coarse, fine,
-render).
+Three kinds are **derived** rather than recorded: `prop.goal` (a picture, a
+prop and a verdict, times the goal's depth), `scene.goal` (coarse, fine,
+render) and `plan.intention` — an agent's proposal on the night's slate
+(the world-mcp round): the proposal's own footprint, a slate row and the
+owner's decision on it (the attention estimate, `basis: estimate`, marked
+`[e]`; zero GPU, zero hosted cents). It prices the *proposal*, not the
+work the proposal may seed — that work is priced by its own kind when the
+night actually runs it, so a proposal cannot fatten the slate with work
+it does not name.
 
 ## The price: a kind as a task carries it
 
