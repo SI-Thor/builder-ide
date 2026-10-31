@@ -358,6 +358,52 @@ def test_the_out_of_band_class_is_the_one_the_table_names():
     assert "floating_object" in SCRIPTED_OUT_OF_BAND
 
 
+# -- the hybrid's verdict says who answered -----------------------------------
+
+
+def test_the_hybrid_s_verdict_names_the_hybrid_when_the_model_answered():
+    """The model answered the escalated class: the hybrid made this verdict."""
+    delegate = _FakeDelegate(fired_for=("floating_blob",))
+    hybrid = HybridCritic(
+        delegate, escalate=("floating_object",), scripted=_FakeScripted()
+    )
+    verdict = hybrid.score(_member(defect="floating_object"))
+    assert verdict.label == "verdict@hybrid"
+    assert verdict.degraded == "hybrid"
+
+
+def test_the_hybrid_s_verdict_says_the_checks_stood_in_when_the_model_cannot():
+    """The delegate could not judge the escalated class: that is a fallback."""
+    delegate = _FakeDelegate()
+    delegate.layers = ()  # a model that cannot see this layer
+    hybrid = HybridCritic(
+        delegate, escalate=("floating_object",), scripted=_FakeScripted()
+    )
+    verdict = hybrid.score(_member(defect="floating_object"))
+    assert verdict.degraded == "scripted"
+
+
+def test_the_hybrid_s_verdict_is_not_a_fallback_when_the_checks_answer_by_design():
+    """A class the checks hold needs no model, so nothing fell back."""
+    delegate = _FakeDelegate()
+    hybrid = HybridCritic(
+        delegate, escalate=("floating_object",), scripted=_FakeScripted()
+    )
+    verdict = hybrid.score(_member(defect="black_frame"))
+    assert delegate.asked == []
+    assert verdict.degraded == "hybrid"
+
+
+def test_the_hybrid_s_verdict_keeps_the_member_s_layer():
+    """A mesh member stays a mesh member: the layer says where the defect lives."""
+    delegate = _FakeDelegate()
+    hybrid = HybridCritic(
+        delegate, escalate=("floating_object",), scripted=_FakeScripted()
+    )
+    verdict = hybrid.score(_member(defect="wrong_scale", layer="mesh"))
+    assert verdict.layer == "mesh"
+
+
 # -- the runner ---------------------------------------------------------------
 
 
@@ -441,6 +487,35 @@ def test_the_render_critic_falls_back_to_the_scripted_checks():
     critic, reason = resolve_critic("no-such-critic")
     assert critic.name == "scripted"
     assert reason
+
+
+def test_the_render_critic_is_not_degraded_when_the_hybrid_answered(frame_path):
+    """The hybrid's model answered the escalated class: a full verdict."""
+    delegate = _FakeDelegate(fired_for=("floating_blob",))
+    hybrid = HybridCritic(
+        delegate, escalate=("floating_object",), scripted=_FakeScripted()
+    )
+    critic = RenderCritic(
+        hybrid,
+        render_of=lambda task, variant: str(frame_path),
+    )
+    score = critic.score(_task(), _variant())
+    assert score.degraded is False
+
+
+def test_the_render_critic_is_degraded_when_the_hybrid_fell_back(frame_path):
+    """The hybrid needed its model and could not have it: the checks stood in."""
+    delegate = _FakeDelegate()
+    delegate.layers = ()
+    hybrid = HybridCritic(
+        delegate, escalate=("floating_object",), scripted=_FakeScripted()
+    )
+    critic = RenderCritic(
+        hybrid,
+        render_of=lambda task, variant: str(frame_path),
+    )
+    score = critic.score(_task(), _variant())
+    assert score.degraded is True
 
 
 # -- the re-derivation --------------------------------------------------------

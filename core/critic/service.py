@@ -118,8 +118,18 @@ class RenderCritic:
             )
         else:
             reason = f"{self._critic.name}: every class the critic judges is clean"
+        # A verdict the chosen critic did not make is a degraded one: the
+        # hybrid's delegate could not be reached and the checks stood in.
+        # The verdict names the critic that answered (``degraded``), so this
+        # is read rather than guessed from the label — a hybrid verdict is
+        # always labelled ``verdict@hybrid``, whether the model answered it
+        # or the checks did.
+        fell_back = (
+            getattr(self._critic, "name", "scripted") != "scripted"
+            and verdict.degraded == "scripted"
+        )
         return CriticScore(
             score=score,
             reason=reason,
-            degraded=verdict.degraded not in ("scripted", ""),
+            degraded=fell_back,
         )

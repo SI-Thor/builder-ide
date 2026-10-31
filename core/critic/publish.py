@@ -29,7 +29,14 @@ from .critic import CalibrationTable
 from .models import DEFECT_TARGETS
 from .set import MemberRecipe
 
-__all__ = ["publish_table", "render_markdown"]
+__all__ = ["publish_table", "render_markdown", "selection_path", "read_selection"]
+
+#: The measured comparison of the candidates, written by the bake-off and
+#: read back here so the published file keeps the selection in it. The
+#: file lives next to the table because the table and the selection are the
+#: same measurement: the table is the winner's row, the selection is how it
+#: won.
+SELECTION_FILE = "selection.json"
 
 #: The header the published file carries. It says the file is generated, so
 #: nobody hand-edits it and then loses their edit at the next growth.
@@ -39,12 +46,27 @@ _GENERATED_NOTE = (
 )
 
 
+def selection_path() -> Path:
+    """Where the measured selection lives."""
+    return Path(__file__).resolve().parent / SELECTION_FILE
+
+
+def read_selection(path: str | Path | None = None) -> dict[str, Any] | None:
+    """The measured selection, if it has been written."""
+    target = Path(path) if path is not None else selection_path()
+    if not target.is_file():
+        return None
+    return json.loads(target.read_text(encoding="utf-8"))
+
+
 def render_markdown(
     table: CalibrationTable,
     *,
     members: Sequence[MemberRecipe] = (),
     thresholds: Thresholds | None = None,
     sources: Iterable[str] = (),
+    critic: str = "scripted",
+    selection: dict[str, Any] | None = None,
 ) -> str:
     """The published table, as Markdown."""
     t = thresholds or DEFAULT_THRESHOLDS
@@ -60,11 +82,11 @@ def render_markdown(
     )
     lines.append("")
     lines.append(
-        "Every verdict in this table wears **`verdict@scripted`** on its face, "
-        "because no critic *model* has been chosen and measured yet (X R4: the "
-        "critic is \"the largest unchosen dependency in the whole stack\"). This "
-        "row is the **baseline** that the model choice (week 3 item 18) has to "
-        "beat."
+        f"Every verdict in this table wears **`verdict@{critic}`** on its face: "
+        "the critic is a **parameter**, and the name on the verdict says which "
+        "one answered. The bake-off that chose it is "
+        "`docs/lab/exp-critic-select.md`; the candidates it measured, and their "
+        "own tables, are in the selection below."
     )
     lines.append("")
 
@@ -159,6 +181,38 @@ def render_markdown(
                 )
             lines.append(f"- `{row.defect}` (check `{row.check}`): {', '.join(reason)}.")
     lines.append("")
+
+    # -- the selection --------------------------------------------------------
+    if selection:
+        lines.append("## The selection")
+        lines.append("")
+        lines.append(
+            "The candidates, measured on **this** set with **this** counting "
+            "rule. The chosen critic is the one that holds the band; the "
+            "scripted checks are the baseline and the fallback."
+        )
+        lines.append("")
+        lines.append(
+            "| candidate | layers | TP | FP | FN | TN | in band | median ms/verdict |"
+        )
+        lines.append("|---|---|---|---|---|---|---|---|")
+        for row in selection.get("candidates", ()):
+            chosen = " **(chosen)**" if row.get("name") == selection.get("chosen") else ""
+            latency = row.get("median_ms")
+            latency_text = "—" if latency is None else f"{latency:.0f}"
+            lines.append(
+                f"| `{row.get('name')}`{chosen} | {row.get('layers', '')} | "
+                f"{row.get('tp')} | {row.get('fp')} | {row.get('fn')} | "
+                f"{row.get('tn')} | {'yes' if row.get('in_band') else 'no'} | "
+                f"{latency_text} |"
+            )
+        lines.append("")
+        report = selection.get("report")
+        if report:
+            lines.append(
+                f"The full tables, the setup and the reasoning: `{report}`."
+            )
+            lines.append("")
 
     # -- the thresholds ------------------------------------------------------
     lines.append("## The thresholds, and what they were measured on")
@@ -269,12 +323,23 @@ def publish_table(
     members: Sequence[MemberRecipe] = (),
     thresholds: Thresholds | None = None,
     sources: Iterable[str] = (),
+    critic: str = "scripted",
+    selection: dict[str, Any] | None = None,
 ) -> Path:
     """Write the table to ``core/critic/CALIBRATION.md``."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    if selection is None:
+        selection = read_selection()
     path.write_text(
-        render_markdown(table, members=members, thresholds=thresholds, sources=sources),
+        render_markdown(
+            table,
+            members=members,
+            thresholds=thresholds,
+            sources=sources,
+            critic=critic,
+            selection=selection,
+        ),
         encoding="utf-8",
     )
     return path

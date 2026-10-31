@@ -123,7 +123,7 @@ class HybridCritic:
             if defect in DEFECT_TARGETS
         }
         if not targets:
-            return scripted
+            return self._verdict(scripted, scripted.checks)
 
         # The delegate is asked only when its answer can change the table:
         # on a member carrying an escalated class, and on a clean control
@@ -132,9 +132,14 @@ class HybridCritic:
         # a call to learn nothing the fold would use.
         escalated_class = member.defect in self._escalate
         if not (escalated_class or member.defect is None):
-            return scripted
+            # The checks answer **by design** here: the hybrid's model is
+            # only for the class they cannot hold. Nothing fell back, and
+            # the verdict says so.
+            return self._verdict(scripted, scripted.checks)
         if member.layer not in self._delegate.layers:
-            return scripted
+            # The hybrid needed its model and the model cannot see this
+            # member. The checks stand in, and that **is** a fallback.
+            return self._verdict(scripted, scripted.checks, degraded="scripted")
 
         delegate = self._delegate.score(
             member,
@@ -143,7 +148,7 @@ class HybridCritic:
             cache_dir=cache_dir,
         )
         merged: list[CheckOutcome] = []
-        used = False
+        fell_back = False
         for outcome in scripted.checks:
             if outcome.check not in targets:
                 merged.append(outcome)
@@ -153,6 +158,7 @@ class HybridCritic:
                 # The delegate could not judge this class on this member
                 # (a mesh member, or a class it does not see). The checks'
                 # answer stands, and the verdict says the model was not used.
+                fell_back = True
                 merged.append(
                     CheckOutcome(
                         check=outcome.check,
@@ -166,7 +172,6 @@ class HybridCritic:
                     )
                 )
                 continue
-            used = True
             merged.append(
                 CheckOutcome(
                     check=replacement.check,
@@ -200,13 +205,32 @@ class HybridCritic:
                         applicable=outcome.applicable,
                     )
                 )
-                used = True
 
+        return self._verdict(
+            scripted,
+            merged,
+            # The verdict names the critic that made it. The hybrid made
+            # this one — unless it needed its model for an escalated class
+            # and the model could not judge it, in which case the checks
+            # stood in and the verdict says so ("scripted" is the engine's
+            # name for the fallback mode).
+            degraded="scripted" if fell_back else self.name,
+        )
+
+    def _verdict(
+        self,
+        scripted: CriticVerdict,
+        checks: Sequence[CheckOutcome],
+        *,
+        degraded: str | None = None,
+    ) -> CriticVerdict:
+        """The hybrid's verdict: the checks' member identity, the hybrid's name."""
         return CriticVerdict(
             member_id=scripted.member_id,
             base_id=scripted.base_id,
             defect=scripted.defect,
-            checks=tuple(merged),
+            checks=tuple(checks),
             label=f"verdict@{self.name}",
-            degraded=self._delegate.name if used else "scripted",
+            degraded=degraded or self.name,
+            layer=scripted.layer,
         )
