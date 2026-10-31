@@ -105,6 +105,8 @@ EVENT_TYPES: frozenset[str] = frozenset(
         # night
         "night.started", "night.stopped", "night.preflight", "night.tick",
         "night.task.created", "night.task.state", "line.spoken",
+        # daytime (the always-on world between sessions; one room, one clock)
+        "day.world.opened", "day.tick", "day.change", "day.yielded",
         # scheduler (appended by the runner half; folded here)
         "sched.model.load", "sched.model.unload", "sched.demote", "job.enqueued",
         "job.started", "job.done", "job.requeued", "render.completed",
