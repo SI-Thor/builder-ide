@@ -226,7 +226,7 @@ def test_render_resolves_the_subject_entry(venv_home):
     argv = cli.argvs[-1]
     assert argv[1] == "storage_cell_shelf_rand"
     assert argv[2] == "render_cycles"
-    assert argv[argv.index("-r") + 1:argv.index("-r") + 3] == ["854", "480"]
+    assert argv[argv.index("-r") + 1:argv.index("-r") + 3] == ["960", "540"]
     assert argv[argv.index("-s") + 1] == "16"
     assert argv[argv.index("--seed") + 1] == "43"
     assert result.data.startswith(b"\x89PNG")
