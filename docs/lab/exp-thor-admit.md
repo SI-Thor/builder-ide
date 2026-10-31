@@ -126,6 +126,52 @@ the lock is held, unless `THOR_ADMIT_HEAVY_WAIT_SECS` says to wait.
 
 <!-- HEAVY RESULTS -->
 
+### 6.1 The mechanism, proved at 12 GiB (2026-10-31 22:08)
+
+The 30 GiB run was still queued behind the other seats, so the two tests were
+run at a smaller scale to prove the mechanism first
+(`THOR_ADMIT_HOG_GB=12`, without the box's lock — a bounded 12 GiB, on a box
+with 100 GiB free).
+
+**Serialisation** — three hogs, one at a time. The floor was computed from
+the box's real headroom (`available - hog - 8 GiB` = 72.9 GiB):
+
+```
+serialisation: 12 GiB hogs, floor 78295891968, at most 1 at a time,
+               the box never fell below 82761 MiB free
+22:08:13  lease.granted   hog1   mem_available 99 776 745 472
+22:08:18  lease.released  hog1   peak_rss 12 886 786 048 (12.002 GiB)
+22:08:18  lease.granted   hog0   mem_available 99 358 363 648
+22:08:22  lease.released  hog0   peak_rss 12 886 654 976
+22:08:22  lease.granted   hog2   mem_available 99 678 412 800
+22:08:27  lease.released  hog2   peak_rss 12 886 847 488
+```
+
+The grants are strictly sequential — each hog was released before the next
+was granted — and the box never fell below 80 GiB free. The hogs were
+*refused* by the reservation rule, not by running out of memory: the second
+hog was never admitted because the first still owed its 12 GiB.
+
+**The watchdog** — a runaway hog, the emergency floor at `available - 8 GiB`
+(86 764 MiB):
+
+```
+watchdog: the runaway was stopped with 82633 MiB free (the emergency floor
+was 86764 MiB) and killed 2042 ms later; the kernel's OOM killer fired 0 times
+```
+
+| | |
+|---|---|
+| Stopped with | **82 633 MiB free** — 40× the 2 GiB the brief asks for |
+| The runaway's resident set when stopped | 10.1 GiB |
+| Stopped → killed | 2 042 ms (8 samples at 250 ms) |
+| The kernel's OOM killer | **0 times** (`/proc/vmstat`'s `oom_kill` was 0 before and after) |
+
+The daemon reacted within one sample of the floor being crossed, with the
+whole box still free. The kernel's OOM killer fires at zero free; the
+watchdog fired at 80 GiB free.
+
+
 ## 7. A subtlety worth keeping
 
 The lease's lock is held by the **client**, so the kernel drops it when the

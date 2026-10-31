@@ -285,10 +285,53 @@ the pages the binary itself occupies.
 
 ### 7.3 The integration run
 
-See `tools/thor-admit/tests/integration.rs`. The five light tests and the
-overhead measurement passed on this box; the two heavy tests (three 30 GiB
-hogs serialised, and the watchdog against a runaway) take the box's own
-`heavy.lock` first and are reported in `docs/lab/exp-thor-admit.md`.
+`tools/thor-admit/tests/integration.rs`, on the real box:
+
+| Test | Result |
+|---|---|
+| `a_dead_client_cannot_leak_a_lease` | **passed** — the kernel drops the client's lock, the daemon gives the memory back |
+| `the_queue_is_ordered_by_priority` | **passed** — a priority 5 request overtook a priority 0 one that arrived first |
+| `a_learned_peak_is_used_by_the_next_run` | **passed** — `--peak auto` used the p95 of the label's history |
+| `the_daemon_costs_almost_nothing` | **passed** — 2 MiB, 0.30% of a core |
+| `the_watchdog_leaves_small_leases_alone` | **passed** — a 1 GiB lease was not stopped even with the emergency floor armed |
+| `the_stop_command_stops_the_daemon` | **passed** |
+| `three_thirty_gigabyte_hogs_are_serialised` | **passed at 12 GiB** — see §7.3.1; the 30 GiB run waits for the box's own lock |
+| `the_watchdog_stops_a_runaway_before_the_kernel_oom_does` | **passed at 12 GiB** — see §7.3.2 |
+
+#### 7.3.1 The serialisation (12 GiB hogs, 2026-10-31 22:08)
+
+Three hogs, one at a time. The floor was computed from the box's real
+headroom (`available - hog - 8 GiB` = 72.9 GiB), so the test does not depend
+on the exact gigabytes free at that moment:
+
+```
+22:08:13  lease.granted   hog1   mem_available 99 776 745 472
+22:08:18  lease.released  hog1   peak_rss 12 886 786 048 (12.002 GiB)
+22:08:18  lease.granted   hog0   mem_available 99 358 363 648
+22:08:22  lease.released  hog0   peak_rss 12 886 654 976
+22:08:22  lease.granted   hog2   mem_available 99 678 412 800
+22:08:27  lease.released  hog2   peak_rss 12 886 847 488
+```
+
+The grants are strictly sequential, and the box never fell below
+**82 761 MiB** free. The second hog was **refused by the reservation rule**,
+not by running out of memory: it was never admitted because the first still
+owed its 12 GiB.
+
+#### 7.3.2 The watchdog (12 GiB runaway, 2026-10-31 22:08)
+
+The emergency floor was `available - 8 GiB` (86 764 MiB):
+
+| | |
+|---|---|
+| Stopped with | **82 633 MiB free** — 40× the 2 GiB the brief asks for |
+| The runaway's resident set when stopped | 10.1 GiB |
+| Stopped → killed | 2 042 ms (8 samples at 250 ms) |
+| The kernel's OOM killer | **0 times** (`/proc/vmstat`'s `oom_kill` was 0 before and after) |
+
+The daemon reacted within one sample of the floor being crossed, with the
+whole box still free. The kernel's OOM killer fires at zero free; the
+watchdog fired at 80 GiB free.
 
 ### 7.4 The rule, checked
 
