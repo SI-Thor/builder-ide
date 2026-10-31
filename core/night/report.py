@@ -799,7 +799,7 @@ def render_html(report: NightReport) -> str:
         joules = (
             f"{numbers.joules:.0f} J"
             if numbers.joules is not None
-            else "not measured yet (lab round 3)"
+            else "not measured (no rails)"
         )
         add(f"<li>joules: {joules}</li>")
     add("</ul>")
@@ -852,7 +852,7 @@ def render_html(report: NightReport) -> str:
             joules = (
                 f"{card.joules:.0f} J"
                 if card.joules is not None
-                else "not measured yet (lab round 3)"
+                else "not measured (no rails)"
             )
             add(f'<div class="why">joules: {joules}</div>')
             add("</div>")
@@ -1025,7 +1025,7 @@ def render_text(report: NightReport) -> str:
             joules = (
                 f"{card.joules:.0f} J"
                 if card.joules is not None
-                else "not measured yet (lab round 3)"
+                else "not measured (no rails)"
             )
             add(f"    joules: {joules}")
     add("")

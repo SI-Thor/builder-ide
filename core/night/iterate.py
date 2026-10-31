@@ -12,9 +12,11 @@ engine and the GPU stations can be swapped in without touching the loop:
   perturbations and alternative recipe edits all come through this one door;
 * :class:`Critic` — *how good is it?* The score that picks the winner. It is
   scripted for now, behind the seam;
-* :class:`PowerMeter` — *what did it cost in joules?* It reads nothing yet:
-  lab round 3 supplies the Thor's rails, and until then the field stays
-  **unmeasured** rather than guessed;
+* :class:`PowerMeter` — *what did it cost in joules?* It reads the board's
+  **measured** rails (the whole-box ``VIN`` rail drew 47.5 W under load —
+  ``docs/lab/exp-engines.md`` §4.4). A box whose rails nobody has measured
+  still gets ``None``, and the field stays **unmeasured** rather than
+  guessed;
 * :class:`IterationPolicy` — the depth of the night (N, K, ε). It is part of
   the **rails**, so it is written into ``night.started`` and folded back like
   the rest of the bar.

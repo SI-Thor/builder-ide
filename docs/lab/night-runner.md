@@ -16,6 +16,7 @@ the seams the other seats fill, and where it departs from the spec.
 | `core/night/ledger.py` | the ledger seam: `append` / `events` / `last_seq`, with an in-memory and an fsynced SQLite implementation | §1.0, §5.1 |
 | `core/night/projection.py` | the fold: the night, its tasks, ticks, spend, loads and failures, rebuilt from the log alone | §1.0, §5.4 |
 | `core/night/rails.py` | the three-axis rail, admission before spend, the graduated throttle, the per-model load cap | §5.5 |
+| `core/night/cost/` | **the night's arithmetic**: the measured cost table, the admission check and the owner's two lines | §5.5, plan item 17 |
 | `core/night/queue.py` | the task queue: the order, the cut, the park, Magnus's lane closing hard at his hour | §1.9, §3.2 |
 | `core/night/heartbeat.py` | `night.tick` rows and the gaps between them | §3.4 |
 | `core/night/status.py` | the computed status line: the four values and the three `did not run` variants | §3.4 |
@@ -54,7 +55,8 @@ The report page is a **static file over the ledger** — no panel-side state, no
 night's numbers (no single prediction score), the branches (the two standing
 exits included), the parked questions triaged to three plus a count, the
 landed work orders, the lost time, the tally per builder × claim type with
-denominators, the three-number line, and then "The box".
+denominators, the three-number line (and its fourth — the joules), and then
+"The box".
 
 ### The iterator loop
 
@@ -75,8 +77,8 @@ by more than **ε**. The rules:
   source, or the reverse) is refused outright rather than half-run.
 
 The loop's record rides on the task's own row: the winner, the rounds with the
-quality each gained, the cost, the joules (**unmeasured** — lab round 3
-supplies the Thor's rails) and where the loop stopped. The projection folds it
+quality each gained, the cost, the joules (**measured**, from the board's
+rails — see below) and where the loop stopped. The projection folds it
 back, so the morning is still a fold over the log and nothing else.
 
 The depth policy (N, K, ε) is part of the night's **rails**: it is written
@@ -114,17 +116,25 @@ director knows what is waiting:
    perturbation source here is deterministic (the same goal gives the same
    variants every time, because seeds are first-class and a night's work has
    to be replayable).
-7. **The power meter** — `core/night/iterate.py`'s `PowerMeter` reads
-   **nothing yet**. The joules field stays unmeasured (`None`) and the
-   morning says *not measured yet (lab round 3)*; lab round 3 supplies the
-   Thor's rails. It is never guessed and never shown as zero pretending to
-   be a measurement.
-8. **The client's presence** — the runner asks a `presence` callable whether
+7. **The power meter** — `core/night/iterate.py`'s `PowerMeter` reads the
+   board's **measured rails**: the whole-box `VIN` rail drew 47.5 W under load
+   (`docs/lab/exp-engines.md` §4.4), and the box's idle floor is 26.5 W
+   (`docs/research/split.md` §5). An attempt's joules are the box's draw over
+   the attempt's wall time. `NullPowerMeter` stays the stand-in for a box
+   whose rails nobody has measured: the joules field stays unmeasured
+   (`None`) and the morning says so. It is never guessed and never shown as
+   zero pretending to be a measurement.
+8. **The night's arithmetic** — `core/night/cost/` turns the recorded
+   measurements into what a job kind costs, asks whether tonight's plan fits
+   the rails (and names what would be cut), and writes the owner's two lines
+   into `night.started`. Nothing in the night's budget is a typed-in number
+   any more; see [`core/night/cost/README.md`](../../core/night/cost/README.md).
+9. **The client's presence** — the runner asks a `presence` callable whether
    the ProArt is still watching; the API half's `client.attach` /
    `client.detach` events are the durable form of that answer.
-9. **The lane** — the runner asks a `lane_free` callable; the API half's
-   telemetry answers it, and "blind" is an answer the status line respects.
-10. **The predictions' author** — the builders seal their bets; the runner
+10. **The lane** — the runner asks a `lane_free` callable; the API half's
+    telemetry answers it, and "blind" is an answer the status line respects.
+11. **The predictions' author** — the builders seal their bets; the runner
     writes the seal *before* the render job is enqueued (§5.1) and records the
     Critic's verdict after it, never a taste write (§1.7). In a loop the
     seal covers the goal and is written once, before the first variant's job.
@@ -142,7 +152,9 @@ director knows what is waiting:
    decisions is measured (parked questions, work orders, one branch
    choice); the hours are `decisions × 15 min` and are rendered `[e]`. The
    spec's own example is 2 h for 9 decisions; the rate is a constant here
-   and is labelled an estimate rather than dressed up as a measurement.
+   and is labelled an estimate rather than dressed up as a measurement. It
+   now comes from the cost model (`core/night/cost/`), which is where every
+   other estimate the night quotes lives.
 4. **A `night.tick` carries a `kind`.** The spec's tick is "a wall-clock row
    plus every sealed step". Contention and the late batch start are facts
    about the same window, so they ride on the tick's payload

@@ -560,7 +560,7 @@ def iteration_rail_cut_night() -> SimulatedNight:
         rails=Rail(
             gpu_minutes=variant.gpu_minutes * 3 / 0.9,
             hosted_cents=0,
-            wall_minutes=560.0,
+            wall_minutes=RAILS.wall_minutes,
         ),
     )
 

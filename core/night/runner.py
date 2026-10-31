@@ -34,7 +34,6 @@ from core.night.iterate import (
     Attempt,
     Critic,
     CriticScore,
-    NullPowerMeter,
     PowerMeter,
     RailPowerMeter,
     Variant,

@@ -48,9 +48,9 @@ marked as such and stays marked until a morning measures it.
 from __future__ import annotations
 
 import math
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from core.night.cost.records import JobRecord, RecordedData, Sample, load_recorded
 from core.night.models import Rail
