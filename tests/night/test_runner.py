@@ -55,6 +55,53 @@ def test_starting_a_night_writes_the_started_event_with_its_rails_and_deadline()
     assert event.payload["rails"]["wall_minutes"] == 560.0
 
 
+def test_the_night_starts_with_the_owners_two_lines():
+    """The plan's estimate is written into the log when the night starts.
+
+    Two lines: what tonight will cost, and whether it fits. The morning can
+    then put them beside what actually happened.
+    """
+    ledger = InMemoryLedger()
+    runner = a_runner(ledger, ScriptedExecutor({}))
+    runner.start(
+        [
+            a_task(
+                "task_0001",
+                cost_estimate=Rail(gpu_minutes=30.0, hosted_cents=0, wall_minutes=45.0),
+            )
+        ]
+    )
+
+    started = ledger.events()[0]
+    estimate = started.payload["estimate"]
+    assert "GPU-h" in estimate["line_one"]
+    assert "fits" in estimate["line_two"]
+    assert estimate["fits"] is True
+
+
+def test_the_owners_lines_name_the_cut_when_the_plan_does_not_fit():
+    ledger = InMemoryLedger()
+    runner = a_runner(
+        ledger,
+        ScriptedExecutor({}),
+        rails=Rail(gpu_minutes=10.0, hosted_cents=0, wall_minutes=60.0),
+    )
+    runner.start(
+        [
+            a_task(
+                "task_0001",
+                intention="Weather the harbour crates",
+                cost_estimate=Rail(gpu_minutes=30.0, hosted_cents=0, wall_minutes=45.0),
+            )
+        ]
+    )
+
+    estimate = ledger.events()[0].payload["estimate"]
+    assert estimate["fits"] is False
+    assert "does not fit" in estimate["line_two"]
+    assert "Weather the harbour crates" in estimate["line_two"]
+
+
 def test_the_client_is_attached_at_the_start_and_the_preflight_never_decides():
     ledger = InMemoryLedger()
     runner = a_runner(ledger, ScriptedExecutor({}))

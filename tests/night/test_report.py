@@ -25,6 +25,8 @@ from __future__ import annotations
 import json
 import re
 
+import pytest
+
 from core.night.clock import ScriptedClock
 from core.night.executor import ScriptedExecutor, ScriptedTask
 from core.night.ledger import InMemoryLedger
@@ -149,6 +151,36 @@ def test_the_page_carries_the_three_number_line():
     assert "hosted (local)" in html
     assert "of your attention" in html
     assert "budget 10" in html
+
+
+def test_the_morning_line_carries_the_joules_as_its_fourth_number():
+    """Plan item 17: the three-number line has a fourth — joules — measured.
+
+    The board's rails were measured in lab round 3, so the line quotes a
+    number rather than saying the joules are not measured yet.
+    """
+    report = build_report(run_a_night())
+    assert report.three_numbers.joules is not None
+    assert report.three_numbers.joules > 0
+    html = render_html(report)
+    assert "kJ" in html
+    assert "not measured" not in html
+    assert "kJ" in render_text(report)
+
+
+def test_the_joules_on_the_line_come_from_the_measured_rails():
+    """47.5 W on the VIN rail over the night's wall time."""
+    report = build_report(run_a_night())
+    expected = 47.5 * report.numbers.wall_time_minutes * 60.0 / 1000.0
+    assert report.three_numbers.joules == pytest.approx(expected)
+
+
+def test_the_attention_estimate_is_the_cost_models_number():
+    """The one estimate in the model — and it stays marked as one."""
+    from core.night.cost import get_model
+    from core.night.report import MINUTES_PER_DECISION
+
+    assert MINUTES_PER_DECISION == get_model().attention_minutes_per_decision()
 
 
 def test_the_branch_set_always_has_the_two_standing_options():

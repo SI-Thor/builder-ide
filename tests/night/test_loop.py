@@ -29,6 +29,7 @@ from core.night.executor import ScriptedExecutor, ScriptedTask
 from core.night.iterate import (
     CriticScore,
     IterationPolicy,
+    NullPowerMeter,
     ScriptedCritic,
     ScriptedVariantSource,
     Variant,
@@ -279,13 +280,34 @@ def test_the_log_records_the_quality_gained_per_round():
     assert [row["gain"] for row in rounds] == [pytest.approx(0.7), pytest.approx(0.1)]
 
 
-def test_the_joules_field_is_unmeasured_until_the_meter_reads_them():
+def test_the_joules_field_is_measured_from_the_boards_rails():
+    """Lab round 3 supplied the rails, so the night measures its own joules."""
     ledger = InMemoryLedger()
     runner = a_runner(
         ledger,
         an_executor(),
         variant_source=a_source(),
         critic=a_critic(v1=0.4, v2=0.7, v3=0.5),
+    )
+    runner.start([a_task()])
+    runner.run()
+    runner.stop()
+
+    projection = NightProjection(ledger.events())
+    rounds = projection.iterations["task_0001"]["rounds"]
+    assert rounds[0]["joules"] is not None
+    assert rounds[0]["joules"] > 0
+
+
+def test_a_night_with_no_meter_keeps_the_joules_unmeasured():
+    """A runner given the null meter reads nothing — and says so."""
+    ledger = InMemoryLedger()
+    runner = a_runner(
+        ledger,
+        an_executor(),
+        variant_source=a_source(),
+        critic=a_critic(v1=0.4, v2=0.7, v3=0.5),
+        power_meter=NullPowerMeter(),
     )
     runner.start([a_task()])
     runner.run()

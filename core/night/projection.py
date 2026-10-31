@@ -29,6 +29,8 @@ class NightProjection:
         self.task_reasons: dict[str, str] = {}
         self.ticks: list[AuditEvent] = []
         self.preflight: dict[str, Any] | None = None
+        #: The owner's two lines, read back out of ``night.started``.
+        self.estimate: dict[str, Any] | None = None
         self.spend = Rail()
         self.model_loads: dict[str, int] = {}
         self.client_attached_at: str | None = None
@@ -95,6 +97,9 @@ class NightProjection:
                 else None
             ),
         )
+        #: The owner's two lines — written when the night started, so the
+        #: morning can put the plan beside what actually happened.
+        self.estimate = payload.get("estimate")
 
     def _on_night_stopped(self, event: AuditEvent) -> None:
         if self.night is None:

@@ -26,14 +26,16 @@ from datetime import datetime, timedelta
 from typing import Callable, Literal, Mapping, Sequence
 
 from core.night.clock import Clock
+from core.night.cost.admission import NightPlan, PlannedJob
+from core.night.cost.estimates import owner_estimate
 from core.night.executor import ExecutionPlan, TaskExecutor
 from core.night.heartbeat import Heartbeat
 from core.night.iterate import (
     Attempt,
     Critic,
     CriticScore,
-    NullPowerMeter,
     PowerMeter,
+    RailPowerMeter,
     Variant,
     VariantSource,
     best_of,
@@ -67,6 +69,25 @@ def _parse(stamp: str) -> datetime:
 def _plus_minutes(stamp: str, minutes: float) -> str:
     moment = _parse(stamp) + timedelta(minutes=minutes)
     return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _plan_from_tasks(tasks: Sequence[Task]) -> NightPlan:
+    """The night's plan, in the cost model's shape.
+
+    Each task's ask is what was filed for it — the model's measured price for
+    that kind of job — and the check then says whether the rails cover the
+    plan, and what would be cut if they did not.
+    """
+    return NightPlan(
+        jobs=[
+            PlannedJob(
+                id=task.id,
+                intention=task.intention,
+                ask=task.cost_estimate,
+            )
+            for task in tasks
+        ]
+    )
 
 
 class NightRunner:
@@ -118,7 +139,7 @@ class NightRunner:
         self._variant_source = variant_source
         self._critic = critic
         self._iteration = iteration or IterationPolicy()
-        self._power_meter = power_meter or NullPowerMeter()
+        self._power_meter = power_meter or RailPowerMeter()
         self._running_job: str | None = None
 
         self.budget = RailBudget(ceiling=rails)
@@ -197,6 +218,8 @@ class NightRunner:
         """``night.started`` — the night begins, and the rails are set."""
         started_at = self.clock.now()
         detach_deadline = _plus_minutes(started_at, self.detach_deadline_minutes)
+        plan = _plan_from_tasks(tasks or [])
+        estimate = owner_estimate(plan, self.rails)
         self._append(
             "night.started",
             {
@@ -207,6 +230,7 @@ class NightRunner:
                 "batch_start": self.batch_start,
                 "detach_deadline": detach_deadline,
                 "iteration": self._iteration.model_dump(),
+                "estimate": estimate.model_dump(),
             },
             at=started_at,
         )

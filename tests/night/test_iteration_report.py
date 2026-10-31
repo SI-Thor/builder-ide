@@ -166,12 +166,13 @@ def test_the_morning_says_the_bar_cut_the_loop_short():
     assert "80%" in card.stop_detail
 
 
-def test_the_joules_field_is_not_measured_yet():
+def test_the_joules_field_is_measured_from_the_rails():
     report = build_report(run_an_iterating_night(the_loop_that_finds_a_better_variant()))
     card = report.iterations[0]
-    assert card.joules is None
-    assert all(row.joules is None for row in card.rounds)
-    assert "not measured" in render_html(report)
+    assert card.joules is not None
+    assert card.joules > 0
+    assert all(row.joules is not None for row in card.rounds)
+    assert "not measured" not in render_html(report)
 
 
 def test_the_numbers_carry_the_iteration_counts():

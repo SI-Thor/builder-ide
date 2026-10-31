@@ -12,9 +12,11 @@ engine and the GPU stations can be swapped in without touching the loop:
   perturbations and alternative recipe edits all come through this one door;
 * :class:`Critic` — *how good is it?* The score that picks the winner. It is
   scripted for now, behind the seam;
-* :class:`PowerMeter` — *what did it cost in joules?* It reads nothing yet:
-  lab round 3 supplies the Thor's rails, and until then the field stays
-  **unmeasured** rather than guessed;
+* :class:`PowerMeter` — *what did it cost in joules?* It reads the board's
+  **measured** rails (the whole-box ``VIN`` rail drew 47.5 W under load —
+  ``docs/lab/exp-engines.md`` §4.4). A box whose rails nobody has measured
+  still gets ``None``, and the field stays **unmeasured** rather than
+  guessed;
 * :class:`IterationPolicy` — the depth of the night (N, K, ε). It is part of
   the **rails**, so it is written into ``night.started`` and folded back like
   the rest of the bar.
@@ -36,6 +38,8 @@ from typing import Any, Mapping, Protocol, Sequence, runtime_checkable
 
 from pydantic import BaseModel, Field
 
+from core.night.cost.model import get_model
+from core.night.cost.records import PowerRails
 from core.night.models import IterationPolicy, Task
 
 __all__ = [
@@ -46,6 +50,7 @@ __all__ = [
     "NullPowerMeter",
     "PerturbationSource",
     "PowerMeter",
+    "RailPowerMeter",
     "RoundSummary",
     "ScriptedCritic",
     "ScriptedVariantSource",
@@ -252,15 +257,54 @@ class ScriptedCritic:
 
 
 class NullPowerMeter:
-    """The power meter that reads nothing yet.
+    """The power meter that reads nothing.
 
-    Lab round 3 supplies the Thor's rails; until then the joules field is
-    **unmeasured** (``None``) — never a guess, and never a zero pretending to
-    be a measurement.
+    The stand-in for a box whose rails nobody has measured: the joules field
+    stays **unmeasured** (``None``) — never a guess, and never a zero
+    pretending to be a measurement.
     """
 
     def joules(self, *, gpu_minutes: float, wall_minutes: float) -> float | None:
         return None
+
+    def joules_above_idle(self, *, gpu_minutes: float, wall_minutes: float) -> float | None:
+        return None
+
+
+class RailPowerMeter:
+    """The power meter that reads the board's rails.
+
+    Lab round 3 measured them (``docs/lab/exp-engines.md`` §4.4): the
+    INA238's whole-box ``VIN`` rail drew **47.5 W** under load, and the
+    board's own rail sensors agree with ``tegrastats`` to within 0.1 %. The
+    box's idle floor is 26.5 W (``docs/research/split.md`` §5).
+
+    So an attempt's joules are the box's draw over the attempt's wall time:
+    the whole box runs while the attempt runs, whichever lane it is on. The
+    reading *above* the idle floor is the other one the lab asks for — the
+    work's own cost (``docs/lab/IDEAS.md`` #17) — and it comes out ``None``
+    when the work is too small to dominate the box, in which case the wall
+    time is the number to read.
+    """
+
+    def __init__(self, rails: PowerRails | None = None) -> None:
+        self._rails = rails if rails is not None else get_model().data.rails
+
+    @property
+    def rails(self) -> PowerRails:
+        """The measured rails this meter reads."""
+        return self._rails
+
+    def joules(self, *, gpu_minutes: float, wall_minutes: float) -> float | None:
+        """The energy the whole box drew while the attempt ran."""
+        seconds = max(0.0, wall_minutes) * 60.0
+        return self._rails.vin_w * seconds / 1000.0
+
+    def joules_above_idle(self, *, gpu_minutes: float, wall_minutes: float) -> float | None:
+        """The energy above the box's idle floor, or ``None`` if it is negative."""
+        seconds = max(0.0, wall_minutes) * 60.0
+        marginal = self._rails.marginal_vin_w * seconds / 1000.0
+        return marginal if marginal > 0 else None
 
 
 # -- the loop's arithmetic -------------------------------------------------
