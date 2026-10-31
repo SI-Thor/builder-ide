@@ -119,6 +119,10 @@ class PropWinner(BaseModel):
     triangles: int = 0
     watertight: bool = False
     extent: tuple[float, float, float] = (0.0, 0.0, 0.0)
+    #: What the repair stage did to the mesh, and how much of the prop's
+    #: outline survived it.
+    repair: str = ""
+    repair_fidelity: float = 0.0
     #: The variants this one beat, with their scores.
     beaten: list[str] = Field(default_factory=list)
 
@@ -176,6 +180,8 @@ class PropNightReport(BaseModel):
             )
             if winner.reason:
                 lines.append(f"    the critic: {winner.reason}")
+            if winner.repair:
+                lines.append(f"    the repair: {winner.repair}")
             if winner.beaten:
                 lines.append(f"    it beat: {', '.join(winner.beaten)}")
         if not self.winners:
@@ -286,6 +292,7 @@ def _winners(plan: NightPlan, store: PropStore, report: NightReport) -> list[Pro
         if mesh is None:
             continue
         asset = store.asset(iteration.task_id, variant_id)
+        repair = store.repair(iteration.task_id, variant_id)
         winners.append(
             PropWinner(
                 task_id=iteration.task_id,
@@ -299,6 +306,8 @@ def _winners(plan: NightPlan, store: PropStore, report: NightReport) -> list[Pro
                 triangles=mesh.triangles,
                 watertight=mesh.watertight,
                 extent=mesh.extent,
+                repair=repair.reason if repair else "",
+                repair_fidelity=repair.fidelity if repair else 0.0,
                 beaten=[
                     f"{runner_up.variant_id} ({runner_up.score:.3f})"
                     for runner_up in iteration.runner_ups

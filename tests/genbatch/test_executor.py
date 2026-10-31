@@ -228,6 +228,31 @@ def test_the_prop_is_recorded_as_an_asset_with_its_recipe(tmp_path):
     assert asset.licence.spdx == "MIT"
 
 
+def test_the_asset_records_the_repair_it_was_given(tmp_path):
+    executor, plan, store, client = _executor(tmp_path, [_request()])
+    seed = plan.seeds("crate")[0]
+    image_task = next(t for t in plan.tasks if t.id == "img:crate")
+    executor.run(image_task, Variant(id="v0", seed=seed))
+    task = next(t for t in plan.tasks if t.id == "prop:crate")
+
+    executor.run(task, Variant(id="prop:crate_r1_v1", seed=seed))
+
+    asset = store.asset("prop:crate", "prop:crate_r1_v1")
+    assert asset is not None
+    repair = asset.provenance.generator["repair"]
+    # The repair is part of the recipe: what ran, and what it measured.
+    assert repair["method"] == "weld"
+    assert repair["fidelity"] == pytest.approx(1.0, abs=1e-6)
+    assert repair["ok"] is True
+    assert repair["seconds"] >= 0.0
+    assert repair["reason"]
+    # And the stage's report is kept next to the asset.
+    report = store.repair("prop:crate", "prop:crate_r1_v1")
+    assert report is not None
+    assert report.after is not None
+    assert report.after.watertight is True
+
+
 def test_a_mesh_prompt_that_fails_is_a_failed_prop(tmp_path):
     executor, plan, store, client = _executor(
         tmp_path, [_request()], fail_mesh=True

@@ -35,6 +35,7 @@ from core.genbatch.images import ImageError, png_dimensions
 from core.genbatch.licences import licence_for
 from core.genbatch.mesh import measure_mesh
 from core.genbatch.models import ImageResult, PropRequest, PromptRecord, StageKind
+from core.genbatch.repair import RepairResult, repair_mesh
 from core.genbatch.schedule import MESH_MODEL, NightPlan
 from core.genbatch.store import PropStore
 from core.genbatch.workflow import (
@@ -223,15 +224,21 @@ class PropExecutor:
                 outcome="failed", reason="the mesh stage wrote no GLB"
             )
         try:
-            report = measure_mesh(read_glb(glb).mesh)
+            mesh = read_glb(glb).mesh
         except GlbError as exc:
             return ExecutionPlan(outcome="failed", reason=str(exc))
+        # The repair stage: between the generator and the critic. TRELLIS.2
+        # hands over a mesh whose vertices are split at the UV seams, and the
+        # critic's watertightness check cannot tell a closed solid from an
+        # open one until those seams are welded (docs/lab/exp-mesh-repair.md).
+        repair = repair_mesh(mesh, request.repair)
+        report = repair.report.after or measure_mesh(repair.mesh)
         variant_id = variant.id if variant is not None else f"{task.id}_s{seed}"
         asset = build_asset(
             request=request,
             variant_id=variant_id,
             glb_path=glb,
-            generator=self._recipe(request, seed, seeds),
+            generator=self._recipe(request, seed, seeds, repair),
             licence=licence_for(MESH_MODEL).licence,
             source_image=None,
             critic=None,
@@ -245,6 +252,7 @@ class PropExecutor:
             seconds=result.wall_seconds,
             seed=seed,
         )
+        self._store.record_repair(task.id, variant_id, repair.report)
         self._resident.add(MESH_MODEL)
         return ExecutionPlan(
             gpu_minutes=result.split.gpu_seconds / 60.0,
@@ -283,10 +291,14 @@ class PropExecutor:
     # -- the recipe --------------------------------------------------------
 
     def _recipe(
-        self, request: PropRequest, seed: int, seeds: tuple[int, int, int]
+        self,
+        request: PropRequest,
+        seed: int,
+        seeds: tuple[int, int, int],
+        repair: RepairResult | None = None,
     ) -> dict[str, Any]:
         """The whole recipe, as the asset's provenance."""
-        return {
+        recipe: dict[str, Any] = {
             "prompt": request.prompt,
             "negative": request.negative,
             "model": MESH_MODEL,
@@ -307,6 +319,23 @@ class PropExecutor:
             "image_cfg": request.image_cfg,
             "image_workflow_sha256": self._templates.image.digest,
         }
+        if repair is not None:
+            # The repair is part of the recipe: what was done to the mesh
+            # between the generator and the critic, and what it measured.
+            recipe["repair"] = {
+                "method": request.repair.method,
+                "tolerance": request.repair.tolerance,
+                "split_non_manifold": request.repair.split_non_manifold,
+                "min_fidelity": request.repair.min_fidelity,
+                "seconds": round(repair.report.seconds, 3),
+                "welded_vertices": repair.report.welded_vertices,
+                "boundary_edges_closed": repair.report.boundary_edges_closed,
+                "nonmanifold_edges_split": repair.report.nonmanifold_edges_split,
+                "fidelity": round(repair.report.fidelity, 6),
+                "ok": repair.report.ok,
+                "reason": repair.report.reason,
+            }
+        return recipe
 
     # -- the plumbing ------------------------------------------------------
 
