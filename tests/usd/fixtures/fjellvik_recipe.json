@@ -1,0 +1,288 @@
+{
+  "provenance": {
+    "harbor.crate_stack": {
+      "engine_pin": {
+        "blender": "4.2",
+        "commit": "0000000000000000000000000000000000000000",
+        "config": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "python": "3.12",
+        "repo": "SI-Thor/infinigen-thor"
+      },
+      "library_versions": {
+        "build123d": "0.13.0",
+        "usd-core": "26.11"
+      },
+      "licence": {
+        "commercial_ok": true,
+        "dependency_terms": [
+          "OCCT LGPL-2.1-with-exception"
+        ],
+        "notes": "build123d code is Apache-2.0.",
+        "spdx": "Apache-2.0"
+      },
+      "model": "build123d",
+      "prompt": "crate_lid(length=0.6,width=0.4,thickness=0.02)",
+      "recipe_version_hash": null,
+      "seed": 11,
+      "source": "cad_script",
+      "version": "0.13.0",
+      "weights": {
+        "repo": null,
+        "revision": null
+      }
+    },
+    "harbor.hinge_bracket": {
+      "engine_pin": {
+        "blender": "4.2",
+        "commit": "0000000000000000000000000000000000000000",
+        "config": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "python": "3.12",
+        "repo": "SI-Thor/infinigen-thor"
+      },
+      "library_versions": {
+        "build123d": "0.13.0",
+        "usd-core": "26.11"
+      },
+      "licence": {
+        "commercial_ok": true,
+        "dependency_terms": [
+          "OCCT LGPL-2.1-with-exception"
+        ],
+        "notes": null,
+        "spdx": "Apache-2.0"
+      },
+      "model": "build123d",
+      "prompt": "hinge_bracket(length=0.12,width=0.08,thickness=0.008)",
+      "recipe_version_hash": null,
+      "seed": 11,
+      "source": "cad_script",
+      "version": "0.13.0",
+      "weights": {
+        "repo": null,
+        "revision": null
+      }
+    },
+    "harbor.mooring_post": {
+      "engine_pin": {
+        "blender": "4.2",
+        "commit": "0000000000000000000000000000000000000000",
+        "config": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "python": "3.12",
+        "repo": "SI-Thor/infinigen-thor"
+      },
+      "library_versions": {
+        "build123d": "0.13.0",
+        "usd-core": "26.11"
+      },
+      "licence": {
+        "commercial_ok": true,
+        "dependency_terms": [
+          "OCCT LGPL-2.1-with-exception"
+        ],
+        "notes": null,
+        "spdx": "Apache-2.0"
+      },
+      "model": "build123d",
+      "prompt": "mooring_post(height=0.9,diameter=0.14)",
+      "recipe_version_hash": null,
+      "seed": 11,
+      "source": "cad_script",
+      "version": "0.13.0",
+      "weights": {
+        "repo": null,
+        "revision": null
+      }
+    },
+    "terrain.ground": {
+      "engine_pin": {
+        "blender": "4.2",
+        "commit": "0000000000000000000000000000000000000000",
+        "config": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "python": "3.12",
+        "repo": "SI-Thor/infinigen-thor"
+      },
+      "library_versions": {
+        "infinigen-thor": "thor-spike"
+      },
+      "licence": {
+        "commercial_ok": true,
+        "dependency_terms": [],
+        "notes": "Infinigen's procedural terrain is BSD-3-Clause.",
+        "spdx": "BSD-3-Clause"
+      },
+      "model": "infinigen-thor",
+      "prompt": "fjellvik terrain base",
+      "recipe_version_hash": null,
+      "seed": 7,
+      "source": "library",
+      "version": "0.0.0",
+      "weights": {
+        "repo": null,
+        "revision": null
+      }
+    }
+  },
+  "recipe": {
+    "constraints": [],
+    "engine_pin": {
+      "blender": "4.2",
+      "commit": "0000000000000000000000000000000000000000",
+      "config": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "python": "3.12",
+      "repo": "SI-Thor/infinigen-thor"
+    },
+    "entries": {
+      "harbor.crate_stack": {
+        "kind": "prop_set",
+        "origin": "wo_14",
+        "params": {
+          "cad_part": {
+            "name": "crate_lid",
+            "params": {
+              "length": 0.6,
+              "thickness": 0.02,
+              "width": 0.4
+            }
+          },
+          "collision": "boundingCube",
+          "location": [
+            3.5,
+            0.0,
+            -1.25
+          ],
+          "mass_kg": 12.5,
+          "material": "materials.oak",
+          "rotation_euler_deg": [
+            0.0,
+            15.0,
+            0.0
+          ],
+          "semantic_tags": [
+            "harbor",
+            "wood"
+          ],
+          "semantic_type": "crate"
+        },
+        "path": "harbor.crate_stack",
+        "seed": 11
+      },
+      "harbor.hinge_bracket": {
+        "kind": "structure",
+        "origin": "wo_14",
+        "params": {
+          "cad_part": {
+            "name": "hinge_bracket",
+            "params": {
+              "hole_diameter": 0.012,
+              "hole_offset": 0.04,
+              "length": 0.12,
+              "thickness": 0.008,
+              "width": 0.08
+            }
+          },
+          "collision": "mesh",
+          "location": [
+            2.0,
+            0.35,
+            0.2
+          ],
+          "mass_kg": 0.4,
+          "material": "materials.iron",
+          "rotation_euler_deg": [
+            90.0,
+            0.0,
+            0.0
+          ],
+          "semantic_tags": [
+            "harbor",
+            "metal"
+          ],
+          "semantic_type": "bracket"
+        },
+        "path": "harbor.hinge_bracket",
+        "seed": 11
+      },
+      "harbor.mooring_post": {
+        "kind": "structure",
+        "origin": "wo_14",
+        "params": {
+          "cad_part": {
+            "name": "mooring_post",
+            "params": {
+              "diameter": 0.14,
+              "height": 0.9
+            }
+          },
+          "collision": "boundingCube",
+          "location": [
+            1.0,
+            0.0,
+            0.45
+          ],
+          "mass_kg": 48.0,
+          "material": "materials.iron",
+          "semantic_tags": [
+            "harbor",
+            "metal"
+          ],
+          "semantic_type": "post"
+        },
+        "path": "harbor.mooring_post",
+        "seed": 11
+      },
+      "materials.iron": {
+        "kind": "material",
+        "origin": "builtin",
+        "params": {
+          "base_color": [
+            0.22,
+            0.23,
+            0.25
+          ],
+          "metallic": 1.0,
+          "roughness": 0.35
+        },
+        "path": "materials.iron"
+      },
+      "materials.oak": {
+        "kind": "material",
+        "origin": "builtin",
+        "params": {
+          "base_color": [
+            0.36,
+            0.24,
+            0.12
+          ],
+          "metallic": 0.0,
+          "roughness": 0.7
+        },
+        "path": "materials.oak"
+      },
+      "terrain.ground": {
+        "kind": "terrain",
+        "origin": "builtin",
+        "params": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "semantic_tags": [
+            "terrain"
+          ],
+          "semantic_type": "ground"
+        },
+        "path": "terrain.ground",
+        "seed": 7
+      }
+    },
+    "id": "rcp_fjellvik",
+    "name": "Fjellvik",
+    "schema_version": 2,
+    "seeds": {
+      "props": 11,
+      "terrain": 7,
+      "weather": 3
+    }
+  }
+}
