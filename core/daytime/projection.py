@@ -34,7 +34,7 @@ class DayProjection:
         #: The nights the log says are running. The daytime lane yields to
         #: these — the night is the work.
         self.nights_running: set[str] = set()
-        #: The day in progress: the ticks since the last night started, and
+        #: The day in progress: the ticks since the last night stopped, and
         #: what they cost.
         self.day_ticks = 0
         self.day_minutes = 0.0
@@ -79,11 +79,13 @@ class DayProjection:
         )
 
     def _on_day_tick(self, event: AuditEvent) -> None:
+        # The day's accounting is about the log's events, so it is counted
+        # whether or not the world is there to advance.
+        self.day_ticks += 1
+        self.day_minutes += float(event.payload.get("minutes", 0.0))
         if self.world is None:
             return
         self.world = advance(self.world)
-        self.day_ticks += 1
-        self.day_minutes += float(event.payload.get("minutes", 0.0))
 
     def _on_day_change(self, event: AuditEvent) -> None:
         payload = event.payload.get("change") or {}

@@ -20,7 +20,6 @@ from __future__ import annotations
 import time
 from typing import Any, Callable
 
-from core.canon import now_utc
 from core.daytime.budget import DayBudget
 from core.daytime.ledger import Ledger
 from core.daytime.models import Actor, AuditEvent, DayWorld
@@ -149,10 +148,11 @@ class DayRunner:
         return self.world()
 
     def _append(self, type: str, payload: dict[str, Any]) -> AuditEvent:
+        # The ledger stamps the event: its clock is the log's clock, and a
+        # test that injects one gets deterministic timestamps.
         return self.ledger.append(
             type=type,
             actor=self.actor,
             subject={"entity_kind": "daytime", "entity_id": self.version_id},
             payload=payload,
-            at=now_utc(),
         )
