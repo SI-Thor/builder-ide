@@ -128,3 +128,40 @@ class RecordOnlyPower:
 
     def set_mode(self, mode: int) -> None:
         return None
+
+
+class SpineLedgerPort:
+    """The seats' `LedgerPort` (core.vocab.ports, core.coldstart.ports) over
+    the spine's one audit store (§1.0).
+
+    Before the seats merged, the vocabulary's Prop-maker loop and cold
+    start's ask-mode ran on their own in-memory ledgers, bridged into the
+    spine by mirrors. On the merged tree there is one store, and this
+    adapter is the resident shape of their protocol over it: appends take
+    the write lock and assign the gapless seq, `line.spoken` /
+    `taste.note.appended` / `prediction.*` are all in the closed set (§1.8),
+    and the spine's fold projects the rows every reader reads — the seats'
+    in-memory ledgers remain their own unit-test seams, never on this path.
+
+    Found by the rewired acceptance run (branch m1-real); the mirror
+    bridges it deleted are the point.
+    """
+
+    def __init__(self, store) -> None:
+        self._store = store
+
+    def append(self, event):
+        return self._store.append(event)[0]
+
+    def head_seq(self) -> int:
+        return self._store.max_seq()
+
+    def events(self, *, since_seq: int | None = None, types=None):
+        return self._store.events_since(
+            since_seq or 0, list(types) if types is not None else None)
+
+    def find(self, event_type: str, **match):
+        for ev in reversed(self.events(types=[event_type])):
+            if all((ev.payload or {}).get(k) == v for k, v in match.items()):
+                return ev
+        return None

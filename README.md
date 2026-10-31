@@ -141,9 +141,9 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `night-runner` | The night: queue, rails, heartbeat and lease, resume after reboot, the **iterator loop**, the morning report | merged into main, ~197 tests |
 | `cold-start` | New builders ask before they act (the switch to acting at two observations); the critic's calibration set | merged into main, 63 tests |
 | `usd-backbone` | Recipe → layered USD, build123d → STEP → GLB, provenance, byte-identical re-emission | merged into main, 79 tests |
-| `m1-acceptance` | The M1 session as an automated test: evening → night → morning, 30 steps | done, 30/30 |
-| `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | **merged: 831 tests** |
-| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | done, 105/105 steps |
+| `m1-acceptance` + `m1-real` | The M1 session as an automated test, now on the integrated core: evening → night → morning, 30 steps | **merged: 30/30, one ledger** |
+| `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | **merged: 842 tests** |
+| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | **merged: 105/105 on the integrated core** |
 | `m1-real` | Both acceptance suites rewired onto the integrated core (real spine, real recipe store) | in flight |
 | `plan-v2` | Plan draft 2 and the owner's decision sheet | **this branch** |
 

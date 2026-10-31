@@ -14,6 +14,7 @@ vocabulary's own schema at the door (§1.1).
 from __future__ import annotations
 
 from core.events import core_actor
+from core.records import Actor
 from core.svc.recipes import RecipeStoreSeam, schemas_from_vocabulary
 from core.svc.vocab import VocabService
 from core.vocab.seed import RECIPE_DOCUMENT
@@ -89,3 +90,41 @@ def test_the_recipe_store_rebuilds_from_the_spines_log_alone(core):
         core, schemas=schemas_from_vocabulary(default_entries()))
     assert again.head() == head
     assert again.document(head) == seam.document(head)
+
+
+def test_a_nights_call_commits_onto_the_night_branch_not_main(core):
+    """§1.2's branch context, found by the rewired acceptance run: a typed
+    call made during the night commits onto the night's branch — main must
+    not move until the morning applies. The seam's `commit_branch` holds
+    the context until the spec amendment puts it on the edit itself."""
+    seam = _wire(core)
+    words = default_entries()
+    crates = next(w for w in words if w.word == "props.harbor.crates")
+    VocabService(core).add_word(crates.model_dump(mode="json"), core_actor())
+    seed_nodes(core, "br_main", [
+        {"node_id": "crates_01", "entry_path": "harbor.crates", "kind": "prop_set"},
+    ])
+    main_head = seam.head()
+
+    branch = seam.store.create_branch(
+        name="night-1", recipe="rcp_fjellvik", head=main_head, purpose="night",
+        actor=Actor(kind="owner", id="casey"))
+    seam.commit_branch = branch.id
+
+    result = VocabService(core).call(
+        "prop-maker", "props.harbor.crates",
+        {"count": 12, "style": "weathered", "from_library": 6, "seed": 42},
+        node="crates_01")
+
+    assert result["committed"] is True
+    assert seam.head(branch.id) == result["version"]  # the night gained it
+    assert seam.head() == main_head                  # main did not move
+    doc = seam.document(result["version"])
+    assert doc["entries"]["harbor.crates"]["params"]["count"] == 12
+
+    seam.commit_branch = "br_main"  # the evening's context again
+    result2 = VocabService(core).call(
+        "prop-maker", "props.harbor.crates",
+        {"count": 8, "style": "plain", "from_library": 0, "seed": 7},
+        node="crates_01")
+    assert seam.head() == result2["version"]         # main follows by default

@@ -155,11 +155,21 @@ class ReportBuilder:
     def _three_number_line(self, night_id: str, bdoc: dict) -> dict:
         gpu_h = round(float(bdoc.get("gpu_minutes", 0)) / 60, 1)
         hosted = f"${int(bdoc.get('hosted_cents', 0)) / 100:.2f} hosted (local)" \
-            if not int(bdoc.get("hosted_cents", 0)) else \
+            if not int(bdoc.get('hosted_cents', 0)) else \
             f"${int(bdoc.get('hosted_cents', 0)) / 100:.2f} hosted"
-        decision_types = ["question.answered", "wo.kept", "wo.rejected"]
+        # G §4.3's attention number is the decisions *this cycle* asked —
+        # parked questions answered, work orders kept/rejected, branches
+        # applied or stood down — scoped to the night. The melt-week run's
+        # finding: the project-cumulative count read "15 decisions (budget
+        # 10)" by night 7 while no morning ever asked more than 10; the
+        # budget is per morning, so the count is too.
+        decision_types = ["question.answered", "wo.kept", "wo.rejected",
+                          "branch.head.moved", "branch.rejected"]
+        started = self.store.events_for(
+            "night", night_id, types=["night.started"])
+        since = started[0].seq if started else 0
         decisions = sum(
-            1 for e in self.store.events_since(0, types=decision_types)
+            1 for e in self.store.events_since(since, types=decision_types)
             if e.actor.kind == "owner"
         )
         return {

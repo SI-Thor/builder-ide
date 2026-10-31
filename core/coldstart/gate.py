@@ -192,21 +192,28 @@ class ColdStartGate:
         for event in self._ledger.events():
             payload = event.payload or {}
             if event.type == "prediction.sealed":
-                sealed = payload.get("sealed_payload") or {}
+                # both spellings, one log (§4): the vocabulary's own sealer
+                # writes `sealed_payload` flat; the spine's nests the doc
+                sealed = payload.get("sealed_payload") or payload.get("prediction") or {}
                 if sealed.get("builder") == builder:
-                    claim_by_id[str(payload.get("prediction_id", ""))] = str(
-                        sealed.get("claim_type", "")
-                    )
+                    claim_by_id[str(
+                        payload.get("prediction_id", "")
+                        or event.subject.get("entity_id", "")
+                    )] = str(sealed.get("claim_type", ""))
         sealed = sum(1 for claim in claim_by_id.values() if claim == claim_type)
         hits = 0
         for event in self._ledger.events():
             payload = event.payload or {}
-            if (
-                event.type == "prediction.scored"
-                and payload.get("verdict") == "hit"
-                and claim_by_id.get(str(payload.get("prediction_id", ""))) == claim_type
-            ):
-                hits += 1
+            if event.type == "prediction.scored":
+                scored_id = str(
+                    payload.get("prediction_id", "")
+                    or event.subject.get("entity_id", "")
+                )
+                if (
+                    payload.get("verdict") == "hit"
+                    and claim_by_id.get(scored_id) == claim_type
+                ):
+                    hits += 1
         return sealed, hits
 
     def decide_world(self, builder: str, claim_type: str) -> ColdDecision:

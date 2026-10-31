@@ -22,7 +22,7 @@ from __future__ import annotations
 from typing import Any, Sequence
 
 from ..canon import new_id, now_utc
-from ..events import Actor
+from ..events import Actor, core_actor
 from ..records import AuditEvent, Op, Recipe, RecipeEdit
 from ..store import LedgerStore
 from core.recipe.blobs import BlobStore, FileBlobStore
@@ -100,6 +100,13 @@ class RecipeStoreSeam:
         self._owner = Actor(kind="owner", id="casey")
         #: spine branch id (or alias) -> the recipe store's branch id
         self._branch_ids: dict[str, str] = {MAIN: MAIN, "main": MAIN}
+        #: the branch a live typed call commits onto (§1.2's branch context).
+        #: The spine's edit proposal carries `base: "head"` — of *this*
+        #: branch, not always main: a night's calls commit onto the night's
+        #: branch and the morning decides. The spec amendment that puts the
+        #: branch on the edit itself is pending; the seam holds it until
+        #: then, defaulting to main.
+        self.commit_branch: str = MAIN
 
     # -- setup ---------------------------------------------------------------
 
@@ -117,7 +124,14 @@ class RecipeStoreSeam:
         self._branch_ids[alias] = branch_id
 
     def branch_id(self, alias_or_id: str) -> str:
-        return self._branch_ids.get(alias_or_id, MAIN)
+        if alias_or_id in self._branch_ids:
+            return self._branch_ids[alias_or_id]
+        # a real store id passes through when the store knows it — a caller
+        # holding the store's own branch id (the acceptance adapters do)
+        # must not be silently routed to main
+        if any(b.id == alias_or_id for b in self._recipes.list_branches()):
+            return alias_or_id
+        return MAIN
 
     def head(self, alias_or_id: str = MAIN) -> str:
         return self._recipes.get_branch(self.branch_id(alias_or_id)).head
@@ -155,7 +169,8 @@ class RecipeStoreSeam:
                 continue
             ops.append(Op(op=op.op, path=".".join([target, *rest]),
                           value=op.value))
-        base = edit.base if edit.base.startswith("ver_") else self.head()
+        base = edit.base if edit.base.startswith("ver_") else self.head(
+            self._branch_ids.get(self.commit_branch, self.commit_branch))
         version = self._recipes.apply_edit(
             base, ops,
             author=Actor(kind=edit.author.kind, id=edit.author.id,
@@ -165,14 +180,19 @@ class RecipeStoreSeam:
         )
         # A builder's live edit applies: the branch moves forward with the
         # version it just gained (§1.2 — a fast-forward, never a rewrite).
-        self._recipes.move_head(MAIN, version.id, self._owner,
-                                reason="vocab call committed")
+        # The move is the core executing the call the spine already audited
+        # (vocab.call carries the character), so it rides a core actor —
+        # on one log it must not read as a second owner decision (G §4.3,
+        # found by the rewired melt week).
+        self._recipes.move_head(
+            self._branch_ids.get(self.commit_branch, self.commit_branch),
+            version.id, core_actor(), reason="vocab call committed")
         return version.id
 
     def fast_forward(self, branch_id: str, to_version: str) -> None:
         target = self.branch_id(branch_id)
         if self._recipes.get_branch(target).head != to_version:
-            self._recipes.move_head(target, to_version, self._owner,
+            self._recipes.move_head(target, to_version, core_actor(),
                                     reason="apply")
 
     def merge_conflicts(self, main_head: str, branch_head: str) -> list[str]:
