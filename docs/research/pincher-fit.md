@@ -50,3 +50,23 @@ The first mile gets faster the more you use it, which is "builders that grow wit
    - retrieval then bandit.
 
    Measure win rate, latency, and how fast each improves with use.
+
+## The aider desk's extraction of the chat (Hy4, 2026-10-31, $0.07)
+
+**Mechanisms worth keeping** (mapped onto tiles and the first mile):
+1. **Embedding match with score bands.** Embed state plus context and take the top K by meaning. Tiles: match the game state to tile embeddings. Voice: match the utterance plus context to cached intents.
+2. **Signed, portable `.nail` bundles.** Each tile (script, embedding, capability manifest, signature) is published from the Thor to the ProArt or an ESP32; voice intents are synced from the cloud to the laptop.
+3. **A veto/ExecutionGuard with a sandbox:** a schema check plus a capability manifest (WASM/Landlock) before anything touches the world or the host.
+4. **Modular traits** (EmbeddingProvider, ExecutionGuard, ReflexRunner), so each tier swaps a local or cloud embedder, the guard and the runner.
+5. **A fast-loop cache with a slow-loop auditor.** Low-confidence matches and escalations are logged, and a nightly auditor updates the categories and schema. This is our night, applied to reflexes.
+6. **User-scoped vs global caches, with a promotion rule:** personal tiles stay scoped, and only validated ones are promoted. This fits A1/A5 authorship.
+7. **An interruption token:** barge-in or a world change cancels the in-flight cloud compile and rolls back the fork.
+8. **Fork, prune, commit:** run a candidate tile in a structurally shared fork with fuel metering, and commit only the safe winner. This is our predict, render, keep-or-undo loop.
+9. **Program synthesis with gas metering and hot swap:** frequently used tiles are compiled and swapped in without downtime.
+
+**Metaphor only, no testable mechanism:** the viscous, wave, crystal-lattice, superfluid, soliton and "living tissue" passages.
+
+**Three experiments, each under a day.** Each one measures fast-path coverage, reward or accuracy against the bandit, the escalation rate and p95 latency.
+- **E1, offline replay over the tiles logs.** Embedding fast path at ≥ 0.80, falling back to the bandit's logged choice. It beats the bandit if it covers ≥ 30 % of contexts, its reward is within ε of the bandit's, and p95 is under 50 ms. The new OPE estimators (PR #1) make this an honest offline test.
+- **E2, a live A/B in the world.** Pincher bands plus a WASM-sandboxed compile of new tiles, against the bandit. It also counts sandbox vetoes, which must show zero unsafe executions.
+- **E3, a voice first-responder A/B** on 100–200 scripted intents. It beats the bandit if the fast path takes ≥ 50 % of intents at equal accuracy and under 50 ms.
