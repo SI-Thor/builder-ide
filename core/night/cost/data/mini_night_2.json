@@ -1,0 +1,199 @@
+{
+  "source": "mini_night_2",
+  "origin": "/home/caseydigennaro/lm-wt/mini-night2/artifacts/mini-night-2/ledger.db",
+  "doc": "docs/lab/mini-night-2.md",
+  "rule": "one prompt at a time; the CPU lane is wall - gpu",
+  "jobs": 18,
+  "repairs": 9,
+  "samples": [
+    {
+      "name": "crate_s1064508603_00007_.png",
+      "kind": "image",
+      "gpu_seconds": 15.910595,
+      "cpu_seconds": 3.766001,
+      "wall_seconds": 19.676596
+    },
+    {
+      "name": "crate_s455794046_00004_.png",
+      "kind": "image",
+      "gpu_seconds": 14.115306,
+      "cpu_seconds": 2.104751,
+      "wall_seconds": 16.220057
+    },
+    {
+      "name": "crate_s833331073_00004_.png",
+      "kind": "image",
+      "gpu_seconds": 11.777915,
+      "cpu_seconds": 1.520437,
+      "wall_seconds": 13.298352
+    },
+    {
+      "name": "lantern_s424809304_00004_.png",
+      "kind": "image",
+      "gpu_seconds": 13.978097,
+      "cpu_seconds": 2.132086,
+      "wall_seconds": 16.110183
+    },
+    {
+      "name": "lantern_s1427939119_00004_.png",
+      "kind": "image",
+      "gpu_seconds": 14.290109,
+      "cpu_seconds": 1.958235,
+      "wall_seconds": 16.248344
+    },
+    {
+      "name": "lantern_s913610340_00004_.png",
+      "kind": "image",
+      "gpu_seconds": 12.728146,
+      "cpu_seconds": 2.587464,
+      "wall_seconds": 15.31561
+    },
+    {
+      "name": "anvil_s1597230408_00004_.png",
+      "kind": "image",
+      "gpu_seconds": 13.043933,
+      "cpu_seconds": 2.12432,
+      "wall_seconds": 15.168253
+    },
+    {
+      "name": "anvil_s64961400_00004_.png",
+      "kind": "image",
+      "gpu_seconds": 13.153625,
+      "cpu_seconds": 2.143949,
+      "wall_seconds": 15.297575
+    },
+    {
+      "name": "anvil_s6984999_00004_.png",
+      "kind": "image",
+      "gpu_seconds": 20.336504,
+      "cpu_seconds": 1.857184,
+      "wall_seconds": 22.193688
+    },
+    {
+      "name": "crate_s1064508603_00008_.glb",
+      "kind": "prop",
+      "gpu_seconds": 62.688931,
+      "cpu_seconds": 113.646207,
+      "wall_seconds": 176.335139
+    },
+    {
+      "name": "crate_s455794046_00005_.glb",
+      "kind": "prop",
+      "gpu_seconds": 43.696642,
+      "cpu_seconds": 153.267787,
+      "wall_seconds": 196.964429
+    },
+    {
+      "name": "crate_s833331073_00005_.glb",
+      "kind": "prop",
+      "gpu_seconds": 65.873773,
+      "cpu_seconds": 144.909596,
+      "wall_seconds": 210.783369
+    },
+    {
+      "name": "lantern_s424809304_00005_.glb",
+      "kind": "prop",
+      "gpu_seconds": 61.389226,
+      "cpu_seconds": 115.210226,
+      "wall_seconds": 176.599452
+    },
+    {
+      "name": "lantern_s1427939119_00005_.glb",
+      "kind": "prop",
+      "gpu_seconds": 22.516061,
+      "cpu_seconds": 110.888419,
+      "wall_seconds": 133.40448
+    },
+    {
+      "name": "lantern_s913610340_00005_.glb",
+      "kind": "prop",
+      "gpu_seconds": 54.855155,
+      "cpu_seconds": 125.606074,
+      "wall_seconds": 180.461228
+    },
+    {
+      "name": "anvil_s1597230408_00005_.glb",
+      "kind": "prop",
+      "gpu_seconds": 18.346286,
+      "cpu_seconds": 112.889115,
+      "wall_seconds": 131.235401
+    },
+    {
+      "name": "anvil_s64961400_00005_.glb",
+      "kind": "prop",
+      "gpu_seconds": 49.635993,
+      "cpu_seconds": 161.20415,
+      "wall_seconds": 210.840143
+    },
+    {
+      "name": "anvil_s6984999_00005_.glb",
+      "kind": "prop",
+      "gpu_seconds": 56.896759,
+      "cpu_seconds": 184.671312,
+      "wall_seconds": 241.568071
+    },
+    {
+      "name": "crate_s1064508603_00008_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.268833,
+      "wall_seconds": 3.268833
+    },
+    {
+      "name": "crate_s455794046_00005_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.764547,
+      "wall_seconds": 3.764547
+    },
+    {
+      "name": "crate_s833331073_00005_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.619778,
+      "wall_seconds": 3.619778
+    },
+    {
+      "name": "lantern_s424809304_00005_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.381984,
+      "wall_seconds": 3.381984
+    },
+    {
+      "name": "lantern_s1427939119_00005_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.349894,
+      "wall_seconds": 3.349894
+    },
+    {
+      "name": "lantern_s913610340_00005_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.29033,
+      "wall_seconds": 3.29033
+    },
+    {
+      "name": "anvil_s1597230408_00005_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.200723,
+      "wall_seconds": 3.200723
+    },
+    {
+      "name": "anvil_s64961400_00005_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.072602,
+      "wall_seconds": 3.072602
+    },
+    {
+      "name": "anvil_s6984999_00005_.glb",
+      "kind": "repair",
+      "gpu_seconds": 0.0,
+      "cpu_seconds": 3.462146,
+      "wall_seconds": 3.462146
+    }
+  ]
+}

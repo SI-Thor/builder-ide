@@ -25,6 +25,12 @@
       "file": "mini_night.json",
       "note": "the only whole night the box has run end to end: 18 jobs, one at a time, with both lanes measured"
     },
+    "mini_night_2": {
+      "doc": "docs/lab/mini-night-2.md",
+      "file": "mini_night_2.json",
+      "script": "core/night/cost/extract_mini_night.py",
+      "note": "the second whole night: 18 jobs and the 9 repair measurements, one at a time, with both lanes measured. It is the night that ran the pipeline the night runs now — the generator, the repair and the measuring — so it is what the mesh stage is priced from. Its GPU lane was measured while the seed sweep shared the GPU, so it reads high against a quiet box; see prop.night.512."
+    },
     "warm_scene": {
       "doc": "docs/research/warm-scene.md",
       "section": "§4.1"
@@ -99,6 +105,20 @@
       "source": "mini_night",
       "filter": {"kind": "prop"},
       "note": "the mini-night's own prop jobs: the sampling on the GPU lane, the mesh tail and the mesh measurement on the CPU lane, and the GLB written to disk. It runs longer than the bare generator because it does the measuring too."
+    },
+    "prop.night.512": {
+      "label": "one prop's mesh stage at 512³, as the second night ran it: the generator, the decode and the mesh tail",
+      "lane": "mixed",
+      "source": "mini_night_2",
+      "filter": {"kind": "prop"},
+      "note": "the second mini-night's 9 prop jobs: the whole TRELLIS.2 prompt window, with the GPU lane and the CPU lane measured separately (the CPU lane is wall - gpu, one prompt at a time). This is what the night's mesh stage actually costs, and it is 3.4x the bare generator's band (prop.512): the generator is only the sampling, while the night's job also carries the decode stages and the mesh tail. Read the GPU lane as an upper bound — that night shared the GPU with the seed sweep, which is what the spike's own quiet measurement (prop.512) does not."
+    },
+    "mesh.repair": {
+      "label": "the repair stage on one mesh (welding the generator's UV seams)",
+      "lane": "cpu",
+      "source": "mini_night_2",
+      "filter": {"kind": "repair"},
+      "note": "the second mini-night's 9 repairs, measured on the box: 3.3 s median on a ~700k-triangle mesh. The repair runs after the prompt returns, so the ledger's job cost does not carry it — and the mesh the night keeps is a repaired mesh."
     },
     "prop.text": {
       "label": "the whole text path at 512³ (text -> image -> 3D)",
