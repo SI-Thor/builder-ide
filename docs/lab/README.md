@@ -1,3 +1,41 @@
 # The lab
 
 Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md, "Thor-native rewrites are welcome"). One file per experiment: the idea, the hypothesis, the setup, the numbers, how to reproduce, and the verdict (breakthrough / useful / no). Failures stay.
+
+`IDEAS.md` is the index: the live candidates (Part A), the ones killed by fact (Part B), what to run next (Part C), and the cross-cutting traps (Part D). Everything else here is the evidence.
+
+**The box is shared.** Every number in this directory records the load, the power mode and the GPU clock beside it. Where a result moved between runs, the range is given rather than the best number. **Publish ranges and re-run before publishing a conclusion.**
+
+---
+
+## Round 3 — Kimi's six claims (2026-10-31)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-engines.md`](exp-engines.md) | the fact-check: does NVLA / PVA / NVDLA / AV1 exist on this Thor? | **kills four claims** |
+| [`exp-batched-shared-model.md`](exp-batched-shared-model.md) | one shared model, N agents batched; the FP8 multiplier; the bandwidth | **half right, and the multiplier is 3×** |
+| [`exp-adapters.md`](exp-adapters.md) | N LoRA skills on one shared base; switching vs mixing; memory per adapter | **half right — switching is the wrong mechanism** |
+| [`exp-joules-per-fixed-point.md`](exp-joules-per-fixed-point.md) | a toy equilibrium loop, warm vs cold; joules per fixed point | **confirmed** |
+| [`exp-cuda-graphs-nvenc.md`](exp-cuda-graphs-nvenc.md) | CUDA Graphs against launch overhead | **confirmed, and worth more as reproducibility** |
+| [`exp-nvenc-roundtrip.md`](exp-nvenc-roundtrip.md) | a float field through NVENC/NVDEC, as a warm-start store | **kills the store, confirms the engine** |
+
+Scripts: [`lab3-scripts/`](lab3-scripts/) — `boxstate.py` (the shared power/box-state meter, with the GPU-clock warm-up), then `exp2_batched.py`, `exp3_lora.py`, `exp4_equilibrium.py`, `exp5a_cudagraphs.py`, `exp5b_nvenc.py`.
+
+## Round 2 — the residency tiers, the critic, the solver, the procedural port (2026-10-31)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-nvme-bandwidth.md`](exp-nvme-bandwidth.md) | NVMe → unified-memory load bandwidth, cold and warm | useful |
+| [`exp-critic-png-roundtrip.md`](exp-critic-png-roundtrip.md) | the critic's PNG round trip vs zero-copy from the render buffer | useful |
+| [`exp-solver-scoring.md`](exp-solver-scoring.md) | one Infinigen solver score term: Python vs numba vs Warp vs a restructured CPU | useful, with a condition |
+| [`exp-warp-terrain-port.md`](exp-warp-terrain-port.md) | one Infinigen terrain element ported to Warp | **breakthrough** |
+
+## Round 1 — the foundation (2026-10-30)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-unified-memory.md`](exp-unified-memory.md) | zero-copy vs copy, and the achievable bandwidth | useful |
+| [`exp-warp-terrain.md`](exp-warp-terrain.md) | Warp on aarch64/sm_110 vs an optimised CPU | useful, with a condition |
+| [`exp-fp8-tensorcores.md`](exp-fp8-tensorcores.md) | FP8 and FP4 tensor cores on this stack | useful — and FP4 is a measured no |
+
+Scripts: [`lab1-scripts/`](lab1-scripts/).
