@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "builder-recipe"
+version = "0.1.0"
+description = "The recipe store of builder-ide's core service: recipes, versions, branches, typed edits, the recipe hash and the pre-render constraint checks (core-spec v2, half B)"
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.7,<3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+package-dir = {"" = "core/src"}
+packages = ["builder_recipe"]
+
+[tool.setuptools.package-data]
+builder_recipe = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["core/src"]
+filterwarnings = ["error"]
