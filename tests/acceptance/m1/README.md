@@ -14,23 +14,37 @@ merged `core.*` packages — `siblings.load()` imports them from this tree,
 the recipe store rides the spine's **one ledger** through the real
 `RecipeStoreSeam`, ask-mode writes its rows straight into that log through
 `core.ports.SpineLedgerPort`, and the mirrors are gone. **The render rungs
-and the merge gate's engine half now run on the core's engine seam**
-(`core/engine`, behind the **fake engine** — `seats/engine.py` holds the
-one configuration line), so pointing the session at a real engine is
-configuration, not rewiring. What the rewiring exposed in the core is
-fixed there, with tests; what is still a stub is listed below with the
-exact missing piece.
+and the merge gate's engine half run on the core's engine seam**
+(`core/engine`), behind the **fake engine** by default (`seats/engine.py`
+holds the one configuration line; `BUILDER_ENGINE` overrides it), so
+pointing the session at a real engine is configuration, not rewiring —
+**and it has been done**: the `-m engine` run points the same seam at the
+v2 venv on this box and renders for real (below). What the rewiring
+exposed in the core is fixed there, with tests; what is still a stub is
+listed below with the exact missing piece.
 
 ## Run it
 
 One venv for the repo (the seats need no separate one anymore):
 
 ```sh
-.venv/bin/python -m pytest tests/acceptance/m1 -q   # as a test
+.venv/bin/python -m pytest tests/acceptance/m1 -q   # as a test (fake engine)
 .venv/bin/python tests/acceptance/m1/driver.py      # headless; prints the step table
 ```
 
-The table (also written to `run/<timestamp>/steps.txt`):
+**The real-engine run** (opt-in marker — its render steps drive Infinigen
+2.0 through the v2 venv, minutes of Cycles on the Thor):
+
+```sh
+.venv/bin/python -m pytest tests/acceptance/m1 -m engine -q
+```
+
+`BUILDER_V2_HOME` (default `~/lm-wt/v2-thor`) names the venv; without it
+the run skips, naming the missing piece. The plain run stays the default
+suite: the fake engine, deselected `-m engine` (pyproject's `addopts`).
+
+The table (also written to `run/<timestamp>/steps.txt`, and
+`run/engine/steps.txt` for the real-engine run):
 
 ```
 STEP                               CLK             MS  BUDGET BACKEND                                      RESULT
@@ -100,7 +114,7 @@ table's `real:*` labels point at it.
 | recipe store | `core.recipe` behind `core.svc.recipes.RecipeStoreSeam` | Fjellvik as a typed recipe **in the one log**; vocabulary-validated edits; the node registry (§1.4.0) that the two-referent test resolves through; the branch flip as a pointer move — the spine's `/v1/branches/{id}/apply` reports `recipe_sync: ok` because the seam really moved the store |
 | vocabulary | `core.vocab` | the three words (data + schemas), the call door's refusals, sealed predictions with the confidence gate, and the Prop-maker's scripted loop as the night's reference implementation |
 | cold start | `core.coldstart` | the opener (computed from counts in the one log) and ask-mode (≤ 6, sequential, skip writes nothing) — its rows land directly in the spine's ledger through `core.ports.SpineLedgerPort` |
-| the engine | `core.engine` behind the **fake engine** | the render rungs and the gate's engine half through the seam: the door's `render_job` renders the **committed version** via `Engine.render_preview`, and the spine's `gate_engine` port is `EngineGateEngine` — whose deterministic-rebuild rung really byte-compares two generated stages. The fake is deterministic in the whole request and its bytes say `fake-engine` inside themselves; `seats/engine.py::SPEC` is the one line a real engine changes |
+| the engine | `core.engine` behind the **fake engine** (default) or the **v2 venv** (`-m engine`) | the render rungs and the gate's engine half through the seam: the door's `render_job` renders the **committed version** via `Engine.render_preview`, and the spine's `gate_engine` port is `EngineGateEngine`. The fake is deterministic in the whole request and its bytes say `fake-engine` inside themselves; `seats/engine.py` holds the one configuration line (`SPEC`, or `BUILDER_ENGINE`), which the real-engine run points at the v2 venv on the box |
 | night runner | `core.night` | the reference night for the kill -9 parity check: rails, graduated throttle, detach-or-deadline, heartbeats, the computed status line |
 | why kernel | `core.why`, `core.justification` | merged, not yet load-bearing in this session — M1's "why?" is the provenance one-tap, which the spine serves; goal-chains belong to a later morning |
 | USD backbone | `builder_usd` | present on the tree (its tests run in the suite) but not in this session — M1's render rungs run on the fake engine by design (plan §2 M1 risks). It plugs in where the fake engine stands, through `/v1/world/scene`'s 501 seam |
@@ -116,13 +130,62 @@ the step table):
   engineer adapter behind the attempt loop (the bake-off's pick, wired to
   the local lane).
 
-**No longer a stub** — the render rungs and the gate's engine rungs. They
-run on the core's engine seam (`core/engine`) behind the **fake engine**,
-labelled `fake:engine(render)` / `fake:engine(gate-rungs)` in the step
-table — the honest label for "the real seam, a fake engine". Missing piece,
-named: a real engine adapter (`infinigen-1x` or `infinigen-2-procfunc`)
-pointed at the infinigen-thor checkout — **configuration** in
-`seats/engine.py::SPEC` (`core.engine.registry.open_engine`), not code.
+**No longer a stub — the render rung, and it has run real.** The render
+rungs and the gate's engine rungs run on the core's engine seam
+(`core/engine`), labelled `fake:engine(render)` / `fake:engine(gate-rungs)`
+in the default run — the honest label for "the real seam, a fake engine".
+The real-engine run (`-m engine`) points the same seam at the **v2 venv on
+this box** (`core.engine.venv2`, `BUILDER_ENGINE` → `seats/engine.py::
+real_engine_spec`): Infinigen 2.0 + procfunc, Cycles on the Thor's GPU,
+the pin **interrogated from the venv** — so that run performs the
+**explicit pin edit** first (`boot/engine-repin`, X R9: a swap is an edit,
+never a silent reinterpretation) and every render step serves
+`real:engine(...)`. What is still configuration on a box without the venv:
+nothing to install here — `BUILDER_V2_HOME` names it, and without it the
+marked run skips, naming the missing piece.
+
+### The real-engine run, measured (2026-10-31, first green run)
+
+Box state beside every number (the standing rule): load average **22–23**
+across the 14 cores (an overnight seed sweep and lab runs were still
+running), GPU idle at the start (`0 %`, 2.8 W), Cycles CUDA once the
+renders began. Engine: `infinigen 2.0.0a3 @ 224598d4` · `procfunc 0.37.0`
+· `bpy 4.2.0` · Python 3.11.13 (the venv at `~/lm-wt/v2-thor`, read-only).
+
+| render step | what rendered | rung | wall |
+|---|---|---|---|
+| `night/sealed-bet-crates` | `storage_cabinet_with_door_rand`, seed 42 | 2 (960×540, 16 spp) | **5.45 s** (step 4.5 s + ledger) — PNG 395 054 B |
+| `night/sealed-bet-racks` | `storage_cell_shelf_rand`, seed 43 | 2 | **4.33 s** — PNG 407 075 B |
+| `night/wo-attempt` (gate rung + preview) | the crates chain twice, seed 42 | 2 | **9.0 s** the step; each render byte-identical to job_0001's |
+| stage × 2 (the byte-stability test) | all three entries traced at `RANDOM_CONTROL` | — | ~2 s per trace, 6 CLI calls; **byte-identical** across generations |
+
+The whole 31-step session played in **~33 s** with real renders behind
+every render step. The walls are in the ledger too: every
+`render.completed` carries `wall_ms`, the resolution and the engine
+flavour; the preview asset carries the provenance (engine pin, the
+**resolved generator** — the name resolution is part of the record) and
+the licence row from the venv's own metadata (infinigen BSD-3-Clause ·
+procfunc BSD-3-Clause · bpy GPL-3.0 with the term that it covers the
+program, not the images it renders).
+
+Two honest limits of this rung, said aloud:
+
+* **The generator names resolve to stand-ins.** The shipped Fjellvik
+  document names the fork's generators (`infinigen_thor.structures::
+  crates`), which are ours to write; on this box each resolves to the
+  upstream generator of the same kind (a lidded wooden container for the
+  crates word, a wooden shelving unit for the racks, worn wood on
+  `material_cube` for the material) — `seats/engine.py::V2_GENERATORS`,
+  recorded in every provenance row. The day the fork's generators land,
+  the table changes and nothing else does. Our params (`count`, `style`)
+  do not cross to the stand-ins — the upstream generators have no such
+  parameters; the fork's will.
+* **Previews are not promised byte-reproducible.** Cycles' GPU
+  accumulation can move 1–3 pixels by ±1 LSB between identical requests
+  (the v2 experiment §5.4, on a room scene); this run's object renders
+  happened to come out byte-identical — luck, not a contract. **Stages**
+  (the normalized traced graphs) are byte-stable by construction, and
+  that is what the gate byte-compares.
 
 **One bridge remains** (`bridge:runner-half`, `night/cut-at-the-bar`): the
 80% bar's cut is performed as the runner's action by the driver — real
@@ -150,6 +213,9 @@ seats/           the thin adapters that remain: cold-start's ledger routing,
                  engine seat (one configuration line), the lane telemetry
 driver.py        the session script itself (acts 0–3); `main()` runs it headless
 test_m1_session.py   the pytest wrapper (plays the script, asserts the gates)
+test_real_engine.py  the real-engine run (`-m engine`): same session, the v2
+                 venv behind the seam — real PNGs, measured walls, the pin
+                 edit, provenance + licence from the venv's own metadata
 conftest.py      a fresh $BUILDER_HOME per run
 ```
 
@@ -160,12 +226,16 @@ conftest.py      a fresh $BUILDER_HOME per run
   real services, models and renders stand behind the same interfaces —
   a step that is honest but late, or fast but fabricated, is equally a
   failure (plan §6).
-* **The engine is the fake one, and the bytes say so.** The seam
-  (`core/engine`) is the real code — the door renders the committed
+* **The default run's engine is the fake one, and the bytes say so.** The
+  seam (`core/engine`) is the real code — the door renders the committed
   version through `Engine.render_preview`, the gate byte-compares real
-  stage generations — but the engine behind it is the deterministic fake.
-  Its artifacts name `fake-engine` inside themselves, so nothing on this
-  run can be mistaken for a render that came off the box.
+  stage generations — but the engine behind it is the deterministic fake,
+  and its artifacts name `fake-engine` inside themselves, so nothing on
+  that run can be mistaken for a render that came off the box. The
+  `-m engine` run has no fake anywhere on the render path: the images are
+  Cycles on the Thor (the measured table above), the pin is the venv's
+  own, and the one stand-in — the generator names — is recorded in every
+  provenance row.
 * **There is one ledger.** The spine's SQLite store is the only store; the
   recipe seat's commits, ask-mode's rows and the melt's seals all land in
   it. The two DRIFTS this run used to carry are resolved at the source

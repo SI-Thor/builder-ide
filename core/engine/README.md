@@ -56,13 +56,15 @@ the compiled-output rule (§7.11)      ◄──  export
 | `fake.py` | the deterministic test double | everything — it *is* the fake | none; it is not supposed to grow one |
 | `infinigen1.py` | v1 as the spike runs it (`docs/research/spike-phase1.md`): one pinned subprocess per stage | the whole subprocess contract: argv, task flags, the rung ladder, content-addressed outputs, the config-bundle verification, every refusal | the engine repo's `infinigen_thor.stage_runner` (our fork's half of the seam) and the entries→gin translation; without the checkout, `EngineUnavailable` names it |
 | `infinigen2.py` | 2.0 + procfunc in-process — the decision's engine (E §3, option C) | the translation: our entries → generator calls (the `_rand_from_params` convention), our edit ops → graph edits; the envelope that names the lower layer | the imported runtime (procfunc pins `bpy==4.2.0` / Python `==3.11.*`; this core is 3.12 — E §2) and the mesh exporter (v2 ships none; `builder_usd` is its natural home) |
+| `venv2.py` | **2.0 through its own venv's CLI** — the subprocess boundary that renders on the Thor today (the confirming experiment's venv, `~/lm-wt/v2-thor`, read-only) | **the render rung and the traced stage, live**: `render` is the subject entry's chain through `render_cycles` (Cycles CUDA) at the ladder's resolution/samples; `trace` is `--trace graph` at `RANDOM_CONTROL`, **normalized to byte-stability** (the experiment §3.3's two wobbles — the `$repr` pointer leak, the `generator_times` wall-clock — removed); the **pin is interrogated** from the venv (resolved packages + clone commit → the config hash); the licence row comes from the venv's own metadata | `replace`/`execute` (single-node re-execution needs the engine-side instrumentation the experiment built in its `choice_tool.py`; upstream ships no CLI for it) and `export` (v2 ships no exporter) |
 | `gate.py` | the merge gate's engine rungs (`core.ports.MergeGateEngine`, §2.3) over any engine | the deterministic-rebuild rung really byte-compares two generated stages; the render rung renders through the seam | the verdict's critic half (stays `verdict@scripted` until a critic is calibrated, RV patch 15) |
 | `registry.py` | `open_engine(spec)` / `engine_from_env()` | everything | nothing — this *is* the configuration story |
 
 The subprocess boundary (v1) and the procfunc boundary (v2) are one
 injectable callable each (`CommandRunner`, `ProcfuncRuntime`), so the
 contract tests drive the adapters' own halves without a checkout on the
-box.
+box. The venv boundary (v2's CLI) is a `ProcfuncRuntime` whose two
+CLI-crossing ops are real and whose three refusals name their pieces.
 
 ## Pointing the core at a real engine is configuration
 
@@ -71,6 +73,18 @@ from core.engine import open_engine
 
 # today — the tests and the acceptance suites (seats/engine.py::SPEC)
 engine = open_engine({"flavour": "fake", "pin": ENGINE_PIN})
+
+# the decision's engine, on the box today — the venv's CLI as the boundary
+# (this is what the M1 real-engine run puts in BUILDER_ENGINE)
+engine = open_engine({
+    "flavour": "infinigen-2-procfunc",
+    "runtime": "venv",
+    "python": "~/lm-wt/v2-thor/.venv/bin/python",
+    "repo": "~/lm-wt/v2-thor/src/infinigen-upstream",
+    "generators": {"crates": "storage_cabinet_with_door_rand", ...},
+    "output_dir": "$BUILDER_HOME/engine",
+    # no "pin": the venv is asked; one may be given, and drift is refused
+})
 
 # the spike's engine, when its stage runner lands in the fork
 engine = open_engine({
@@ -82,7 +96,7 @@ engine = open_engine({
     "output_dir": "$BUILDER_HOME/stages",
 })
 
-# the decision's engine, when the v2 gate (week-1 item 2) lands
+# the decision's engine in-process, when the v2 gate (week-1 item 2) lands
 engine = open_engine({"flavour": "infinigen-2-procfunc", "pin": {...}})
 ```
 
@@ -105,9 +119,11 @@ swap.
 
 - **The acceptance suites** (`tests/acceptance/m1`, `tests/acceptance/week`):
   the render rungs and the gate's engine half run on this seam behind the
-  fake engine; `seats/engine.py::SPEC` is the line a real engine changes.
-  The door's `render_job` renders the **committed version** — the render
-  is of the version the seal names.
+  fake engine by default; `BUILDER_ENGINE` (or `seats/engine.py::SPEC`) is
+  the line a real engine changes — and the M1 suite's `-m engine` run has
+  pointed it at the v2 venv and rendered for real (see below). The door's
+  `render_job` renders the **committed version** — the render is of the
+  version the seal names.
 - **The night runner** (`core/night/executor.py`): the `TaskExecutor` seam
   (plan/run) is the scheduler's half; an engine-backed executor composes
   this seam with rails and the iteration loop — that wiring is the
@@ -115,14 +131,45 @@ swap.
 - **The stage cache** (`core/recipe/stagecache.py`): the keys this seam
   reports; the on-disk cache and partial regeneration are week-2 item 9.
 
+## The render rung, measured (2026-10-31, first live run)
+
+The M1 session's `-m engine` run put the venv runtime behind the seam end
+to end (box state beside every number, per the standing rule): load
+average 22–23 on the 14 cores, GPU idle before the renders, Cycles CUDA
+during. `infinigen 2.0.0a3 @ 224598d4` · `procfunc 0.37.0` · `bpy 4.2.0`
+· Python 3.11.13.
+
+- **Renders** (rung 2 = 960×540 at 16 samples): **5.45 s** (crates' chain,
+  seed 42) and **4.33 s** (racks' chain, seed 43) wall per render,
+  PNGs of ~395–407 KB with the artifact hash, provenance (engine pin +
+  resolved generator + the exact ask) and the licence row in the ledger.
+  The whole 31-step session, real renders included, played in ~33 s.
+- **Stages**: a stage generated twice through the venv — all three
+  entries traced at `RANDOM_CONTROL` — is **byte-identical** across
+  generations (~2 s per trace), which is the stage-hit invariant holding
+  on real engine bytes, and what the gate's rebuild rung byte-compares.
+- **The pin swap happened for real**: the run performed the explicit pin
+  edit (`SI-Thor/infinigen-thor@9f31c0e` → `princeton-vl/infinigen@
+  224598d4`, the venv's own interrogated pin) as a session step, and every
+  stage key changed with it.
+- One resolution note: the CLI's framing code asserts an integral sensor
+  width, so rung 2 asks 960×540, not the nominal 854×480 (`venv2.py::
+  RESOLUTION_DIMENSIONS` says why).
+
 ## Honest limits
 
-- Nothing here has run against a real engine — that is the point of the
-  named missing pieces. The adapters' own halves (translations, argv,
+- **The venv boundary has run live** (the rung above); the v1 and the
+  in-process v2 halves have not — that is the point of their named
+  missing pieces. The adapters' own halves (translations, argv,
   envelopes, refusals) are tested without a checkout; the engine halves
   are one configuration line away and refuse loudly until then
   (`EngineUnavailable` names the exact missing piece; never an import
   traceback).
+- The venv runtime's renders are not promised byte-reproducible (Cycles'
+  GPU accumulation, ±1 LSB — the experiment §5.4); its **stages** are
+  byte-stable by construction. Its generator resolution is the box's
+  configuration table, recorded in every provenance row — a name without
+  a resolution is refused, never guessed.
 - `ImportedProcfuncRuntime`'s five operations raise `NotImplementedError`
   after the import check: tracing through the imported engine lands with
   the v2 gate (week-1 item 2, `~/lm-wt/v2-thor`), whose four questions
