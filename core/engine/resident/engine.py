@@ -109,6 +109,8 @@ class ResidentEngine:
         self._engine_label = "resident"
         self._restarts = 0
         self._starts = 0
+        self._start_streak = 0
+        self._resident_served = False
         self._recoveries = 0
         self._checkpoints = 0
         self._guard_recycles = 0
@@ -342,12 +344,18 @@ class ResidentEngine:
             )
         if self._process is not None:
             self._process.stop()
-        if self._starts >= 1:
-            # A crash loop must not become a spin loop: the wait doubles
-            # after each failure, up to the policy's cap.
-            delay = self._policy.backoff_for(self._starts)
-            if delay:
-                time.sleep(delay)
+        if self._starts >= 1 and not self._resident_served:
+            # A crash loop must not become a spin loop: a resident that
+            # died before serving anything is restarted after a wait that
+            # doubles with each such death, up to the policy's cap. A
+            # resident that *served* and then died is rebuilt at once —
+            # its death was not a start-up failure, and the builder is
+            # already waiting.
+            self._start_streak += 1
+            time.sleep(self._policy.backoff_for(self._start_streak))
+        else:
+            self._start_streak = 0
+        self._resident_served = False
         self._starts += 1
         self._restarts = self._starts - 1
         self._process = ResidentProcess(
@@ -726,4 +734,5 @@ class ResidentEngine:
         """The builder wait: the time from the request to the result."""
         ms = (time.monotonic() - started) * 1000.0
         self.requests.append({"op": op, "ms": ms})
+        self._resident_served = True
         return ms
