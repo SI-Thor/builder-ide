@@ -23,8 +23,21 @@ loads it directly.
 from __future__ import annotations
 
 import hashlib
+import os
+import time
 
 __all__ = ["FakeSceneBackend"]
+
+if os.environ.get("FAKE_SCENE_CHATTER"):
+    # A backend that chats on stdout at import, the way Blender's render
+    # progress chats on every frame — the channel discipline must survive
+    # this (WS §5.5: a full pipe blocks the resident forever). The worker
+    # has already pointed stdout at the log file by the time this runs.
+    print("fake-resident: chatter on stdout at import (the log, not the wire)")
+
+#: A slow stage, on demand — how the tests give the adapter a resident
+#: that is genuinely hung rather than racing a micro-deadline.
+STAGE_DELAY_S = float(os.environ.get("FAKE_SCENE_STAGE_DELAY_S", "0") or 0)
 
 
 def _stable_offset(path: str, index: int) -> list:
@@ -111,6 +124,8 @@ class FakeSceneBackend:
         }
 
     def stage(self, *, stage: str, dep_keys: list, version_hash: str) -> bytes:
+        if STAGE_DELAY_S:
+            time.sleep(STAGE_DELAY_S)
         entries = self._document.get("entries", {})
         doc = {
             "engine": "fake-resident",

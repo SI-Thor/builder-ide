@@ -88,6 +88,7 @@ class ResidentEngine:
         python: str | None = None,
         policy: ResidentPolicy | None = None,
         worker: Path | str | None = None,
+        env: dict[str, str] | None = None,
         log_name: str = "resident.log",
     ) -> None:
         self._pin = pin
@@ -95,6 +96,7 @@ class ResidentEngine:
         self.root.mkdir(parents=True, exist_ok=True)
         self.backend = backend
         self._python = python or "python3"
+        self._env = env
         self._policy = policy or ResidentPolicy()
         self._log_path = self.root / log_name
         self._journal = SceneJournal(self.root).open()
@@ -354,12 +356,16 @@ class ResidentEngine:
             root=self.root,
             log_path=self._log_path,
             pin=self._pin.model_dump(mode="json"),
+            env=self._env,
         )
         self._process.start(timeout_s=self._policy.start_timeout_s)
         self._resident_started_at = time.monotonic()
         self._last_health_check = time.monotonic()
+        # describe is part of coming up, not a request: it sits under the
+        # start timeout, so a tight request deadline cannot kill a resident
+        # that is still introducing itself
         described = self._process.call(
-            "describe", {}, timeout_s=self._policy.request_timeout_s
+            "describe", {}, timeout_s=self._policy.start_timeout_s
         )
         self._check_reported_pin(described)
         capabilities = described.get("capabilities") or {}
@@ -441,6 +447,7 @@ class ResidentEngine:
 
         ops = diff_recipes(self._resident_recipe, recipe)
         if not ops:
+            self._last_sync_applied_ops = False  # the scene did not move
             self._after_sync(0)
             return
         wire_ops = [op.model_dump(mode="json") for op in ops]
