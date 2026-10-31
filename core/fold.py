@@ -252,6 +252,14 @@ def _h_assumption(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> None:
 
 def _h_prediction_sealed(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> None:
     doc = dict(ev.payload.get("prediction", {}))
+    if not doc and ev.payload.get("sealed_payload"):
+        # The vocabulary seat's own sealer (the melt's policy writes through
+        # it) spells the sealed fields flat — §4's third dialect; one log,
+        # both spellings at the read site.
+        doc = dict(ev.payload["sealed_payload"])
+        doc.setdefault("id", ev.payload.get("prediction_id") or ev.subject_id)
+        doc.setdefault("seal_hash", ev.payload.get("seal_hash"))
+        doc.setdefault("namespace", ev.payload.get("namespace"))
     pr_id = doc.get("id") or ev.subject_id
     doc.setdefault("id", pr_id)
     rows.put("predictions", {"id": pr_id}, {
