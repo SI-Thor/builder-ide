@@ -160,7 +160,7 @@ class ReportBuilder:
         decision_types = ["question.answered", "wo.kept", "wo.rejected"]
         decisions = sum(
             1 for e in self.store.events_since(0, types=decision_types)
-            if e.actor.get("kind") == "owner"
+            if e.actor.kind == "owner"
         )
         return {
             "line": f"{gpu_h} h of your Thor · {hosted} · "

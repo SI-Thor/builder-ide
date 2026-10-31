@@ -52,7 +52,7 @@ class CallService:
                 {"reason": "kid actor class cannot submit free text (§4.1)",
                  "utterance_present": True},
             )
-            self.store.append(ev)
+            self.store.append_refused(ev)
             raise Refused(
                 "kid actors cannot submit free text — the privacy rule is structure, "
                 "not policy (§4.1); chips only")
@@ -80,8 +80,7 @@ class CallService:
         if row is not None:
             head = row["payload"].get("head", "")
             # referents resolved through the node registry at the branch head
-            v.referents = [r.model_dump(mode="json") for r in
-                           self.core.registry.resolve(branch, v.selection)]
+            v.referents = list(self.core.registry.resolve(branch, v.selection))
         packet = ContextPacket(
             id=new_id("packet"), actor=actor.id, view=v,
             history=self._history(), project=self._project_state(branch, head),
@@ -92,7 +91,7 @@ class CallService:
 
     def _history(self) -> History:
         changes = [
-            {"ver": e.payload.get("id", e.subject_id), "actor": e.actor.get("id", ""),
+            {"ver": e.payload.get("id", e.subject_id), "actor": e.actor.id,
              "line": e.payload.get("note", "recipe change")}
             for e in self.store.events_since(0, types=["version.committed"])[-10:]
         ]
@@ -232,11 +231,11 @@ class CallService:
         selection = packet.view.selection
         if not selection:
             return []
-        referents = {r["node_id"]: r for r in packet.view.referents}
+        referents = {r.node_id: r for r in packet.view.referents}
         groups: dict[str, list[str]] = {}
         for nid in selection:
             ref = referents.get(nid)
-            region = (ref.get("entry_path", "").split(".")[0] if ref else "") or \
+            region = (ref.entry_path.split(".")[0] if ref else "") or \
                 (packet.view.region or "")
             groups.setdefault(region, []).append(nid)
         if len(groups) <= 1:
@@ -253,7 +252,7 @@ class CallService:
         first = nodes[0]
         ref = referents.get(first)
         if ref:
-            return f"the {ref.get('entry_path', first).split('.')[-1]} ({first})"
+            return f"the {ref.entry_path.split('.')[-1]} ({first})"
         return f"the selection starting at {first}"
 
     def _ambiguity_question(self, candidates: list[dict]) -> str:

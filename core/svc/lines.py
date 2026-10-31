@@ -40,7 +40,7 @@ class LinesService:
         cutoff = (_parse(now_utc()) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%S")
         recent = [
             e for e in self.store.events_since(0, types=["line.spoken"])
-            if e.actor.get("id") == builder and e.at >= cutoff and not e.refused
+            if e.actor.id == builder and e.at >= cutoff and not e.refused
         ]
         if kind == "narration":
             narrations = [e for e in recent
@@ -54,7 +54,7 @@ class LinesService:
         else:  # interruption
             interruptions = [
                 e for e in self.store.events_since(0, types=["line.spoken"])
-                if e.actor.get("id") == builder
+                if e.actor.id == builder
                 and e.payload.get("kind") == "interruption" and not e.refused
             ]
             if interruptions:

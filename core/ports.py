@@ -55,8 +55,11 @@ class ProjectionNodeRegistry:
             if row is None:
                 continue
             p = row.get("payload", {})
-            out.append(NodeRef(**{k: p.get(k) for k in
-                                  ("node_id", "entry_path", "kind", "assets", "part")}))
+            # absent fields take the model's defaults; a node the compiler
+            # published without an assets list is still a node
+            out.append(NodeRef(**{k: p[k] for k in
+                                  ("node_id", "entry_path", "kind", "assets", "part")
+                                  if p.get(k) is not None}))
         return out
 
     def nodes_for_branch(self, branch: str) -> list[NodeRef]:

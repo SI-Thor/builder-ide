@@ -107,6 +107,29 @@ def require(*classes: str):
     return dependency
 
 
+def require_adult_owner():
+    """Owner class, and not a kid actor (§7.15).
+
+    Magnus's authority is enumerated, not implied: chips in, free text
+    refused structurally, preview-keeps and question-answers are his, branch
+    applies are proposals pending the owner's confirm. The doors that belong
+    to the adult owner alone — confirming a draft into a build, running a
+    night, erasing or ratifying taste — are closed to him in code, not by
+    policy.
+    """
+    async def dependency(principal: Principal = Depends(current_principal)) -> Principal:
+        check_class(principal, frozenset({OWNER}))
+        if principal.kid:
+            raise Forbidden(
+                "this door is the adult owner's: a kid actor's authority is "
+                "structural (§7.15) — chips, preview-keeps, question-answers, "
+                "and branch proposals are his",
+                token_class=principal.token_class, actor=principal.actor)
+        return principal
+
+    return dependency
+
+
 def check_class(principal: Principal, classes: frozenset[str]) -> Principal:
     if principal.token_class not in classes:
         raise Forbidden(

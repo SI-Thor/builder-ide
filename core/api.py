@@ -36,7 +36,15 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, Str
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__
-from .auth import CHARACTER, OWNER, PANEL, Principal, current_principal, require
+from .auth import (
+    CHARACTER,
+    OWNER,
+    PANEL,
+    Principal,
+    current_principal,
+    require,
+    require_adult_owner,
+)
 from .boot import Boot
 from .canon import canonical_json
 from .config import Settings, default_settings
@@ -185,9 +193,10 @@ class ApplyBranchBody(BaseModel):
 class AssetBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    id: str | None = None
     kind: Literal["mesh", "texture", "material", "cad_part", "motion_clip", "audio"]
     files: list[dict] = Field(default_factory=list)
-    provenance: dict = Field(default_factory=dict)
+    provenance: dict
     licence: dict
     critic: dict | None = None
 
@@ -294,7 +303,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
             if isinstance(raw, dict) and "utterance" in raw:
                 # The privacy rule is structure, not policy (§4.1): the field
                 # is not in a kid's schema, and the refusal is audited.
-                core.store.append(core.store.new_event(
+                core.store.append_refused(core.store.new_event(
                     "call.refused", actor_for(principal),
                     {"entity_kind": "call", "entity_id": principal.actor},
                     {"reason": "kid actor class cannot submit free text (§4.1)",
@@ -338,7 +347,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
 
     @app.post("/v1/work-orders/{wo_id}/confirm", tags=["work-orders"])
     def confirm_work_order(wo_id: str, body: ConfirmBody,
-                           principal: Principal = Depends(require(OWNER)),
+                           principal: Principal = Depends(require_adult_owner()),
                            idem_key: str | None = Header(default=None, alias="Idempotency-Key")):
         """``go`` | ``no`` | ``edit``. The confirm carries both price lines."""
         return WorkOrdersService(core).confirm(
@@ -427,7 +436,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
 
     @app.post("/v1/night", tags=["night"])
     def start_night(body: NightBody,
-                    principal: Principal = Depends(require(OWNER)),
+                    principal: Principal = Depends(require_adult_owner()),
                     idem_key: str | None = Header(default=None, alias="Idempotency-Key")):
         """Start the night (slate → queue). The response carries the
         pre-flight line: the pre-flight proposes, the owner decides (§3.2.2)."""
@@ -441,7 +450,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
 
     @app.post("/v1/night/{night_id}/stop", tags=["night"])
     def stop_night(night_id: str, body: StopBody,
-                   principal: Principal = Depends(require(OWNER)),
+                   principal: Principal = Depends(require_adult_owner()),
                    idem_key: str | None = Header(default=None, alias="Idempotency-Key")):
         """The kill switch: stop all, commit branches, write the report now."""
         return NightsService(core, settings).stop(
@@ -610,7 +619,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
 
     @app.post("/v1/ledger/taste/erase", tags=["taste"])
     def erase_taste(body: TasteAuthorBody,
-                    principal: Principal = Depends(require(OWNER)),
+                    principal: Principal = Depends(require_adult_owner()),
                     idem_key: str | None = Header(default=None, alias="Idempotency-Key")):
         """One-action erase: redaction plus the compensating event, in ONE
         transaction (§1.7, §7.16)."""
@@ -621,7 +630,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
 
     @app.post("/v1/ledger/taste/ratify", tags=["taste"])
     def ratify_taste(body: TasteAuthorBody,
-                     principal: Principal = Depends(require(OWNER)),
+                     principal: Principal = Depends(require_adult_owner()),
                      idem_key: str | None = Header(default=None, alias="Idempotency-Key")):
         """Ratify a kid actor's keeps — asked once, in the report, in one line."""
         return TasteService(core).ratify(
@@ -652,8 +661,12 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
                      principal: Principal = Depends(require(OWNER, PANEL))):
         """Register an asset. A re-run with a different model is labelled
         "reinterpreted", never silently swapped."""
+        from .canon import new_id
+
+        raw = body.model_dump()
+        raw["id"] = raw.get("id") or new_id("asset")
         try:
-            asset = Asset(**body.model_dump())
+            asset = Asset(**raw)
         except Exception as exc:
             raise ValidationError(f"asset is not schema-valid: {exc}") from exc
         ev = core.store.new_event(

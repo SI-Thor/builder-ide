@@ -110,6 +110,12 @@ class PredictionsService:
                                    owner_verdict: str) -> list[str]:
         """The owner's keep/apply/reject is the ONLY event that scores a
         taste_keep prediction (§1.7) — a critic keep does not."""
+        # §1.7: a kid actor's keeps are pending_ratification and INERT until
+        # the owner ratifies them. An unratified decision must not resolve a
+        # builder's sealed bet — that is the taste model's contract, and it is
+        # the owner's to settle.
+        if owner.id in self.store.kid_actors and not self._author_ratified(owner.id):
+            return []
         mapping = {"keep": "hit", "keep_with_caveat": "partial", "reject": "miss",
                    "apply": "hit"}
         verdict = mapping.get(owner_verdict)
@@ -133,6 +139,11 @@ class PredictionsService:
         return self.score(pr_id, critic_verdict, core_actor())
 
     # ------------------------------------------------------------- gates
+
+    def _author_ratified(self, author: str) -> bool:
+        """Has the owner ratified this author's taste rows (§1.7)?"""
+        row = self.store.get_row("taste_authors", {"author": author})
+        return bool(row and row.get("ratified"))
 
     def observations_for(self, builder: str, claim_type: str) -> int:
         n = 0
@@ -181,7 +192,9 @@ class PredictionsService:
                 "builder": b, "claim_type": ct,
                 "sealed": len(docs), "scored": len(scored),
                 "hits": hits, "misses": misses, "partials": partials,
-                "denominator": len(scored),
+                # the denominator is the population of sealed predictions for
+                # this builder × claim_type — never a lone score (X C2)
+                "denominator": len(docs),
                 "recency_weighted": recency,
                 "line": self._tally_line(b, ct, len(scored), hits, len(docs)),
             })
