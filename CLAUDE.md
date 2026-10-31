@@ -61,8 +61,10 @@ works.
   open-source generators the research picked may be installed and run on the
   Thor, each in its own venv, with its licence checked first: ComfyUI +
   TRELLIS.2 first, then TripoSR, build123d/CadQuery, ACE-Step and MoMask.
-  Infinigen was approved before. Any other third-party project from GitHub
-  still needs his OK.
+  Infinigen was approved before. Also approved (2026-10-31): our crew's
+  quilt-pincher, KTX-Software (`toktx`), and the open-source builds the seats
+  listed in their reports. Any other third-party project from GitHub still
+  needs his OK.
 - **No LLMs on the Thor** (Casey, B2, 2026-10-31). Language comes from cloud
   subscriptions (z.ai, MiniMax, Claude, others), each a parameter priced per
   call. The Thor is for motion as virtual robotics, visual assets, world models
