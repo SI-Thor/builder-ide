@@ -26,6 +26,12 @@ from typing import Sequence
 
 from core.night.clock import ScriptedClock
 from core.night.executor import ScriptedExecutor, ScriptedTask
+from core.night.iterate import (
+    CriticScore,
+    ScriptedCritic,
+    ScriptedVariantSource,
+    Variant,
+)
 from core.night.ledger import InMemoryLedger, Ledger
 from core.night.models import Actor, AuditEvent, Rail, Task
 from core.night.report import NightReport, build_report, render_html, render_text
@@ -40,6 +46,9 @@ __all__ = [
     "degraded_night",
     "did_not_run_night",
     "failures_night",
+    "iteration_night",
+    "iteration_rail_cut_night",
+    "iteration_stalled_night",
     "rail_cut_night",
     "reboot_night",
     "the_four_mornings",
@@ -357,6 +366,110 @@ def the_four_mornings() -> list[SimulatedNight]:
     return [clean_night(), failures_night(), degraded_night(), did_not_run_night("off")]
 
 
+# -- the iterator's mornings ------------------------------------------------
+
+#: The variants the night may try for a goal: three seeds, then two refined
+#: from the winner, then one more.
+_VARIANTS = {
+    1: [
+        Variant(id="v1", label="seed 1024"),
+        Variant(id="v2", label="seed 2048"),
+        Variant(id="v3", label="seed 4096"),
+    ],
+    2: [
+        Variant(id="w1", label="refined a"),
+        Variant(id="w2", label="refined b"),
+    ],
+    3: [Variant(id="x1", label="refined c")],
+}
+
+
+def _critic(scores: dict[str, float]) -> ScriptedCritic:
+    """The scripted critic: a score per variant, and a reason with it."""
+    return ScriptedCritic(
+        {
+            "task_0001": {
+                variant_id: CriticScore(
+                    score=score, reason=f"the critic scored it {score:.2f}"
+                )
+                for variant_id, score in scores.items()
+            }
+        }
+    )
+
+
+def _iterating_night(
+    name: str,
+    scores: dict[str, float],
+    rails: Rail = RAILS,
+) -> SimulatedNight:
+    """A night whose one task goes round the loop."""
+    ledger = InMemoryLedger()
+    executor = ScriptedExecutor(
+        {"task_0001": ScriptedTask(gpu_minutes=30.0, wall_minutes=45.0)}
+    )
+    runner = NightRunner(
+        ledger,
+        executor,
+        night_id=NIGHT_ID,
+        rails=rails,
+        clock=ScriptedClock(NIGHT_START),
+        variant_source=ScriptedVariantSource({"task_0001": _VARIANTS}),
+        critic=_critic(scores),
+    )
+    runner.start([_task("task_0001", "Weather the harbour crates", 30.0, 45.0)])
+    runner.run()
+    runner.stop()
+    return _finish(name, ledger)
+
+
+def iteration_night() -> SimulatedNight:
+    """The loop found a better variant than the first try — and says so.
+
+    The first try scored 0.42; by the third round the loop had something
+    worth 0.78. The morning names the winner, the round it came from, and
+    everything it beat.
+    """
+    return _iterating_night(
+        "iteration",
+        {
+            "v1": 0.42,
+            "v2": 0.55,
+            "v3": 0.50,
+            "w1": 0.71,
+            "w2": 0.60,
+            "x1": 0.78,
+        },
+    )
+
+
+def iteration_rail_cut_night() -> SimulatedNight:
+    """The bar cut the loop short after the first round.
+
+    Three variants at 30 lane-min each took the night to 90% of a
+    100 lane-min rail, so the 80% bar stopped the night opening another
+    round. The work it did keep is kept; the morning says the loop was cut.
+    """
+    return _iterating_night(
+        "iteration (rail cut)",
+        {"v1": 0.42, "v2": 0.71, "v3": 0.50},
+        rails=Rail(gpu_minutes=100.0, hosted_cents=0, wall_minutes=560.0),
+    )
+
+
+def iteration_stalled_night() -> SimulatedNight:
+    """The score stopped improving, so the loop stopped early.
+
+    The second round was no better than the first, so the gain fell below ε
+    and the night stopped opening rounds. That is the loop working, not the
+    night failing.
+    """
+    return _iterating_night(
+        "iteration (stalled)",
+        {"v1": 0.55, "v2": 0.42, "v3": 0.50, "w1": 0.55, "w2": 0.40},
+    )
+
+
 def all_mornings() -> list[SimulatedNight]:
     """Every morning the product can wake up to."""
     return [
@@ -369,4 +482,7 @@ def all_mornings() -> list[SimulatedNight]:
         did_not_run_night("busy"),
         did_not_run_night("no plan"),
         did_not_run_night("unknown"),
+        iteration_night(),
+        iteration_rail_cut_night(),
+        iteration_stalled_night(),
     ]

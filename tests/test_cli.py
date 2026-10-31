@@ -26,3 +26,13 @@ def test_the_cli_lists_the_scenarios_it_knows(capsys):
     printed = capsys.readouterr().out
     assert "clean" in printed
     assert "reboot" in printed
+
+
+def test_the_cli_writes_an_iterating_morning_too(tmp_path):
+    assert main(["--scenario", "iteration", "--out", str(tmp_path)]) == 0
+    assert "refined c" in (tmp_path / "report.txt").read_text()
+
+
+def test_the_cli_writes_the_rail_cut_loop_too(tmp_path):
+    assert main(["--scenario", "iteration-rail-cut", "--out", str(tmp_path)]) == 0
+    assert "bar stopped the loop" in (tmp_path / "report.txt").read_text()

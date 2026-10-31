@@ -637,6 +637,11 @@ def _hours(minutes: float) -> str:
     return f"{int(hours)} h {int(round((hours - int(hours)) * 60)):02d} m"
 
 
+def _plural(count: int, word: str) -> str:
+    """``1 variant``, ``3 variants`` — the count and the word agree."""
+    return f"{count} {word}" if count == 1 else f"{count} {word}s"
+
+
 def render_html(report: NightReport) -> str:
     """The page. Static, self-contained, and in the spec's order."""
     numbers = report.numbers
@@ -948,7 +953,7 @@ def render_text(report: NightReport) -> str:
                 add(f"    it beat the first try by {card.quality_gained:.2f}")
             for row in card.rounds:
                 add(
-                    f"    round {row.round}: {row.variants} variants · best "
+                    f"    round {row.round}: {_plural(row.variants, 'variant')} · best "
                     f"{row.best_score:.2f} · gained {row.gain:.2f} · "
                     f"{row.gpu_minutes:.0f} lane-min"
                 )

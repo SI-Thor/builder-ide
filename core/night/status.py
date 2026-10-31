@@ -89,6 +89,19 @@ def compute_status(
         count = len(failures)
         first = failures[0].get("reason", "no reason recorded")
         short_clauses.append(f"{count} task{'s' if count > 1 else ''} failed: {first}")
+    rail_cuts = [
+        stop for stop in projection.task_stops.values() if stop.get("reason") == "rail"
+    ]
+    if rail_cuts:
+        # The bar stopped a loop short: the night did not do everything it
+        # meant to, and the morning says so rather than calling it a plan.
+        bar = projection.threshold_pct or 80
+        last_round = rail_cuts[0].get("round")
+        where = f" after round {last_round}" if last_round else ""
+        short_clauses.append(
+            f"the {bar}% bar cut {len(rail_cuts)} iteration "
+            f"loop{'s' if len(rail_cuts) != 1 else ''} short{where}"
+        )
     if lost > 0:
         short_clauses.append(f"{lost:.0f} min lost to a reboot")
     if short_clauses:

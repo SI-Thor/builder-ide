@@ -12,11 +12,19 @@ than four because the plan's own four (power cut / foreign job / never
 detached / no plan) are not the same four as the brief's (clean / failures /
 cut short by the rail / reboot). Between them they cover every morning the
 product can wake up to.
+
+The **iterator loop** added three more: a night where iteration found a
+better variant than the first try, a night where the bar cut the loop short,
+and a night where the loop stopped early because nothing was improving.
+They are in the suite, so they get the same three checks as every other
+morning — and the winner on the page has to be a variant the log holds.
 """
 
 from __future__ import annotations
 
 import re
+
+import pytest
 
 from core.night.nights import (
     all_mornings,
@@ -130,6 +138,40 @@ def test_no_morning_fabricates_work():
                 failure.artifact == logged.get("artifact")
                 for logged in projection.failures
             ), night.name
+
+
+def test_the_suite_covers_the_iteration_mornings():
+    names = {night.name for night in all_mornings()}
+    assert {"iteration", "iteration (rail cut)", "iteration (stalled)"} <= names
+
+
+def test_no_morning_fabricates_a_winner():
+    """A winner on the page must be a variant the log holds, at its score."""
+    for night in all_mornings():
+        projection = NightProjection(night.events)
+        for card in night.report.iterations:
+            attempts = projection.attempts_for(card.task_id)
+            assert attempts, night.name
+            winner = next(
+                attempt
+                for attempt in attempts
+                if attempt.variant_id == card.winner.variant_id
+            )
+            assert winner.score == card.winner.score, night.name
+            for runner_up in card.runner_ups:
+                assert any(
+                    attempt.variant_id == runner_up.variant_id for attempt in attempts
+                ), night.name
+
+
+def test_no_morning_fabricates_a_quality_gain():
+    """The quality gained in a round must be the round's own scores."""
+    for night in all_mornings():
+        for card in night.report.iterations:
+            previous = 0.0
+            for row in card.rounds:
+                assert row.gain == pytest.approx(row.best_score - previous), night.name
+                previous = row.best_score
 
 
 def test_the_status_is_computed_from_the_log_not_narrated():

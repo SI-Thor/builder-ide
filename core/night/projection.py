@@ -54,6 +54,8 @@ class NightProjection:
         #: The iterator loop's record, per task: the winner, the rounds and
         #: where the loop stopped.
         self.iterations: dict[str, dict[str, Any]] = {}
+        #: Why each loop stopped, per task.
+        self.task_stops: dict[str, dict[str, Any]] = {}
         #: Every variant attempt, in the order the night made them.
         self.attempts: list[Attempt] = []
         self._job_requests: dict[str, dict[str, Any]] = {}
@@ -121,6 +123,9 @@ class NightProjection:
         # rounds it ran and where it stopped.
         if payload.get("iteration"):
             self.iterations[task.id] = dict(payload["iteration"])
+            stop = payload["iteration"].get("stop")
+            if stop:
+                self.task_stops[task.id] = dict(stop)
 
     def _on_budget_spend(self, event: AuditEvent) -> None:
         payload = event.payload

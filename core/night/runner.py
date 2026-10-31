@@ -597,9 +597,10 @@ class NightRunner:
         }
 
         if winner_actual is not None:
+            beaten = len(attempts) - 1
             reason = (
                 f"the winner scored {winner.score:.2f} ({winner.label}, round {winner.round}) "
-                f"— it beat {len(attempts) - 1} other variant(s)"
+                f"— it beat {beaten} other variant{'s' if beaten != 1 else ''}"
             )
             if stop["reason"] != "rounds exhausted":
                 reason = f"{reason}; {stop['detail']}"

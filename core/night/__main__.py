@@ -20,6 +20,9 @@ from core.night.nights import (
     degraded_night,
     did_not_run_night,
     failures_night,
+    iteration_night,
+    iteration_rail_cut_night,
+    iteration_stalled_night,
     rail_cut_night,
     reboot_night,
 )
@@ -34,6 +37,9 @@ SCENARIOS = {
     "reboot": reboot_night,
     "degraded": degraded_night,
     "did-not-run": did_not_run_night,
+    "iteration": iteration_night,
+    "iteration-rail-cut": iteration_rail_cut_night,
+    "iteration-stalled": iteration_stalled_night,
 }
 
 
