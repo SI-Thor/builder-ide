@@ -15,6 +15,8 @@ from ..canon import night_id as make_night_id, now_utc
 from ..errors import NotFound, Refused
 from ..events import Actor, core_actor
 from ..models import Night, Rail
+from ..night.cost.estimates import owner_estimate
+from ..night.cost.model import get_model
 
 TICK_NOMINAL_SECONDS = 60
 GAP_THRESHOLD_SECONDS = 300  # a dark stretch > 5 min is a heartbeat gap
@@ -47,16 +49,25 @@ class NightsService:
         started_at = now_utc()
         deadline = (_parse(started_at) + timedelta(minutes=detach_after_min)).strftime(
             "%Y-%m-%dT%H:%M:%SZ")
+        # the bar comes from the cost model — the spec's 360 GPU-min / 560
+        # wall-min, in one place, so the code and the document cannot drift.
+        night_rails = rails or get_model().default_night_rails()
         night = Night(
-            id=nid, started_at=started_at, rails=rails or Rail(gpu_minutes=360, wall_minutes=560),
+            id=nid, started_at=started_at, rails=night_rails,
             load_budget=load_budget or {}, power_mode=power_mode,
             batch_start="both", detach_deadline=deadline, state="running",
         )
+        # the owner's two lines, written before the night spends anything: what
+        # tonight will cost, and whether it fits (the morning quotes them back).
+        from .tasks import TasksService
+
+        plan = TasksService(self.core).plan()
+        estimate = owner_estimate(plan, night_rails)
         with self.store.batch():
             ev = self.store.new_event(
                 "night.started", actor, {"entity_kind": "night", "entity_id": nid},
                 {"night": night.model_dump(mode="json"), "rails": night.rails.model_dump(mode="json"),
-                 "detach_deadline": deadline},
+                 "detach_deadline": deadline, "estimate": estimate.as_dict()},
             )
             self.store.append(ev)
             if power_mode:
@@ -67,14 +78,13 @@ class NightsService:
                     {"mode": power_mode, "at": started_at},
                 ))
             # the slate becomes the queue: slated tasks join the night (§3.2)
-            from .tasks import TasksService
-
             TasksService(self.core).attach_slate_to_night(nid)
             preflight = self.preflight(nid, actor)
         return {
             "night": self.get(nid).model_dump(mode="json"),
             "preflight": preflight,
             "preflight_line": preflight["line"],
+            "estimate": estimate.as_dict(),
         }
 
     def preflight(self, night_id: str, actor: Actor) -> dict:

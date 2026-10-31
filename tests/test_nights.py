@@ -125,6 +125,102 @@ def test_an_override_is_held_to_its_own_number_not_to_the_model_s(core):
     assert task.rail.wall_minutes == pytest.approx(45.0)
 
 
+# ------------------------------------------------------------- the slate's two lines
+
+def test_the_slate_shows_the_owner_two_lines(core):
+    """The owner reads what tonight will cost, and whether it fits, before
+    the night starts."""
+    TasksService(core).create(author="casey", intention="weather the harbour crates")
+    slate = TasksService(core).slate()
+    lines = slate["estimate"]["lines"]
+    assert len(lines) == 2
+    assert lines[0].startswith("Tonight: 1 goal")
+    assert "It fits" in lines[1]
+    assert slate["estimate"]["fits"] is True
+
+
+def test_the_slate_shows_where_each_ask_came_from(core):
+    TasksService(core).create(author="casey", intention="weather the harbour crates")
+    row = TasksService(core).slate()["rows"][0]
+    assert row["kind"] == "prop.goal"
+    assert row["ask_source"] == "model"
+    assert row["overridden"] is False
+    assert row["marked"] == "", "a measured price is not an estimate"
+
+
+def test_an_override_is_shown_next_to_the_model_price(core):
+    """The owner sees what the box says the work costs beside the number
+    they filed."""
+    from core.models import Rail
+
+    TasksService(core).create(
+        author="casey", intention="one very large render",
+        cost_estimate=Rail(gpu_minutes=300.0, wall_minutes=45.0),
+    )
+    row = TasksService(core).slate()["rows"][0]
+    assert row["overridden"] is True
+    assert row["marked"] == "[e]", "every estimate is marked until it is measured"
+    assert row["ask"]["gpu_minutes"] == pytest.approx(300.0)
+    assert row["model_ask"]["gpu_minutes"] < 300.0
+
+
+def test_a_slate_that_does_not_fit_names_the_cut(core):
+    from core.models import Rail
+
+    TasksService(core).create(
+        author="casey", intention="the impossible render",
+        cost_estimate=Rail(gpu_minutes=900.0, wall_minutes=900.0),
+    )
+    slate = TasksService(core).slate()
+    assert slate["estimate"]["fits"] is False
+    assert "It does not fit" in slate["estimate"]["line_two"]
+    assert slate["estimate"]["cut"], "the cut is named"
+
+
+def test_a_slate_that_does_not_fit_is_refused_with_the_cut_named(core, nights):
+    """The refusal happens before the night spends anything, and it names the
+    goal that falls off the end."""
+    from core.errors import Refused
+    from core.models import Rail
+
+    started = nights.start(core_actor())
+    nid = started["night"]["id"]
+    TasksService(core).create(
+        author="casey", intention="the impossible render",
+        cost_estimate=Rail(gpu_minutes=900.0, wall_minutes=900.0),
+    )
+    with pytest.raises(Refused) as caught:
+        TasksService(core).attach_slate_to_night(nid)
+    assert "does not fit" in str(caught.value)
+    assert "the impossible render" in str(caught.value)
+    # and nothing was cut silently: the goal is still on the slate
+    assert [t.intention for t in TasksService(core).slated_tasks()] == [
+        "the impossible render"]
+
+
+def test_a_night_that_does_not_fit_is_not_started(core, nights):
+    from core.errors import Refused
+    from core.models import Rail
+
+    TasksService(core).create(
+        author="casey", intention="the impossible render",
+        cost_estimate=Rail(gpu_minutes=900.0, wall_minutes=900.0),
+    )
+    with pytest.raises(Refused):
+        nights.start(core_actor())
+    assert [n for n in core.store.scan("nights") if n.get("state") == "running"] == []
+
+
+def test_the_night_start_writes_the_two_lines_into_the_log(core, nights):
+    """The morning quotes the two lines the owner read this evening."""
+    TasksService(core).create(author="casey", intention="weather the harbour crates")
+    started = nights.start(core_actor())
+    assert len(started["estimate"]["lines"]) == 2
+    events = core.store.events_since(0, types=["night.started"])
+    payload = events[-1].payload
+    assert payload["estimate"]["lines"][0].startswith("Tonight: 1 goal")
+
+
 # ------------------------------------------------------------- the status line
 
 def test_a_night_with_no_heartbeats_did_not_run(core, nights):

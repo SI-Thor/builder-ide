@@ -7,6 +7,7 @@ from __future__ import annotations
 from ..errors import NotFound, Refused
 from ..events import Actor, core_actor
 from ..models import Rail
+from ..night.cost.model import get_model
 
 THRESHOLDS = (80, 95, 100)
 DEFAULT_LOADS_PER_NIGHT = 1
@@ -23,7 +24,9 @@ class BudgetService:
             if not running:
                 nights = self.store.scan("nights")
                 if not nights:
-                    return {"night": None, "rails": Rail(gpu_minutes=360, wall_minutes=560).model_dump(),
+                    # no night has run: the bar is the model's own default —
+                    # the spec's 360 GPU-min / 560 wall-min, from one place.
+                    return {"night": None, "rails": get_model().default_night_rails().model_dump(),
                             "spend": {}, "remaining": {}, "bar": "no night", "loads": {},
                             "load_budget": {}, "thresholds": {}}
                 night = sorted(nights, key=lambda n: n["payload"].get("started_at", ""))[-1]["id"]

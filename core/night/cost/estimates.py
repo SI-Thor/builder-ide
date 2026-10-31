@@ -50,6 +50,11 @@ class OwnerEstimate(BaseModel):
         """The two lines, as a list."""
         return [self.line_one, self.line_two]
 
+    def as_dict(self) -> dict:
+        """The estimate as the API and the log carry it: the two lines and the
+        numbers behind them."""
+        return {"lines": self.lines(), **self.model_dump(mode="json")}
+
     def as_text(self) -> str:
         """The two lines, as one block of text."""
         return "\n".join(self.lines())
