@@ -157,6 +157,7 @@ seat you work from.
 | [Warp mesher SDF](docs/lab/exp-warp-mesher-sdf.md) | **Breakthrough** on the SDF half: live re-meshing is answered |
 | [Critic in a CUDA Graph](docs/lab/exp-critic-cuda-graph.md) | Verdicts in milliseconds, bit-exact |
 | [Skill switch](docs/lab/exp-skill-switch.md) | Switching skills can be nearly free: swap the weights, not the metadata |
+| [Solver batch](docs/lab/exp-solver-batch.md) | **Killed by its own gate**: batching the Architect's proposals and accepting the best changes the annealer's output distribution (KS p ≤ 0.002 at N ≥ 64) and is slower (invalid applies burn the batch); the patch ships as an inert knob |
 | [IDEAS.md](docs/lab/IDEAS.md) | The mined candidates, what's next, and the killed-by-fact list |
 
 ## The code
@@ -197,7 +198,10 @@ Branches are pushed as the agents work and reviewed before they merge into
 
 - **The critic's selection** (week 3, item 18), starting from the calibration table; floating objects are the open class.
 - **FP8 for real**: making the generator's fused FP8 path actually run, and pricing the prop stage right.
-- **Lab round 5**: batching the Architect's solver proposals on the GPU.
+- **FP4 for real** (`lab-fp4`): a fast FP4 path on sm_110 (cuBLASLt, CUTLASS, our own kernel), then our own FP4 decision models.
+- **The precision cascade** (`lab-cascade`): Liquid d1 at Q4/Q8/BF16 plus Jev, with decision models cleaning up small and low-precision models, big models calibrating small ones, and a cloud improver on the loop.
+- **Tiles** (B2): the scripts-as-tiles library, play records and the first decision model.
+- **thor-world** ([SI-Thor/thor-world](https://github.com/SI-Thor/thor-world)): the MCP server and the Thor-native world stream and viewer.
 - **An overnight Infinigen scene sweep** on the Thor for the scheduler's timings and the calibration set.
 
 ## Machines

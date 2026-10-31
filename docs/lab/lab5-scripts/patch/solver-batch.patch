@@ -1,0 +1,140 @@
+--- a/src/infinigen/core/constraints/example_solver/annealing.py
++++ b/src/infinigen/core/constraints/example_solver/annealing.py
+@@ -22,7 +22,7 @@
+ from infinigen.core.constraints.evaluator import eval_memo, evaluate
+ from infinigen.core.util import blender as butil
+ 
+-from .moves import Move
++from .moves import Deletion, Move, RotateMove, TranslateMove
+ from .state_def import State
+ 
+ logger = logging.getLogger(__name__)
+@@ -38,6 +38,8 @@
+         initial_temp,
+         final_temp,
+         finetune_pct,
++        batch_size=1,
++        batch_mode="best",
+         checkpoint_best=False,
+         output_folder=None,
+         visualize=False,
+@@ -49,6 +51,18 @@
+         self.max_invalid_candidates = max_invalid_candidates
+         self.finetune_pct = finetune_pct
+ 
++        # Batched proposals: how many candidates one annealing step draws,
++        # scores (apply -> evaluate -> revert each), then picks one from —
++        # "best" (fewest violations, then lowest loss), "sample" (Boltzmann
++        # over the scored set at the current temperature) or "uniform" (a
++        # control whose proposal kernel matches batch_size=1). The
++        # accept/reject decision stays sequential and unchanged (step()).
++        # batch_size=1 short-circuits to the original single-candidate path,
++        # so the default is behavior-identical to before this patch.
++        self.batch_size = batch_size
++        assert batch_mode in ("best", "sample", "uniform"), batch_mode
++        self.batch_mode = batch_mode
++
+         self.print_report_freq = print_report_freq
+         self.print_breakdown_freq = print_breakdown_freq
+ 
+@@ -193,6 +207,11 @@
+         temp: float,
+         filter_domain: "r.Domain",
+     ) -> typing.Tuple["Move", "evaluate.EvalResult", int]:
++        if self.batch_size > 1:
++            return self.retry_attempt_proposals_batched(
++                propose_func, consgraph, state, temp, filter_domain
++            )
++
+         move_gen = propose_func(consgraph, state, filter_domain, temp)
+ 
+         move = None
+@@ -219,6 +238,88 @@
+ 
+         return move, None, retry
+ 
++    def retry_attempt_proposals_batched(
++        self,
++        propose_func: typing.Callable,
++        consgraph: "cl.Node",
++        state: "State",
++        temp: float,
++        filter_domain: "r.Domain",
++    ) -> typing.Tuple["Move", "evaluate.EvalResult", int]:
++        """Score `batch_size` candidate moves per step, hand `step()` one.
++
++        The proposal *distribution* per candidate is unchanged — candidates
++        are drawn from the same generator the single-candidate path uses —
++        but the step now sees N of them and picks per `batch_mode`. Moves
++        whose apply() is stochastic (Addition, Resample, ReinitPose,
++        RelationPlaneChange sample a placeholder/pose inside apply) cannot be
++        re-applied bit-identically after the scoring loop's revert, so the
++        picked candidate of those kinds is re-applied and re-evaluated, and
++        the fresh realization is what the annealer judges; deterministic
++        moves (Translate/Rotate/Deletion) reuse their cached score.
++
++        NOTE (measured on Jetson Thor, see lab5): best-of-N *does* shift the
++        annealer's output distribution (it is a greedier kernel); "sample"
++        and "uniform" do not detectably. The scoring loop is also where a
++        batched GPU scorer slots in — replace the per-candidate
++        apply/evaluate/revert with a kernel that scores N hypothetical poses
++        against static scene geometry.
++        """
++        N = self.batch_size
++        move_gen = propose_func(consgraph, state, filter_domain, temp)
++
++        scored = []
++        n_invalid = 0
++        # each wanted candidate gets the same invalid-apply allowance a
++        # single-candidate step has
++        invalid_budget = N * max(1, self.max_invalid_candidates)
++        last_move = None
++
++        for move in move_gen:
++            if len(scored) >= N or n_invalid >= invalid_budget:
++                break
++
++            if move.apply(state):
++                eval_memo.evict_memo_for_move(consgraph, state, self.eval_memo, move)
++                result = self._move(consgraph, state, move, filter_domain)
++                scored.append((move, result))
++                # restore the state for the next candidate
++                eval_memo.evict_memo_for_move(consgraph, state, self.eval_memo, move)
++                move.revert(state)
++            else:
++                eval_memo.evict_memo_for_move(consgraph, state, self.eval_memo, move)
++                move.revert(state)
++                n_invalid += 1
++            last_move = move
++
++        if not scored:
++            return last_move, None, n_invalid
++
++        if self.batch_mode == "best":
++            j = min(
++                range(len(scored)),
++                key=lambda i: (scored[i][1].viol_count(), scored[i][1].loss()),
++            )
++        elif self.batch_mode == "sample":
++            losses = np.array([res.loss() for _, res in scored])
++            w = np.exp(-(losses - losses.min()) / max(temp, 1e-12))
++            j = (
++                int(np.argmin(losses))
++                if not np.isfinite(w).all() or w.sum() <= 0
++                else int(np.random.choice(len(scored), p=w / w.sum()))
++            )
++        else:  # uniform
++            j = int(np.random.randint(len(scored)))
++
++        move, result = scored[j]
++        if not move.apply(state):
++            move.revert(state)
++            return move, None, n_invalid
++        eval_memo.evict_memo_for_move(consgraph, state, self.eval_memo, move)
++        if isinstance(move, (TranslateMove, RotateMove, Deletion)):
++            return move, result, n_invalid  # deterministic: cached score is exact
++        return move, self._move(consgraph, state, move, filter_domain), n_invalid
++
+     def curr_temp(self) -> float:
+         temp = self.initial_temp * self.cooling_rate**self.curr_iteration
+         temp = np.clip(temp, self.final_temp, self.initial_temp)
