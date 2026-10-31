@@ -30,9 +30,11 @@ of `p50` (the median run) and `p95` (the bad one). Each band carries its
 | Job kind | What it is | Source | n |
 |---|---|---|---|
 | `prop.image` | one 1024² picture (SDXL base 1.0, 30 steps) | the mini-night's ledger | 9 |
-| `prop.512` | one TRELLIS.2 prop at 512³ — the sampling and the mesh tail | `docs/research/trellis-spike.md` §4.2 | 2 |
+| `prop.512` | one TRELLIS.2 prop at 512³ — **the generator alone**: the sampling and the mesh tail | `docs/research/trellis-spike.md` §4.2 | 2 |
 | `prop.1024` | the same generator at 1024³ | the same two runs | 2 |
 | `prop.night` | one prop as the *night* runs it: image → 3D → measured → judged | the mini-night's ledger | 9 |
+| `prop.night.512` | one prop's **mesh stage** at 512³: the generator, the decode and the mesh tail | the second mini-night's ledger | 9 |
+| `mesh.repair` | the repair stage on one mesh | the second mini-night's repairs | 9 |
 | `prop.text` | the whole text path at 512³ (text → image → 3D) | the trellis spike §8 | 1 |
 | `mesh.measure` | measuring one mesh — topology, winding, volume, area | `measure_critic.py` | 21 |
 | `critic.verdict` | the critic's verdict on one variant | `measure_critic.py` | 21 |
@@ -41,9 +43,34 @@ of `p50` (the median run) and `p95` (the bad one). Each band carries its
 | `rung.3` | the full render (8192 spp, all passes) | `docs/research/spike-phase1.md` §3 | 1 |
 | `infinigen.coarse` / `.fine` / `.render` | the Infinigen stages, **by scene type** | the seed sweep | 4–5 per cell |
 
-Two kinds are **derived** rather than recorded: `prop.goal` (a picture, a
-prop and a verdict, times the goal's depth) and `scene.goal` (coarse, fine,
-render).
+Four kinds are **derived** rather than recorded: `prop.goal` (a picture, a
+prop and a verdict, times the goal's depth), `scene.goal` (coarse, fine,
+render), and the two mesh-stage bands `prop.mesh.512` / `prop.mesh.1024`.
+
+### The mesh stage is the night, not the generator
+
+`prop.mesh.512` is the band the prop seat's schedule prices the mesh stage
+at, and it is **the second mini-night's own measurement of the whole stage**
+— the prompt window (`prop.night.512`), plus the repair (`mesh.repair`) and
+the measuring (`mesh.measure`).
+
+It replaced `prop.512`, the spike's *bare generator*, and the difference
+matters: the generator is the three KSamplers, while the night's mesh stage
+also carries the decode stages, the mesh tail, the repair and the measuring.
+The second night's ledger says the GPU lane of the stage is **3.4x** the
+generator's, so pricing the stage at the generator's band sold the night's
+rail three times too cheap. The regression test in
+`tests/genbatch/test_schedule.py` holds the schedule to the night's number.
+
+The 1024³ band is derived: the 512³ band plus the generator's own measured
+resolution scaling (`prop.1024` − `prop.512`). The night's *other* work is
+assumed not to scale, which is generous — the spike's per-node table shows
+the decode stages do scale (4–5x) — so the 1024³ GPU lane is a **lower
+bound**, and the band says so.
+
+Both nights' GPU lanes were measured on a box shared with the seed sweep, so
+they read high against a quiet box; the spike's quiet numbers read low
+against a busy one. The bands are what the box actually did.
 
 ## The price: a kind as a task carries it
 
@@ -79,9 +106,11 @@ override cannot smuggle work past the ceiling it is measured against.
 ## The numbers this package found
 
 * **The mini-night costs what the model says it costs.** Three props, three
-  seeds each: the model prices the night at 8.3 GPU-minutes and 23.5 wall
-  minutes; the mini-night's own ledger records **9.156** and **24.640**. The
-  model is within 10 % of the night that actually ran.
+  seeds each: the model prices the night at 10.3 GPU-minutes and 30.0 wall
+  minutes; the second mini-night's own ledger records **9.421** and
+  **30.129**. The model is within a tenth of the night that actually ran.
+  The first mini-night's ledger records 9.156 and 24.640 — the same work,
+  measured on a quieter box, and the model's band sits between the two.
 * **The critic's verdict is free.** ~21 microseconds. The mesh *measurement*
   it reads is ~0.28 s — 13 000 times the verdict itself.
 * **The spec's "about a minute" for rung 2 is the measured number** (63 s),
@@ -89,6 +118,10 @@ override cannot smuggle work past the ceiling it is measured against.
 * **The mesh tail does not scale with resolution.** 512³ → 1024³ quadruples
   the GPU sampling (16.1 s → 65.9 s) and leaves the CPU tail alone
   (83.9 s → 91.3 s). The tail is ~80 s per prop, always.
+* **The night's mesh stage is 3.4x the bare generator** (54.9 s of GPU lane
+  against 16.1 s), because the night's job also carries the decode stages,
+  the repair and the measuring. Pricing the stage at the generator's band
+  sold the night's rail three times too cheap.
 
 ## The units
 
@@ -193,9 +226,14 @@ so a percentile that quietly became a median fails the suite.
 .venv/bin/python -m core.night.cost.measure_critic \
     --repeats 7 > core/night/cost/data/critic_verdict.json
 
-# the mini-night's per-job lane splits, out of its ledger
+# a night's per-job lane splits, out of its ledger
 .venv/bin/python -m core.night.cost.extract_mini_night \
     > core/night/cost/data/mini_night.json
+
+.venv/bin/python -m core.night.cost.extract_mini_night \
+    --ledger ~/lm-wt/mini-night2/artifacts/mini-night-2/ledger.db \
+    --night mini_night_2 --doc docs/lab/mini-night-2.md \
+    > core/night/cost/data/mini_night_2.json
 ```
 
 And the **refresh path** (`refresh.py`), which is the one to use when the box

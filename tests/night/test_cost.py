@@ -263,12 +263,57 @@ def test_the_model_prices_the_mini_night_the_mini_night_cost(model):
     The mini-night's own ledger records 9.156 GPU-minutes and 24.640 wall
     minutes (docs/lab/mini-night.md). The model is asked for the same six
     goals and has to land within a tenth.
+
+    The tolerance is a tenth of a GPU-minute **plus** the gap between the
+    two nights: the mesh stage is priced from the second mini-night, whose
+    GPU lane was measured while the seed sweep shared the GPU, and that
+    night measured the same work about 1.2 GPU-minutes dearer over three
+    goals. The next test pins the model against the night it is priced
+    from.
     """
     band = model.band("prop.goal")
     gpu_minutes = band.p50.gpu_minutes * 3
     wall_minutes = band.p50.wall_minutes * 3
-    assert gpu_minutes == pytest.approx(9.156, abs=1.0)
-    assert wall_minutes == pytest.approx(24.640, abs=2.5)
+    assert gpu_minutes == pytest.approx(9.156, abs=1.5)
+    assert wall_minutes == pytest.approx(24.640, abs=6.0)
+
+
+def test_the_model_prices_the_second_mini_night_the_second_mini_night_cost(model):
+    """The night the mesh stage is priced from, checked against its ledger.
+
+    The second mini-night's own ledger records 9.421 GPU-minutes and
+    30.129 wall minutes for its 18 jobs (docs/lab/mini-night-2.md). The
+    model, asked for the same three goals, has to land on them: this is the
+    night the mesh stage's band is measured from, so it is the one the
+    model has to agree with.
+    """
+    document = json.loads((DATA_DIR / "mini_night_2.json").read_text())
+    samples = [row for row in document["samples"] if row["kind"] in ("prop", "image")]
+    gpu_minutes = sum(row["gpu_seconds"] for row in samples) / 60.0
+    wall_minutes = sum(row["wall_seconds"] for row in samples) / 60.0
+
+    band = model.band("prop.goal")
+    assert band.p50.gpu_minutes * 3 == pytest.approx(gpu_minutes, abs=1.0)
+    assert band.p50.wall_minutes * 3 == pytest.approx(wall_minutes, abs=1.0)
+
+
+def test_the_mesh_stage_is_the_nights_own_measurement_not_the_generators(model):
+    """The regression, from the cost model's side.
+
+    The mesh stage used to be priced at ``prop.512`` — the spike's bare
+    generator, three KSamplers and the tail. The night runs more than that
+    (the decode stages, the repair, the measuring), and the second night's
+    ledger says the difference is 3.4x on the GPU lane. Pricing the stage
+    at the generator's band sold the night's rail 3.4x too cheap.
+    """
+    stage = model.band("prop.mesh.512")
+    generator = model.band("prop.512")
+    night = model.band("prop.night.512")
+
+    assert stage.p50.gpu_seconds == pytest.approx(night.p50.gpu_seconds, rel=0.05)
+    assert stage.p50.gpu_seconds > generator.p50.gpu_seconds * 3.0
+    assert stage.basis == "derived"
+    assert "repair" in stage.note or "repair" in stage.label
 
 
 def test_the_mini_nights_own_lane_split_is_the_one_recorded(model):
