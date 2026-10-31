@@ -51,6 +51,70 @@ take their time, and models swapped in and out by task. That is what a box with
    renders fast previews on its own GPU; the Thor generates and does final
    renders.
 
+## The architecture: three layers (the holodeck as north star)
+
+We cannot build the holodeck. We can build toward its UX with what we have.
+
+1. **The program**: the world. A recipe plus the engine (infinigen-thor):
+   generate, render, history.
+2. **Characters**: the avatars in the simulation (Architect, Landscaper,
+   Critic, Companion). Personas you talk to and watch work. They are fast,
+   cheap and local (small models on the Thor, with memory). They **never write
+   code**: they change the world only through the closed, typed vocabulary
+   (predict, render, keep or undo).
+3. **The ship's computer / chief engineer**: the backend agents, and the only
+   layer that changes the program itself: new generators, engine fixes, new
+   vocabulary words, the Infinigen port. Slow, powerful, sandboxed, working in
+   branches, gated by tests (a render plus the critic) before anything goes
+   live.
+
+**The work order is the bridge.** A character that hits a limit ("I can't make
+gothic arches"), or the human ("Computer, I want rope bridges"), files a work
+order. The engineer takes it, builds and tests it in the background, and
+promotes it into the vocabulary; the next morning the Architect can build
+arches. The builders grow with you twice: they learn your taste, and the
+computer extends what they can do.
+
+**The engineer is pluggable** behind one adapter (in: a work order and a
+sandbox branch; out: a commit and test evidence): Claude Code for hard orders on
+a budget, zcode/mcode for bulk, aider on the Thor's local coder for free small
+fixes, OpenHands or Goose as sandboxed runtimes, worth a test. Zed and Theia are
+front ends onto the engineer's work (via ACP), not backends.
+
+**The core is ours and small:** a durable service on the Thor owning work
+orders, budgets and approvals, the recipe store and history, the model
+scheduler, the vocabulary and the audit log. Plain Python first (the seed is
+the brief → worktree → seat → review → merge-gate loop run in `~/lm-ops` during
+last-mile); adopt LangGraph only if its checkpointing beats ours.
+
+### Calling the computer in-game, with less text
+
+The computer can be called from inside the world ("Computer, make these
+sturdier") and already knows the situation, so a few spoken words become a full
+work order. The core keeps a **context packet** that it attaches to every call:
+
+- **what you mean by "this/these/here"**: the current selection, what you are
+  looking at (the camera ray and the objects under it), and where you are
+  standing;
+- **recent history**: the last recipe changes, renders and critic notes,
+  including who changed what (you, or which character);
+- **the conversation**: what you and the characters just said, as the bounded
+  labels the vocabulary already keeps;
+- **the project state**: the branch, the open work orders, the budget left
+  tonight, the vocabulary and its gaps.
+
+From that the computer **compiles** the terse request into a full work order
+(the goal, the objects named by id, the acceptance check, a budget), and
+**confirms it in one line** before it starts ("Reinforce the 3 arches on the
+east bridge so the critic passes them at 2x load; about 20 minutes; go?"). The
+coding run then goes on in the background while you keep building. When it
+lands, the change shows up in-world as a preview you can keep or reject, with
+its evidence one click away. Ambiguity is resolved by asking, never by guessing:
+if "these" could mean two groups, the computer asks which.
+
+This is how speech stays short: the context does the explaining, as it does
+between people who are standing in the same room.
+
 ## Phases
 
 1. **Feasibility spike (days).** Blender 4.2 on the Thor; Infinigen Hello Room
