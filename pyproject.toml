@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "builder-ide-core"
 version = "0.1.0"
-description = "builder-ide core service, half A: the audit ledger, the HTTP API, SSE, work orders (core-spec v2)"
+description = "builder-ide core service: the audit ledger, the HTTP API, the recipe store, the vocabulary, the night runner, cold start and the USD backbone (core-spec v2)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
-    "pydantic>=2.7",
+    "pydantic>=2.7,<3",
 ]
 
 [project.optional-dependencies]
@@ -19,13 +19,21 @@ dev = [
     "httpx>=0.27",
 ]
 
+# One package set for the whole core: `core` is the namespace the seats share,
+# `builder_recipe` is the recipe store's own distribution (core/src) and
+# `builder_usd` is the compiled-scene backbone (core/usd/src).
 [tool.setuptools.packages.find]
-include = ["core*"]
+where = [".", "core/src", "core/usd/src"]
+include = ["core*", "builder_recipe*", "builder_usd*"]
 
 [tool.pytest.ini_options]
+minversion = "8.0"
 testpaths = ["tests"]
-pythonpath = ["."]
-addopts = "-q"
+# "." keeps the seat packages importable as `core.*`; "core/src" is the recipe
+# store's root and "core/usd/src" the USD backbone's, so one pytest run covers
+# every seat without touching any seat's own pyproject.
+pythonpath = [".", "core/src", "core/usd/src"]
+addopts = "-ra"
 filterwarnings = [
     "ignore::DeprecationWarning:starlette.*",
     "ignore::DeprecationWarning:httpx.*",
