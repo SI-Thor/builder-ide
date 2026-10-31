@@ -121,6 +121,7 @@ seat you work from.
 | [pincher-fit](docs/research/pincher-fit.md) | Our crew's quilt-pincher reflex engine (embed, match, execute/confirm/compile, veto, `.nail` bundles) is the front half of the tiles system and the natural reflex layer for the ProArt's first mile |
 | [liquid-study](docs/research/liquid-study.md) | Two Liquid/Thor idea chats, read hard and checked on the box: the DRIVE-vs-Jetson claims sorted; **d1-3B is 49 ms p50 here, not 16 ms**; d1-2B is this box's decision model (32 ms, 0.985, and its confidence is a clean gate). The top five: `core/judge/`, the state-length budget, hysteresis on real d1 traces, the telemetry budget, and WHY-driven tile retirement |
 | [idea2](docs/research/idea2.md) | Enhancement and mod ideas, sorted: exact G-buffers (we own the camera) for a neural upscaler, a draft/generative split for the day view, materials as noise parameters, per-layer precision, front desk / back office (our first mile and night) |
+| [idea3](docs/research/idea3.md) | Optimisation ideas checked against our measurements: d1 batching, L2 pinning, static pools (pairs with thor-admit) and Green Contexts are worth testing; DLA offload and on-die NVLink-C2C are false for the Thor |
 | [ig2-procfunc](docs/research/ig2-procfunc.md) | Infinigen 1.x vs 2.0 and procfunc: the engine decision |
 | [trellis-spike](docs/research/trellis-spike.md) | TRELLIS.2 on the Thor: works, clean licence, BF16 not FP8, CPU-bound mesh tail |
 | [warm-scene](docs/research/warm-scene.md) | The warm scene server spike: the win is builder wait and crash recovery |
