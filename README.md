@@ -117,6 +117,7 @@ seat you work from.
 | [v2-thor-experiment](docs/research/v2-thor-experiment.md) | **The engine confirmed**: Infinigen 2.0 + procfunc on the Thor, tracer on |
 | [engine-round2](docs/research/engine-round2.md) | Whole scenes traceable, a byte-stable recipe graph, Warp terrain as a v2 stage, scene-level partial regeneration |
 | [engine-round3](docs/research/engine-round3.md) | **The splice** regenerates part of a scene canonical-equal to a full rebuild, 2.3–2.5× faster; **the real OcMesher with its SDF in Warp** gives a byte-identical mesh at 3.9×; patches in `infinigen-thor/thor/v2-patches/` |
+| [jev](docs/research/jev.md) | Jev's cheap typed judgments (MCP), mapped onto the product: the computer's reference resolution and its ask-don't-guess escape hatch, tile outcome labels for the decision models, sealed-prediction verdicts, an honest morning report |
 | [ig2-procfunc](docs/research/ig2-procfunc.md) | Infinigen 1.x vs 2.0 and procfunc: the engine decision |
 | [trellis-spike](docs/research/trellis-spike.md) | TRELLIS.2 on the Thor: works, clean licence, BF16 not FP8, CPU-bound mesh tail |
 | [warm-scene](docs/research/warm-scene.md) | The warm scene server spike: the win is builder wait and crash recovery |
