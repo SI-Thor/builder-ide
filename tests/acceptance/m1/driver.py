@@ -51,23 +51,29 @@ from seats.vocabloop import build_cold_world, run_cold_night, sealed_before_rend
 
 
 def build_world(home: Path, run_dir: Path) -> World:
-    """Boot the spine and the seats: one fresh `$BUILDER_HOME`, one run dir."""
+    """Boot the spine and the seats: one fresh `$BUILDER_HOME`, one run dir.
+
+    The seats are the integrated core's own packages (`siblings.load()`):
+    the spine is `core.svc.Core` + `core.api.create_app`, the recipe store
+    rides the spine's one ledger through `RecipeStoreSeam`, and the stubs
+    are the engine-side pieces no seat owns yet (render rungs, critic,
+    engineer, gate engine — plan §2 M1 risks).
+    """
     seats = siblings.load()
     world = World(home=home, run_dir=run_dir)
     world.seats = seats
 
-    from sib_api.config import Settings
-    from sib_api.svc import Core
+    from core.config import Settings
+    from core.svc import Core
 
     settings = Settings.for_home(home)
-    recipe_seat = RecipeSeat(seats, run_dir)
     core = Core.open(
         settings,
         telemetry=StubTelemetry(load=0.3),
         gate_engine=StubGateEngine(),
-        recipes=recipe_seat.seam(),
     )
-    from sib_api.api import create_app
+    recipe_seat = RecipeSeat(seats, core)  # wires core.recipes; one store
+    from core.api import create_app
     from fastapi.testclient import TestClient
 
     app = create_app(settings, core=core)
@@ -96,7 +102,7 @@ def teardown_world(world: World) -> None:
 
 def reconnect(world: World) -> None:
     """After the kill: a fresh core + app over the same ledger file."""
-    from sib_api.api import create_app
+    from core.api import create_app
     from fastapi.testclient import TestClient
 
     old = world.stamps.get("http")
@@ -108,8 +114,8 @@ def reconnect(world: World) -> None:
     core = world.door.reopen(
         telemetry=StubTelemetry(load=0.3),
         gate_engine=StubGateEngine(),
-        recipes=world.recipe.seam(),
     )
+    world.recipe.rebind(core)  # the store survived in the one log
     http = TestClient(create_app(world.stamps["settings"], core=core))
     http.__enter__()
     world.stamps["http"] = http
@@ -204,7 +210,7 @@ def act_evening(ses: Session, world: World) -> None:
 
     # 1. the cold open (spine moment 1; slice gate: the first-run test)
     with ses.step("cold-open", act="evening", clock="Talk", budget=FIRST_LINE_S,
-                  backend=["real:cold-start", "bridge:spine-ledger"]) as step:
+                  backend=["real:cold-start", "real:core-api(ledger)"]) as step:
         view = world.cold_view()
         line = view["line"]
         step.check("zero denominator on the first line", "0 of 0" in line, line)
@@ -222,7 +228,7 @@ def act_evening(ses: Session, world: World) -> None:
 
     # 2. Casey picks a starter: the project's seed is a choice, not a guess
     with ses.step("pick-a-starter", act="evening", clock="Talk", budget=CHIP_LANDS_S,
-                  backend=["real:core-recipe", "bridge"]) as step:
+                  backend=["real:core-recipe", "real:core-api(ledger)"]) as step:
         picked = S["starters"][0]
         ver = recipe.store.apply_edit(
             recipe.head(MAIN_BRANCH),
@@ -240,7 +246,7 @@ def act_evening(ses: Session, world: World) -> None:
 
     # 3. ask-mode: ≤ 6 two-chip questions, one at a time, a skip writes nothing
     with ses.step("ask-mode", act="evening", clock="Talk", budget=ASK_ANSWER_S,
-                  backend=["real:cold-start", "bridge:spine-taste-ledger"]) as step:
+                  backend=["real:cold-start", "real:core-api(ledger)"]) as step:
         runner = AskModeRunner(world.cold, door)
         bank = world.cold.bank
         asked = 0
@@ -928,9 +934,11 @@ def act_morning(ses: Session, world: World) -> None:
                   budget=COMPILE_S,
                   backend=["real:core-api", "real:core-recipe(registry)"]) as step:
         # the evening added the market stalls next to the harbour crates —
-        # "sturdier, these" now has two plausible referent sets
+        # "sturdier, these" now has two plausible referent sets. (The entry
+        # kind is `prop_set`, spec §1.1's only spelling on the merged tree —
+        # the old adapter's prop→prop_set translation died with the merge.)
         stalls = {
-            "path": "market.stalls", "kind": "prop",
+            "path": "market.stalls", "kind": "prop_set",
             "generator": {"module": "infinigen_thor.structures", "func": "stalls",
                           "variant": None, "rev": "9f31c0e"},
             "params": {"count": 5, "length_m": 2.0}, "seed": 7, "constraints": [],

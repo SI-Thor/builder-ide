@@ -1,33 +1,36 @@
-"""The week's seats and bridges: one melt ledger, mirrored into the spine.
+"""The week's seats and adapters — over the ONE store, now.
 
-The M1 session proved the seats against one evening→night→morning. A week
-adds exactly one requirement the M1 adapters did not have: **the melt's
-ledger must persist across sittings** — every fold (the gate, the sealer)
-re-derives from the whole week's rows, not the evening's. So this module
-holds:
+The M1 session proved the seats against one evening→night→morning; a week
+added the requirement that **the melt's ledger persist across sittings**.
+Both were true before the seats merged at the cost of a second ledger and
+three mirrors; on the integrated core (`core.*`, one SQLite log) they are
+true by construction:
 
-* **`WeekAsker`** — the cold-start seat's ask-mode over ONE in-memory
-  ledger for the whole week. Each evening is a new *session* (the ≤ 6
-  budget is per sitting) on the same ledger (the melt is per project).
-  Every answered row is mirrored into the spine through the spine's own
-  owner-only taste write path, exactly as in M1 — the bridge that
-  disappears when the seats share one store.
-* **`unprompted_row`** — the owner's unprompted morning verdict, written
-  on both sides (seat ledger for the melt, spine for the panels). The tags
-  carry no `asked-by:` attribution, which is the point: an unprompted row
-  counts toward *every* builder's melt (the gate's rule), and the week uses
-  that to prove the melt is per builder.
-* **`mirror_seal`** — a bet sealed under the cold-start policy (confidence
-  computed, never chosen) mirrored into the spine's prediction ledger so
-  the tally the mornings read is the spine's own.
+* **`WeekAsker`** — the cold-start seat's ask-mode over the spine's ONE
+  ledger (`core.ports.SpineLedgerPort` through the door). Each evening is a
+  new *session* (the ≤ 6 budget is per sitting) on the same ledger (the
+  melt is per project); every answered row lands in the log directly — the
+  taste mirror is gone, the panels read the same rows the gate folds.
+* **`unprompted_row`** — the owner's unprompted morning verdict, one write
+  into the one log. The tags carry no `asked-by:` attribution, which is the
+  point: an unprompted row counts toward *every* builder's melt (the
+  gate's rule), and the week uses that to prove the melt is per builder.
+* **the melt's seal policy** (`ColdStartSealer` over the vocabulary's real
+  sealer) writes its `prediction.sealed` straight into the one log — the
+  predictions mirror is gone; the spine's fold reads the vocabulary's
+  spelling (§4's third dialect, unified at the read site).
 * **`park` / `admit_ask_cards`** — the night's question queue: parking
   under the spine's blocking dam (at most 3; the fourth parks the task),
-  and the decision-budget admission (G §4.3 / spec §3.2.8-7): a night that
-  would ask more decisions than the morning's budget of 10 is cut AT THE
-  QUEUE — the cut tasks are named, never silently dropped.
+  and the decision-budget admission (G §4.3 / spec §3.2.8-7). The dam is
+  the spine's own; the admission is still the adapter's half — the queue
+  service that would enforce the budget AT the queue is the named missing
+  piece (§3.2.8-7's builder).
 * **`decisions_since`** — the attention number, counted where the product
   counts it: owner-actor decision events (parked questions answered, work
-  orders kept/rejected, branches applied) — per morning, from the ledger.
+  orders kept/rejected, branches applied or stood down) — per morning, by
+  seq range. The spine's own three-number line now scopes to the night the
+  same way (the melt-week run's finding, fixed in `core/svc/report.py`);
+  this count stays because it is the run's own independent statement.
 """
 
 from __future__ import annotations
@@ -35,7 +38,7 @@ from __future__ import annotations
 import time
 
 from spec_client import CoreDoor, SpecClient, SpecError
-from seats.coldstart import AskModeRunner
+from seats.coldstart import AskModeRunner, spine_ledger
 
 #: The attention budget: a morning may ask for at most this many decisions
 #: (G §4.3; X G6; budgets.py's DECISIONS_PER_MORNING restated for the queue).
@@ -49,15 +52,15 @@ _DECISION_TYPES = ("question.answered", "wo.kept", "wo.rejected",
 
 
 class WeekAsker(AskModeRunner):
-    """Ask-mode over one ledger for the whole week; a session per evening."""
+    """Ask-mode over the ONE ledger for the whole week; a session per evening."""
 
     def __init__(self, seat, door: CoreDoor,
                  start: str = "2026-10-24T19:58:00Z") -> None:
-        # AskModeRunner's own __init__ builds a fresh ledger and a clock fixed
-        # at M1's sitting; the week needs both to live as long as the week.
+        # AskModeRunner's own __init__ builds a fresh sitting at M1's fixed
+        # clock; the week needs the sitting to start when its evenings do.
         self._seat = seat
         self._door = door
-        self.ledger = seat.stubs.InMemoryLedger()
+        self.ledger = spine_ledger(door)
         self.clock = seat.stubs.SteppingClock(start, step_seconds=1)
         self.mode = seat.AskMode(ledger=self.ledger, clock=self.clock,
                                  author="casey")
@@ -76,7 +79,7 @@ class WeekAsker(AskModeRunner):
 
     @property
     def gate(self):
-        from core.coldstart import ColdStartGate  # materialized by siblings.load()
+        from core.coldstart import ColdStartGate
 
         return ColdStartGate(self.ledger, author="casey")
 
@@ -87,12 +90,12 @@ class WeekAsker(AskModeRunner):
 def unprompted_row(asker: WeekAsker, door: CoreDoor, *, code: str, verdict: str,
                    artifact_ref: str, param_path: str, value: str,
                    words: str | None = None) -> dict:
-    """The owner's unprompted verdict — one row, written on both ledgers.
+    """The owner's unprompted verdict — one row, one write, one log.
 
     No `asked-by:` tag rides the row, so the gate counts it toward every
     builder (the ledger is shared and readable; the cold-start seat's rule).
-    The spine's copy goes through `TasteService.append_note` — owner actor,
-    single writer — which is the three-writer rule on the spine's side.
+    The write is the owner-actor `taste.note.appended` the three-writer rule
+    demands (§1.7) — the same event ask-mode's answers write.
     """
     seat = asker._seat
     at = asker.clock.now()
@@ -103,7 +106,7 @@ def unprompted_row(asker: WeekAsker, door: CoreDoor, *, code: str, verdict: str,
         "artifact_ref": artifact_ref, "verdict": verdict, "reason_code": code,
         "words": words, "tags": ["unprompted:morning"],
     }
-    asker.ledger.append(seat.models.AuditEvent(
+    committed = asker.ledger.append(seat.models.AuditEvent(
         seq=0,
         id=f"aud_{seat.stubs.short_hash({'type': 'taste.note.appended', 'row': row_id})}",
         at=at, actor=seat.models.Actor(kind="owner", id="casey"),
@@ -111,51 +114,7 @@ def unprompted_row(asker: WeekAsker, door: CoreDoor, *, code: str, verdict: str,
         subject={"entity_kind": "taste_note", "entity_id": row_id},
         payload={"row": row},
     ))
-    mirrored = door.append_taste_note(
-        subject=dict(row["subject"]), artifact_ref=artifact_ref,
-        verdict=verdict, reason_code=code, words=words,
-        tags=list(row["tags"]),
-    )
-    return {"row": row, "spine": mirrored.model_dump(mode="json")}
-
-
-def mirror_seal(spec: SpecClient, sealed, *, branch_ref: str,
-                render_spec: dict) -> dict:
-    """A bet sealed under the melt's policy, mirrored into the spine.
-
-    The spine's own sealer is deliberately permissive (a guess is always
-    legal); the *policy* — which confidence this builder may write on this
-    code tonight — is the cold-start seat's, and this mirror carries the
-    policy's answer into the one ledger the mornings tally from.
-    """
-    return spec.seal(
-        branch_ref=branch_ref,
-        claim=sealed.prediction.claim,
-        claim_type=sealed.prediction.claim_type,
-        confidence=sealed.confidence,
-        basis=sealed.basis,
-        render_spec=render_spec,
-    )
-
-
-def mirror_score(asker: WeekAsker, seat_prediction_id: str, verdict: str) -> None:
-    """Carry a verdict back into the melt's ledger.
-
-    The spine scores the bet (the Critic for world claims, the owner for
-    taste); the cold-start gate's world axis folds `prediction.scored`
-    events, so the seat ledger must learn the verdict too — the melt's
-    denominators are sealed AND scored bets, and both sides must agree.
-    """
-    seat = asker._seat
-    asker.ledger.append(seat.models.AuditEvent(
-        seq=0,
-        id=f"aud_{seat.stubs.short_hash({'type': 'prediction.scored', 'pid': seat_prediction_id})}",
-        at=asker.clock.now(),
-        actor=seat.models.Actor(kind="critic", id="critic-scripted"),
-        type="prediction.scored",
-        subject={"entity_kind": "prediction", "entity_id": seat_prediction_id},
-        payload={"prediction_id": seat_prediction_id, "verdict": verdict},
-    ))
+    return {"row": row, "spine": committed.payload["row"]}
 
 
 def reject_work_order(spec: SpecClient, wo_id: str, *, idem: str | None = None) -> dict:
@@ -165,8 +124,11 @@ def reject_work_order(spec: SpecClient, wo_id: str, *, idem: str | None = None) 
 
 
 def score_taste_bets(door: CoreDoor, branch_id: str, owner_verdict: str) -> list[str]:
-    """The owner's apply/reject resolves the night's taste bets (§1.7: the
-    owner's keep/apply/reject is the only event that scores them)."""
+    """The owner's standing exit (keep yesterday) resolves the night's taste
+    bets (§1.7: the owner's keep/apply/reject is the only event that scores
+    them). The apply path scores inside the spine's own apply; there is no
+    reject-branch endpoint yet, so the owner's reject is scored through the
+    spine's own service here — the named missing piece."""
     predictions = door._svc("predictions")
     return predictions.score_taste_keep_on_branch(
         branch_id, door.api.events.owner_actor("casey"), owner_verdict
@@ -222,9 +184,7 @@ def decisions_since(door: CoreDoor, since_seq: int) -> list[dict]:
     Counted where the product counts them (G §4.3): owner-actor events that
     ask for a verdict — parked questions answered, work orders kept or
     rejected, branches applied or stood down (keep-yesterday). Per morning,
-    by seq range — the spine's own three-number line counts a subset of
-    these cumulatively across the project (a drift this run records, not a
-    budget breach).
+    by seq range — the same scope the spine's three-number line now uses.
     """
     out = []
     for ev in door.raw_events(since_seq, list(_DECISION_TYPES)):

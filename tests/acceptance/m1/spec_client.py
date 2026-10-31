@@ -350,7 +350,7 @@ class CoreDoor:
         import importlib
 
         module, cls, needs_settings = self._SERVICE_CLASS[name]
-        mod = importlib.import_module(f"sib_api.svc.{module}")
+        mod = importlib.import_module(f"core.svc.{module}")
         args = (self.core, self.settings) if needs_settings else (self.core,)
         return getattr(mod, cls)(*args)
 

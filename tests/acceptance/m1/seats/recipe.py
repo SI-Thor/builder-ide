@@ -1,166 +1,97 @@
-"""The recipe seat (branch `core-recipe`): the store, and the node registry.
+"""The recipe seat — `core.recipe` behind the spine's own seam, one store.
 
-What this adapter does, all with the sibling's own code:
+Before the merge this adapter ran the recipe store on its **own**
+`InMemoryLedger` under the run directory (the honest seam of the day: the
+seats were not merged, so the recipe store's audit log was not the spine's
+one log) and carried two cross-seat DRIFTS. The integrated core resolves
+both at the source:
 
-* **Fjellvik is created as a recipe** — `Recipe.model_validate` over the
-  document the vocabulary seat ships (`core.vocab.seed.RECIPE_DOCUMENT`) is
-  itself a cross-seat compatibility check: the two seats' recipe shapes
-  must agree, or nothing downstream compiles.
-* **The vocabulary validates edits** — `StaticSchemaRegistry` is seeded from
-  the vocabulary seat's three words (`core.vocab.words.default_entries`),
-  so the recipe store refuses out-of-schema params exactly as §1.1 demands.
-  The registry's suffix rule maps the word `props.harbor.crates` onto the
-  entry path `harbor.crates`.
-* **The node registry is derived** — `NodeRegistry.derived_from(recipe)` is
-  the §1.4.0 fallback derivation; the adapter publishes it into the spine
-  as the compiler's `nodes.json` artifact, which is core-api's documented
-  publishing convention (`core/ports.py`). The two-referent test at the end
-  of the session resolves through exactly this chain.
-* **The branch flip is a pointer move** — the morning's A/B options are
-  committed versions on this store; `move_head` is fast-forward-only, and
-  the adapter implements core-api's tiny `RecipeStore` seam (`commit_edit`
-  / `fast_forward` / `merge_conflicts`) over it, so the spine's
-  `/v1/branches/{id}/apply` reports `recipe_sync: ok` instead of
-  `unavailable`.
+* the spine's `RecipeStore` port is `core.svc.recipes.RecipeStoreSeam` —
+  the real store over `SpineRecipeLedger`, so every `edit.proposed` /
+  `version.committed` / `branch.*` event lands in the ONE audit log and
+  folds into the spine's projections (§1.0; INTEGRATION.md §2);
+* vocab's shipped Fjellvik document writes `prop_set` (the seat fixed it
+  at the source), so the compat translation is gone — the document loads
+  into the real store unchanged.
 
-The store runs on its own SQLite ledger under the run directory — the
-honest seam of today: the seats are not merged, so the recipe store's audit
-log is not yet the spine's one log. The README says so; the merge makes it
-one.
+What remains adapter-shaped, on purpose:
+
+* the driver addresses branches by alias ("main", "night", "plan"); the
+  seam registers the spine's `br_…` ids against them;
+* the session's **branch context** — which branch the night's typed calls
+  commit onto — is still adapter state the driver sets
+  (`recipe.seam_branch = "night"`); §1.2 makes branch context part of the
+  edit itself once the spec amendment lands, and the seam's
+  `commit_branch` is the hook for that day.
+
+The node registry stays the publishing convention it always was: the
+compiler's `nodes.json` artifact on `version.committed` (core/ports.py),
+which the driver writes through the spine (`door.publish_nodes`).
 """
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 RECIPE_ID = "rcp_fjellvik"
 MAIN_BRANCH = "br_main"
 
-#: Cross-seat drifts the adapter papers over today, each a merge-time
-#: decision. Found by this session; each is named where it is applied.
+#: Cross-seat drifts this adapter used to paper over — both resolved by the
+#: merge (INTEGRATION.md §2, §5), kept here as the record of the rewiring.
 DRIFTS: list[str] = [
-    "vocab's RECIPE_DOCUMENT writes entry kind 'prop'; spec §1.1 and "
-    "core-recipe's RecipeEntry say 'prop_set' — translated on load",
-    "the recipe seat runs on core-recipe's InMemoryLedger, not its "
-    "SQLiteLedger: SQLiteLedger's connection is thread-bound and the spine's "
-    "HTTP worker calls the seam from another thread (an artifact of the "
-    "in-process TestClient; the single-writer SQLite ledger is the spine's)",
+    "RESOLVED: vocab's RECIPE_DOCUMENT wrote entry kind 'prop'; fixed at the "
+    "source (core/vocab/seed.py) — the document loads unchanged now",
+    "RESOLVED: the recipe seat ran on its own InMemoryLedger; "
+    "SpineRecipeLedger routes the real store's appends into the spine's one "
+    "audit log, so the seam's commits are the spine's own events",
 ]
 
 
-def _compat_document(document: dict) -> dict:
-    """Seat-to-seat translation of the shipped Fjellvik document (see DRIFTS)."""
-    import copy
+class RecipeSeat:
+    """The recipe store seat, wired once per session over the one store."""
 
-    doc = copy.deepcopy(document)
-    for entry in doc.get("entries", {}).values():
-        _compat_entry_in_place(entry)
-    return doc
+    def __init__(self, seats, core) -> None:
+        from core.svc.recipes import RecipeStoreSeam, schemas_from_vocabulary
 
+        self.br = seats.recipe
+        self._vocab = seats.vocab
+        self._core = core
 
-def _compat_entry(entry: dict) -> dict:
-    import copy
-
-    out = copy.deepcopy(entry)
-    _compat_entry_in_place(out)
-    return out
-
-
-def _compat_entry_in_place(entry: dict) -> None:
-    if entry.get("kind") == "prop":
-        entry["kind"] = "prop_set"
-
-
-class RecipeSeam:
-    """core-api's `RecipeStore` port (core/ports.py) over the real store.
-
-    core-api's edit proposals carry `base: "head"` and node-id targets; the
-    seam resolves both the way §1.4.0 says the node registry must — node id →
-    entry path → params — and commits onto the branch the session has made
-    current (adapter state; after the merge there is one store and one
-    branch context, and this disappears).
-    """
-
-    def __init__(self, seat: "RecipeSeat") -> None:
-        self._seat = seat
+        seam = RecipeStoreSeam(
+            core, schemas=schemas_from_vocabulary(seats.vocab.default_entries())
+        )
+        core.recipes = seam
+        self.seam = seam
+        self.store = seam.store
+        self.owner = seam._owner
+        self._seeded_version: str | None = None
+        self._branch_ids: dict[str, str] = {MAIN_BRANCH: MAIN_BRANCH, "main": MAIN_BRANCH}
 
     @property
-    def _branch(self) -> str:
-        return getattr(self._seat, "seam_branch", None) or MAIN_BRANCH
+    def root_version(self) -> str:
+        """The project's root version — seeded on first use, because with
+        one store the recipe's creation events ARE the spine's first
+        history, and the session's fresh-home step reads the log before
+        `boot/recipe-seat` makes that history (§1.0)."""
+        if self._seeded_version is None:
+            self._seeded_version = self.seam.seed_recipe(
+                self._vocab.seed.RECIPE_DOCUMENT)
+        return self._seeded_version
 
-    def commit_edit(self, edit) -> str:
-        br = self._seat.br
-        node_map = {n["node_id"]: n["entry_path"] for n in self._seat.derived_nodes()}
-        ops = []
-        for op in edit.ops or []:
-            parts = op.path.split(".")
-            if parts[0] in node_map:
-                entry_path = node_map[parts[0]]
-                rest = parts[1:]
-                if rest[:1] == ["params"] and isinstance(op.value, dict) and len(rest) == 1:
-                    for key, value in sorted(op.value.items()):
-                        ops.append(br.Op(op="set", path=f"{entry_path}.params.{key}",
-                                         value=value))
-                    continue
-                ops.append(br.Op(op=op.op, path=".".join([entry_path, *rest]),
-                                 value=op.value))
-            else:
-                ops.append(br.Op(op=op.op, path=op.path, value=op.value))
-        base = edit.base if edit.base.startswith("ver_") else self._seat.head(self._branch)
-        version = self._seat.store.apply_edit(
-            base, ops,
-            author=br.Actor(kind=edit.author.kind, id=edit.author.id, via=edit.author.via),
-            message=(edit.message or "typed edit")[:80], prediction=edit.prediction,
-        )
-        return version.id
+    # -- the branch context (§1.2's pending amendment) ---------------------------
 
-    def fast_forward(self, branch_id: str, to_version: str) -> None:
-        target = self._seat.branch_id(branch_id)
-        if self._seat.store.get_branch(target).head != to_version:
-            self._seat.store.move_head(target, to_version, self._seat.owner)
+    @property
+    def seam_branch(self) -> str:
+        return getattr(self.seam, "commit_branch", MAIN_BRANCH)
 
-    def merge_conflicts(self, main_head: str, branch_head: str) -> list[str]:
-        store = self._seat.store
-        ours = store.get_version(main_head)
-        theirs = store.get_version(branch_head)
-        if ours.parent is None or theirs.parent != main_head:
-            return []  # a fast-forward, not a merge
-        base = store.get_document(ours.parent)
-        _, conflicts = self._seat.br.three_way_merge(
-            base, store.get_document(main_head), store.get_document(branch_head)
-        )
-        return [str(getattr(c, "message", None) or c) for c in conflicts]
-
-
-class RecipeSeat:
-    """The recipe store seat, wired once per session."""
-
-    def __init__(self, seats, run_dir: Path) -> None:
-        br = seats.recipe
-        self.br = br
-        self._vocab = seats.vocab
-
-        schemas = br.StaticSchemaRegistry()
-        for entry in seats.vocab.default_entries():
-            schemas.register(entry.word, entry.params)
-
-        self.store = br.RecipeStore(
-            ledger=br.InMemoryLedger(), schemas=schemas
-        )
-        self.recipe = br.Recipe.model_validate(_compat_document(seats.vocab.seed.RECIPE_DOCUMENT))
-        self.owner = br.Actor(kind="owner", id="casey")
-        self.store.create_recipe(self.recipe, self.owner)
-        self.root_version = self.store.get_branch(MAIN_BRANCH).head
-        self._branch_ids: dict[str, str] = {MAIN_BRANCH: MAIN_BRANCH}
-        #: which branch alias the seam commits edits onto (adapter state; §1.2
-        #: makes branch context part of the edit once there is one store)
-        self.seam_branch: str = MAIN_BRANCH
+    @seam_branch.setter
+    def seam_branch(self, alias: str) -> None:
+        self.seam.commit_branch = self.branch_id(alias)
 
     # -- the node registry (§1.4.0) ----------------------------------------------
 
     def derived_nodes(self, recipe: Any = None) -> list[dict]:
-        registry = self.br.NodeRegistry.derived_from(recipe or self.recipe)
+        registry = self.br.NodeRegistry.derived_from(recipe or self.recipe_document())
         return [
             {
                 "node_id": node.node_id,
@@ -171,23 +102,29 @@ class RecipeSeat:
             for node in registry.nodes()
         ]
 
+    def recipe_document(self) -> Any:
+        return self.store.get_document(self.head(MAIN_BRANCH))
+
     def refresh_recipe(self, version_id: str) -> Any:
-        self.recipe = self.store.get_document(version_id)
-        return self.recipe
+        return self.store.get_document(version_id)
 
     # -- versions and branches (§1.1–§1.2) -----------------------------------------
     # Branches are addressed by alias here ("main", "night", "plan"); the
-    # store's own ids are br_… strings it allocates, and the mapping below
-    # also answers the spine's RecipeStore seam (spine br_ id → alias).
+    # store allocates br_… ids, and the mapping also answers the spine's
+    # RecipeStore seam (spine br_ id → the store's own branch id).
+
+    def register(self, alias: str, branch_id: str) -> None:
+        self._branch_ids[alias] = branch_id
+        self.seam.register_branch(alias, branch_id)
 
     def branch_id(self, alias_or_spine_id: str) -> str:
         return self._branch_ids.get(alias_or_spine_id, MAIN_BRANCH)
 
     def head(self, alias: str = MAIN_BRANCH) -> str:
-        return self.store.get_branch(self.branch_id(alias)).head
+        return self.seam.head(self.branch_id(alias))
 
     def document(self, version_id: str) -> dict:
-        return self.store.get_document(version_id).model_dump(mode="json")
+        return self.seam.document(version_id)
 
     def apply_params(self, entry_path: str, params: dict, *, message: str,
                      base: str | None = None) -> str:
@@ -208,7 +145,6 @@ class RecipeSeat:
         creating rule); the path grammar is entry-relative, like the spec's
         own `harbor.crates.params.count`.
         """
-        entry = _compat_entry(entry)
         op = self.br.Op(op="add", path=entry["path"], value=entry)
         version = self.store.apply_edit(
             base or self.head(MAIN_BRANCH), [op], author=self.owner, message=message
@@ -216,15 +152,15 @@ class RecipeSeat:
         return version.id
 
     def new_branch(self, *, alias: str, name: str, purpose: str,
-                   head: str | None = None, base: str | None = None,
-                   spine_id: str | None = None) -> str:
+                    head: str | None = None, base: str | None = None,
+                    spine_id: str | None = None) -> str:
         branch = self.store.create_branch(
             name=name, recipe=RECIPE_ID, head=head or self.head(MAIN_BRANCH),
             purpose=purpose, actor=self.owner, base=base,
         )
-        self._branch_ids[alias] = branch.id
+        self.register(alias, branch.id)
         if spine_id:
-            self._branch_ids[spine_id] = branch.id
+            self.register(spine_id, branch.id)
         return branch.id
 
     def move_head(self, alias: str, version: str) -> None:
@@ -236,5 +172,27 @@ class RecipeSeat:
             for op in self.store.diff(base, head)
         ]
 
-    def seam(self) -> RecipeSeam:
-        return RecipeSeam(self)
+    def rebind(self, core) -> None:
+        """After the kill: re-open the seam over the reopened core.
+
+        The store itself survived in the ONE log (every recipe event is a
+        spine event now), so the fresh store re-folds the same branches and
+        versions; only the seam object and the branch map re-attach."""
+        from core.svc.recipes import RecipeStoreSeam, schemas_from_vocabulary
+
+        saved_branch = self.seam_branch
+        seam = RecipeStoreSeam(
+            core, schemas=schemas_from_vocabulary(self._vocab.default_entries())
+        )
+        core.recipes = seam
+        self.seam = seam
+        self.store = seam.store
+        self._core = core
+        for alias, branch_id in self._branch_ids.items():
+            seam.register_branch(alias, branch_id)
+        seam.commit_branch = saved_branch
+
+    # the spine's RecipeStore port is the seam itself (the core's real
+    # implementation — there is no adapter half left to name)
+    def seam(self) -> object:
+        return self.seam

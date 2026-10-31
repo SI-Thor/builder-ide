@@ -101,6 +101,15 @@ def _w(value: str) -> str:
     return str(value or "").replace("_", " ").strip()
 
 
+def _prediction_id(ev) -> str:
+    """A prediction's id from either payload spelling (§4's drift, named:
+    the spine nests the doc, the vocabulary's sealer writes flat)."""
+    payload = ev.payload or {}
+    doc = payload.get("prediction") or {}
+    return str(doc.get("id") or payload.get("prediction_id")
+               or ev.subject.get("entity_id", ""))
+
+
 # ------------------------------------------------- the melt rule, restated
 
 
@@ -162,7 +171,7 @@ def act_week_boot(ses: Session, world: World) -> None:
         step.note(f"the seeded taste keeps: {kept_side}")
 
     with ses.step("melt-baseline", act="week",
-                  backend=["real:cold-start", "bridge:spine-ledger"]) as step:
+                  backend=["real:cold-start", "real:core-api(ledger)"]) as step:
         gate = asker.gate
         cold = all(gate.decide(b, code).observations == 0
                    for b in BUILDERS for code in ALL_CODES)
@@ -186,7 +195,7 @@ def evening(ses: Session, world: World, spec_night: NightSpec) -> None:
 
     # 1. the open line — a ledger read, instant by construction
     with ses.step(f"n{n}-open", act="evening", clock="Talk", budget=FIRST_LINE_S,
-                  backend=["real:cold-start", "bridge:spine-ledger"]) as step:
+                  backend=["real:cold-start", "real:core-api(ledger)"]) as step:
         view = ColdOpenView(world.cold, world.door).line_and_starters()
         line = view["line"]
         if n == 1:
@@ -219,7 +228,7 @@ def evening(ses: Session, world: World, spec_night: NightSpec) -> None:
     # 2. ask-mode: one sitting on the week's ledger — the melt decides what
     #    may still be asked (only codes below the asking builder's gate)
     with ses.step(f"n{n}-ask", act="evening", clock="Talk", budget=ASK_ANSWER_S,
-                  backend=["real:cold-start", "bridge:spine-taste-ledger"]) as step:
+                  backend=["real:cold-start", "real:core-api(ledger)"]) as step:
         bank = world.cold.bank
         asker.new_sitting()
         asked, slowest, above_gate = 0, 0.0, []
@@ -394,7 +403,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
     # 1. the night's edit and its bets — the confidence is computed, never chosen
     with ses.step(f"n{n}-bets", act="night",
                   backend=["real:core-api", "real:core-recipe(seam)",
-                           "real:cold-start(policy)", "bridge:spine-predictions",
+                           "real:cold-start(policy)", "real:core-api(ledger)",
                            "stub:render-rung", "stub:critic"]) as step:
         recipe.new_branch(alias=f"night{n}", name=f"night-{spec_night.date}",
                           purpose="night", spine_id=f"br_night{n}")
@@ -444,13 +453,12 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
                        sealed.confidence == decision.confidence
                        and sealed.basis == decision.basis,
                        f"{sealed.confidence} · {sealed.basis}")
-            spine_seal = weekseat.mirror_seal(spec, sealed, branch_ref=branch_ref,
-                                              render_spec=render_spec)
+            # the policy sealed straight into the one log — the spine's own
+            # prediction ledger holds it (the mirror is gone)
             taste_seals.append({
                 "code": bet.code, "confidence": sealed.confidence,
                 "basis": sealed.basis, "observations": decision.observations,
-                "spine_id": spine_seal["prediction"]["id"],
-                "seat_id": sealed.prediction.id,
+                "prediction_id": sealed.prediction.id,
             })
 
         # the world bet, on the same branch
@@ -464,10 +472,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
             builder="prop-maker", claim_type=spec_night.world_bet.code,
             claim=spec_night.world_bet.claim, branch_ref=branch_ref,
             render_spec=render_spec)
-        spine_world = weekseat.mirror_seal(spec, sealed_world,
-                                           branch_ref=branch_ref,
-                                           render_spec=render_spec)
-        world_pr = spine_world["prediction"]["id"]
+        world_pr = sealed_world.prediction.id  # sealed into the one log
 
         # seal strictly before the render job (§5.1, the standing gate)
         job = door.render_job(
@@ -478,7 +483,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
         events = door.raw_events(0)
         seal_seq = next(int(e.seq) for e in events
                         if e.type == "prediction.sealed"
-                        and e.payload.get("prediction", {}).get("id") == world_pr)
+                        and _prediction_id(e) == world_pr)
         enqueue_seq = next(int(e.seq) for e in events
                            if e.type == "job.enqueued"
                            and e.payload.get("prediction_id") == world_pr)
@@ -499,7 +504,8 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
         expected_score = {"keep": "hit", "hold": "miss"}[critic_word]
         step.check("the critic scored the world bet — scored, never hidden",
                    scored.verdict == expected_score, scored.verdict)
-        weekseat.mirror_score(asker, sealed_world.prediction.id, expected_score)
+        # the score is one prediction.scored in the one log; the melt's gate
+        # folds it from there (no mirror to keep in step)
 
         # spend against the bar, and the load cap at its cap
         door.record_spend(night_id, {"gpu_minutes": 75.0, "wall_minutes": 105.0},
@@ -537,7 +543,7 @@ def night(ses: Session, world: World, spec_night: NightSpec) -> None:
     # 1b. mid-week: the melt re-derives from the ledger alone (the fold check)
     if n == 4:
         with ses.step("n4-gate-rebuild", act="night",
-                      backend=["real:cold-start(fold)", "bridge:spine-ledger"]) as step:
+                      backend=["real:cold-start(fold)", "real:core-api(ledger)"]) as step:
             from core.coldstart import ColdStartGate
 
             rebuilt = ColdStartGate(asker.ledger)
@@ -794,7 +800,7 @@ def morning(ses: Session, world: World, spec_night: NightSpec) -> None:
     # 3. the owner decides — by rule; every decision is one tap
     with ses.step(f"n{n}-decide", act="morning", clock="Talk",
                   budget=KEEP_REJECT_S,
-                  backend=["real:core-api", "bridge:apply-scores-taste",
+                  backend=["real:core-api", "real:core-api(taste-scoring)",
                            "decision"]) as step:
         choice = OWNER.branch_choice(spec_night.edit.value)
         if choice == "apply":
@@ -802,11 +808,18 @@ def morning(ses: Session, world: World, spec_night: NightSpec) -> None:
             step.check("apply is a head move, the store following",
                        applied.get("branch") == f"br_night{n}"
                        and applied.get("recipe_sync") == "ok", str(applied))
-            recipe.move_head(MAIN_BRANCH, recipe.head(f"night{n}"))
             door.publish_nodes(
                 MAIN_BRANCH,
-                recipe.derived_nodes(recipe.refresh_recipe(recipe.head(f"night{n}"))),
-                head=recipe.head(f"night{n}"))
+                recipe.derived_nodes(recipe.refresh_recipe(recipe.head(MAIN_BRANCH))),
+                head=recipe.head(MAIN_BRANCH))
+            # §1.7 inside the spine's own apply: the owner's apply scores the
+            # night's taste bets on the branch, and §1.2 moves the world —
+            # the store's main follows the applied head (no adapter move, no
+            # second decision in the log)
+            scored = applied.get("taste_bets_scored", [])
+            step.check("apply moved the world: main holds the night's head",
+                       recipe.head(MAIN_BRANCH) == recipe.head(f"night{n}"),
+                       f"main at {recipe.head(MAIN_BRANCH)}")
         else:
             main_before = recipe.head(MAIN_BRANCH)
             door.event("branch.rejected", door.api.events.owner_actor("casey"),
@@ -816,15 +829,13 @@ def morning(ses: Session, world: World, spec_night: NightSpec) -> None:
             step.check("keep yesterday: the standing exit, and main never moved",
                        recipe.head(MAIN_BRANCH) == main_before,
                        "the night's option stays visitable, rejected not deleted")
-        scored = weekseat.score_taste_bets(
-            door, f"br_night{n}", OWNER.taste_bet_outcome(spec_night.edit.value))
+            # the standing exit has no endpoint yet (the named missing piece);
+            # the spine's own service scores the bets the owner's reject rules
+            scored = weekseat.score_taste_bets(
+                door, f"br_night{n}", OWNER.taste_bet_outcome(spec_night.edit.value))
         step.check("the owner's ruling scored the night's taste bets (§1.7)",
                    len(scored) == len(spec_night.taste_bets),
                    f"{len(scored)} of {len(spec_night.taste_bets)}")
-        bet_verdict = {"keep": "hit", "reject": "miss"}[
-            OWNER.taste_bet_outcome(spec_night.edit.value)]
-        for seal in rec.get("taste_seals", []):
-            weekseat.mirror_score(asker, seal["seat_id"], bet_verdict)
         rec["branch_choice"] = choice
 
         wo_verdict = OWNER.artifact_verdict(spec_night.wo.value)
@@ -892,12 +903,15 @@ def morning(ses: Session, world: World, spec_night: NightSpec) -> None:
         step.check("capability rows are present in the morning", len(rows) == 3,
                    str(sorted(rows)))
         if n == 1:
+            others = {w: r["calls"] for w, r in rows.items()
+                      if w != "props.harbor.crates"}
             step.check("night one's rows read their zero denominators",
-                       all(r["calls"] == 0 for r in rows.values()),
-                       str({w: r["calls"] for w, r in rows.items()}))
-            step.check("the crates row was reset by its own promotion — a drift, "
-                       "named (X C12)", rows["props.harbor.crates"]["calls"] == 0,
-                       "promotion overwrites the row; the count restarts")
+                       all(calls == 0 for calls in others.values()), str(others))
+            step.check("the crates row survived its own promotion — X C12, the "
+                       "run's finding, fixed on the integrated core",
+                       rows["props.harbor.crates"]["calls"] == 1,
+                       f"built {rows['props.harbor.crates']['calls']} — the count "
+                       "no longer restarts at the keep")
         else:
             nonzero = [w for w, r in rows.items() if r["calls"] >= 1]
             step.check("capability rows stopped reading 0 (the melt's other half)",
