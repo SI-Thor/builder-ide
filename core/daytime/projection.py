@@ -34,9 +34,16 @@ class DayProjection:
         #: The nights the log says are running. The daytime lane yields to
         #: these — the night is the work.
         self.nights_running: set[str] = set()
-        #: What the daytime lane has spent, folded out of the ticks.
-        self.minutes_spent = 0.0
-        self.ticks_run = 0
+        #: The day in progress: the ticks since the last night started, and
+        #: what they cost.
+        self.day_ticks = 0
+        self.day_minutes = 0.0
+        #: What the day in progress did, per (kind, target).
+        self.day_changes: dict[tuple[str, str], int] = {}
+        self._day_light_from: str | None = None
+        self._day_light_to: str | None = None
+        #: The day that came before each night — "while you were away".
+        self.day_before_night: dict[str, dict] = {}
         self._fold(self.events)
 
     # -- the fold ---------------------------------------------------------
@@ -75,24 +82,69 @@ class DayProjection:
         if self.world is None:
             return
         self.world = advance(self.world)
-        self.ticks_run += 1
-        self.minutes_spent += float(event.payload.get("minutes", 0.0))
+        self.day_ticks += 1
+        self.day_minutes += float(event.payload.get("minutes", 0.0))
 
     def _on_day_change(self, event: AuditEvent) -> None:
+        payload = event.payload.get("change") or {}
+        change = DayChange(**payload)
+        key = (change.kind, change.target)
+        self.day_changes[key] = self.day_changes.get(key, 0) + 1
+        if change.kind == "light":
+            if self._day_light_from is None:
+                self._day_light_from = str(change.before.get("phase", ""))
+            self._day_light_to = str(change.after.get("phase", ""))
         if self.world is None:
             return
-        payload = event.payload.get("change") or {}
-        self.world = apply_change(self.world, DayChange(**payload))
+        self.world = apply_change(self.world, change)
 
     def _on_day_yielded(self, event: AuditEvent) -> None:
         self.yields += 1
         self.last_yield_reason = event.payload.get("reason")
 
     def _on_night_started(self, event: AuditEvent) -> None:
-        self.nights_running.add(event.subject_id or event.payload.get("night_id") or "")
+        night = self._night_id(event)
+        self.nights_running.add(night)
+        # A night closes the day that came before it: the daytime ticks
+        # happen between one night stopping and the next one starting, and
+        # this is where they are kept as "while you were away".
+        self.day_before_night[night] = self._day_snapshot()
 
     def _on_night_stopped(self, event: AuditEvent) -> None:
-        self.nights_running.discard(event.subject_id or event.payload.get("night_id") or "")
+        self.nights_running.discard(self._night_id(event))
+        # The night is over, so the day begins: the budget starts fresh.
+        self._start_new_day()
+
+    # -- the day ----------------------------------------------------------
+
+    def _night_id(self, event: AuditEvent) -> str:
+        doc = event.payload.get("night") or {}
+        return (
+            event.payload.get("night_id")
+            or doc.get("id")
+            or event.subject_id
+            or ""
+        )
+
+    def _day_snapshot(self) -> dict:
+        """What the day in progress was."""
+        return {
+            "ticks": self.day_ticks,
+            "minutes": round(self.day_minutes, 6),
+            "changes": [
+                {"kind": kind, "target": target, "count": count}
+                for (kind, target), count in sorted(self.day_changes.items())
+            ],
+            "light_from": self._day_light_from,
+            "light_to": self._day_light_to,
+        }
+
+    def _start_new_day(self) -> None:
+        self.day_ticks = 0
+        self.day_minutes = 0.0
+        self.day_changes = {}
+        self._day_light_from = None
+        self._day_light_to = None
 
     # -- reads ------------------------------------------------------------
 
@@ -100,3 +152,13 @@ class DayProjection:
     def night_lane_busy(self) -> bool:
         """Is the night working right now? The daytime yields when it is."""
         return bool(self.nights_running)
+
+    def day_before(self, night_id: str) -> dict:
+        """The day that came before this night — "while you were away"."""
+        return self.day_before_night.get(night_id) or {
+            "ticks": 0,
+            "minutes": 0.0,
+            "changes": [],
+            "light_from": None,
+            "light_to": None,
+        }

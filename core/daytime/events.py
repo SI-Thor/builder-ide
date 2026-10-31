@@ -12,7 +12,18 @@ map from a recipe entry kind to the behaviour that entry has in the room.
 
 from __future__ import annotations
 
-__all__ = ["DAYTIME_EVENT_TYPES", "CHANGE_KINDS", "ENTRY_BEHAVIOURS"]
+from core.records import EVENT_TYPES
+
+__all__ = [
+    "EVENT_TYPES",
+    "DAYTIME_EVENT_TYPES",
+    "CHANGE_KINDS",
+    "ENTRY_BEHAVIOURS",
+]
+
+#: The one closed set (§1.8), re-exported from :mod:`core.records` so the
+#: daytime seat codes against the same list every other seat does. The
+#: groups below say which rows *this* seat writes.
 
 #: The four types this seat writes. §1.8's set is closed; these four are a
 #: schema change, mirrored in :mod:`core.records`, :mod:`core.night.events`
