@@ -1,5 +1,8 @@
 # The worktree's own venv — dependencies are installed here, never system-wide.
 .venv/
+# The experiment's own torch venv (the DINOv2 probe needs torch; the core
+# never does).
+.venv-torch/
 
 # Python bytecode
 __pycache__/

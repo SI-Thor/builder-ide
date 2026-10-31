@@ -12,10 +12,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 from .grow import NightBudget, grow
+from .select import CRITIC_DEFAULT, candidate_names, resolve_critic
 
 __all__ = ["main"]
 
@@ -70,6 +72,15 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="print the result as JSON",
     )
+    parser.add_argument(
+        "--critic",
+        default=None,
+        help=(
+            "which critic scores the set (default: the scripted one; "
+            "BUILDER_CRITIC overrides it). Choices: "
+            + ", ".join(candidate_names())
+        ),
+    )
     args = parser.parse_args(argv)
 
     manifest_path, cache_dir, table_path = _default_paths()
@@ -84,6 +95,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 2
 
+    # The critic is a parameter with a default: the scripted checks, which
+    # are also the fallback. A critic that cannot be built on this box
+    # falls back to them and says why.
+    wanted = args.critic or os.environ.get("BUILDER_CRITIC") or CRITIC_DEFAULT
+    critic, reason = resolve_critic(wanted)
+    if reason:
+        print(f"! {reason} — the scripted critic answers instead")
+
     result = grow(
         sweep_root=args.sweep_root,
         manifest_path=manifest_path,
@@ -93,6 +112,7 @@ def main(argv: list[str] | None = None) -> int:
         budget=NightBudget(wall_minutes=args.wall_minutes),
         target=args.target,
         publish=args.publish,
+        critic=critic,
     )
 
     if args.json:
@@ -100,6 +120,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     table = result.table
+    print(f"critic:        {wanted} ({result.critic})")
     print(f"bases seen:    {result.bases_seen}")
     print(f"members added: {result.added_count}")
     print(f"members total: {len(result.added) + result.already_known}")

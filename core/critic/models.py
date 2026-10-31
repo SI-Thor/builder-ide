@@ -206,6 +206,10 @@ class CriticVerdict:
     chosen and measured yet (X R4: the critic is "the largest unchosen
     dependency in the whole stack"). This row is the baseline that the
     choice has to beat — plan item 18's number.
+
+    ``layer`` says where the member's defect lives — in the pixels or in the
+    geometry — so the fold can measure a critic only on the layers it can
+    actually see.
     """
 
     member_id: str
@@ -214,6 +218,7 @@ class CriticVerdict:
     checks: tuple[CheckOutcome, ...]
     label: str = "verdict@scripted"
     degraded: str = "scripted"
+    layer: str = "image"
 
     @property
     def fired_checks(self) -> tuple[str, ...]:
