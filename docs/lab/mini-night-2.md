@@ -48,13 +48,13 @@ without the load beside it is not comparable):
 | load average (14 cores) | **26.42 / 23.11 / 21.04** | 14.97 / 21.13 / 22.59 |
 | GPU | 0 %, 2.76 W, 45 °C | 0 %, 2.36 W, 47 °C |
 | memory | 30.5 GB used of 125.7 GB | — |
-| on the GPU | only our ComfyUI (285 MB) | only our ComfyUI |
+| on the GPU | only our ComfyUI (285 MB) | only our ComfyUI (285 MB) |
 
 The seed sweep on the Infinigen side was running throughout, and it took
 the CPU with it: **the box was twice as loaded as the night the cost model
-was fitted on** (load 13.4 → 11.1 in mini-night 1). The GPU was ours
-alone, but the CPU lane was not. That difference is the whole story of the
-wall-clock, below.
+was fitted on** (load 13.4 → 11.1 in mini-night 1). The GPU showed only
+our ComfyUI at both ends of the night, but the CPU lane was not ours
+alone. That difference is the whole story of the wall-clock, below.
 
 ## 2. The numbers
 

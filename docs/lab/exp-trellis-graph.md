@@ -19,10 +19,11 @@ node from a base directory in this worktree.
 2. **The CPU issue time collapses: 117.69 ms → 0.112 ms for the picture
    step, 63.22 ms → 0.089 ms for the 3D step — a 710× to 1,051× reduction.**
    That is the whole promise of a CUDA graph, delivered.
-3. **And the step does not get faster.** The GPU span is 628.3 ms eager and
-   629.6 ms graphed. The step is **GPU-bound**, not launch-bound: a graph
-   frees the CPU without making the GPU do less work, and on this box there
-   was no wall-clock to win.
+3. **And the step does not get faster.** The GPU span is 277.2 ms eager and
+   273.6 ms graphed for the picture step; 616.6 ms and 615.9 ms for the 3D
+   step. The steps are **GPU-bound, not launch-bound**: a graph frees the
+   CPU without making the GPU do less work, and on this box there was no
+   wall-clock to win.
 4. **The sparse stages refuse capture**, for an exact and nameable reason: a
    CUDA graph cannot contain a host-to-device copy, and TRELLIS.2's sparse
    path copies a *constant* across the bus every step. Two of those copies
@@ -53,7 +54,7 @@ node from a base directory in this worktree.
 | the workflow | the environment's own `trellis2_512.api.json` (and `trellis2_512_fp8_e4m3fn_fast.api.json` for the fp8 half) |
 | the prop | one request, one seed — a weathered wooden crate — through the whole pipeline: picture, 3D, measure |
 | the driver | `run_one_prop.py`, reusing the seat's own workflow builders and ComfyUI client, so the workflows it sends are the ones the night sends |
-| the box | load average **18.2 → 17.9** on 14 cores; the GPU idle at the arm's start (0 %, 2.36 W) |
+| the box | load average **17.9 – 23.9** on 14 cores across the arms; the GPU idle at each arm's start (0 %, 2.36 W) |
 
 **The box's state, beside every number.** The Infinigen seed sweep came and
 went on the GPU during the session (it was at 98 % while the fp8 arms
