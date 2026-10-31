@@ -102,6 +102,15 @@ claims were corrected after a clean re-run — see the note at the end of this f
   work around (rev-tech §C6) — an argument for Warp over a hand-written extension here.
   The port itself is unproven, and per **Rule 1** it must ship alongside the algorithmic
   work.
+- **Status: MEASURED (round 2, `exp-warp-terrain-port.md`) — BREAKTHROUGH.** The
+  `mountains` terrain element was ported to Warp and is **bit-identical** to Infinigen's
+  own CPU *and* CUDA libraries (max |diff| = 0.0 over 16 M points) while running
+  **44–56× faster than the CPU path** and **6× faster than Infinigen's own hand-written
+  CUDA kernel** — which `cudaMalloc`s and copies its buffers on *every call*, pure waste on
+  a unified-memory box. The outputs-differ kill condition is not triggered. The reusable
+  artefact is the **oracle**: compile Infinigen's own headers into a tiny program and diff
+  the intermediates, instead of transcribing the C by hand (which was wrong twice — Part D
+  trap 8).
 
 ### 3. The solver's inner loop is a GPU batch — the Architect becomes a daytime character
 
@@ -121,6 +130,23 @@ claims were corrected after a clean re-run — see the note at the end of this f
   Python, (b) numba across 14 cores, (c) one Warp batch. **Kill it if (c) is not ≥5×
   faster than (a), or if that stage is not ≥30 s of the ~38 min.**
 - **Status: unproven, and this is the highest-value untested idea in the list.**
+- **Status: MEASURED (round 2, `exp-solver-scoring.md`) — USEFUL, with a condition.** The
+  scoring function extracted was `cl.angle_alignment_cost` → `angle_alignment_cost_base`
+  (a real score term, evaluated on every proposal). The GPU port scores **47.95 M
+  candidates/s** — **3,394× the current shapely path** (14,127 cand/s) and **97× the best
+  restructured CPU** — so the ≥5× kill condition is cleared by a factor of 680. **But the
+  solver scores ONE candidate per annealing step**, and at that size the *restructured CPU*
+  (numpy-vectorised, 0.04 ms) is **7.5× faster than the GPU** (0.30 ms) and **23× faster
+  than today**. The crossover is between 64 and 256 candidates. **The GPU is the right engine
+  only if the proposal step is restructured to batch candidates** — and that restructuring
+  is the real finding, not the kernel.
+- **A second, separate finding:** the scoring function's argmin is **ambiguous for ~17 % of
+  candidates** (at a polygon corner the two adjacent edges are exactly equidistant), so a
+  port that breaks ties differently changes the solver's *decisions*, not just its speed.
+  Any GPU port must break ties the same way, or the generated scene changes.
+- **Still open:** this stage's share of the ~38 min solve. `thor/run-timed.sh` exists but
+  `outputs/logs/` does not, so there is no per-stage breakdown to check "≥30 s" against.
+  What is measured is a *rate*: 14,127 candidates/s today.
 - **Caution:** the 14 cores are worth ~4.4×, not 14× (EXP B, measured under load). A
   CPU-only fallback is capped around 4–5×.
 
@@ -194,6 +220,16 @@ claims were corrected after a clean re-run — see the note at the end of this f
   read + decode → tensor, versus (b) the direct buffer → tensor route from EXP A.
   **Kill it if (a) is under 100 ms** — then the round-trip was never worth removing.
 - **Status: unproven, cheap to test, and it composes with idea #4's "judge mid-render".**
+- **Status: MEASURED (round 2, `exp-critic-png-roundtrip.md`) — USEFUL, and bigger than
+  expected.** Measured on **real Cycles renders** (480p / 1080p / 4K) with the pixel
+  equality between the two paths *verified* (max |A_pixels − B_pixels| = 0). The PNG round
+  trip costs **48.5 ms / 293.0 ms / 1,201.8 ms** against a critic forward pass of
+  **4.9 / 4.6 / 5.3 ms** — it is **10× to 228× the critic's own cost**, so the
+  "kill it if under 100 ms" condition is not triggered. **88 % of the round trip is the PNG
+  *encoder***; the file write and read together are 1.5 ms at 4K, and tmpfs is no faster.
+  Zero-copy from the render buffer is **2.9–3.5× faster end-to-end**. Corollary for the
+  middleware (idea #10): **the critic is CPU-codec-bound, not GPU-bound and not
+  disk-bound** — it competes with the renderer for CPU.
 
 ### 8. NVENC: the morning report as a film you actually watch
 
@@ -284,6 +320,23 @@ claims were corrected after a clean re-run — see the note at the end of this f
   Residency must be measured from `/proc/meminfo` + `tegrastats` — **`nvidia-smi` cannot
   report GPU memory on this box** (rev-tech §C9).
 - **Status: unproven. This is the cheapest high-value measurement still outstanding.**
+- **Status: MEASURED (round 2, `exp-nvme-bandwidth.md`) — USEFUL.** Cold NVMe → unified
+  memory runs at **1.15–1.68 GB/s** (verified cold with `posix_fadvise` + **`mincore()`**,
+  not assumed), so a 7.45 GiB fp16 checkpoint takes **6.5 s** cold and **1.7–4.3 s** warm;
+  `torch.load(map_location='cuda')` of a 3.73 GiB checkpoint takes **1.78 s** cold /
+  **0.78 s** warm, and the H2D copy runs at 34.9 GB/s while a zero-copy GPU read of the
+  freshly loaded bytes runs at 60.4 GB/s. **So a model load costs seconds, not minutes**,
+  and the tiering is over-engineered — but the conclusion is sharper than that: **the warm
+  tier already exists for free** (after any read the file is 100 % resident in the page
+  cache, which *is* unified memory), so the real design question is **what to pin**, not
+  how to move bytes. Cold-tier latency (6.5 s) is longer than the critic's ≤5 s watch
+  clock, so a cold model cannot be swapped mid-session.
+- **Two corrections from the same round.** The external cold shelf (1.9 TB, `/dev/sda1`,
+  **fuseblk**) **stalled mid-write and never recovered** — it took the box's I/O paths
+  down with it (every access, and even `os.sync()`, blocked forever) — so the shelf tier is
+  **currently unusable and unmeasured**, and it should be planned as an *archive* tier, not
+  a cache tier. And "1.2–1.7 GB/s", not the ~3 GB/s this idea guessed: the guess was
+  optimistic by ~2×.
 
 ### 13. The 5 GbE cable is a prerequisite, not a nice-to-have
 
@@ -365,6 +418,20 @@ Each is a day or less and each unlocks a decision the plan depends on.
 Items 1, 4 and 6 are the cheapest and each answers a question the plan is currently
 guessing at.
 
+### Round 2 ran items 1, 4, 5 and 7 — here is what they decided
+
+| # | Result | Verdict | File |
+|---|---|---|---|
+| 1 | Cold NVMe → unified memory is **1.15–1.68 GB/s**; a 7.45 GiB checkpoint loads in **6.5 s** cold, **1.7–4.3 s** warm; the page cache *is* the warm tier. The external cold shelf **stalled and is unusable**. | useful | `exp-nvme-bandwidth.md` |
+| 4 | The PNG round trip is **48.5 / 293 / 1,202 ms** at 480p / 1080p / 4K against a **4.6–5.3 ms** critic — **10× to 228×** the critic's cost, and **88 % of it is the encoder, not the disk**. Zero-copy is **2.9–3.5×** faster end-to-end. | useful | `exp-critic-png-roundtrip.md` |
+| 5 | The GPU scores **47.95 M candidates/s** (**3,394×** the current shapely path) — but at the solver's real pattern (one candidate per step) the **restructured CPU wins by 7.5×**. The GPU needs the proposal step batched. | useful, with a condition | `exp-solver-scoring.md` |
+| 7 | A Warp port of Infinigen's `mountains` element is **bit-identical** to Infinigen's own CPU *and* CUDA libraries over 16 M points, and is **44–56× the CPU path** and **6× Infinigen's own CUDA kernel**. | **breakthrough** | `exp-warp-terrain-port.md` |
+
+**Still open after round 2:** items 2, 3, 6 and 8. Item 6 needs a human and a cable.
+Item 8 is now the natural next experiment, because item 7 answered its sibling
+("the procedural rewrite is worth it") and left the other half ("is the cost SDF
+evaluation or octree bookkeeping?") untouched.
+
 ---
 
 ## Part D — cross-cutting traps found in this round
@@ -396,6 +463,34 @@ them down.
    at ≈ 4–5, and the 14-core scaling figure (4.4×) was measured *under that load* —
    which is the realistic condition. Every measurement in this directory records the
    load beside the number.
+8. **Do not transcribe C into another language — compile it into an oracle.** Round 2's
+   Warp port of Infinigen's `mountains` was wrong *twice* in the same 12-line hash chain:
+   Blender's `hash_bit_final` ends with `c -= hash_bit_rotate(b, 24)` (it rotates **b**,
+   not c) and its middle step is `b -= hash_bit_rotate(a, 25)` (rotates **a**, not b).
+   Both misreadings produced a plausible-looking 7 % output error. **Compile the original
+   headers into a tiny program and diff the intermediates** (`vendor/infinigen-terrain/oracle.cpp`
+   does this) — it turned a day of guesswork into ten minutes and is the single most
+   reusable thing in this round.
+9. **Warp's mutable variables inside `if` blocks are a trap.** A probe kernel that assigned
+   a variable inside an `if/elif` chain returned a corrupted value (`0xdeafa148` instead of
+   `0xdeafd03c`) and sent the hunt for a bug in the hash that did not exist. Use
+   `wp.where(...)` selects instead of branches for anything that is read after the branch.
+10. **`posix_fadvise(DONTNEED)` silently does nothing to a file with dirty pages.** The
+    first "cold" disk numbers in round 2 were optimistic by up to 2× because the files had
+    just been written. `fsync` the file first, and **verify with `mincore()`** — do not
+    trust the eviction.
+11. **Never call `os.sync()` on this box.** It syncs *every* filesystem, including the
+    external FUSE mount, and blocks forever if that mount is wedged. `fsync` the one file.
+12. **An argmin over a set with duplicates is not a function.** The solver's
+    `closest_edge_to_point_edge_list` is ambiguous for **~17 % of candidates** (at a
+    polygon corner, two adjacent edges are exactly equidistant). Two correct
+    implementations can return different scores, and a port that breaks ties differently
+    changes the *solver's decisions*, not just its speed. Measure the ambiguity rather than
+    calling the difference a bug (`scripts/exp5_tie_diagnostic.py`).
+13. **An external FUSE mount can take the box's I/O down with it.** The cold shelf stalled
+    mid-write and every later access — including `os.sync()` — blocked indefinitely; two
+    processes are still in `D` state on it and cannot be signalled. Bound every device
+    operation with a timeout and plan the shelf as an archive tier, not a cache tier.
 
 ## Licence note for everything in this directory
 
@@ -429,3 +524,67 @@ Everything else reproduced within the ranges stated: zero-copy match and chain `
 
 **The lesson for the lab, worth carrying into the next round: on a shared box, publish
 ranges and re-run before publishing a conclusion.**
+
+---
+
+## Round 2 — what changed
+
+Four experiments, in the order the brief asked for them: Part C items **1**, **4**, **5**
+and **7**. One file each, with the numbers, the box's state beside every number, and the
+failures that stayed.
+
+| file | what it measured | verdict |
+|---|---|---|
+| `exp-nvme-bandwidth.md` | NVMe → unified-memory load bandwidth, cold and warm, 64 MiB → 16 GiB | useful |
+| `exp-critic-png-roundtrip.md` | the critic's PNG round trip vs zero-copy from the render buffer, on real Cycles renders | useful |
+| `exp-solver-scoring.md` | one Infinigen solver score term: Python vs numba vs Warp vs a restructured CPU | useful, with a condition |
+| `exp-warp-terrain-port.md` | one Infinigen terrain element ported to Warp | **breakthrough** |
+
+### The four things that changed
+
+1. **The procedural-stage rewrite is worth it, and the proof is bit-exactness.** A Warp
+   port of Infinigen's `mountains` element reproduces the existing CPU *and* CUDA libraries
+   **exactly** (max |diff| = 0.0 over 16 M points) at **44–56× the CPU path** and **6× the
+   spike's own hand-written CUDA kernel** — because that kernel copies its buffers through
+   `cudaMalloc`/`cudaMemcpy` on every call, which is pure waste on a unified-memory box.
+   *(`exp-warp-terrain-port.md`)* — and the reusable artefact is the **oracle**: compile
+   Infinigen's own headers into a tiny program and diff the intermediates, rather than
+   transcribing C by hand (which was wrong twice).
+2. **The Architect's speed-up is a *solver* change, not a kernel change.** The GPU scores
+   47.95 M candidates/s (3,394× the current path) but the solver scores **one** candidate
+   per annealing step, where a restructured CPU is 7.5× faster than the GPU. The crossover
+   is between 64 and 256 candidates, so the proposal step has to batch. *(`exp-solver-scoring.md`)*
+   — and the scoring function's argmin is ambiguous for ~17 % of candidates, so a port must
+   break ties the same way or the generated scene changes.
+3. **The critic is CPU-codec-bound.** Its PNG round trip is 10× to 228× the critic's own
+   forward pass, and 88 % of that is the PNG *encoder* — the disk is 0.5 % of it. Moving
+   the PNG to a faster disk solves nothing; handing the critic the render buffer is
+   2.9–3.5× faster end to end. *(`exp-critic-png-roundtrip.md`)*
+4. **The residency tiers are a pinning policy, not a transfer system.** Cold NVMe → unified
+   memory is 1.15–1.68 GB/s (so a 7.45 GiB checkpoint loads in 6.5 s cold, 1.7–4.3 s
+   warm), and the page cache — which *is* unified memory — already provides the warm tier
+   for free. Meanwhile the external cold shelf **stalled mid-write and never recovered**,
+   taking the box's I/O paths down with it; plan it as an archive tier, not a cache tier.
+   *(`exp-nvme-bandwidth.md`)*
+
+### What this round did not settle
+
+- **The solver stage's share of the ~38 min solve.** `thor/run-timed.sh` exists but
+  `outputs/logs/` does not, so there is still no per-stage breakdown. What is measured is
+  a *rate* (14,127 candidates/s today; 47.95 M/s on the GPU if batched).
+- **The external shelf's read bandwidth** — it never recovered long enough to be measured.
+- **The real critic.** The PNG-round-trip numbers are anchored to a ViT-shaped stand-in with
+  random weights; the round trip itself was measured from real Cycles renders and does not
+  depend on the model.
+- **Part C items 2, 3, 6 and 8** were not run (item 6 needs a human and a cable).
+
+### The correction this round makes to round 1
+
+Round 1's Part D trap 5 says *"`nvcc` defaults to sm_75 on this box"* and that a
+hand-written CUDA extension must pass `-arch=native`. That is still true of the *default*,
+but the Infinigen spike's **current build does pass an explicit arch flag**: the built
+`mountains_cuda.so` contains **native sm_110 SASS and no PTX**
+(`cuobjdump --list-elf` → `mountains_cuda.1.sm_110.cubin`; `--list-ptx` → none). The
+"PTX-JIT tax" is therefore a property of the default, not a wall — but it is still a
+trap for anyone who writes a new `.cu` file without checking, and Warp's native sm_110
+cubin remains the reason to prefer Warp for new work.

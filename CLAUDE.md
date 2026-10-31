@@ -57,6 +57,12 @@ works.
   writing Blender code, and they **predict before they render** (the Vibe
   Dictionary pattern proven in last-mile: sealed prediction, test, verdict,
   undo).
+- **Third-party generators are approved** (Casey, 2026-10-31): the
+  open-source generators the research picked may be installed and run on the
+  Thor, each in its own venv, with its licence checked first: ComfyUI +
+  TRELLIS.2 first, then TripoSR, build123d/CadQuery, ACE-Step and MoMask.
+  Infinigen was approved before. Any other third-party project from GitHub
+  still needs his OK.
 - **Keep the READMEs current** (Casey, 2026-10-31). Every package or directory
   a seat creates gets a README (what it is, how to run its tests, what it
   stubs, how it connects to the rest), and every change updates it. The top
