@@ -1,0 +1,10 @@
+[project]
+name = "builder-ide-core"
+version = "0.1.0"
+description = "The durable core service of builder-ide (docs/design/core-spec.md). Work in progress on seat branches."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
