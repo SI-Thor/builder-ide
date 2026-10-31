@@ -55,6 +55,7 @@ __all__ = [
     "materialise",
     "write_manifest",
     "read_manifest",
+    "read_bases",
     "member_recipe",
 ]
 
@@ -269,7 +270,14 @@ def materialise(
             donor = None
             donor_id = None
             if member.defect == "texture_swap":
-                donor_base = _donor_for(bases, base)
+                # The donor is the one the member's own recipe names. A
+                # member that was planted against a particular donor must be
+                # re-derived against **that** donor, not against whoever
+                # happens to be next in today's harvest — otherwise the
+                # re-derived image is a different picture and the member's
+                # recorded hash no longer matches.
+                donor_id = member.recipe.get("donor") or _donor_for(bases, base).id
+                donor_base = _find_base(bases, donor_id) or _donor_for(bases, base)
                 donor = load_rgb(donor_base.image_path)
                 donor_id = donor_base.id
             plan_ = defect_plants.plan(
@@ -372,3 +380,28 @@ def read_manifest(path: str | Path) -> list[MemberRecipe]:
     """Read the set's members back from its manifest."""
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     return [MemberRecipe.from_dict(m) for m in payload.get("members", ())]
+
+
+def read_bases(path: str | Path) -> list[BaseRender]:
+    """Read the set's bases back from its manifest.
+
+    A member's recipe names the render it was made from — and, for a texture
+    swap, the render it borrowed from. Re-deriving a member needs *those*
+    bases, not whatever today's harvest happens to find, so the manifest keeps
+    them and they are read back from here.
+    """
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    return [
+        BaseRender(
+            id=str(b["id"]),
+            scene=str(b.get("scene", "")),
+            seed=int(b.get("seed", 0)),
+            image_path=str(b["image_path"]),
+            image_sha256=str(b.get("image_sha256", "")),
+            width=int(b.get("width", 0)),
+            height=int(b.get("height", 0)),
+            mesh_path=b.get("mesh_path"),
+            mesh_sha256=b.get("mesh_sha256"),
+        )
+        for b in payload.get("bases", ())
+    ]
