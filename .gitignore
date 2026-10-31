@@ -37,3 +37,6 @@ docs/lab/trellis-graph-scripts/comfy-base/models/
 # The critic seat's derived images and probed geometry are caches, not
 # sources: the recipe is the source of truth.
 core/critic/.cache/
+
+# The Rust crate's build output (tools/thor-admit is a standalone crate).
+tools/thor-admit/target/
