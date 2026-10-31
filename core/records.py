@@ -120,6 +120,9 @@ EVENT_TYPES: frozenset[str] = frozenset(
         # tiles (the tile seat: the cloud writes the options, the Thor
         # learns which ones work)
         "tile.authored", "tile.retired", "tile.played", "tile.retrained",
+        # judgments (the judge seat: one judgment seam, typed questions,
+        # every verdict recorded with its author, distribution and cost)
+        "judge.verdict",
         # questions
         "question.parked", "question.answered", "assumption.recorded",
         # continuity
