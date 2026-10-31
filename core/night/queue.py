@@ -90,6 +90,7 @@ class TaskQueue:
             actor=self._actor,
             subject={"entity_kind": "task", "entity_id": task.id},
             payload={"task": task.model_dump()},
+            at=self._clock(),
         )
         self._tasks[task.id] = task
         self._order.append(task.id)
@@ -108,6 +109,7 @@ class TaskQueue:
             actor=self._actor,
             subject={"entity_kind": "task", "entity_id": task_id},
             payload=payload,
+            at=self._clock(),
         )
         task.state = state
 

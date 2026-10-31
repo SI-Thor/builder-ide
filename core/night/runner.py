@@ -461,6 +461,7 @@ class NightRunner:
                 "outcome": "failed" if outcome == "failed" else outcome,
                 "reason": actual.reason,
                 "artifact": actual.artifact,
+                "cost": actual_cost.model_dump(),
             },
             at=done_at,
         )
