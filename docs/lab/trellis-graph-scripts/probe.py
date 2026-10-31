@@ -4,7 +4,7 @@ A monkeypatch that lives in this worktree, never in ComfyUI's checkout.  It
 is loaded as a custom node from a base directory that also lives here (see
 ``serve_probe.sh``), so the TRELLIS.2 environment is read, never modified.
 
-Three jobs, each measured where it happens:
+Four jobs, each measured where it happens:
 
 1. **CUDA-graph capture of a KSampler step** (``TRG_MODE=graph``).
 
@@ -50,6 +50,17 @@ Three jobs, each measured where it happens:
    the matmul — and, with ``TRG_PRECOMPUTE_SCALES=1``, what the same path
    costs when the scales are precomputed per layer on the GPU.
 
+4. **The per-step cost of the diffusion model** (``TRG_MODE=steps``).
+
+   The graph half runs every step twice — once eagerly, once from a captured
+   graph — so that the two can be compared on the same input.  This half
+   runs every step once and records what it cost: the GPU span (CUDA events
+   around the forward) and the host time, with the box's memory beside it.
+
+   It is how two dtypes are put on the same clock.  A dtype comparison that
+   compared two different prompts, or two differently loaded boxes, would
+   measure the difference between the prompts, not between the dtypes.
+
 Design rules this file follows:
 
 * the TRELLIS.2 environment is read, never modified — nothing here writes
@@ -69,7 +80,7 @@ import traceback
 from typing import Any
 
 CFG: dict[str, Any] = {
-    # off | graph | fp8 | both
+    # off | graph | fp8 | steps | both
     "mode": os.environ.get("TRG_MODE", "off"),
     "out": os.environ.get("TRG_OUT", "/tmp/trg-probe.json"),
     "warmup": int(os.environ.get("TRG_WARMUP", "3")),
@@ -992,6 +1003,105 @@ def _install_fp8_probe() -> None:
 
 
 # --------------------------------------------------------------------------
+# installation — the per-step half
+# --------------------------------------------------------------------------
+
+
+def _memory() -> dict[str, Any]:
+    """The box's memory, beside the number.
+
+    Three different things are called "memory", and the lab has to say which
+    one it means every time:
+
+    * ``cuda_max_reserved_mb`` — the high-water mark of the torch allocator
+      on the GPU, which is where a dtype's *activations* show up;
+    * ``rss_mb`` — the process's resident set, which is where the *weights*
+      show up: a bf16 UNet is twice the bytes of an fp8 one;
+    * ``host_free_mb`` — what is left for everyone else on the box.
+    """
+    import torch
+
+    out: dict[str, Any] = {}
+    try:
+        if torch.cuda.is_available():
+            out["cuda_allocated_mb"] = torch.cuda.memory_allocated() / 1e6
+            out["cuda_reserved_mb"] = torch.cuda.memory_reserved() / 1e6
+            out["cuda_max_allocated_mb"] = torch.cuda.max_memory_allocated() / 1e6
+            out["cuda_max_reserved_mb"] = torch.cuda.max_memory_reserved() / 1e6
+    except Exception:  # noqa: BLE001 - a number is not worth a crash
+        pass
+    try:
+        with open("/proc/self/status") as fh:
+            for line in fh:
+                if line.startswith("VmRSS:"):
+                    out["rss_mb"] = int(line.split()[1]) / 1024.0
+                    break
+    except OSError:
+        pass
+    try:
+        with open("/proc/meminfo") as fh:
+            for line in fh:
+                if line.startswith("MemAvailable:"):
+                    out["host_available_mb"] = int(line.split()[1]) / 1024.0
+                    break
+    except OSError:
+        pass
+    return out
+
+
+def _install_steps_probe() -> None:
+    """Time every step of the diffusion model, eagerly, with no capture.
+
+    The graph half runs each step twice — once eagerly, once from a captured
+    graph — so the two can be compared on the same input.  This half runs each
+    step once and records what it cost, which is what a dtype comparison
+    needs: both arms measured the same way, on the same prompt, in the same
+    process shape.
+
+    The GPU span is measured with CUDA events around the forward, and the
+    synchronise before the event pair means the span is the step's own GPU
+    time and not the tail of whatever ran before it.
+    """
+    import torch
+
+    import comfy.model_base as mb
+
+    original_apply = mb.BaseModel._apply_model
+    state = {"calls": 0}
+
+    def _apply_model(self, x, t, *args, **kwargs):
+        if not torch.cuda.is_available():
+            return original_apply(self, x, t, *args, **kwargs)
+        torch.cuda.synchronize()
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        host_start = time.perf_counter()
+        start.record()
+        out = original_apply(self, x, t, *args, **kwargs)
+        end.record()
+        torch.cuda.synchronize()
+        host_end = time.perf_counter()
+        state["calls"] += 1
+        diffusion = getattr(self, "diffusion_model", None)
+        RECORDS.append(
+            {
+                "model": f"unet/{type(diffusion).__name__}",
+                "call": state["calls"],
+                "gpu_ms": start.elapsed_time(end),
+                "host_ms": (host_end - host_start) * 1000.0,
+                "input_shape": list(x.shape) if isinstance(x, torch.Tensor) else None,
+                "input_dtype": str(x.dtype) if isinstance(x, torch.Tensor) else None,
+                "memory": _memory(),
+                "ts": time.time(),
+            }
+        )
+        _flush()
+        return out
+
+    mb.BaseModel._apply_model = _apply_model
+
+
+# --------------------------------------------------------------------------
 # installation
 # --------------------------------------------------------------------------
 
@@ -1025,6 +1135,10 @@ def install() -> None:
             )
     if mode in ("graph", "both"):
         _install_graph_probe()
-    if mode in ("fp8", "both"):
+    if mode in ("fp8", "both", "steps"):
+        # The steps mode counts the fp8 path's calls too: a per-step time
+        # means nothing without saying whether the fused path ran at all.
         _install_fp8_probe()
+    if mode in ("steps", "both"):
+        _install_steps_probe()
     _flush()
