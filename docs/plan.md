@@ -314,7 +314,7 @@ if the session cannot be played end to end, the milestone is not done.
 
 - **Lived:** Magnus's first session is a **five-chip guided world**: tap one
   of five nouns ("Tap one. It gets built tonight."), see the chip land with
-  his badge ≤ 1.5 s, hear the limit said to a nine-year-old ("Swing isn't in
+  his badge ≤ 1.5 s, hear the limit said to a kid ("Swing isn't in
   my hands yet — 0 built. Creaky planks: yes."), pick "ask the Computer" and
   see "waiting for Casey." His lane is reserved and capped ("1 item · ends
   21:30 · inside the birch batch"). His morning is one sentence: "You asked

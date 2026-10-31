@@ -36,7 +36,7 @@ Chips only — no mic, no free text, no keyboard — and he *proposes* rather
 than applies: he points at a branch, it becomes a proposal, you confirm.
 **Options:** (a) chips only, proposals only; (b) spoken input with full apply.
 **Recommendation: (a).** His input is structured data from the first second;
-a nine-year-old should say "that one" about a picture, not repoint the
+a kid should say "that one" about a picture, not repoint the
 hamlet's recipe. **If you don't decide:** (a) stands — it is already
 structural in the code (separate `author` scopes, forever).
 
