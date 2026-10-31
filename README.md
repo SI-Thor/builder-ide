@@ -19,35 +19,34 @@ seat you work from.
   Thor's GPU at **7.1× its 14 CPU cores**. See
   [SI-Thor/infinigen-thor](https://github.com/SI-Thor/infinigen-thor) (branch
   `thor-spike`) and [docs/research/spike-phase1.md](docs/research/spike-phase1.md).
-- **The engine decision is made.** The world engine is built on **Infinigen 2.0 +
-  procfunc**, with our Warp terrain as a v2-native stage. The confirming
-  experiment is running on the Thor; its first step already passed (a v2 room
-  rendered on the GPU). See [docs/research/ig2-procfunc.md](docs/research/ig2-procfunc.md).
-- **The engine is decided: Infinigen 2.0 + procfunc.** On the Thor, 2.0 renders on
-  the GPU, a one-parameter edit regenerates one node of 4,231, and
-  `fine_terrain` is now deterministic (CPU and CUDA, at no speed cost)
-  ([v2-thor-experiment](docs/research/v2-thor-experiment.md)).
+- **The engine is decided and confirmed: Infinigen 2.0 + procfunc.** On the
+  Thor, 2.0 renders on the GPU, and a one-parameter edit regenerates one node of
+  4,231 ([v2-thor-experiment](docs/research/v2-thor-experiment.md),
+  [ig2-procfunc](docs/research/ig2-procfunc.md)). Infinigen's `fine_terrain` is
+  now deterministic on CPU and CUDA, at no speed cost (fork, phase 3).
 - **Two lab breakthroughs.** Unified memory lets NumPy, PyTorch and CUDA kernels
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel).
-- **The core is integrated on `main`: 893 tests pass** in one suite (seven
-  seats plus the engine seam merged, every stand-in replaced; see
-  [INTEGRATION.md](INTEGRATION.md)). The M1 acceptance session and the melt
-  week both play end to end on the integrated core.
-- **The render rung is real (branch `render-rung`).** M1's render steps now
-  render through the engine seam at **Infinigen 2.0 on the Thor's GPU** —
-  the v2 venv behind `core.engine.venv2`, an opt-in acceptance run
-  (`pytest -m engine`) that plays the whole session with real images,
-  artifact hashes, provenance and licence rows in the ledger. Measured:
-  **4–5 s per render** at the preview rung, a traced stage byte-stable
-  across generations, the pin swap performed as one explicit edit.
-- **Plan draft 2 is written, with a decision sheet.** 18 reports, three
-  cross-reviews, a synthesized understanding, a core spec (v2), the plan
-  ([docs/plan.md](docs/plan.md)) and a condensed sheet of the owner's open
-  decisions ([docs/decisions-for-casey.md](docs/decisions-for-casey.md)).
-- **Nothing is usable end to end yet.** Milestone M1 is "one evening, one night,
-  one morning, one builder, one room".
+- **The core is integrated and renders for real: 1,022 tests pass** in one
+  suite (see [INTEGRATION.md](INTEGRATION.md)).
+  - The M1 session plays one evening, night and morning **with real Infinigen
+    2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
+    session; `pytest -m engine`).
+  - The seven-night melt week reproduces its table on the integrated core.
+  - The engine sits behind one seam (`core/engine/`). A resident scene server
+    cuts builder wait 4.7× (339.6 → 71.6 ms p50) and recovers from `kill -9`
+    byte-exactly.
+- **The first real night ran.** TRELLIS.2 behind the scheduler made 3 props × 3
+  seeds in 24 min 44 s, one model load, provenance on every asset
+  ([record](docs/lab/mini-night.md)). It found that TRELLIS.2 meshes are never
+  watertight; repair is the next round.
+- **Plan draft 2 and a decision sheet.** 20+ reports, three cross-reviews, a
+  synthesized understanding, a core spec (v2), the plan
+  ([docs/plan.md](docs/plan.md)), and the owner's open decisions, condensed
+  ([docs/decisions-for-casey.md](docs/decisions-for-casey.md)).
+- **Not yet usable by a person.** Milestone M1 is "one evening, one night, one
+  morning, one builder, one room", played live at the ProArt.
 
 ## How it fits together
 
@@ -161,18 +160,17 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `night-runner` | The night: queue, rails, heartbeat and lease, resume after reboot, the **iterator loop**, the morning report | merged into main, ~197 tests |
 | `cold-start` | New builders ask before they act (the switch to acting at two observations); the critic's calibration set | merged into main, 63 tests |
 | `usd-backbone` | Recipe → layered USD, build123d → STEP → GLB, provenance, byte-identical re-emission | merged into main, 79 tests |
-| `m1-acceptance` + `m1-real` | The M1 session as an automated test, now on the integrated core: evening → night → morning, 30 steps | **merged: 30/30, one ledger** |
-| `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | **merged: 842 tests** |
-| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | **merged: 105/105 on the integrated core** |
-| `m1-real` | Both acceptance suites rewired onto the integrated core (real spine, real recipe store) | **merged: 30/30 + 105/105, 842→893 tests** |
-| `engine-adapter` | The engine seam: `Engine` protocol, the fake, the v1/v2 adapter skeletons, the gate's engine rungs, `open_engine` configuration | **merged: 893 tests** |
-| `render-rung` | **The render rung, real**: the v2 venv behind the seam (`core.engine.venv2`), the M1 session's `-m engine` run renders Infinigen 2.0 on the Thor's GPU with artifact hashes, provenance and licence rows in the ledger | **this branch** |
+| `m1-acceptance` | The M1 session as an automated test: evening → night → morning | merged |
+| `integrate-core` | The seven branches above merged into one core, stand-ins replaced, one green suite | merged |
+| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | merged |
+| `m1-real` | Both acceptance suites rewired onto the integrated core (real spine, real recipe store) | merged |
+| `engine-adapter` | The engine seam: `Engine` protocol, the fake, the v1/v2 adapters, the gate's engine rungs | merged |
+| `render-rung` | The M1 render steps render for real: Infinigen 2.0, Cycles on the Thor GPU, hashes, provenance and licence rows in the ledger | merged |
 | `plan-v2` | Plan draft 2 and the owner's decision sheet | merged |
+| `scene-server` | The resident engine: builder wait 4.7× lower, exact crash recovery | merged |
+| `propmaker-batch` | TRELLIS.2 behind the scheduler; the first real mini-night: 3 props × 3 seeds in 24 min 44 s ([record](docs/lab/mini-night.md)) | merged |
 
-| `engine-adapter` | One seam between the recipe and the engine: protocol, fake, Infinigen 1.x and 2.0 adapters | **merged** |
-| `render-rung` | The M1 render steps render for real (Infinigen 2.0, Cycles on the Thor GPU) | **merged** |
-| `scene-server` | The resident engine: builder wait 4.7× lower, exact crash recovery | **merged** |
-| `propmaker-batch` | TRELLIS.2 behind the scheduler; the first real mini-night: 3 props × 3 seeds in 24 min 44 s ([record](docs/lab/mini-night.md)) | **merged** |
+**`main` today: 1,022 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
