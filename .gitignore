@@ -22,3 +22,7 @@ reports/
 # Build output
 build/
 dist/
+
+# The critic seat's derived images and probed geometry are caches, not
+# sources: the recipe is the source of truth.
+core/critic/.cache/

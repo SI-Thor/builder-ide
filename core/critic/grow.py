@@ -125,6 +125,25 @@ def plan_growth(
     return max(0, min(max_per_night, max(0, target - existing), affordable))
 
 
+def _has_geometry(member: MemberRecipe, cache_dir: str | Path) -> bool:
+    """Does the member's scene hold any props to judge?
+
+    Two of the rebuilt scenes hold no props at all — the sweep planted them
+    but the assets never arrived — and a mesh member built on one of them
+    judges nothing, so it is left out of the set.
+    """
+    from .checks import props_of
+    from .mesh import probe_scene
+
+    if not member.mesh_path:
+        return False
+    try:
+        stats = probe_scene(member.mesh_path, cache_dir=cache_dir)
+    except Exception:  # noqa: BLE001 - no probe, no mesh member
+        return False
+    return bool(props_of(stats))
+
+
 def grow(
     *,
     sweep_root: str | Path | None = None,
@@ -189,7 +208,16 @@ def grow(
         existing=known,
     )
 
-    built = [materialise(m, bases, out_dir=cache_dir) for m in candidates]
+    built = []
+    for member in candidates:
+        built_member = materialise(member, bases, out_dir=cache_dir)
+        if built_member.recipe.get("placed") is False:
+            # The plant could not make this defect visible in this frame —
+            # a member that does not exist is not a false negative.
+            continue
+        if built_member.layer == "mesh" and not _has_geometry(built_member, cache_dir):
+            continue
+        built.append(built_member)
 
     # The whole set is scored, not just the new members: the table is a
     # property of the set, and the set just grew.

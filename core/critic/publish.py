@@ -138,7 +138,11 @@ def render_markdown(
             "frames."
         )
     else:
-        failing = [row for row in table.rows if row.members and not row.band.holds_for(row.counts)]
+        failing = [
+            row
+            for row in table.rows
+            if row.members and not table.band.holds_for(row.counts)
+        ]
         lines.append(
             "**Out of band.** The scripted checks do not yet hold the band, and "
             "the verdicts stay `verdict@scripted` — the plan's M2 named risk, as "
@@ -203,52 +207,57 @@ def _threshold_notes(t: Thresholds) -> list[tuple[str, Any, str]]:
         (
             "black_mean_luma",
             t.black_mean_luma,
-            "the darkest clean frame's mean luminance was 0.103",
+            "the darkest clean frame's mean luminance was 0.103 (river-s5)",
         ),
         (
             "firefly_count",
             t.firefly_count,
             "the worst clean frame measured 154 isolated outliers (sun glitter on "
-            "water, not a defect)",
+            "water, not a defect); the planted defects measure 307–472",
         ),
         (
             "flat_region_frac",
             t.flat_region_frac,
             "the largest exact-colour region in a clean frame was 30 px "
-            "(0.006 % of the frame)",
+            "(0.006 % of the frame); the planted ones are 2.8 %–6.5 %",
         ),
         (
-            "hole_uniform_std",
-            t.hole_uniform_std,
-            "the clean frames measured no uniform dark blob at all",
+            "hole_min_contrast",
+            t.hole_min_contrast,
+            "the clean frames measured no uniform dark blob at all, so the "
+            "threshold is the plant's own visibility margin",
         ),
         (
-            "patch_col_step",
-            t.patch_col_step,
-            "the clean frames' largest column step was 0.213, and no clean frame "
-            "stepped in both directions at once",
+            "seam_min_strength",
+            t.seam_min_strength,
+            "the strongest four-sided rectangle in a clean frame steps by 0.286; "
+            "the planted swaps step by 0.46 at their median",
         ),
         (
-            "float_min_clearance",
-            t.float_min_clearance,
-            "the clean frames' candidate blobs reached at most 0.22 frame "
-            "heights of clearance above the ground; a planted float reached 0.85",
+            "float_min_gap",
+            t.float_min_gap,
+            "the clean frames' candidate blobs reach 0.104 frame heights of open "
+            "space under them at the ninth percentile",
         ),
         (
-            "scale_min / scale_max",
-            f"{t.scale_min} / {t.scale_max}",
-            "the clean scenes' prop families varied within [0.65, 1.87] of their "
-            "own family's median",
+            "scale_max",
+            t.scale_max,
+            "the clean scenes' own prop families vary by up to 5.48× their "
+            "family's median (a family of chopped trees holds stumps and whole "
+            "trees), so the threshold sits above that natural spread",
         ),
         (
             "hollow_inward",
             t.hollow_inward,
-            "the clean props' worst inward-facing fraction was 0.085",
+            "the clean props' worst inward-facing fraction was 0.593 — vegetation "
+            "is full of inward faces",
         ),
         (
-            "edge_cut_slack",
-            t.edge_cut_slack,
-            "the slack allowed for a prop reaching past the frame's edge",
+            "edge_cut_margin",
+            t.edge_cut_margin,
+            "the closest a clean prop's middle comes to the picture's edge is "
+            "0.0105 of its own half-width, and no clean scene has a prop that "
+            "close",
         ),
     ]
 

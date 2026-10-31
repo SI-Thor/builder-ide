@@ -45,6 +45,10 @@ __all__ = [
 #: root, so a test (or another box) can point it anywhere.
 DEFAULT_SWEEP_ROOT = Path.home() / "src" / "infinigen-thor" / "outputs" / "sweep"
 
+#: Where the scenes' geometry lives when the sweep has deleted its own.
+#: ``rebuild_mesh.sh`` writes here; the harvest reads it.
+DEFAULT_MESH_ROOT = Path.home() / "lm-critic" / "scenes"
+
 #: The rendered frame of one camera, inside one scene's ``frames/`` folder.
 FRAME_GLOB = "frames/Image/camera_0/*.png"
 
@@ -95,6 +99,7 @@ def harvest(
     sweep_root: str | Path | None = None,
     *,
     require_done: bool = False,
+    mesh_root: str | Path | None = None,
 ) -> tuple[BaseRender, ...]:
     """The sweep's finished renders, read-only.
 
@@ -102,8 +107,17 @@ def harvest(
     finished; the default keeps every scene that has produced a frame,
     because a scene still in flight has already rendered — and is the only
     chance a mesh-level member has.
+
+    ``mesh_root`` is where the scenes' **geometry** lives. The sweep deletes
+    its ``.blend`` files when a scene finishes (that is the sweep's disk
+    policy, and the sweep is read-only to this seat), so the geometry this
+    seat measures comes from ``rebuild_mesh.sh``, which re-runs the sweep's
+    own stages into a tree of its own. The rebuilt scenes are the sweep's
+    own, byte for byte — ``rebuild_mesh.sh`` checks that — so the geometry
+    is the geometry the sweep rendered.
     """
     root = Path(sweep_root) if sweep_root is not None else DEFAULT_SWEEP_ROOT
+    meshes = Path(mesh_root) if mesh_root is not None else DEFAULT_MESH_ROOT
     if not root.is_dir():
         return ()
 
@@ -120,7 +134,7 @@ def harvest(
         if require_done and not done:
             continue
         frame = frames[0]
-        mesh = _live_mesh(scene_dir)
+        mesh = _rebuilt_mesh(meshes, scene_dir.name) or _live_mesh(scene_dir)
         width, height = png_size(frame)
         bases.append(
             BaseRender(
@@ -137,6 +151,26 @@ def harvest(
             )
         )
     return tuple(bases)
+
+
+def _rebuilt_mesh(mesh_root: Path, base_id: str) -> Path | None:
+    """A scene's rebuilt geometry, if ``rebuild_mesh.sh`` has built it.
+
+    The rebuilt tree is the sweep's own scene, rebuilt out of the sweep's
+    own coarse output with the sweep's own arguments — and
+    ``rebuild_mesh.sh`` checks that the coarse assets come out byte for
+    byte identical, so this is the sweep's geometry, not an approximation
+    of it.
+    """
+    if not mesh_root.is_dir():
+        return None
+    fine = mesh_root / base_id / "fine" / "scene.blend"
+    if fine.is_file():
+        return fine
+    coarse = mesh_root / base_id / "coarse" / "scene.blend"
+    if coarse.is_file():
+        return coarse
+    return None
 
 
 def _live_mesh(scene_dir: Path) -> Path | None:

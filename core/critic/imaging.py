@@ -37,9 +37,13 @@ __all__ = [
     "luma",
     "local_std",
     "box_mean",
+    "background_mean",
     "integral",
     "components",
     "Component",
+    "next_true_row",
+    "reduce_rgb",
+    "block_edge_strengths",
     "largest_uniform_region",
     "border_colour",
     "paste_region",
@@ -105,6 +109,17 @@ def box_mean(gray: np.ndarray, k: int) -> np.ndarray:
     return mean
 
 
+def background_mean(gray: np.ndarray, k: int = 9) -> np.ndarray:
+    """The local *background* level — the frame's smooth trend under a pixel.
+
+    The mean over a wide window tells a pixel how bright its surroundings
+    are, which is what decides whether a point of light stands out against
+    them: a white pixel on a bright sky is not a firefly, and the same
+    white pixel on a dark hillside is.
+    """
+    return box_mean(gray, k)
+
+
 def local_std(gray: np.ndarray, k: int = 9) -> np.ndarray:
     """The local standard deviation of a luminance map over k×k windows.
 
@@ -123,6 +138,93 @@ def local_std(gray: np.ndarray, k: int = 9) -> np.ndarray:
     if pad:
         std = np.pad(std, pad, mode="edge")[:h, :w]
     return std
+
+
+def reduce_rgb(rgb: np.ndarray, factor: int) -> np.ndarray:
+    """A frame reduced by ``factor``, by averaging each block of pixels.
+
+    The reduction is for *finding* things quickly, not for measuring them:
+    an edge that falls inside a reduced pixel is smeared across it, so the
+    step a reduced frame shows is smaller than the step the pixels have.
+    """
+    factor = max(1, int(factor))
+    if factor == 1:
+        return rgb
+    h, w = rgb.shape[:2]
+    hh, ww = (h // factor) * factor, (w // factor) * factor
+    if hh < factor or ww < factor:
+        return rgb
+    return rgb[:hh, :ww].reshape(
+        hh // factor, factor, ww // factor, factor, rgb.shape[2]
+    ).mean(axis=(1, 3))
+
+
+def _strip_step(a: np.ndarray, b: np.ndarray) -> float:
+    """The mean colour step between two matched strips of pixels."""
+    if a.size == 0 or b.size == 0 or a.shape != b.shape:
+        return 0.0
+    diff = a.astype(np.float64) - b.astype(np.float64)
+    return float(np.linalg.norm(diff, axis=-1).mean()) / 255.0
+
+
+def block_edge_strengths(image: np.ndarray, box: tuple[int, int, int, int]) -> list[float]:
+    """The four sides of a block, as the mean colour step across each.
+
+    The sides are measured in the image's own pixels, and each is read with
+    a one-pixel tolerance — the strongest of the three boundaries it could
+    be on — because a block's edge does not have to land exactly on a pixel
+    boundary.
+
+    The order is left, right, top, bottom.
+    """
+    x0, y0, x1, y1 = box
+    h, w = image.shape[:2]
+    out: list[float] = []
+    for axis in ("left", "right", "top", "bottom"):
+        best = 0.0
+        for nudge in (-1, 0, 1):
+            if axis == "left":
+                c = x0 - 1 + nudge
+                if c < 0 or c + 1 > w - 1:
+                    continue
+                step = _strip_step(image[y0 : y1 + 1, c, :], image[y0 : y1 + 1, c + 1, :])
+            elif axis == "right":
+                c = x1 + nudge
+                if c < 0 or c + 1 > w - 1:
+                    continue
+                step = _strip_step(image[y0 : y1 + 1, c, :], image[y0 : y1 + 1, c + 1, :])
+            elif axis == "top":
+                r = y0 - 1 + nudge
+                if r < 0 or r + 1 > h - 1:
+                    continue
+                step = _strip_step(image[r, x0 : x1 + 1, :], image[r + 1, x0 : x1 + 1, :])
+            else:
+                r = y1 + nudge
+                if r < 0 or r + 1 > h - 1:
+                    continue
+                step = _strip_step(image[r, x0 : x1 + 1, :], image[r + 1, x0 : x1 + 1, :])
+            best = max(best, step)
+        out.append(best)
+    return out
+
+
+def next_true_row(mask: np.ndarray) -> np.ndarray:
+    """For every pixel, the row of the next set pixel **below** it.
+
+    The answer is the row itself where the pixel is set, the height of the
+    mask where nothing is set below, and it is computed for the whole map in
+    one pass (a reverse running minimum) rather than by scanning columns in
+    Python.
+
+    This is what "how far does the open space extend below this thing" is
+    measured with: the gap under a blob is where the next set row starts,
+    minus the blob's own bottom.
+    """
+    height, width = mask.shape
+    rows = np.broadcast_to(np.arange(height, dtype=np.int64)[:, None], mask.shape)
+    marked = np.where(mask, rows, height)
+    running = np.minimum.accumulate(marked[::-1], axis=0)[::-1]
+    return running
 
 
 @dataclass(frozen=True)

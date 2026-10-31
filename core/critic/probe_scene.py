@@ -213,6 +213,10 @@ def measure(blend_path: str, out_path: str) -> None:
             "half_width": half_width,
             "half_height": half_height,
             "depth": depth,
+            # The distance at which the renderer starts cutting geometry.
+            # Nothing in a clean scene straddles it; a prop that does is
+            # sliced by the camera itself.
+            "clip_start": float(getattr(camera_data, "clip_start", 0.1) or 0.1),
         }
 
     payload = {

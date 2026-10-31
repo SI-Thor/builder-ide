@@ -34,6 +34,7 @@ defect the check could not see at all; a check firing on a member carrying a
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -51,6 +52,9 @@ __all__ = [
     "MeshObject",
     "CameraInfo",
     "MeshStats",
+    "INFRASTRUCTURE",
+    "is_prop",
+    "prop_family",
 ]
 
 #: The seeded defect classes. The image classes are planted in the pixels of
@@ -230,6 +234,33 @@ class CriticVerdict:
         return None
 
 
+#: The scene's **infrastructure**, not its props: the terrain, the sky, the
+#: liquid, the camera rig. Infinigen's terrain is a heightfield — an open
+#: surface, never watertight — and the sky is a shell around the world. The
+#: mesh checks are about *props* (the rocks, trees and bushes a scene is
+#: populated with), so the infrastructure is excluded by name.
+INFRASTRUCTURE = ("Terrain", "atmosphere", "emitter", "liquid", "camrig")
+
+
+def is_prop(name: str) -> bool:
+    """Is this object a prop rather than the scene's infrastructure?"""
+    return not any(key in name for key in INFRASTRUCTURE)
+
+
+def prop_family(name: str) -> str:
+    """The asset family a prop belongs to.
+
+    ``BoulderFactory(490645449).spawn_placeholder(3)`` and ``Tree.281`` are
+    each one family; the instance index at the end is not part of it. A
+    family is a set of props that *should* be the same size — the same rock,
+    the same bush — so it is the right thing to compare sizes within.
+    """
+    base = name.split(".")[0]
+    base = re.sub(r"\(\d+\)$", "", base)
+    base = base.split("(")[0]
+    return base
+
+
 # -- the mesh half ------------------------------------------------------------
 
 
@@ -302,6 +333,12 @@ class CameraInfo:
     half_width: float
     half_height: float
     depth: float
+    clip_start: float = 0.1
+    """The distance at which the renderer starts cutting geometry.
+
+    A prop that straddles this plane is sliced by the camera — the
+    **clipped geometry** defect. Nothing in the measured clean scenes does.
+    """
 
     def projects(self, point: tuple[float, float, float]) -> tuple[float, float, float]:
         """A world point in camera space: (right, up, forward)."""
