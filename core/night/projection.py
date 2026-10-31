@@ -40,6 +40,11 @@ class NightProjection:
         self.work_orders: list[dict[str, Any]] = []
         self.model_changes: list[dict[str, Any]] = []
         self.thresholds: list[dict[str, Any]] = []
+        self.threshold_pct: int | None = None
+        self.stall_minutes = 0.0
+        self.batches: dict[str, Any] | None = None
+        self.late_minutes = 0.0
+        self.degraded_verdicts = 0
         self.kill_switch = False
         self.reports: list[str] = []
         self.booted = False
@@ -80,6 +85,12 @@ class NightProjection:
 
     def _on_night_tick(self, event: AuditEvent) -> None:
         self.ticks.append(event)
+        kind = event.payload.get("kind")
+        if kind == "stall":
+            self.stall_minutes += float(event.payload.get("minutes", 0.0))
+        elif kind == "batches":
+            self.batches = dict(event.payload)
+            self.late_minutes = float(event.payload.get("late_minutes", 0.0))
 
     def _on_night_task_created(self, event: AuditEvent) -> None:
         task = Task.model_validate(event.payload["task"])
@@ -108,6 +119,8 @@ class NightProjection:
 
     def _on_budget_threshold(self, event: AuditEvent) -> None:
         self.thresholds.append(event.payload)
+        level = int(event.payload.get("level", 0))
+        self.threshold_pct = max(self.threshold_pct or 0, level)
 
     def _on_kill_switch(self, event: AuditEvent) -> None:
         self.kill_switch = True
@@ -143,6 +156,10 @@ class NightProjection:
         prediction = self.predictions.get(event.payload["prediction_id"])
         if prediction is not None:
             prediction["verdict"] = event.payload["verdict"]
+
+    def _on_critic_verdict(self, event: AuditEvent) -> None:
+        if event.payload.get("degraded"):
+            self.degraded_verdicts += 1
 
     def _on_job_done(self, event: AuditEvent) -> None:
         payload = event.payload
