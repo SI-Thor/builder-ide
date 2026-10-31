@@ -9,10 +9,12 @@ driver's seats (`../m1`) — **rewired to the integrated core** (branch
 `m1-real`): the spine, the recipe store and the cold-start seat are the
 merged `core.*` packages, the melt's whole ledger **is the spine's one
 ledger** (`core.ports.SpineLedgerPort`; the three mirror bridges are
-deleted), and M1's stubs remain for the render rungs, the scripted critic
-and the engineer. Every step asserts its outcome and its budget and
-records what served it, exactly as in M1; the run ends with the per-night
-table — G §1.9's melt table, reproduced **from the ledger alone**.
+deleted), and the render rungs run **on the core's engine seam behind the
+fake engine** (`core/engine`; M1's `seats/engine.py` holds the one
+configuration line). The scripted critic and the stub engineer remain
+stubs. Every step asserts its outcome and its budget and records what
+served it, exactly as in M1; the run ends with the per-night table —
+G §1.9's melt table, reproduced **from the ledger alone**.
 
 ## Run it
 
@@ -117,10 +119,13 @@ fixed in the core (see `tests/test_integration_melt_ledger.py`).
 (G §4.3 / spec §3.2.8-7) — the spine owns the blocking dam, but the queue
 service that would enforce the morning's budget of 10 AT the queue does not
 exist yet; `weekseat.admit_ask_cards` performs it, cutting and naming.
-Stubs, as the plan expects (M1 risks): the render rungs, the scripted
-critic (`verdict@scripted` on its face), the stub engineer and gate
-engineer — the same four engine-side pieces as M1, each with its missing
-piece named in `../m1/README.md`.
+Stubs, as the plan expects (M1 risks): the scripted critic
+(`verdict@scripted` on its face) and the stub engineer — the same two
+remaining pieces as M1, each with its missing piece named in
+`../m1/README.md`. The render rungs and the gate's engine half are no
+longer stubs: they run on the core's engine seam (`core/engine`) behind
+the **fake engine** (`fake:engine` in the step table) — the real seam, a
+fake engine, one configuration line from a real one.
 
 ## Honest notes (what this run is and is not)
 

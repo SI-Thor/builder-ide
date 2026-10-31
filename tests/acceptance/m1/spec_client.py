@@ -325,11 +325,15 @@ class CoreDoor:
     (§4.2) deliberately has no door for these.
     """
 
-    def __init__(self, seats: Seats, core, settings) -> None:
+    def __init__(self, seats: Seats, core, settings, engine=None) -> None:
         self.seats = seats
         self.api = seats.api
         self.core = core
         self.settings = settings
+        # The engine behind the scheduler's renders (the seam, core/engine).
+        # None keeps the door honest: a render ask without an engine raises
+        # rather than inventing bytes.
+        self.engine = engine
 
     # -- event helpers -----------------------------------------------------------
 
@@ -391,14 +395,18 @@ class CoreDoor:
         seed: int,
         prediction_id: str | None,
         night: str,
-        render: bytes,
+        resolution: str = "480p",
     ) -> dict:
         """Enqueue, run and complete one render job — the scheduler's half.
 
-        The stub generator produces the bytes (deterministic in the seed);
-        the ordering rules are the real ones: `job.enqueued` commits after
-        the seal it tests (§5.1) and the artifact is content-addressed (§1.0).
+        The bytes come from the engine behind the door (the seam,
+        `core/engine`; the fake engine in this session — deterministic in
+        the whole request, and labelled inside its own bytes). The ordering
+        rules are the real ones: `job.enqueued` commits after the seal it
+        tests (§5.1) and the artifact is content-addressed (§1.0).
         """
+        preview = self._render(branch_ref, subject=",".join(entry_paths),
+                               rung=rung, seed=seed, resolution=resolution)
         events = self.api.events
         job_id = f"job_{len(self.store.events_since(0, types=['job.enqueued'])) + 1:04d}"
         actor = events.core_actor()
@@ -412,10 +420,11 @@ class CoreDoor:
             "job.started", actor, {"entity_kind": "job", "entity_id": job_id},
             {"job_id": job_id},
         )
-        desc = self.put_artifact(render, f"render-r{rung}-{seed}.png")
+        desc = self.put_artifact(preview.data, f"render-r{rung}-{seed}.png")
         self.event(
             "render.completed", actor, {"entity_kind": "job", "entity_id": job_id},
             {"job_id": job_id, "rung": rung, "seed": seed,
+             "engine": self.engine.describe().source,
              "artifact": {"sha256": desc["sha256"], "kind": "render",
                           "bytes": desc["bytes"]}},
             artifact=desc,
@@ -425,6 +434,25 @@ class CoreDoor:
             {"job_id": job_id, "outputs": [desc["sha256"]]},
         )
         return {"job_id": job_id, "artifact": desc}
+
+    def _render(self, branch_ref: str, *, subject: str, rung: int, seed: int,
+                resolution: str = "480p"):
+        """One preview through the seam, at the recipe version named by the
+        branch ref — the render is *of* the committed version, never of a
+        hand-me-down byte string."""
+        from core.engine.contract import PreviewRequest
+
+        if self.engine is None:
+            raise RuntimeError(
+                "no engine is wired to the door (seats/engine.py); a render "
+                "without an engine is a fabrication, not a default")
+        version_id = branch_ref.split("@", 1)[1]
+        store = self.core.recipes.store
+        return self.engine.render_preview(PreviewRequest(
+            recipe=store.get_document(version_id),
+            version_hash=store.get_version(version_id).root_hash,
+            subject=subject, rung=rung, resolution=resolution, seed=seed,
+        ))
 
     def critic_verdict(
         self,
@@ -494,23 +522,32 @@ class CoreDoor:
             vocabulary_gap=vocabulary_gap,
         )
 
-    def run_engineer_attempt(self, wo_id: str, *, deliverable: dict, preview: bytes,
-                             night: str | None = None) -> dict:
-        """The stub engineer (`aider-local`) + the merge gate over the stub engine.
+    def run_engineer_attempt(self, wo_id: str, *, deliverable: dict,
+                             night: str | None = None, subject: str | None = None,
+                             rung: int = 2, seed: int = 42) -> dict:
+        """The stub engineer (`aider-local`) + the merge gate over the engine.
 
         attempt → deliver (evidence must include a test_run) → gate → land
         with a preview artifact that exists before the owner is notified
-        (D §4 moment 10)."""
+        (D §4 moment 10). The gate's engine rungs and the preview both run
+        on the seam (the fake engine in this session); the engineer and the
+        verdict are still stubs and say so."""
         wos = self._svc("work_orders")
         wos.start_attempt(wo_id, "aider-local")
         wos.deliver(wo_id, deliverable)
         gate = wos.run_gate(wo_id)
         if not gate.get("passed"):
             raise RuntimeError(f"the merge gate refused {wo_id}: {gate}")
-        desc = self.put_artifact(preview, f"{wo_id}-preview.png")
+        # the preview is rendered at whatever the seam's branch is on —
+        # the version the night has committed by now
+        seam = self.core.recipes
+        head = seam.head(seam.commit_branch)
+        preview = self._render(f"{seam.commit_branch}@{head}",
+                               subject=subject or wo_id, rung=rung, seed=seed)
+        desc = self.put_artifact(preview.data, f"{wo_id}-preview.png")
         evidence = [
             {"kind": "render", "ref": desc["sha256"], "sha256": desc["sha256"],
-             "summary": "rung-2 preview · stub generator · verdict@scripted"},
+             "summary": f"rung-{rung} preview · {self.engine.describe().flavour} · verdict@scripted"},
         ]
         wos.land(wo_id, desc, evidence)
         if night:
