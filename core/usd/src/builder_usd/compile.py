@@ -456,7 +456,6 @@ def compile_recipe(
 
     placements: list[Placement] = []
     materials: dict[str, MaterialSpec] = {}
-    seeds: dict[str, int] = {}
     for path in sorted(document.entries):
         entry = document.entries[path]
         parsed = parse_entry(entry)
@@ -464,8 +463,6 @@ def compile_recipe(
             materials[parsed.path] = parsed
         else:
             placements.append(parsed)
-        if entry.seed is not None:
-            seeds[path] = entry.seed
 
     placements.sort(key=lambda item: item.prim_path)
 
