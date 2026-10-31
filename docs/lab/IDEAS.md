@@ -431,6 +431,76 @@ claims were corrected after a clean re-run — see the note at the end of this f
 
 ---
 
+### 15. The decode step is a CUDA Graph, not a Python loop
+
+- **Thor feature:** Blackwell tensor cores plus a host that cannot feed them.
+- **The idea.** EXP 5a measured the thing every model plan on this box has to account
+  for: the FP8 path is **launch-bound**. The host spends **9.35 ms** issuing a decode
+  step, and the step takes 9.35 ms — the GPU is idle a third of the time waiting for
+  Python. Capturing the step in a CUDA Graph removes **99.7 % of the host work**
+  (enqueue **2.38 ms → 0.008 ms**) and turns the FP8 advantage from **1.29×** into
+  **1.66–2.42×**.
+- **What it unlocks for the user.** The whole FP8 story becomes reachable. Right now the
+  plan has to choose between *model quality* (FP8's 15–22 % output error) and *speed*
+  (the launch overhead eats the gain). A graph removes the reason for the trade. And on a
+  shared box the graph is worth more as a **reproducibility** tool than as a speedup: the
+  graphed time varied **6 %** across runs while the eager time varied **3.4×**.
+- **Smallest experiment.** Two hours: capture one real generator's decode step
+  (`torch.cuda.graph`) and record the step time eager vs graphed, the joules per item
+  from the rails, and the CPU issue time. **Kill it if the graph does not change the step
+  time** — which would mean the step was already GPU-bound and the launch overhead was
+  not the constraint.
+- **Status: MEASURED on a synthetic 16-layer stack (round 3, `exp-cuda-graphs-nvenc.md`) —
+  CONFIRMED. Untested on the real generator, and it is the cheapest high-value thing left.**
+
+### 16. Batch the agents by their KV cache, not by their count
+
+- **Thor feature:** unified memory; a 128 GB shared heap.
+- **The idea.** Kimi's claim is that batching N agents costs the bandwidth of one, because
+  the weights stream once. That is true **only while the agents have no context**. EXP 2
+  measured it: in the weights-only regime the step time is **flat from N = 1 to N = 8**,
+  but with a realistic **1024-token** context it grows **13.6 ms → 53.7 ms** from N = 1 to
+  N = 128 — because at N = 128 the per-agent KV cache is **4.3 GB against 1.9 GB of
+  weights**. The cache is per-agent and it scales with N.
+- **What it unlocks for the user.** A scheduler with a *batch limit that is a function of
+  the context length*, not of the model. An agent on a long context should be batched
+  with fewer neighbours; a short-context agent can have many. That is a one-line change
+  to the scheduler's admission rule and it is worth more than any further weight
+  optimisation, because the joules per item fall **186×** between N = 1 and N = 512.
+- **Smallest experiment.** Half a day: sweep N against S on the real context lengths the
+  builder actually holds, and fit the curve. **Kill it if the KV cache is not what breaks
+  the batching** — then the limit is something else and the rule stays simple.
+- **Status: MEASURED on a synthetic stack (round 3, `exp-batched-shared-model.md`) — the
+  effect is real and large. The real context lengths are not yet known.**
+
+### 17. A skill is a merged resident model, not a switched adapter
+
+- **Thor feature:** 128 GB of unified memory; a 15.7 M-parameter adapter is 60 MiB.
+- **The idea.** Kimi's shape is "one shared base, skills as adapters, switch per builder".
+  EXP 3 measured both halves: the **adapter** is cheap (15.7 M params, 60 MiB, ~14 ms on
+  a 1.64 B-parameter forward), but the **switch** is not — PEFT's `set_adapter` costs
+  **75–120 ms of host time** because it is O(layers × adapters) in Python, and it is
+  *flat* in the number of resident adapters, so it never gets cheaper as the craft count
+  grows. PEFT's mixed-adapter batch is **10× worse at 32 adapters** (5 120 one-row
+  GEMMs). The alternative shape is the one the project already believes in for meshes:
+  **recipes, not shared state**. A craft is a *merged* model — the adapter folded into a
+  resident copy of the base — and the scheduler routes requests to the craft model that
+  is already resident, like it routes to a stage.
+- **What it unlocks for the user.** Skills that cost **no per-request switch** at all.
+  The price is 60 MiB + a 2.2 GiB base per craft, so this only works for a **small number
+  of crafts** — which is probably right: a builder has a handful of crafts, not
+  hundreds. It also makes the skill *a model*, which the project's asset/licence rules
+  can reason about.
+- **Smallest experiment.** One day: merge three adapters into three resident copies of a
+  real base and measure (a) the merge cost, (b) the per-request cost of serving from a
+  merged model against serving from the base with an adapter attached, (c) the resident
+  footprint of K merged crafts for K = 4, 8, 16. **Kill it if the merge cost dominates** —
+  then the adapter has to stay attached and the switch has to be optimised instead.
+- **Status: MEASURED on the cost side (round 3, `exp-adapters.md`) — the switch is the
+  problem, and merging is the obvious alternative. Unmeasured on the resident side.**
+
+---
+
 ## Part B — killed by fact (recorded so nobody re-proposes them)
 
 - **OFA as a real-time mesh deformer.** There is **no OFA device node** on this box:
