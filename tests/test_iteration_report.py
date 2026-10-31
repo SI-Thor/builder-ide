@@ -74,7 +74,15 @@ def run_an_iterating_night(scores: dict[str, float], **kwargs) -> list:
         critic=critic,
         **kwargs,
     )
-    runner.start([Task(id="task_0001", intention="Weather the harbour crates")])
+    runner.start(
+        [
+            Task(
+                id="task_0001",
+                intention="Weather the harbour crates",
+                cost_estimate=Rail(gpu_minutes=30.0, hosted_cents=0, wall_minutes=45.0),
+            )
+        ]
+    )
     runner.run()
     runner.stop()
     return ledger.events()
@@ -172,6 +180,14 @@ def test_the_numbers_carry_the_iteration_counts():
     assert numbers.iterated_tasks == 1
     assert numbers.variants_scored == 6
     assert numbers.quality_gained == pytest.approx(0.30)
+
+
+def test_the_night_says_where_its_extra_wall_time_went():
+    """A night that ran long says the long was the loop, not a mystery."""
+    report = build_report(run_an_iterating_night(the_loop_that_finds_a_better_variant()))
+    assert report.numbers.wall_overrun_minutes == 225.0
+    assert "went on 6 variants" in render_html(report)
+    assert "went on 6 variants" in render_text(report)
 
 
 def test_a_night_with_no_loop_has_no_iteration_card():

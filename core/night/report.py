@@ -288,7 +288,7 @@ def build_report(events: Sequence[AuditEvent]) -> NightReport:
     tally = _tally(projection)
     iterations = _iterations(projection)
     numbers.iterated_tasks = len(iterations)
-    numbers.variants_scored = sum(card.attempts for card in iterations)
+    numbers.variants_scored = len(projection.attempts)
     numbers.quality_gained = sum(card.quality_gained for card in iterations)
     joules = [card.joules for card in iterations]
     numbers.joules = (
@@ -642,6 +642,17 @@ def _plural(count: int, word: str) -> str:
     return f"{count} {word}" if count == 1 else f"{count} {word}s"
 
 
+def _where_the_time_went(numbers: NightNumbers) -> str:
+    """Where a night's extra wall time went, when the night iterated.
+
+    A night that ran long because it iterated is not a night that ran long
+    for a mystery, and the page should not leave it as one.
+    """
+    if not numbers.variants_scored:
+        return ""
+    return f" — it went on {_plural(numbers.variants_scored, 'variant')}"
+
+
 def render_html(report: NightReport) -> str:
     """The page. Static, self-contained, and in the spec's order."""
     numbers = report.numbers
@@ -696,7 +707,7 @@ def render_html(report: NightReport) -> str:
     if numbers.wall_overrun_minutes > 0:
         add(
             f'<p class="note">The night ran {numbers.wall_overrun_minutes:.0f} min longer '
-            "than the ask.</p>"
+            f"than the ask{_where_the_time_went(numbers)}.</p>"
         )
     add("</section>")
 
@@ -915,7 +926,10 @@ def render_text(report: NightReport) -> str:
     for card in report.cut:
         add(f"  {card.intention} — {card.reason}")
     if numbers.wall_overrun_minutes > 0:
-        add(f"  The night ran {numbers.wall_overrun_minutes:.0f} min longer than the ask.")
+        add(
+            f"  The night ran {numbers.wall_overrun_minutes:.0f} min longer than the ask"
+            f"{_where_the_time_went(numbers)}."
+        )
     add("")
     add("THE NIGHT'S NUMBERS")
     add(f"  {_hours(numbers.wall_time_minutes)} on the clock")
