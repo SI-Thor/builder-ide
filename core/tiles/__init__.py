@@ -39,6 +39,19 @@ from .models import (
     build_play_record,
     build_tile,
 )
+from .ope import (
+    BanditRewardModel,
+    CrossFittedRewardModel,
+    DeterministicTarget,
+    FixedTarget,
+    OPEError,
+    OPEEstimate,
+    SoftmaxTarget,
+    TargetPolicy,
+    corrupt_propensities,
+    evaluate,
+    weights_for,
+)
 from .plays import fold_plays, record_play
 from .ports import LedgerPort, VocabularyPort
 from .retrain import RetrainReport, TileScore, retrain
@@ -46,17 +59,24 @@ from .stats import newcombe_difference, two_proportion_z, wilson_interval
 
 __all__ = [
     "AuthorRequest",
+    "BanditRewardModel",
     "Choice",
+    "CrossFittedRewardModel",
+    "DeterministicTarget",
     "CloudAuthor",
     "ContextualBandit",
     "FeedbackPacket",
+    "FixedTarget",
     "LedgerPort",
+    "OPEError",
+    "OPEEstimate",
     "Outcome",
     "PlayCost",
     "PlayRecord",
     "Precondition",
     "RetrainReport",
     "ScriptedAuthor",
+    "SoftmaxTarget",
     "TILE_EVENT_TYPES",
     "Tile",
     "TileAuthor",
@@ -66,9 +86,12 @@ __all__ = [
     "TileRefusal",
     "TileScore",
     "TileStep",
+    "TargetPolicy",
     "VocabularyPort",
     "build_play_record",
     "build_tile",
+    "corrupt_propensities",
+    "evaluate",
     "fold_library",
     "fold_plays",
     "newcombe_difference",
@@ -76,5 +99,6 @@ __all__ = [
     "retrain",
     "two_proportion_z",
     "validate_tile",
+    "weights_for",
     "wilson_interval",
 ]
