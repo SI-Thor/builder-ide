@@ -338,6 +338,12 @@ def _h_vocab_word_added(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> Non
     doc.setdefault("status", ev.payload.get("status", "active"))
     doc.setdefault("version", 1)
     doc.setdefault("calls", 0)
+    # X C12 — a promotion is a version bump, not a new word: the calls the
+    # word already earned survive it (the melt-week run's finding: the
+    # capability row read "built 0" again after its own keep).
+    prior = rows.get("vocab_words", {"word": word})
+    if prior is not None:
+        doc["calls"] = int(_load(prior).get("calls", doc.get("calls", 0)))
     rows.put("vocab_words", {"word": word}, {
         "word": word, "status": doc["status"], "version": doc["version"],
         "updated_seq": ev.seq, "payload": _dump(doc),
