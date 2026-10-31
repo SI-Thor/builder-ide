@@ -49,8 +49,8 @@ class NightsService:
             "%Y-%m-%dT%H:%M:%SZ")
         night = Night(
             id=nid, started_at=started_at, rails=rails or Rail(gpu_minutes=360, wall_minutes=560),
-            load_budget=load_budget or {}, power_mode=power_mode or None,
-            batch_start="both", detach_deadline=deadline,
+            load_budget=load_budget or {}, power_mode=power_mode,
+            batch_start="both", detach_deadline=deadline, state="running",
         )
         with self.store.batch():
             ev = self.store.new_event(

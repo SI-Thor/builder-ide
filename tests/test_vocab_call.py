@@ -12,10 +12,10 @@ from __future__ import annotations
 
 import pytest
 
-from builder_recipe.errors import SchemaViolation
-from builder_recipe.models import Actor, NodeRef, Op, Recipe
-from builder_recipe.noderegistry import NodeRegistry, StaticNodeRegistryProvider
-from builder_recipe.store import RecipeStore
+from core.recipe.errors import SchemaViolation
+from core.recipe.models import Actor, NodeRef, Op, Recipe
+from core.recipe.noderegistry import NodeRegistry, StaticNodeRegistryProvider
+from core.recipe.store import RecipeStore
 
 
 def _store_with_registry(store: RecipeStore, version_id: str = "ver_0001") -> RecipeStore:

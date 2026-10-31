@@ -8,8 +8,8 @@ no ambient config (RV patch 13).
 
 from __future__ import annotations
 
-from builder_recipe.models import EnginePin, RecipeEntry
-from builder_recipe.stagecache import entry_stage_key, stage_cache_key
+from core.recipe.models import EnginePin, RecipeEntry
+from core.recipe.stagecache import entry_stage_key, stage_cache_key
 
 
 def _pin() -> EnginePin:
@@ -93,7 +93,7 @@ def test_an_entry_stage_key_changes_when_the_engine_pin_changes():
 
 
 def test_the_store_keys_a_stage_on_the_version_hash(store, fjellvik, actor):
-    from builder_recipe.models import Op
+    from core.recipe.models import Op
 
     store.create_recipe(fjellvik, actor)
     version = store.apply_edit(
@@ -109,7 +109,7 @@ def test_the_store_keys_a_stage_on_the_version_hash(store, fjellvik, actor):
 
 
 def test_the_store_reports_the_dirty_set_between_two_versions(store, fjellvik, actor):
-    from builder_recipe.models import Op
+    from core.recipe.models import Op
 
     store.create_recipe(fjellvik, actor)
     store.apply_edit(

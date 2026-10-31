@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from builder_recipe.canonical import canonical_json, content_hash, hash_bytes
+from core.recipe.canonical import canonical_json, content_hash, hash_bytes
 
 
 def test_canonical_json_sorts_keys_and_strips_whitespace():

@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import pytest
 
-from builder_recipe.events import EVENT_TYPES, RECIPE_EVENT_TYPES
-from builder_recipe.ledger import InMemoryLedger, SQLiteLedger
-from builder_recipe.models import Actor, Op, Recipe
-from builder_recipe.store import RecipeStore
+from core.recipe.events import EVENT_TYPES, RECIPE_EVENT_TYPES
+from core.recipe.ledger import InMemoryLedger, SQLiteLedger
+from core.recipe.models import Actor, Op, Recipe
+from core.recipe.store import RecipeStore
 
 
 def _actor() -> Actor:

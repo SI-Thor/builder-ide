@@ -10,10 +10,10 @@ import json
 
 import pytest
 
-from builder_recipe.canonical import canonical_json, content_hash
-from builder_recipe.errors import ConstraintViolation, IntegrityError, NotFound, SchemaViolation
-from builder_recipe.models import Actor, Constraint, Op, Recipe
-from builder_recipe.store import RecipeStore
+from core.recipe.canonical import canonical_json, content_hash
+from core.recipe.errors import ConstraintViolation, IntegrityError, NotFound, SchemaViolation
+from core.recipe.models import Actor, Constraint, Op, Recipe
+from core.recipe.store import RecipeStore
 
 
 def test_creating_a_recipe_commits_a_root_version(store: RecipeStore, fjellvik: Recipe, actor: Actor):

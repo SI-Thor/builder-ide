@@ -8,9 +8,9 @@ this system and no "sim" (X R11, §7.14).
 
 from __future__ import annotations
 
-from builder_recipe.constraints import ConstraintChecker
-from builder_recipe.models import Constraint, NodeRef, Recipe, RecipeEntry
-from builder_recipe.noderegistry import NodeRegistry
+from core.recipe.constraints import ConstraintChecker
+from core.recipe.models import Constraint, NodeRef, Recipe, RecipeEntry
+from core.recipe.noderegistry import NodeRegistry
 
 
 def _entry(**params) -> RecipeEntry:
@@ -18,7 +18,7 @@ def _entry(**params) -> RecipeEntry:
 
 
 def _recipe(entry: RecipeEntry, constraints=None) -> Recipe:
-    from builder_recipe.models import EnginePin
+    from core.recipe.models import EnginePin
 
     return Recipe(
         id="rcp_fjellvik",

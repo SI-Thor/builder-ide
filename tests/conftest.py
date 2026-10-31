@@ -22,7 +22,7 @@ from typing import Callable
 import pytest
 from fastapi.testclient import TestClient
 
-from builder_recipe.models import (
+from core.recipe.models import (
     Actor,
     Constraint,
     EnginePin,
@@ -30,11 +30,33 @@ from builder_recipe.models import (
     Recipe,
     RecipeEntry,
 )
-from builder_recipe.schema import StaticSchemaRegistry
+from core.recipe.schema import StaticSchemaRegistry
 from core.api import create_app
 from core.config import Settings
 from core.events import core_actor
 from core.svc import Core
+
+
+# --- the vendored WHY kernel's corpus test -------------------------------
+#
+# tests/test_why_corpus.py is copied byte-identical from cognitive-ecology,
+# where the kernel lives at ``ecology.why``. Here it is vendored at
+# ``core.why`` (core/why/VENDORED.md). Rather than editing the test — which
+# would break the "unchanged" property that pins us to upstream semantics —
+# this binds ``ecology.why`` to the vendored package before the test module
+# imports it.
+import sys as _sys
+import types as _types
+
+from core import why as _vendored_why
+
+_ecology = _sys.modules.get("ecology")
+if _ecology is None:
+    _ecology = _types.ModuleType("ecology")
+    _ecology.__path__ = []  # mark as package so submodule imports resolve
+    _sys.modules["ecology"] = _ecology
+_ecology.why = _vendored_why
+_sys.modules.setdefault("ecology.why", _vendored_why)
 
 
 # The dev token registry (config.Settings.default_tokens). Owner tokens are
@@ -315,21 +337,21 @@ def schemas() -> StaticSchemaRegistry:
 
 @pytest.fixture
 def blobs(tmp_path):
-    from builder_recipe.blobs import FileBlobStore
+    from core.recipe.blobs import FileBlobStore
 
     return FileBlobStore(tmp_path / "builder-home")
 
 
 @pytest.fixture
 def ledger():
-    from builder_recipe.ledger import InMemoryLedger
+    from core.recipe.ledger import InMemoryLedger
 
     return InMemoryLedger()
 
 
 @pytest.fixture
 def store(ledger, blobs, schemas: StaticSchemaRegistry, clock):
-    from builder_recipe.store import RecipeStore
+    from core.recipe.store import RecipeStore
 
     return RecipeStore(ledger=ledger, blobs=blobs, schemas=schemas, clock=clock)
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from builder_recipe.models import (
+from core.recipe.models import (
     Actor,
     Branch,
     Constraint,

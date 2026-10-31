@@ -13,14 +13,51 @@ from pydantic import BaseModel, Field, field_validator
 
 from .canon import now_utc
 from .events import Actor
+from .records import (
+    CHECKABLE_KINDS,
+    CLAIM_TYPES,
+    CONFIDENCE_LEVELS,
+    REASON_CODES,
+    AcceptanceCheck,
+    ActorKind,
+    AuditEvent,
+    Branch,
+    BranchPurpose,
+    ClaimType,
+    Constraint,
+    ConstraintKind,
+    EDIT_AUTHOR_KINDS,
+    EnginePin,
+    EntryKind,
+    EntryTasteNote,
+    GeneratorRef,
+    IterationPolicy,
+    Job,
+    JobState,
+    NodeRef,
+    Night,
+    NightState,
+    NightStatus,
+    Op,
+    Prediction,
+    Recipe,
+    RecipeEdit,
+    RecipeEntry,
+    RecipeVersion,
+    ReasonCode,
+    Rail,
+    Task,
+    TaskState,
+    TasteNote,
+    VocabularyEntry,
+)
 
-# ------------------------------------------------------------------ §1.3 rails
-
-class Rail(BaseModel):
-    gpu_minutes: float = 0.0
-    hosted_cents: int = 0
-    wall_minutes: float = 0.0
-
+#: §1.5's entry-embedded aggregate. The spec defines two classes called
+#: TasteNote — this one (inside a VocabularyEntry) and the taste-ledger row
+#: (§1.7, :class:`TasteNote` above). The vocabulary seat's copy of the
+#: entry-embedded one was the same record, so it is one class under the
+#: spec's two names.
+VocabTasteNote = EntryTasteNote
 
 class Budget(BaseModel):
     per_cycle: Rail = Rail()
@@ -33,14 +70,6 @@ class Estimate(BaseModel):
     build_verify: Rail
     generate_test: Rail
     basis: Literal["measured", "estimate"] = "estimate"
-
-
-class AcceptanceCheck(BaseModel):
-    kind: Literal["constraint", "geometry", "critic", "test_suite", "render_rung", "manual"]
-    spec: dict
-
-
-CHECKABLE_KINDS = frozenset({"constraint", "geometry", "critic", "test_suite", "render_rung"})
 
 
 class Evidence(BaseModel):
@@ -99,6 +128,11 @@ class WorkOrder(BaseModel):
     estimate: Estimate | None = None
     confirm_line: str = ""
     state: WoState = "compiling"
+    # The task id of the plan goal this order is for. The spec relates an
+    # order to the plan only through its context packet (origin.packet);
+    # justification needs the direct link to answer "who or what does this
+    # order serve". See INTEGRATION.md, decision 2.
+    serves: str | None = None
     attempts: list[Attempt] = []
     evidence: list[Evidence] = []
     promote: dict | None = None
@@ -147,69 +181,30 @@ def confirm_line_valid(confirm_line: str, estimate: Estimate | None) -> bool:
 
 # ------------------------------------------------------------------ §1.7 ledgers
 
-CLAIM_TYPES = frozenset({
-    "shadow_count", "scale_read", "clutter_density", "material_read", "era_read",
-    "light_read", "weather_read", "taste_keep",
-})
-CONFIDENCE_LEVELS = frozenset({"guess", "low", "medium", "high"})
 
 
-class Prediction(BaseModel):
-    id: str
-    builder: str
-    at: str = Field(default_factory=now_utc)
-    sealed_at: str = ""
-    branch_ref: str
-    claim: str = Field(max_length=120)
-    claim_type: str
-    namespace: Literal["world", "taste"]
-    confidence: Literal["guess", "low", "medium", "high"]
-    basis: str
-    render_spec: dict | None = None
-    seal_hash: str = ""
-    verdict: Literal["hit", "miss", "partial"] | None = None
-
-
-def prediction_seal_hash(p: Prediction) -> str:
+def prediction_seal_hash(p: Prediction | dict) -> str:
     """sha256 over canonical {builder, at, branch_ref, claim, claim_type,
-    confidence, basis, render_spec} — written before the render job exists."""
+    confidence, basis, render_spec} — written before the render job exists.
+
+    Takes a sealed record or the raw fields it will be built from: the
+    record is frozen (§1.7), so the hash is computed *before* the record
+    exists rather than patched onto it afterwards.
+    """
     from .canon import content_hash
 
+    def field(name: str):
+        return p[name] if isinstance(p, dict) else getattr(p, name)
+
     return content_hash({
-        "builder": p.builder, "at": p.at, "branch_ref": p.branch_ref,
-        "claim": p.claim, "claim_type": p.claim_type,
-        "confidence": p.confidence, "basis": p.basis, "render_spec": p.render_spec,
+        "builder": field("builder"), "at": field("at"),
+        "branch_ref": field("branch_ref"), "claim": field("claim"),
+        "claim_type": field("claim_type"), "confidence": field("confidence"),
+        "basis": field("basis"), "render_spec": field("render_spec"),
     })
 
 
-ReasonCode = Literal[
-    "too_busy", "too_empty", "wrong_scale", "too_messy", "too_clean", "too_flat",
-    "too_dark", "too_bright", "wrong_material", "wrong_era", "wrong_weather", "no_focus",
-]
-
-
-class TasteNote(BaseModel):
-    id: str
-    at: str = Field(default_factory=now_utc)
-    author: str
-    status: Literal["active", "pending_ratification"] = "active"
-    subject: dict
-    artifact_ref: str
-    verdict: Literal["keep", "reject", "keep_with_caveat"]
-    reason_code: ReasonCode
-    words: str | None = Field(default=None, max_length=48)
-    tags: list[str] = []
-
-
 # ------------------------------------------------------------------ §1.4 packet
-
-class NodeRef(BaseModel):
-    node_id: str
-    entry_path: str
-    kind: str
-    assets: list[str] = []
-    part: str | None = None
-
 
 class Gaze(BaseModel):
     ray: dict
@@ -321,36 +316,6 @@ def enforce_packet_bounds(p: ContextPacket) -> ContextPacket:
 
 # ------------------------------------------------------------------ §1.9 night/task
 
-class Night(BaseModel):
-    id: str
-    started_at: str = Field(default_factory=now_utc)
-    stopped_at: str | None = None
-    rails: Rail = Rail(gpu_minutes=360, wall_minutes=560)
-    load_budget: dict[str, int] = {}
-    power_mode: int | None = None
-    batch_start: Literal["detach", "deadline", "both"] = "both"
-    detach_deadline: str | None = None
-    state: Literal["starting", "running", "stopping", "stopped"] = "running"
-    status: str | None = None  # computed at stop from heartbeats (§3.4)
-    stop_reason: str | None = None  # why it stopped — never hidden (D, T, G §2)
-    report: str | None = None  # the report artifact's hash
-
-
-class Task(BaseModel):
-    id: str
-    night: str | None = None
-    author: str = "casey"
-    ends_at: str | None = None
-    owner_character: str = ""
-    intention: str
-    recipe_scope: list[str] = []
-    cost_estimate: Rail = Rail()
-    rail: Rail = Rail()
-    state: Literal["slated", "queued", "running", "kept", "reverted", "parked", "cut"] = "slated"
-    predictions: list[str] = []
-    branches: list[str] = []
-
-
 class Question(BaseModel):
     id: str
     name: str
@@ -394,65 +359,3 @@ class Asset(BaseModel):
     provenance: Provenance
     licence: Licence
     critic: dict | None = None
-
-
-# ------------------------------------------------------------------ §1.2/§1.5 (recipe-half shapes, seam only)
-
-class Op(BaseModel):
-    op: Literal["set", "add", "remove"]
-    path: str
-    value: Any = None
-
-
-class RecipeEdit(BaseModel):
-    id: str
-    base: str
-    ops: list[Op] = Field(max_length=32)
-    author: Actor
-    message: str = Field(max_length=80)
-    prediction: str | None = None
-
-
-class Branch(BaseModel):
-    id: str
-    name: str
-    recipe: str = ""
-    head: str = ""
-    base: str | None = None
-    purpose: Literal["main", "night", "work-order", "morning-option", "standing",
-                     "rejected"] = "work-order"
-    created_by: Actor | None = None
-    protected: bool = False
-
-
-class VocabTasteNote(BaseModel):
-    code: Literal["keep", "avoid"]
-    reason_code: ReasonCode
-    note: str | None = Field(default=None, max_length=48)
-    basis: str
-
-
-class VocabularyEntry(BaseModel):
-    word: str
-    kind: Literal["structure", "prop", "material", "terrain", "weather",
-                  "motion", "light", "constraint", "character"]
-    owner_character: str
-    status: Literal["active", "coming-soon", "retired"] = "active"
-    params: dict
-    acceptance_template: dict | None = None
-    taste_notes: list[VocabTasteNote] = []
-    provenance: dict = {}
-    version: int = 1
-
-
-class Job(BaseModel):
-    id: str
-    lane: Literal["cpu", "gpu"] = "cpu"
-    worker: str = "thor"
-    model: str | None = None
-    request: dict = {}
-    cost_estimate: Rail = Rail()
-    state: Literal["queued", "running", "done", "failed", "requeued"] = "queued"
-    outputs: list[str] = []
-    stage_cache: str | None = None
-    power_mode: int | None = None

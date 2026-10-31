@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import pytest
 
-from builder_recipe.errors import BranchError
-from builder_recipe.models import Actor, Op, Recipe
-from builder_recipe.store import RecipeStore
+from core.recipe.errors import BranchError
+from core.recipe.models import Actor, Op, Recipe
+from core.recipe.store import RecipeStore
 
 
 def _seed(store: RecipeStore, fjellvik: Recipe, actor: Actor) -> None:

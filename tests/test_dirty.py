@@ -9,11 +9,11 @@ means.
 
 from __future__ import annotations
 
-from builder_recipe.dirty import StaticAssetProducers, compute_dirty_set
-from builder_recipe.edits import apply_ops
-from builder_recipe.models import Constraint, NodeRef, Op, Recipe
-from builder_recipe.noderegistry import NodeRegistry
-from builder_recipe.stagecache import entry_stage_key
+from core.recipe.dirty import StaticAssetProducers, compute_dirty_set
+from core.recipe.edits import apply_ops
+from core.recipe.models import Constraint, NodeRef, Op, Recipe
+from core.recipe.noderegistry import NodeRegistry
+from core.recipe.stagecache import entry_stage_key
 
 
 def _registry() -> NodeRegistry:

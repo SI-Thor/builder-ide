@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from builder_recipe.schema import (
+from core.recipe.schema import (
     SchemaDefinitionError,
     StaticSchemaRegistry,
     validate_params,

@@ -3,6 +3,12 @@
 Content hashes are sha256 over canonical JSON — sorted keys, no whitespace,
 UTF-8 — written ``sha256:ab12…``. Timestamps are RFC 3339 UTC. Ids are
 prefixed short strings.
+
+**This is the one place canonical JSON is defined.** The recipe half
+(``core.recipe.canonical``) and the vocabulary (``core.vocab.hashing``) each
+grew their own copy of these helpers; all three agreed byte-for-byte, and
+now all three are this module. The other two modules remain as re-export
+shims so their import paths keep working.
 """
 from __future__ import annotations
 
@@ -30,14 +36,24 @@ ID_PREFIXES = {
 
 
 def canonical_json(obj: object) -> str:
-    """Canonical JSON text: sorted keys, no whitespace, UTF-8 friendly."""
+    """Canonical JSON text: sorted keys, no whitespace, UTF-8 friendly.
+
+    ``allow_nan=False`` — NaN and Infinity are not JSON and must not be
+    silently written into a document whose hash is a promise.
+    """
     return json_dumps_sorted(obj)
 
 
 def json_dumps_sorted(obj: object) -> str:
     import json
 
-    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        obj,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
 
 
 def canonical_bytes(obj: object) -> bytes:
@@ -54,7 +70,33 @@ def content_hash(obj: object) -> str:
 
 
 def bytes_hash(data: bytes) -> str:
+    """The content hash of raw bytes."""
     return f"sha256:{sha256_hex(data)}"
+
+
+#: The recipe half's name for :func:`bytes_hash`. Same function, one name
+#: per call site is not worth a second definition.
+hash_bytes = bytes_hash
+
+
+def is_content_hash(value: str) -> bool:
+    """True when ``value`` looks like a content hash (``sha256:`` + 64 hex)."""
+    return (
+        isinstance(value, str)
+        and value.startswith("sha256:")
+        and len(value) == len("sha256:") + 64
+        and all(c in "0123456789abcdef" for c in value[len("sha256:") :])
+    )
+
+
+def short_hash(obj: object, length: int = 12) -> str:
+    """A short, deterministic id fragment derived from ``obj``.
+
+    Ids in this project are content-derived wherever the record is immutable
+    (a sealed prediction, a recipe version), so a rebuild of the same night
+    produces the same ids.
+    """
+    return sha256_hex(canonical_bytes(obj))[:length]
 
 
 def now_utc() -> str:

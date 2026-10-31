@@ -13,7 +13,7 @@ betting (§3.5).
 """
 from __future__ import annotations
 
-from ..canon import new_id
+from ..canon import new_id, now_utc
 from ..errors import NotFound, Refused
 from ..events import Actor, core_actor
 from ..models import CLAIM_TYPES, CONFIDENCE_LEVELS, Prediction, prediction_seal_hash
@@ -68,14 +68,23 @@ class PredictionsService:
                 raise Refused(
                     "a render job for this branch_ref is already enqueued; the seal must "
                     "be committed before the render job exists (§5.1)", branch_ref=branch_ref)
+        # The sealed record is frozen (§1.7: a sealed bet cannot be edited),
+        # so the timestamp and the seal hash are computed *before* the
+        # record is built rather than patched onto it afterwards.
+        at = now_utc()
         p = Prediction(
-            id=new_id("prediction"), builder=builder.id, branch_ref=branch_ref,
+            id=new_id("prediction"), builder=builder.id, at=at, sealed_at=at,
+            branch_ref=branch_ref,
             claim=claim, claim_type=claim_type,
             namespace="taste" if claim_type == "taste_keep" else "world",
             confidence=confidence, basis=basis, render_spec=render_spec,
+            seal_hash=prediction_seal_hash({
+                "builder": builder.id, "at": at, "branch_ref": branch_ref,
+                "claim": claim, "claim_type": claim_type,
+                "confidence": confidence, "basis": basis,
+                "render_spec": render_spec,
+            }),
         )
-        p.sealed_at = p.at
-        p.seal_hash = prediction_seal_hash(p)
         ev = self.store.new_event(
             "prediction.sealed", builder,
             {"entity_kind": "prediction", "entity_id": p.id},

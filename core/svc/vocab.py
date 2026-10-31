@@ -88,6 +88,10 @@ class VocabService:
 
     def add_word(self, entry: dict, actor) -> VocabularyEntry:
         word = entry.get("word", "")
+        # Provenance is written by the core, not by whoever is posting: a
+        # word filed without an origin gets the door's own (§1.5 — the same
+        # "builtin" the seeded words carry; promotion stamps the wo_ id).
+        entry.setdefault("provenance", {"origin": "builtin"})
         try:
             v = VocabularyEntry(**entry)
         except Exception as e:

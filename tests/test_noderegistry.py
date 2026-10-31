@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from builder_recipe.models import NodeRef, Recipe
-from builder_recipe.noderegistry import (
+from core.recipe.models import NodeRef, Recipe
+from core.recipe.noderegistry import (
     NodeRegistry,
     StaticNodeRegistryProvider,
     derive_node_id,

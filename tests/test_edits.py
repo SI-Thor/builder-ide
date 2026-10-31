@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import pytest
 
-from builder_recipe.edits import apply_ops, diff_recipes, touched_entries
-from builder_recipe.errors import EditRejected
-from builder_recipe.models import Op, Recipe
+from core.recipe.edits import apply_ops, diff_recipes, touched_entries
+from core.recipe.errors import EditRejected
+from core.recipe.models import Op, Recipe
 
 
 def test_set_changes_an_entry_param(fjellvik: Recipe):

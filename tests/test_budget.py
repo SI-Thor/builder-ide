@@ -11,10 +11,10 @@ import os
 import time
 from pathlib import Path
 
-from builder_recipe.blobs import FileBlobStore
-from builder_recipe.ledger import InMemoryLedger, SQLiteLedger
-from builder_recipe.models import Actor, Op, Recipe
-from builder_recipe.store import RecipeStore
+from core.recipe.blobs import FileBlobStore
+from core.recipe.ledger import InMemoryLedger, SQLiteLedger
+from core.recipe.models import Actor, Op, Recipe
+from core.recipe.store import RecipeStore
 
 #: §4.1 — branch flip ≤ 2 s, apply ≤ 10 s.
 BRANCH_FLIP_BUDGET_S = 2.0

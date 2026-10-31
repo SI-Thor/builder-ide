@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import pytest
 
-from builder_recipe.errors import MergeConflict
-from builder_recipe.models import Actor, Op, Recipe
-from builder_recipe.store import RecipeStore
+from core.recipe.errors import MergeConflict
+from core.recipe.models import Actor, Op, Recipe
+from core.recipe.store import RecipeStore
 
 
 def _setup(store: RecipeStore, fjellvik: Recipe, actor: Actor):
