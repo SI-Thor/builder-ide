@@ -56,6 +56,7 @@ __all__ = [
     "Infinigen1xEngine",
     "RUNG_LADDER",
     "STAGE_TASKS",
+    "SubprocessRunner",
     "config_bundle_hash",
     "subprocess_runner",
 ]
@@ -98,8 +99,7 @@ class CommandRunner(Protocol):
 
 
 def subprocess_runner(argv: Sequence[str], *, cwd: Path | None = None) -> CommandResult:
-    """The real runner: v1 is a subprocess engine, so this is the seam's
-    actual workhorse (capture, no shell, the venv's own python as argv[0])."""
+    """The real run: capture, no shell, whatever exit code came back."""
     proc = subprocess.run(
         list(argv), cwd=None if cwd is None else str(cwd),
         capture_output=True, text=True, check=False,
@@ -108,6 +108,15 @@ def subprocess_runner(argv: Sequence[str], *, cwd: Path | None = None) -> Comman
         argv=list(argv), returncode=proc.returncode,
         stdout=proc.stdout, stderr=proc.stderr,
     )
+
+
+class SubprocessRunner:
+    """The default :class:`CommandRunner`: ``subprocess_runner`` as the
+    object the protocol calls (``.run``). The bare function stays exported
+    for callers that want it directly."""
+
+    def run(self, argv: Sequence[str], *, cwd: Path | None = None) -> CommandResult:
+        return subprocess_runner(argv, cwd=cwd)
 
 
 def config_bundle_hash(config_files: Sequence[Path | str]) -> str:
@@ -130,14 +139,14 @@ class Infinigen1xEngine:
         python: Path | str,
         config_files: Sequence[Path | str],
         output_dir: Path | str,
-        runner: CommandRunner = subprocess_runner,
+        runner: CommandRunner | None = None,
     ) -> None:
         self._pin = pin
         self._repo = Path(repo)
         self._python = Path(python)
         self._config_files = [Path(f) for f in config_files]
         self._output_dir = Path(output_dir)
-        self._runner = runner
+        self._runner = runner if runner is not None else SubprocessRunner()
         self.calls: list[CommandResult] = []
         # The one construction-time check that guards the cache: the local
         # checkout must *be* the pinned engine, config included.

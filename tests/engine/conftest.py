@@ -146,8 +146,9 @@ class RecordingRuntime:
         self.ops.append(("execute", graph))
         return self.execute_payload
 
-    def render(self, graph: dict, *, resolution: str, samples: int, seed: int) -> bytes:
-        self.ops.append(("render", resolution, samples, seed))
+    def render(self, calls, seeds, *, subject, resolution, samples, seed) -> bytes:
+        self.ops.append(("render", [c.entry_path for c in calls], subject,
+                         resolution, samples, seed))
         return f"v2-render {resolution} {samples}spp seed{seed}".encode()
 
     def export(self, graph: dict, *, format: str, profile: str) -> bytes:

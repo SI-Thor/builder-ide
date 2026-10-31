@@ -27,10 +27,17 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel).
-- **The core is integrated on `main`: 831 tests pass** in one suite (seven
-  branches merged, every stand-in replaced; see [INTEGRATION.md](INTEGRATION.md)). The M1 acceptance session plays one evening, night
-  and morning end to end in 30 steps, all passing (many still against stand-ins
-  until it is rewired to the integrated core).
+- **The core is integrated on `main`: 893 tests pass** in one suite (seven
+  seats plus the engine seam merged, every stand-in replaced; see
+  [INTEGRATION.md](INTEGRATION.md)). The M1 acceptance session and the melt
+  week both play end to end on the integrated core.
+- **The render rung is real (branch `render-rung`).** M1's render steps now
+  render through the engine seam at **Infinigen 2.0 on the Thor's GPU** —
+  the v2 venv behind `core.engine.venv2`, an opt-in acceptance run
+  (`pytest -m engine`) that plays the whole session with real images,
+  artifact hashes, provenance and licence rows in the ledger. Measured:
+  **4–5 s per render** at the preview rung, a traced stage byte-stable
+  across generations, the pin swap performed as one explicit edit.
 - **Plan draft 2 is written, with a decision sheet.** 18 reports, three
   cross-reviews, a synthesized understanding, a core spec (v2), the plan
   ([docs/plan.md](docs/plan.md)) and a condensed sheet of the owner's open
@@ -144,8 +151,10 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `m1-acceptance` + `m1-real` | The M1 session as an automated test, now on the integrated core: evening → night → morning, 30 steps | **merged: 30/30, one ledger** |
 | `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | **merged: 842 tests** |
 | `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | **merged: 105/105 on the integrated core** |
-| `m1-real` | Both acceptance suites rewired onto the integrated core (real spine, real recipe store) | in flight |
-| `plan-v2` | Plan draft 2 and the owner's decision sheet | **this branch** |
+| `m1-real` | Both acceptance suites rewired onto the integrated core (real spine, real recipe store) | **merged: 30/30 + 105/105, 842→893 tests** |
+| `engine-adapter` | The engine seam: `Engine` protocol, the fake, the v1/v2 adapter skeletons, the gate's engine rungs, `open_engine` configuration | **merged: 893 tests** |
+| `render-rung` | **The render rung, real**: the v2 venv behind the seam (`core.engine.venv2`), the M1 session's `-m engine` run renders Infinigen 2.0 on the Thor's GPU with artifact hashes, provenance and licence rows in the ledger | **this branch** |
+| `plan-v2` | Plan draft 2 and the owner's decision sheet | merged |
 
 ### In flight
 

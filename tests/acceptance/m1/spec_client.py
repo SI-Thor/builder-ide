@@ -425,6 +425,11 @@ class CoreDoor:
             "render.completed", actor, {"entity_kind": "job", "entity_id": job_id},
             {"job_id": job_id, "rung": rung, "seed": seed,
              "engine": self.engine.describe().source,
+             "engine_flavour": self.engine.describe().flavour,
+             # the measured render wall (None only for the fake, which
+             # measures nothing and says so by omitting it)
+             "wall_ms": preview.wall_ms,
+             "resolution": preview.resolution,
              "artifact": {"sha256": desc["sha256"], "kind": "render",
                           "bytes": desc["bytes"]}},
             artifact=desc,
@@ -545,11 +550,14 @@ class CoreDoor:
         preview = self._render(f"{seam.commit_branch}@{head}",
                                subject=subject or wo_id, rung=rung, seed=seed)
         desc = self.put_artifact(preview.data, f"{wo_id}-preview.png")
+        wall = (f"{preview.wall_ms / 1000.0:.1f} s wall"
+                if preview.wall_ms is not None else "wall unmeasured (fake)")
         evidence = [
             {"kind": "render", "ref": desc["sha256"], "sha256": desc["sha256"],
-             "summary": f"rung-{rung} preview · {self.engine.describe().flavour} · verdict@scripted"},
+             "summary": f"rung-{rung} preview · {self.engine.describe().flavour} "
+                        f"· {wall} · verdict@scripted"},
         ]
-        wos.land(wo_id, desc, evidence)
+        wos.land(wo_id, desc, evidence, gate=gate)
         if night:
             wos.record_spend(wo_id, night, deliverable.get("budget_spend") or {})
         return gate

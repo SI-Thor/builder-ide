@@ -22,10 +22,13 @@ The default (:class:`ImportedProcfuncRuntime`) imports ``procfunc`` and
 ``infinigen2`` lazily and, when they are absent — as they are on this
 core's Python 3.12 (procfunc pins ``bpy==4.2.0`` and Python 3.11 exactly,
 E §2) — raises :class:`~core.engine.errors.EngineUnavailable` naming the
-exact missing piece rather than an import traceback. What is ours and
-testable without the engine: the translation from our entries to generator
-calls (the ``_rand_from_params`` convention), and from our edit ops to
-graph edits. That translation is the adapter; the rest is configuration.
+exact missing piece rather than an import traceback. The boundary that
+*runs today* is :class:`core.engine.venv2.Venv2Runtime`: the v2 venv's own
+CLI as a subprocess (the confirming experiment's venv, read-only). What is
+ours and testable without the engine: the translation from our entries to
+generator calls (the ``_rand_from_params`` convention), and from our edit
+ops to graph edits. That translation is the adapter; the rest is
+configuration.
 """
 from __future__ import annotations
 
@@ -102,15 +105,19 @@ class ProcfuncRuntime(Protocol):
     ``trace`` returns the instance-level graph as a JSON-able dict;
     ``replace`` applies :class:`GraphEdit`\\ s (procfunc's
     ``replace_in_graph`` on the recorded nodes); ``execute`` re-executes a
-    graph and returns the stage's output bytes; ``render`` renders a graph
-    through Cycles; ``export`` compiles a graph to a one-way output —
-    **ours to write**, because v2 ships no exporter at all (E §1).
+    graph and returns the stage's output bytes; ``render`` renders **the
+    calls' scene for one subject** (the entry the preview names — the graph,
+    when the runtime keeps one, or the engine's CLI when that is the
+    boundary, as the venv runtime's is); ``export`` compiles a graph to a
+    one-way output — **ours to write**, because v2 ships no exporter at all
+    (E §1).
     """
 
     def trace(self, calls: list[GeneratorCall], seeds: dict[str, int]) -> dict: ...
     def replace(self, graph: dict, edits: list[GraphEdit]) -> dict: ...
     def execute(self, graph: dict) -> bytes: ...
-    def render(self, graph: dict, *, resolution: str, samples: int, seed: int) -> bytes: ...
+    def render(self, calls: list[GeneratorCall], seeds: dict[str, int], *,
+               subject: str, resolution: str, samples: int, seed: int) -> bytes: ...
     def export(self, graph: dict, *, format: str, profile: str) -> bytes: ...
 
 
@@ -168,7 +175,9 @@ class ImportedProcfuncRuntime:
         self._load()
         raise NotImplementedError("see trace() — the imported runtime lands with the v2 gate")
 
-    def render(self, graph: dict, *, resolution: str, samples: int, seed: int) -> bytes:
+    def render(self, calls: list[GeneratorCall], seeds: dict[str, int], *,
+               subject: str, resolution: str, samples: int,
+               seed: int) -> bytes:
         self._load()
         raise NotImplementedError("see trace() — the imported runtime lands with the v2 gate")
 
@@ -245,18 +254,22 @@ class Infinigen2Engine:
     # -- the seam ------------------------------------------------------------
 
     def describe(self) -> EngineDescriptor:
+        boundary = getattr(self._runtime, "boundary", "in-process")
+        venv = boundary == "venv-subprocess"
         return EngineDescriptor(
             flavour="infinigen-2-procfunc",
             pin=self._pin,
             capabilities=EngineCapabilities(
                 stages=True,
                 previews=True,
-                export_formats=["usda", "usdc", "glb"],
+                # the venv boundary renders but ships no exporter; the
+                # in-process half's formats are the formats we will write
+                export_formats=[] if venv else ["usda", "usdc", "glb"],
                 reexecute="graph-edit",
             ),
             source=(
                 f"infinigen 2.0 + procfunc · {self._pin.repo}@{self._pin.commit} "
-                f"· in-process · config {self._pin.config}"
+                f"· {boundary} · config {self._pin.config}"
             ),
         )
 
@@ -294,10 +307,11 @@ class Infinigen2Engine:
             ladder = {r: RUNG_LADDER[r] for r in sorted(RUNG_LADDER)}
             raise ValueError(f"unknown rung {request.rung}; the ladder is {ladder}")
         resolution, samples = RUNG_LADDER[request.rung]
-        graph = self._runtime.trace(generator_calls(request.recipe), dict(request.recipe.seeds))
+        calls = generator_calls(request.recipe)
         started = time.monotonic()
         data = self._runtime.render(
-            graph, resolution=resolution, samples=samples, seed=request.seed)
+            calls, dict(request.recipe.seeds), subject=request.subject,
+            resolution=resolution, samples=samples, seed=request.seed)
         return PreviewResult(
             data=data,
             artifact={"sha256": bytes_hash(data), "kind": "render",

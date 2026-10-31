@@ -142,14 +142,18 @@ def test_a_recipe_pinned_elsewhere_is_refused(runtime):
                          version_hash="sha256:" + "a" * 64, stage="coarse"))
 
 
-def test_previews_render_the_traced_graph(runtime):
+def test_previews_render_the_subjects_scene(runtime):
+    """A preview names its subject (the entry the render is of); the runtime
+    gets the calls and the subject, never a hand-me-down graph it did not
+    trace (the venv boundary has no graph — the CLI is the boundary)."""
     rt = runtime
     result = _engine(rt).render_preview(PreviewRequest(
         recipe=fjellvik(PIN_V2), version_hash="sha256:" + "a" * 64,
         subject="harbor.crates", rung=2, seed=42))
     kinds = [op[0] for op in rt.ops]
-    assert kinds == ["trace", "render"]
-    assert rt.ops[1][1:] == ("480p", 16, 42)  # the ladder's rung 2
+    assert kinds == ["render"]
+    assert rt.ops[0][1] == ["harbor.crates", "harbor.racks"]
+    assert rt.ops[0][2:] == ("harbor.crates", "480p", 16, 42)  # rung 2's ask
     assert result.data.startswith(b"v2-render")
     assert result.wall_ms is not None
 
