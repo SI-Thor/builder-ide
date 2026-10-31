@@ -17,6 +17,10 @@ Three ideas hold it together:
   scripted tasks with injected failures — and the engine and the GPU
   stations will implement the same two methods.
 
+And a fourth, newer: **a task is no longer one attempt.** The night
+generates variants, scores them, keeps the best and refines from it; the
+variants, the critic and the power meter are seams of their own.
+
 The public surface:
 
     from core.night import NightRunner, ScriptedExecutor, build_report
@@ -26,6 +30,16 @@ The public surface:
     runner.run()
     runner.stop()                       # the status, computed from the log
     write_report(build_report(ledger.events()), Path("reports/"))
+
+With a critic and a variant source, the tasks iterate:
+
+    from core.night import ScriptedCritic, ScriptedVariantSource
+
+    runner = NightRunner(
+        ledger, executor, night_id=night_id, rails=rails, clock=clock,
+        variant_source=ScriptedVariantSource(scripts),
+        critic=ScriptedCritic(scores),
+    )
 """
 
 from __future__ import annotations
@@ -38,8 +52,20 @@ from core.night.executor import (
     TaskExecutor,
 )
 from core.night.heartbeat import Heartbeat, lost_minutes, tick_gaps
+from core.night.iterate import (
+    Critic,
+    CriticScore,
+    IterationPolicy,
+    NullPowerMeter,
+    PerturbationSource,
+    PowerMeter,
+    ScriptedCritic,
+    ScriptedVariantSource,
+    Variant,
+    VariantSource,
+)
 from core.night.ledger import InMemoryLedger, Ledger, SQLiteLedger
-from core.night.models import Actor, AuditEvent, Job, Night, Rail, Task
+from core.night.models import Actor, AuditEvent, IterationPolicy, Job, Night, Rail, Task
 from core.night.projection import NightProjection
 from core.night.queue import TaskQueue
 from core.night.rails import BudgetExceeded, LoadBudget, RailBudget, ThrottleLevel
@@ -59,9 +85,12 @@ __all__ = [
     "AuditEvent",
     "BudgetExceeded",
     "Clock",
+    "Critic",
+    "CriticScore",
     "ExecutionPlan",
     "Heartbeat",
     "InMemoryLedger",
+    "IterationPolicy",
     "Job",
     "Ledger",
     "LoadBudget",
@@ -69,19 +98,26 @@ __all__ = [
     "NightProjection",
     "NightReport",
     "NightRunner",
+    "NullPowerMeter",
+    "PerturbationSource",
+    "PowerMeter",
     "Rail",
     "RailBudget",
     "RecoveryOutcome",
     "SQLiteLedger",
     "ScriptedClock",
+    "ScriptedCritic",
     "ScriptedExecutor",
     "ScriptedTask",
+    "ScriptedVariantSource",
     "StatusLine",
     "SystemClock",
     "Task",
     "TaskExecutor",
     "TaskQueue",
     "ThrottleLevel",
+    "Variant",
+    "VariantSource",
     "boot",
     "build_report",
     "compute_status",
