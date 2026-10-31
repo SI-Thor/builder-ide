@@ -54,7 +54,6 @@ __all__ = [
 #: adapters' own lower-layer labels (contract rule 5: the lower layer
 #: belongs to the engine, so it gets to name itself).
 _V2_ENVELOPE = "infinigen-2-procfunc"
-_V2_BUNDLE = "venv-cli"
 
 
 # --------------------------------------------------------------------------- the document
@@ -149,11 +148,12 @@ def graphs_of_stage(data: bytes) -> StageGraphs:
 
     Recognized shapes, in order: the v2 stage envelope of
     :class:`core.engine.infinigen2.Infinigen2Engine` (``engine`` marker,
-    ``graph`` payload); inside it (or as the payload itself) the venv
-    boundary's per-entry bundle (``engine: venv-cli``, ``entries``); a bare
-    procfunc graph document. Anything else is not ours to interpret
-    (contract rule 5) and comes back empty — the caller reports stage
-    granularity and moves on.
+    ``graph`` payload); inside it (or as the payload itself) a per-entry
+    bundle (an ``entries`` mapping of procfunc graphs — the venv boundary's
+    shape); a bare procfunc graph document. The guard is the procfunc
+    *shape* (nodes with ids), not a label — anything else is not ours to
+    interpret (contract rule 5) and comes back empty, so the caller
+    reports stage granularity and moves on.
     """
     try:
         doc = json.loads(data.decode("utf-8"))
@@ -164,15 +164,13 @@ def graphs_of_stage(data: bytes) -> StageGraphs:
     payload = doc["graph"] if doc.get("engine") == _V2_ENVELOPE else doc
     if not isinstance(payload, dict):
         return StageGraphs()
-    if payload.get("engine") == _V2_BUNDLE and isinstance(
-        payload.get("entries"), dict
+    entries = payload.get("entries")
+    if isinstance(entries, dict) and entries and all(
+        is_procfunc_graph(graph) for graph in entries.values()
     ):
-        entries = {
-            str(path): graph
-            for path, graph in sorted(payload["entries"].items())
-            if is_procfunc_graph(graph)
-        }
-        return StageGraphs(entries=entries)
+        return StageGraphs(
+            entries={str(path): graph for path, graph in sorted(entries.items())}
+        )
     if is_procfunc_graph(payload):
         return StageGraphs(single=payload)
     return StageGraphs()
