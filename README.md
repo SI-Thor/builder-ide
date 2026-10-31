@@ -171,12 +171,12 @@ Branches are pushed as the agents work and reviewed before they merge into
 
 | `engine-adapter` | One seam between the recipe and the engine: protocol, fake, Infinigen 1.x and 2.0 adapters | **merged** |
 | `render-rung` | The M1 render steps render for real (Infinigen 2.0, Cycles on the Thor GPU) | **merged** |
-| `scene-server` | The resident engine: builder wait 4.7× lower, exact crash recovery | **merged: 948 tests** |
+| `scene-server` | The resident engine: builder wait 4.7× lower, exact crash recovery | **merged** |
+| `propmaker-batch` | TRELLIS.2 behind the scheduler; the first real mini-night: 3 props × 3 seeds in 24 min 44 s ([record](docs/lab/mini-night.md)) | **merged** |
 
 ### In flight
 
 - **Engine round 2**: whole scenes traceable, a byte-stable recipe graph, Warp terrain as a 2.0 stage.
-- **The Prop-maker's generative batch**: TRELLIS.2 behind the scheduler, N seeds per prop, the critic keeps the best.
 - **Lab round 4** and **the critic's calibration set** on real sweep renders (queued for a provider quota).
 - **An overnight Infinigen scene sweep** on the Thor (8 scene types × 6 seeds) for the scheduler's timings and the calibration set.
 
