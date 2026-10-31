@@ -96,11 +96,14 @@ keeps (`schedule.py`), and the report says which ones ran:
    and the report says how much.
 4. **`costs_from_the_model`** — what each stage costs is the **cost model's**
    number, not one typed in here (`core/night/cost`). The image stage is
-   priced as `prop.image` (one 1024² picture) and the mesh stage as the
-   TRELLIS.2 prop at the request's own resolution — `prop.512` or
-   `prop.1024`, the sampling and the mesh tail. The task's **ask** is the
-   model's p50 and its **rail** the model's p95, the same convention the
-   core's night runner uses, so a task means the same thing in both places.
+   priced as `prop.image` (one 1024² picture) and the mesh stage as what the
+   night actually runs at the request's resolution — `prop.mesh.512` or
+   `prop.mesh.1024`: the generator's sampling **plus** the decode stages, the
+   repair and the measuring, as mini-night 2's ledger measured them. (The
+   stage used to be priced at the bare generator, `prop.512` — 3.4× low;
+   `schedule.py` carries the story.) The task's **ask** is the model's p50
+   and its **rail** the model's p95, the same convention the core's night
+   runner uses, so a task means the same thing in both places.
    The executor's plan reads the same price (`plan.per_variant_cost`), or
    the night would cut the work it planned itself.
 
@@ -140,6 +143,19 @@ Three operations, all of them topological, all of them numpy:
 The repair is **part of the recipe**: `PropRequest.repair` says which method
 ran and with what parameters, and the asset's provenance carries the
 measurements - the wall-clock, the counts, and the fidelity.
+
+So is the **weight dtype**: `PropRequest.weight_dtype` is what the mesh
+workflow's UNETLoader is told to load the TRELLIS.2 weights as — `"default"`
+(the checkpoint's own dtype, bf16 on this box, and the default until fp8
+earns its place) or one of ComfyUI's `fp8_e4m3fn` / `fp8_e4m3fn_fast` /
+`fp8_e5m2`. The builder writes it on the loader **outright**, even when the
+template already says it: a request that asked for fp8 and silently got bf16
+would be a lie, and the first fp8 grid ran every arm as bf16 exactly that
+way (see [docs/lab/exp-fp8-real.md](../../docs/lab/exp-fp8-real.md)). A prop
+made in fp8 is not the same prop as one made in bf16, so the dtype belongs
+in the recipe either way; the executor records it in the asset's provenance.
+Whether fp8 *keeps* the quality is the fp8 experiment's verdict, not an
+assumption here.
 
 **The asset's GLB is left as the generator wrote it**, and that is deliberate.
 The file's geometry was never broken - only the index buffer's view of it

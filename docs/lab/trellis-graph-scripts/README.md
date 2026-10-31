@@ -63,11 +63,16 @@ into* the fp8 parameter (torch's `copy_` casts) and the fused path would run.
 
 **The fix.** At the point where the weight is assigned, cast the checkpoint's
 tensor to the dtype the module was built for. It is paid once, at load —
-measured at **13.0 s for the whole UNet** (832 tensors, 5.00 G elements), a
-little over 1 GB/s of fp8 output, slower than the 6 GB/s first guessed. It
-also *removes* work: the dynamic loader's staging geometry is already fp8, so
-with a bf16 parameter the loader had to re-quantise every weight on its way
-to the device, and the manual-cast path had to up-cast it again on every use.
+measured warm at **5.2–8.8 s for the two loads a prop's three seeds make**
+(2,560 tensors, 15.37 G elements); 13.0 s for one load when the box sat at
+load 106, and 105 s in the grid that was sliding into the 2026-10-31 memory
+crash. The number is the page cache's and the box's as much as the cast's.
+It also *removes* work: the dynamic loader's staging geometry is already
+fp8, so with a bf16 parameter the loader had to re-quantise every weight on
+its way to the device, and the manual-cast path had to up-cast it again on
+every use. Whether any of that is worth having is
+[exp-fp8-real.md](../../exp-fp8-real.md)'s verdict: the path runs, and fp8
+is a measured no for this generator — bf16 stays the default.
 
 **The trap the harness had to be taught.** `build_trellis_workflow` writes the
 loader's `weight_dtype` outright (a request that asked for fp8 and silently
@@ -158,9 +163,12 @@ bash docs/lab/trellis-graph-scripts/run_experiment.sh fp8-pre
 The fp8 experiment's arms are `bf16` (the control), `fp8-declined` (the fp8
 template without the fix: the fused path declines, which is what the box
 does today) and `fp8-fixed` (the fp8 template with the fix: the weights are
-fp8 and the fused path runs). They are run **interleaved**, because the box
-is shared and a drift in its load lands on whichever arm happens to be
-running:
+fp8 and the fused path runs). The write-up is
+[exp-fp8-real.md](../../exp-fp8-real.md); its verdict in one line: the fix
+makes fp8 real, and fp8 is a measured no — slower per step, +14 GB of host
+staging, the quality gate fails on the silhouette. They are run
+**interleaved**, because the box is shared and a drift in its load lands on
+whichever arm happens to be running:
 
 ```sh
 bash docs/lab/trellis-graph-scripts/run_arms.sh 2 101 102 103

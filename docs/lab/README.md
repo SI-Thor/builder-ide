@@ -12,6 +12,7 @@ Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md
 
 | file | what it measured | verdict |
 |---|---|---|
+| [`exp-fp8-real.md`](exp-fp8-real.md) | making the fused fp8 path actually run (the weights were bf16), then per-step time, memory and a quality gate against bf16 | **the fix works; fp8 is a measured no — slower per step, +14 GB host RSS, gate fails; bf16 stays the default** |
 | [`exp-trellis-graph.md`](exp-trellis-graph.md) | graph-capturing the TRELLIS.2 KSampler step in ComfyUI; the fused-fp8 path's host cost | **useful — and it kills the fp8 scales diagnosis** |
 | [`mini-night-2.md`](mini-night-2.md) | the night again, with the cost model pricing the slate and the mesh repair in the pipeline | **the repair makes solids; the prop band is priced wrong** |
 
