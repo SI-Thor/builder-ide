@@ -16,6 +16,8 @@ the night's output is a catalogue of props rather than a render.
 |---|---|---|
 | `glb.py` | reading a GLB: the container, and the mesh primitive in it | no |
 | `mesh.py` | measuring a mesh: watertightness, triangles, bbox, volume, area, centre of mass | no |
+| `repair.py` | the repair stage: welding the seams the generator leaves, and undoing the self-crossings | no |
+| `fidelity.py` | the silhouette IoU: how much of the prop a repair left alone | no |
 | `critic.py` | the scripted critic — the judgement that picks the winner | no |
 | `assets.py`, `licences.py` | the asset record: the file, the recipe, the licence row | no |
 | `models.py`, `store.py` | the records, and where the night's output is kept | no |
@@ -93,6 +95,72 @@ keeps (`schedule.py`), and the report says which ones ran:
    cores; the price of the rule is that the GPU idles through every tail,
    and the report says how much.
 
+## The repair stage
+
+Between TRELLIS.2 and the critic, the night **repairs** the mesh. The reason
+is in the mini-night's record: every one of its nine props came back with
+155 k-234 k boundary edges, and the critic's heaviest check scored zero for
+every candidate.
+
+**Those meshes were never open.** The UV unwrap gives a vertex two copies,
+one per side of a seam, and the two copies sit at *bit-identical* positions.
+The mesh is a closed solid; its *index buffer* just cannot see the closure.
+The repair merges those vertices back together, and the boundary edges go -
+every one of them, on all nine meshes - without moving a vertex:
+
+| | before the repair | after |
+|---|---|---|
+| boundary edges | 155,312-326,800 | **0** |
+| non-manifold edges | 0 | 0 (after the crossings are undone) |
+| triangles | 698,184-699,824 | unchanged |
+| area, volume | - | **identical to six decimals** |
+| silhouette IoU against the original | - | **1.000000** |
+| cost | - | 2.6-18.2 s per prop, at load 13-26 |
+
+Three operations, all of them topological, all of them numpy:
+
+1. **weld** - merge the vertices that sit at the same place;
+2. **collapse** - take out the zero-volume flaps (a triangle the generator
+   left in the mesh twice, once each way round);
+3. **split** - give the pinched vertices a copy of themselves, which splits
+   the edges the surface crosses itself on.
+
+The repair is **part of the recipe**: `PropRequest.repair` says which method
+ran and with what parameters, and the asset's provenance carries the
+measurements - the wall-clock, the counts, and the fidelity.
+
+**The asset's GLB is left as the generator wrote it**, and that is deliberate.
+The file's geometry was never broken - only the index buffer's view of it
+was - so rewriting it would buy nothing and cost the atlas: a naive weld
+keeps the correct UV for only **84.6 %** of the surface area, because the two
+sides of a UV seam need different atlas coordinates and a welded vertex has
+only one. What the repair supplies is the *solid* the pipeline measures and
+judges, plus the proof that it did not reshape the prop.
+
+### The fidelity check
+
+A repair that makes a prop watertight can still ruin it, so the repair
+measures the prop's **silhouette IoU** against the mesh it was given
+(`fidelity.py`): the overlap of the object's outline, seen from three
+directions. The weld scores **1.000000** - the geometry is untouched - and
+the number is in the report, so a repair that reshapes the prop is caught
+rather than shipped.
+
+The measure needed care to be worth anything: sampling the surface into a
+pixel grid leaves the outline's boundary pixels flickering, and two meshes
+with *identical* geometry scored an IoU of 0.51 before the grid was sampled
+densely enough. Twenty samples per pixel fixes it; both the fix and the
+check are in the tests.
+
+### The alternatives, measured
+
+The bake-off is in [docs/lab/exp-mesh-repair.md](../../docs/lab/exp-mesh-repair.md):
+hole filling (trimesh) adds 146 k triangles and thousands of non-manifold
+edges; a voxel remesh costs tens of seconds, rounds the silhouette and loses
+the atlas; manifold3d does the job but needs the mesh welded first;
+**MeshFix is AGPL-3.0 and is not a dependency**. The repair shipped here needs
+**no new dependency at all**.
+
 ## The critic
 
 The brief's three checks, and SolidCraft's oracle set
@@ -100,7 +168,8 @@ The brief's three checks, and SolidCraft's oracle set
 
 | check | weight | what it says |
 |---|---:|---|
-| `watertight` | 3 | closed, consistently wound, positive volume — all or nothing |
+| `watertight` | 3 | closed, consistently wound, positive volume - measured on the **repaired** mesh |
+| `repair_fidelity` | 1 | the repair left the prop's outline alone (the silhouette IoU) |
 | `triangle_budget` | 2 | inside the triangle budget the request set |
 | `bbox_aspect` | 2 | the proportions are the ones asked for (only when the request states a shape) |
 | `solid_volume` | 2 | it fills its own bounding box like a solid, not like a shell |
@@ -108,14 +177,18 @@ The brief's three checks, and SolidCraft's oracle set
 | `centre_of_mass` | 1 | the mass sits inside its own box, and near the middle of it |
 | `degenerate` | 1 | no triangles of no area |
 
-Every check is **graded** from 0 to 1, not passed or failed. Three props
-that all fail the same check would otherwise score zero each and the
-"winner" would be whichever the loop happened to see first.
+Every check is **graded** from 0 to 1, not passed or failed. Three props that
+all fail the same check would otherwise score zero each and the "winner"
+would be whichever the loop happened to see first.
 
 `bbox_aspect` only runs when the request states an `expected_aspect`,
-because TRELLIS.2 normalises a prop's size away — the largest horizontal
-extent comes out as one unit — so the absolute size is the caller's
+because TRELLIS.2 normalises a prop's size away - the largest horizontal
+extent comes out as one unit - so the absolute size is the caller's
 business and the *proportions* are the generator's.
+
+`repair_fidelity` only runs when the repair stage ran. A repair that did not
+succeed fails the `watertight` check outright: a prop that was not repaired
+cannot be called a solid.
 
 ## The licence
 
@@ -149,14 +222,21 @@ own ask (24.7 min of wall against a 26.1-min estimate). Three assets
 entered the library with MIT licence rows and full provenance; the
 morning names each winner, its score, and the two variants it beat.
 
-Two findings the night itself paid for, both now load-bearing: TRELLIS.2's
-remeshed output is **never watertight** (155 k–234 k boundary edges, 0
-non-manifold — the heaviest check fails for every candidate, and the
-graded scores are what still produce a ranked winner), and every prop
-came back **~cubic** whatever aspect was asked (100–150 % off on the
-missing axis — the aspect ask has to reach the image prompt, not the
-mesh). The full numbers, with the box's load beside every one, are in
+Two findings the night itself paid for. Every prop came back **~cubic**
+whatever aspect was asked (100–150 % off on the missing axis — the aspect ask
+has to reach the image prompt, not the mesh). And TRELLIS.2's remeshed output
+came back with **155 k–234 k boundary edges**, so the heaviest check failed
+for every candidate and the graded scores were what still produced a ranked
+winner. The full numbers, with the box's load beside every one, are in
 [docs/lab/mini-night.md](../../docs/lab/mini-night.md).
+
+**The second finding has since been overturned**, and the repair stage is
+what overturned it: those props were **closed solids all along**, with the
+vertex buffer split at the UV seams, so the edge-counting check could not
+tell a solid from a hole. Welding the seams closes every boundary edge on
+all nine meshes, leaves the area and the volume untouched to six decimals,
+and keeps the prop's outline at an IoU of **1.000000**. The evidence is in
+[docs/lab/exp-mesh-repair.md](../../docs/lab/exp-mesh-repair.md).
 
 ## What it stubs, and how it joins the rest
 
