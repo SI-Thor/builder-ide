@@ -1,0 +1,1514 @@
+{
+ "candidate": "vlm",
+ "critic": "vlm",
+ "layers": [
+  "image"
+ ],
+ "fallback_reason": null,
+ "night": null,
+ "members": [
+  {
+   "member_id": "mem_21488ad67db1666b",
+   "base_id": "arctic-s1",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 57780.382,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'Yes' (7.1 s, 47 tokens)",
+     "measured": {
+      "vlm_seconds": 7.12547056999756
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (9.4 s, 72 tokens)",
+     "measured": {
+      "vlm_seconds": 9.383889737000572
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (11.1 s, 84 tokens)",
+     "measured": {
+      "vlm_seconds": 11.103193012997508
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (9.8 s, 70 tokens)",
+     "measured": {
+      "vlm_seconds": 9.793355374989915
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (11.6 s, 95 tokens)",
+     "measured": {
+      "vlm_seconds": 11.56515694099653
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (8.8 s, 64 tokens)",
+     "measured": {
+      "vlm_seconds": 8.807634097000118
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f95ee685896a09c0",
+   "base_id": "arctic-s4",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 70161.411,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (11.0 s, 45 tokens)",
+     "measured": {
+      "vlm_seconds": 10.966974294991815
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (15.8 s, 117 tokens)",
+     "measured": {
+      "vlm_seconds": 15.763897080003517
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (9.5 s, 70 tokens)",
+     "measured": {
+      "vlm_seconds": 9.459325170013472
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (10.8 s, 83 tokens)",
+     "measured": {
+      "vlm_seconds": 10.801888927991968
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (11.5 s, 80 tokens)",
+     "measured": {
+      "vlm_seconds": 11.493649957003072
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (11.6 s, 85 tokens)",
+     "measured": {
+      "vlm_seconds": 11.625320438994095
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9aa7eec1d2c8f19d",
+   "base_id": "arctic-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 125673.625,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (7.4 s, 44 tokens)",
+     "measured": {
+      "vlm_seconds": 7.447684661994572
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (17.8 s, 90 tokens)",
+     "measured": {
+      "vlm_seconds": 17.79715288100124
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (20.4 s, 80 tokens)",
+     "measured": {
+      "vlm_seconds": 20.385433835996082
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (31.5 s, 131 tokens)",
+     "measured": {
+      "vlm_seconds": 31.4552097459964
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (28.9 s, 94 tokens)",
+     "measured": {
+      "vlm_seconds": 28.928974118010956
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (19.6 s, 125 tokens)",
+     "measured": {
+      "vlm_seconds": 19.60293157599517
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b5828303072b1a3c",
+   "base_id": "arctic-s6",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 92727.741,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (10.5 s, 46 tokens)",
+     "measured": {
+      "vlm_seconds": 10.473719509987859
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (16.5 s, 71 tokens)",
+     "measured": {
+      "vlm_seconds": 16.467954955005553
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'Yes' (15.1 s, 59 tokens)",
+     "measured": {
+      "vlm_seconds": 15.11592591900262
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (15.9 s, 70 tokens)",
+     "measured": {
+      "vlm_seconds": 15.898464229991077
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'Yes' (14.0 s, 60 tokens)",
+     "measured": {
+      "vlm_seconds": 13.97144431900233
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'Yes' (20.7 s, 119 tokens)",
+     "measured": {
+      "vlm_seconds": 20.698224400999607
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_307101c469654adf",
+   "base_id": "arctic-s7",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 108076.496,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (11.8 s, 44 tokens)",
+     "measured": {
+      "vlm_seconds": 11.760373711993452
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (21.3 s, 103 tokens)",
+     "measured": {
+      "vlm_seconds": 21.279393518998404
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (16.3 s, 78 tokens)",
+     "measured": {
+      "vlm_seconds": 16.292567951008095
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (17.4 s, 86 tokens)",
+     "measured": {
+      "vlm_seconds": 17.399621477990877
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (20.2 s, 93 tokens)",
+     "measured": {
+      "vlm_seconds": 20.15589169500163
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (21.1 s, 100 tokens)",
+     "measured": {
+      "vlm_seconds": 21.068118898998364
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f2de39875e8a21f9",
+   "base_id": "arctic-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 156331.612,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (17.5 s, 43 tokens)",
+     "measured": {
+      "vlm_seconds": 17.486476340010995
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (26.9 s, 80 tokens)",
+     "measured": {
+      "vlm_seconds": 26.938190956992912
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No' (29.9 s, 81 tokens)",
+     "measured": {
+      "vlm_seconds": 29.92635632499878
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (30.2 s, 79 tokens)",
+     "measured": {
+      "vlm_seconds": 30.16758945598849
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (32.0 s, 98 tokens)",
+     "measured": {
+      "vlm_seconds": 31.95615869401081
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (19.8 s, 75 tokens)",
+     "measured": {
+      "vlm_seconds": 19.75316144899989
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_adc321874fe5a328",
+   "base_id": "canyon-s1",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 116932.168,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (13.3 s, 54 tokens)",
+     "measured": {
+      "vlm_seconds": 13.29826101900835
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (16.6 s, 65 tokens)",
+     "measured": {
+      "vlm_seconds": 16.636509431002196
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'Yes' (25.1 s, 106 tokens)",
+     "measured": {
+      "vlm_seconds": 25.110819312001695
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'Yes.' (29.2 s, 136 tokens)",
+     "measured": {
+      "vlm_seconds": 29.198048493009992
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'Yes' (17.2 s, 58 tokens)",
+     "measured": {
+      "vlm_seconds": 17.162629926999216
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'Yes.' (15.4 s, 76 tokens)",
+     "measured": {
+      "vlm_seconds": 15.43077634900692
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_718023ba022732d4",
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 108007.069,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (8.0 s, 52 tokens)",
+     "measured": {
+      "vlm_seconds": 8.025123479004833
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (10.5 s, 82 tokens)",
+     "measured": {
+      "vlm_seconds": 10.451820050002425
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'Yes' (26.1 s, 129 tokens)",
+     "measured": {
+      "vlm_seconds": 26.11451171900262
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (24.7 s, 114 tokens)",
+     "measured": {
+      "vlm_seconds": 24.739843696006574
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (19.0 s, 75 tokens)",
+     "measured": {
+      "vlm_seconds": 19.002645708009368
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'Yes' (19.6 s, 69 tokens)",
+     "measured": {
+      "vlm_seconds": 19.618018450011732
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_006310cbdf937f74",
+   "base_id": "canyon-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 112473.181,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (14.9 s, 50 tokens)",
+     "measured": {
+      "vlm_seconds": 14.92440431000432
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (12.3 s, 66 tokens)",
+     "measured": {
+      "vlm_seconds": 12.303100026998436
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'Yes' (25.4 s, 98 tokens)",
+     "measured": {
+      "vlm_seconds": 25.40430128198932
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No' (18.4 s, 65 tokens)",
+     "measured": {
+      "vlm_seconds": 18.39399663200311
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (23.4 s, 94 tokens)",
+     "measured": {
+      "vlm_seconds": 23.35123513000144
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (18.1 s, 62 tokens)",
+     "measured": {
+      "vlm_seconds": 18.053534512990154
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_e5097025648d7b9c",
+   "base_id": "canyon-s6",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 135957.136,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'Yes' (14.2 s, 47 tokens)",
+     "measured": {
+      "vlm_seconds": 14.246110335996491
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (10.0 s, 72 tokens)",
+     "measured": {
+      "vlm_seconds": 10.020692067992059
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (10.3 s, 84 tokens)",
+     "measured": {
+      "vlm_seconds": 10.30439571700117
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (10.0 s, 70 tokens)",
+     "measured": {
+      "vlm_seconds": 10.005089127997053
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (51.1 s, 95 tokens)",
+     "measured": {
+      "vlm_seconds": 51.058570883993525
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (40.3 s, 64 tokens)",
+     "measured": {
+      "vlm_seconds": 40.32054169700132
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_966194306043c892",
+   "base_id": "canyon-s7",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 171419.872,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (32.6 s, 43 tokens)",
+     "measured": {
+      "vlm_seconds": 32.62085805600509
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (52.7 s, 89 tokens)",
+     "measured": {
+      "vlm_seconds": 52.739320961991325
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (37.9 s, 75 tokens)",
+     "measured": {
+      "vlm_seconds": 37.933765801994014
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (21.2 s, 69 tokens)",
+     "measured": {
+      "vlm_seconds": 21.18758944098954
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (14.5 s, 71 tokens)",
+     "measured": {
+      "vlm_seconds": 14.458385835998342
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (12.4 s, 77 tokens)",
+     "measured": {
+      "vlm_seconds": 12.437056677008513
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9d6d264ba8126d40",
+   "base_id": "canyon-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 68806.125,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (13.2 s, 53 tokens)",
+     "measured": {
+      "vlm_seconds": 13.229538821993629
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (12.0 s, 63 tokens)",
+     "measured": {
+      "vlm_seconds": 12.00320315999852
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (12.9 s, 87 tokens)",
+     "measured": {
+      "vlm_seconds": 12.919340875989292
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (10.2 s, 80 tokens)",
+     "measured": {
+      "vlm_seconds": 10.16106000400032
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (9.2 s, 71 tokens)",
+     "measured": {
+      "vlm_seconds": 9.214261287997942
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (11.2 s, 84 tokens)",
+     "measured": {
+      "vlm_seconds": 11.18861403199844
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_65684b3ca047a1ae",
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 63950.178,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (8.0 s, 57 tokens)",
+     "measured": {
+      "vlm_seconds": 7.962117410002975
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (8.8 s, 66 tokens)",
+     "measured": {
+      "vlm_seconds": 8.782657931005815
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'Yes' (11.3 s, 94 tokens)",
+     "measured": {
+      "vlm_seconds": 11.280484569011605
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'Yes' (12.6 s, 101 tokens)",
+     "measured": {
+      "vlm_seconds": 12.646876983999391
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'Yes' (9.7 s, 72 tokens)",
+     "measured": {
+      "vlm_seconds": 9.674856220997754
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (13.6 s, 120 tokens)",
+     "measured": {
+      "vlm_seconds": 13.563388270995347
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f718dd9be64c17e4",
+   "base_id": "coast-s2",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 63180.377,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (7.0 s, 45 tokens)",
+     "measured": {
+      "vlm_seconds": 6.969679023997742
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (9.8 s, 78 tokens)",
+     "measured": {
+      "vlm_seconds": 9.825044060009532
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'Yes' (8.6 s, 63 tokens)",
+     "measured": {
+      "vlm_seconds": 8.586383454996394
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (12.0 s, 97 tokens)",
+     "measured": {
+      "vlm_seconds": 11.976211866000085
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No' (11.3 s, 85 tokens)",
+     "measured": {
+      "vlm_seconds": 11.278559641999891
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (14.5 s, 129 tokens)",
+     "measured": {
+      "vlm_seconds": 14.497723637003219
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_5dce9a3310b1eba5",
+   "base_id": "coast-s4",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 69436.285,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (7.2 s, 48 tokens)",
+     "measured": {
+      "vlm_seconds": 7.230080215987982
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (12.4 s, 107 tokens)",
+     "measured": {
+      "vlm_seconds": 12.423472930997377
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (14.9 s, 135 tokens)",
+     "measured": {
+      "vlm_seconds": 14.892058042998542
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (8.9 s, 68 tokens)",
+     "measured": {
+      "vlm_seconds": 8.944914457999403
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (10.4 s, 83 tokens)",
+     "measured": {
+      "vlm_seconds": 10.402457563002827
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (15.5 s, 142 tokens)",
+     "measured": {
+      "vlm_seconds": 15.498508447009954
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "base_id": "coast-s5",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 79128.542,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (7.4 s, 49 tokens)",
+     "measured": {
+      "vlm_seconds": 7.39600093899935
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (11.8 s, 72 tokens)",
+     "measured": {
+      "vlm_seconds": 11.849844193988247
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'Yes' (12.3 s, 81 tokens)",
+     "measured": {
+      "vlm_seconds": 12.253609361010604
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (10.9 s, 88 tokens)",
+     "measured": {
+      "vlm_seconds": 10.91554593598994
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'Yes' (13.3 s, 60 tokens)",
+     "measured": {
+      "vlm_seconds": 13.332156942997244
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'Yes.' (23.3 s, 107 tokens)",
+     "measured": {
+      "vlm_seconds": 23.334982009997475
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_d5c1c6cc24413705",
+   "base_id": "coast-s6",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 113026.605,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (13.4 s, 48 tokens)",
+     "measured": {
+      "vlm_seconds": 13.37758233200293
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (22.0 s, 120 tokens)",
+     "measured": {
+      "vlm_seconds": 22.040991721005412
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (29.1 s, 139 tokens)",
+     "measured": {
+      "vlm_seconds": 29.107759644000907
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (19.1 s, 78 tokens)",
+     "measured": {
+      "vlm_seconds": 19.070107965002535
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (12.1 s, 85 tokens)",
+     "measured": {
+      "vlm_seconds": 12.05205943400506
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'Yes' (17.3 s, 106 tokens)",
+     "measured": {
+      "vlm_seconds": 17.31208503599919
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b521f152359d1cde",
+   "base_id": "coast-s7",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 107211.063,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (13.5 s, 46 tokens)",
+     "measured": {
+      "vlm_seconds": 13.48738216899801
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (20.0 s, 85 tokens)",
+     "measured": {
+      "vlm_seconds": 20.040041336003924
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (18.7 s, 88 tokens)",
+     "measured": {
+      "vlm_seconds": 18.73982322200027
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (13.6 s, 83 tokens)",
+     "measured": {
+      "vlm_seconds": 13.60799879199476
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'Yes' (24.7 s, 113 tokens)",
+     "measured": {
+      "vlm_seconds": 24.68510544199671
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (16.6 s, 66 tokens)",
+     "measured": {
+      "vlm_seconds": 16.576685267005814
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_202aa986e4168c4c",
+   "base_id": "coast-s8",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 117878.136,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'Yes' (13.7 s, 47 tokens)",
+     "measured": {
+      "vlm_seconds": 13.653354634996504
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (18.1 s, 72 tokens)",
+     "measured": {
+      "vlm_seconds": 18.056786508997902
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (19.7 s, 84 tokens)",
+     "measured": {
+      "vlm_seconds": 19.73704037400603
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (16.8 s, 70 tokens)",
+     "measured": {
+      "vlm_seconds": 16.78601174200594
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No.' (32.7 s, 95 tokens)",
+     "measured": {
+      "vlm_seconds": 32.67678748098842
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (17.0 s, 64 tokens)",
+     "measured": {
+      "vlm_seconds": 16.966126572995563
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "base_id": "desert-s1",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 96602.1,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (11.9 s, 44 tokens)",
+     "measured": {
+      "vlm_seconds": 11.883314165010233
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'Yes' (19.7 s, 73 tokens)",
+     "measured": {
+      "vlm_seconds": 19.708132995991036
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (18.1 s, 79 tokens)",
+     "measured": {
+      "vlm_seconds": 18.09443328200723
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (17.3 s, 72 tokens)",
+     "measured": {
+      "vlm_seconds": 17.29648003001057
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'No' (17.2 s, 71 tokens)",
+     "measured": {
+      "vlm_seconds": 17.164044825010933
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'No.' (12.4 s, 77 tokens)",
+     "measured": {
+      "vlm_seconds": 12.402666041001794
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f187020297fd5c58",
+   "base_id": "arctic-s2",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@vlm",
+   "degraded": "vlm",
+   "latency_ms": 99156.792,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> 'No' (7.3 s, 49 tokens)",
+     "measured": {
+      "vlm_seconds": 7.289381859998684
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> 'No.' (21.4 s, 93 tokens)",
+     "measured": {
+      "vlm_seconds": 21.41799553799501
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> 'No.' (24.2 s, 113 tokens)",
+     "measured": {
+      "vlm_seconds": 24.15089853500831
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "muse-glimmer-30b: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> 'No.' (16.0 s, 83 tokens)",
+     "measured": {
+      "vlm_seconds": 16.0359265619918
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> 'Yes' (12.7 s, 101 tokens)",
+     "measured": {
+      "vlm_seconds": 12.749278021001373
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "muse-glimmer-30b: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> 'Yes.' (17.5 s, 163 tokens)",
+     "measured": {
+      "vlm_seconds": 17.491234009008622
+     },
+     "applicable": true
+    }
+   ]
+  }
+ ],
+ "table": {
+  "night": null,
+  "label": "verdict@scripted",
+  "in_band": false,
+  "band": {
+   "fp_bound": 0.1
+  },
+  "layers": [
+   "image"
+  ],
+  "totals": {
+   "tp": 10,
+   "fp": 2,
+   "fn": 5,
+   "tn": 34,
+   "fp_rate": 0.05555555555555555,
+   "fn_rate": 0.3333333333333333
+  },
+  "rows": [
+   {
+    "defect": "black_frame",
+    "check": "black_frame",
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 3,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "noise_fireflies",
+    "check": "fireflies",
+    "tp": 1,
+    "fp": 0,
+    "fn": 3,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.75,
+    "members": 4,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "missing_object",
+    "check": "flat_patch",
+    "tp": 2,
+    "fp": 1,
+    "fn": 0,
+    "tn": 5,
+    "fp_rate": 0.16666666666666666,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "holes",
+    "check": "dark_holes",
+    "tp": 0,
+    "fp": 0,
+    "fn": 2,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 1.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "texture_swap",
+    "check": "patch_seam",
+    "tp": 2,
+    "fp": 1,
+    "fn": 0,
+    "tn": 5,
+    "fp_rate": 0.16666666666666666,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "floating_object",
+    "check": "floating_blob",
+    "tp": 2,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "wrong_scale",
+    "check": "scale_bounds",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "hollow_mesh",
+    "check": "watertight",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "clipped_geometry",
+    "check": "edge_cut",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   }
+  ]
+ }
+}

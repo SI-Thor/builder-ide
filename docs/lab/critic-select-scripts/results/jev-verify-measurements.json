@@ -1,0 +1,1662 @@
+{
+ "candidate": "jev",
+ "critic": "jev",
+ "layers": [
+  "image"
+ ],
+ "members": [
+  {
+   "member_id": "mem_21488ad67db1666b",
+   "base_id": "arctic-s1",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 8702.947,
+   "cpu_ms": 7055.315,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.920 >= 0.5 (confidence \u2014, 0.34 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.92,
+      "jev_seconds": 0.34467918099835515
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.020 >= 0.5 (confidence \u2014, 0.34 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.02,
+      "jev_seconds": 0.34467918099835515
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.280 >= 0.5 (confidence \u2014, 0.34 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.28,
+      "jev_seconds": 0.34467918099835515
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.020 >= 0.5 (confidence \u2014, 0.34 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.02,
+      "jev_seconds": 0.34467918099835515
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.060 >= 0.5 (confidence \u2014, 0.34 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.06,
+      "jev_seconds": 0.34467918099835515
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.020 >= 0.5 (confidence \u2014, 0.34 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.02,
+      "jev_seconds": 0.34467918099835515
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f95ee685896a09c0",
+   "base_id": "arctic-s4",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 4777.059,
+   "cpu_ms": 4021.69,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.150 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.15,
+      "jev_seconds": 0.1858232000085991
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.860 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.86,
+      "jev_seconds": 0.1858232000085991
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.200 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.2,
+      "jev_seconds": 0.1858232000085991
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.1858232000085991
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.210 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.21,
+      "jev_seconds": 0.1858232000085991
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.040 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.04,
+      "jev_seconds": 0.1858232000085991
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9aa7eec1d2c8f19d",
+   "base_id": "arctic-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 5530.145,
+   "cpu_ms": 3972.994,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.090 >= 0.5 (confidence \u2014, 0.26 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.09,
+      "jev_seconds": 0.2574759660055861
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.780 >= 0.5 (confidence \u2014, 0.26 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.78,
+      "jev_seconds": 0.2574759660055861
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.210 >= 0.5 (confidence \u2014, 0.26 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.21,
+      "jev_seconds": 0.2574759660055861
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.26 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.2574759660055861
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.210 >= 0.5 (confidence \u2014, 0.26 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.21,
+      "jev_seconds": 0.2574759660055861
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.050 >= 0.5 (confidence \u2014, 0.26 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.2574759660055861
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b5828303072b1a3c",
+   "base_id": "arctic-s6",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 4716.27,
+   "cpu_ms": 3506.192,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.170 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.17,
+      "jev_seconds": 0.1863116399908904
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.050 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.1863116399908904
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.180 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.18,
+      "jev_seconds": 0.1863116399908904
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.1863116399908904
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.220 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.22,
+      "jev_seconds": 0.1863116399908904
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.030 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.1863116399908904
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_307101c469654adf",
+   "base_id": "arctic-s7",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 2277.815,
+   "cpu_ms": 1255.051,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.070 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.07,
+      "jev_seconds": 0.19165815800079145
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.120 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.12,
+      "jev_seconds": 0.19165815800079145
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.400 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.4,
+      "jev_seconds": 0.19165815800079145
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.870 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.87,
+      "jev_seconds": 0.19165815800079145
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.470 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.47,
+      "jev_seconds": 0.19165815800079145
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.690 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.69,
+      "jev_seconds": 0.19165815800079145
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f2de39875e8a21f9",
+   "base_id": "arctic-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 2107.642,
+   "cpu_ms": 1240.588,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.170 >= 0.5 (confidence \u2014, 0.24 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.17,
+      "jev_seconds": 0.24460963100136723
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.050 >= 0.5 (confidence \u2014, 0.24 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.24460963100136723
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.190 >= 0.5 (confidence \u2014, 0.24 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.19,
+      "jev_seconds": 0.24460963100136723
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.24 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.24460963100136723
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.160 >= 0.5 (confidence \u2014, 0.24 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.16,
+      "jev_seconds": 0.24460963100136723
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.030 >= 0.5 (confidence \u2014, 0.24 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.24460963100136723
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_adc321874fe5a328",
+   "base_id": "canyon-s1",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 3038.063,
+   "cpu_ms": 1066.083,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.130 >= 0.5 (confidence \u2014, 0.25 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.13,
+      "jev_seconds": 0.24500579699815717
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.050 >= 0.5 (confidence \u2014, 0.25 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.24500579699815717
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.170 >= 0.5 (confidence \u2014, 0.25 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.17,
+      "jev_seconds": 0.24500579699815717
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.25 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.24500579699815717
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.410 >= 0.5 (confidence \u2014, 0.25 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.41,
+      "jev_seconds": 0.24500579699815717
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.030 >= 0.5 (confidence \u2014, 0.25 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.24500579699815717
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_718023ba022732d4",
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 2302.907,
+   "cpu_ms": 910.702,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.120 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.12,
+      "jev_seconds": 0.17964563600253314
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.110 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.11,
+      "jev_seconds": 0.17964563600253314
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.390 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.39,
+      "jev_seconds": 0.17964563600253314
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.050 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.17964563600253314
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.570 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.57,
+      "jev_seconds": 0.17964563600253314
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.700 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.7,
+      "jev_seconds": 0.17964563600253314
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_006310cbdf937f74",
+   "base_id": "canyon-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 3944.824,
+   "cpu_ms": 2602.775,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.120 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.12,
+      "jev_seconds": 0.1941703540069284
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.050 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.1941703540069284
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.150 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.15,
+      "jev_seconds": 0.1941703540069284
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.1941703540069284
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.120 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.12,
+      "jev_seconds": 0.1941703540069284
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.030 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.1941703540069284
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_e5097025648d7b9c",
+   "base_id": "canyon-s6",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 3424.205,
+   "cpu_ms": 1846.583,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.920 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.92,
+      "jev_seconds": 0.18380933300068136
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.020 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.02,
+      "jev_seconds": 0.18380933300068136
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.280 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.28,
+      "jev_seconds": 0.18380933300068136
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.020 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.02,
+      "jev_seconds": 0.18380933300068136
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.050 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.18380933300068136
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.020 >= 0.5 (confidence \u2014, 0.18 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.02,
+      "jev_seconds": 0.18380933300068136
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_966194306043c892",
+   "base_id": "canyon-s7",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 2783.575,
+   "cpu_ms": 1546.911,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.160 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.16,
+      "jev_seconds": 0.1956042520032497
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.860 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.86,
+      "jev_seconds": 0.1956042520032497
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.190 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.19,
+      "jev_seconds": 0.1956042520032497
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.1956042520032497
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.170 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.17,
+      "jev_seconds": 0.1956042520032497
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.040 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.04,
+      "jev_seconds": 0.1956042520032497
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9d6d264ba8126d40",
+   "base_id": "canyon-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 2947.761,
+   "cpu_ms": 1545.346,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.160 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.16,
+      "jev_seconds": 0.19982258000527509
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.050 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.19982258000527509
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.150 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.15,
+      "jev_seconds": 0.19982258000527509
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.19982258000527509
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.140 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.14,
+      "jev_seconds": 0.19982258000527509
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.030 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.19982258000527509
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_65684b3ca047a1ae",
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 1468.015,
+   "cpu_ms": 866.577,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.080 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.08,
+      "jev_seconds": 0.23451482500240672
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.080 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.08,
+      "jev_seconds": 0.23451482500240672
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.490 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.49,
+      "jev_seconds": 0.23451482500240672
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.770 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.77,
+      "jev_seconds": 0.23451482500240672
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.430 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.43,
+      "jev_seconds": 0.23451482500240672
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.490 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.49,
+      "jev_seconds": 0.23451482500240672
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f718dd9be64c17e4",
+   "base_id": "coast-s2",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 3828.743,
+   "cpu_ms": 2290.053,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.090 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.09,
+      "jev_seconds": 0.1885684149892768
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.810 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.81,
+      "jev_seconds": 0.1885684149892768
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.340 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.34,
+      "jev_seconds": 0.1885684149892768
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.870 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.87,
+      "jev_seconds": 0.1885684149892768
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.270 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.27,
+      "jev_seconds": 0.1885684149892768
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.050 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.1885684149892768
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_5dce9a3310b1eba5",
+   "base_id": "coast-s4",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 6747.736,
+   "cpu_ms": 2967.685,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.060 >= 0.5 (confidence \u2014, 0.22 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.06,
+      "jev_seconds": 0.22098214700235985
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.800 >= 0.5 (confidence \u2014, 0.22 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.8,
+      "jev_seconds": 0.22098214700235985
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.220 >= 0.5 (confidence \u2014, 0.22 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.22,
+      "jev_seconds": 0.22098214700235985
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.22 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.22098214700235985
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.210 >= 0.5 (confidence \u2014, 0.22 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.21,
+      "jev_seconds": 0.22098214700235985
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.030 >= 0.5 (confidence \u2014, 0.22 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.22098214700235985
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "base_id": "coast-s5",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 9503.76,
+   "cpu_ms": 6380.922,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.140 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.14,
+      "jev_seconds": 0.195574896002654
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.780 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.78,
+      "jev_seconds": 0.195574896002654
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.240 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.24,
+      "jev_seconds": 0.195574896002654
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.040 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.04,
+      "jev_seconds": 0.195574896002654
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.360 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.36,
+      "jev_seconds": 0.195574896002654
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.040 >= 0.5 (confidence \u2014, 0.20 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.04,
+      "jev_seconds": 0.195574896002654
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_d5c1c6cc24413705",
+   "base_id": "coast-s6",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 4057.793,
+   "cpu_ms": 2401.106,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.100 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.1,
+      "jev_seconds": 0.2280846510111587
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.870 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.87,
+      "jev_seconds": 0.2280846510111587
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.190 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.19,
+      "jev_seconds": 0.2280846510111587
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.2280846510111587
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.210 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.21,
+      "jev_seconds": 0.2280846510111587
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.040 >= 0.5 (confidence \u2014, 0.23 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.04,
+      "jev_seconds": 0.2280846510111587
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b521f152359d1cde",
+   "base_id": "coast-s7",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 4716.077,
+   "cpu_ms": 2465.686,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.150 >= 0.5 (confidence \u2014, 0.17 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.15,
+      "jev_seconds": 0.17307882900058758
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.810 >= 0.5 (confidence \u2014, 0.17 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.81,
+      "jev_seconds": 0.17307882900058758
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.220 >= 0.5 (confidence \u2014, 0.17 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.22,
+      "jev_seconds": 0.17307882900058758
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.17 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.17307882900058758
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.220 >= 0.5 (confidence \u2014, 0.17 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.22,
+      "jev_seconds": 0.17307882900058758
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.050 >= 0.5 (confidence \u2014, 0.17 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.17307882900058758
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_202aa986e4168c4c",
+   "base_id": "coast-s8",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 2253.75,
+   "cpu_ms": 741.387,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.910 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.91,
+      "jev_seconds": 0.18837790800898802
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.030 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.18837790800898802
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.190 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.19,
+      "jev_seconds": 0.18837790800898802
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.020 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.02,
+      "jev_seconds": 0.18837790800898802
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.050 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.18837790800898802
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.020 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.02,
+      "jev_seconds": 0.18837790800898802
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "base_id": "desert-s1",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 3627.628,
+   "cpu_ms": 1681.957,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.110 >= 0.5 (confidence \u2014, 0.21 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.11,
+      "jev_seconds": 0.20914244699815754
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.850 >= 0.5 (confidence \u2014, 0.21 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.85,
+      "jev_seconds": 0.20914244699815754
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.180 >= 0.5 (confidence \u2014, 0.21 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.18,
+      "jev_seconds": 0.20914244699815754
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.21 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.20914244699815754
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.140 >= 0.5 (confidence \u2014, 0.21 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.14,
+      "jev_seconds": 0.20914244699815754
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.050 >= 0.5 (confidence \u2014, 0.21 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.05,
+      "jev_seconds": 0.20914244699815754
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f187020297fd5c58",
+   "base_id": "arctic-s2",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@jev",
+   "degraded": "jev",
+   "latency_ms": 4115.944,
+   "cpu_ms": 2130.637,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a completely black picture with no visible scene? -> noul=0.290 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.29,
+      "jev_seconds": 0.19192405400099233
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "jev verify: Does this frame's evidence show bright isolated speckles scattered over the picture, like dust or fireflies in a render? -> noul=0.840 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.84,
+      "jev_seconds": 0.19192405400099233
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a missing object \u2014 a flat, empty patch where something should be? -> noul=0.220 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.22,
+      "jev_seconds": 0.19192405400099233
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show holes \u2014 dark empty gaps or pits in a surface? -> noul=0.030 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.03,
+      "jev_seconds": 0.19192405400099233
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? -> noul=0.170 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.17,
+      "jev_seconds": 0.19192405400099233
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "jev verify: Does this frame's evidence show an object floating in mid-air, detached from the ground or hanging in empty space? -> noul=0.040 >= 0.5 (confidence \u2014, 0.19 s, jev-1.14.0)",
+     "measured": {
+      "jev_noul": 0.04,
+      "jev_seconds": 0.19192405400099233
+     },
+     "applicable": true
+    }
+   ]
+  }
+ ],
+ "table": {
+  "night": null,
+  "label": "verdict@scripted",
+  "in_band": false,
+  "band": {
+   "fp_bound": 0.1
+  },
+  "layers": [
+   "image"
+  ],
+  "totals": {
+   "tp": 10,
+   "fp": 3,
+   "fn": 5,
+   "tn": 33,
+   "fp_rate": 0.08333333333333333,
+   "fn_rate": 0.3333333333333333
+  },
+  "rows": [
+   {
+    "defect": "black_frame",
+    "check": "black_frame",
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 3,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "noise_fireflies",
+    "check": "fireflies",
+    "tp": 4,
+    "fp": 3,
+    "fn": 0,
+    "tn": 3,
+    "fp_rate": 0.5,
+    "fn_rate": 0.0,
+    "members": 4,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "missing_object",
+    "check": "flat_patch",
+    "tp": 0,
+    "fp": 0,
+    "fn": 2,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 1.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "holes",
+    "check": "dark_holes",
+    "tp": 2,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "texture_swap",
+    "check": "patch_seam",
+    "tp": 0,
+    "fp": 0,
+    "fn": 2,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 1.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "floating_object",
+    "check": "floating_blob",
+    "tp": 1,
+    "fp": 0,
+    "fn": 1,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.5,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "wrong_scale",
+    "check": "scale_bounds",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "hollow_mesh",
+    "check": "watertight",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "clipped_geometry",
+    "check": "edge_cut",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   }
+  ]
+ },
+ "arm": "verify",
+ "measurements": true,
+ "has_descriptions": false
+}
