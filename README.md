@@ -115,6 +115,8 @@ seat you work from.
 |---|---|
 | [spike-phase1](docs/research/spike-phase1.md) | **Infinigen on the Thor, measured**: the bpy build, Hello Room/World, CPU vs GPU, walls hit, phase 2 |
 | [v2-thor-experiment](docs/research/v2-thor-experiment.md) | **The engine confirmed**: Infinigen 2.0 + procfunc on the Thor, tracer on |
+| [engine-round2](docs/research/engine-round2.md) | Whole scenes traceable, a byte-stable recipe graph, Warp terrain as a v2 stage, scene-level partial regeneration |
+| [engine-round3](docs/research/engine-round3.md) | **The splice** regenerates part of a scene canonical-equal to a full rebuild, 2.3–2.5× faster; **the real OcMesher with its SDF in Warp** gives a byte-identical mesh at 3.9×; patches in `infinigen-thor/thor/v2-patches/` |
 | [ig2-procfunc](docs/research/ig2-procfunc.md) | Infinigen 1.x vs 2.0 and procfunc: the engine decision |
 | [trellis-spike](docs/research/trellis-spike.md) | TRELLIS.2 on the Thor: works, clean licence, BF16 not FP8, CPU-bound mesh tail |
 | [warm-scene](docs/research/warm-scene.md) | The warm scene server spike: the win is builder wait and crash recovery |
