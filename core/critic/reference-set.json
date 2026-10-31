@@ -13,6 +13,17 @@
   },
   {
    "height": 540,
+   "id": "arctic-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "9e03a07c0d0961cc0baaf5bed9c9ffe0af5328b2117f530321a184c748f0c8e4",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "arctic",
+   "seed": 2,
+   "width": 960
+  },
+  {
+   "height": 540,
    "id": "arctic-s4",
    "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s4/frames/Image/camera_0/Image_0_0_0001_0.png",
    "image_sha256": "acdf1b172c1d45e9464d5aa5ebb905c933f88cbe0c3438ff1ab176819994f41a",
@@ -75,6 +86,17 @@
    "mesh_sha256": null,
    "scene": "canyon",
    "seed": 1,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "canyon-s2",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s2/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "1cae7723c47ff97540c391e41640c6b71b7816423e30e0de82fcac3f717922d7",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "canyon",
+   "seed": 2,
    "width": 960
   },
   {
@@ -207,6 +229,17 @@
    "mesh_sha256": null,
    "scene": "coast",
    "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "coast-s9",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s9/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "e090e7ace2bdf3a9a5f0bffc12abe2fd3ea138c5db889551d7756a4e9fb81327",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "coast",
+   "seed": 9,
    "width": 960
   },
   {
@@ -1223,6 +1256,50 @@
     "shape": [
      540,
      960
+    ]
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "desert-s1",
+   "defect": "noise_fireflies",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_8bb3f801d0caa8b4.png",
+   "derived_sha256": "2c7afd1d9d634f2f07ec1a04cad34c2ab72989958bf9b218c7a11ca4aeac3152",
+   "layer": "image",
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "83b2b7a4574f0c2d5ce69fc5482c4e6022c62a942c89415c62d8e250a5178365",
+    "contrasting": true,
+    "count": 320,
+    "kind": "image",
+    "min_spacing": 4,
+    "values": [
+     0,
+     255
+    ]
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s2",
+   "defect": "noise_fireflies",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_f187020297fd5c58.png",
+   "derived_sha256": "215b22f8afa379427c4db1596f65ecdfd5926646bf69371a82232d8776d2ddc9",
+   "layer": "image",
+   "member_id": "mem_f187020297fd5c58",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "9e03a07c0d0961cc0baaf5bed9c9ffe0af5328b2117f530321a184c748f0c8e4",
+    "contrasting": true,
+    "count": 320,
+    "kind": "image",
+    "min_spacing": 4,
+    "values": [
+     0,
+     255
     ]
    },
    "seed": 902

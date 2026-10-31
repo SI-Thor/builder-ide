@@ -369,15 +369,23 @@ def cut_object(
     camera = stats.camera
     if camera is None:
         raise MeshProbeError("the scene has no camera; cannot seed clipped geometry")
-    # The prop has to be **in front of** the camera: a prop behind it has
-    # no place in the picture to be cut in half.
-    candidates = [
-        o
-        for o in stats.objects
-        if o.faces > 0 and is_prop(o.name) and camera.projects(o.centre)[2] > 0
-    ]
+    # The prop has to be **in front of** the camera *and inside the
+    # picture*: a prop behind it has no place in the picture to be cut in
+    # half, and a prop that is already outside the frame's edge — below
+    # it, out of shot — cannot be cut by that edge however far it is slid.
+    candidates = []
+    for obj in stats.objects:
+        if obj.faces <= 0 or not is_prop(obj.name):
+            continue
+        right, up, forward = camera.projects(obj.centre)
+        if forward <= 0:
+            continue
+        half_w = camera.half_width * forward / camera.depth
+        half_h = camera.half_height * forward / camera.depth
+        if abs(right) <= half_w and abs(up) <= half_h:
+            candidates.append(obj)
     if not candidates:
-        raise MeshProbeError("the scene has no prop in front of the camera")
+        raise MeshProbeError("the scene has no prop inside the picture")
     candidates.sort(key=lambda o: (-o.faces, o.name))
     obj = candidates[abs(seed) % len(candidates)]
     cx, cy, cz = obj.centre

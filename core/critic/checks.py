@@ -984,12 +984,14 @@ def _cut_margin(camera: CameraInfo, obj: MeshObject) -> float | None:
     forwards = [p[2] for p in projected]
     if min(forwards) <= 0:
         return None
-    forward = sum(forwards) / len(forwards)
-    half_w = camera.half_width * forward / camera.depth
-    half_h = camera.half_height * forward / camera.depth
     right, up, centre_forward = camera.projects(obj.centre)
     if centre_forward <= 0:
         return None
+    # The picture's size at the prop's **middle**, which is the point the
+    # margin is measured from. The plant puts the middle on the edge using
+    # the same depth, so the two have to agree on it.
+    half_w = camera.half_width * centre_forward / camera.depth
+    half_h = camera.half_height * centre_forward / camera.depth
     if abs(right) > half_w or abs(up) > half_h:
         return None  # the middle is outside: the prop is off in the distance
     rights = [p[0] for p in projected]

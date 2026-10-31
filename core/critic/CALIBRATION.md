@@ -9,7 +9,7 @@ Every verdict in this table wears **`verdict@scripted`** on its face, because no
 
 ## The reference set
 
-**28 members** over real renders, 6 clean controls and 22 with a seeded defect.
+**30 members** over real renders, 6 clean controls and 24 with a seeded defect.
 
 | defect class | check | members |
 |---|---|---|
@@ -19,7 +19,7 @@ Every verdict in this table wears **`verdict@scripted`** on its face, because no
 | `holes` | `dark_holes` | 2 |
 | `hollow_mesh` | `watertight` | 3 |
 | `missing_object` | `flat_patch` | 2 |
-| `noise_fireflies` | `fireflies` | 2 |
+| `noise_fireflies` | `fireflies` | 4 |
 | `texture_swap` | `patch_seam` | 2 |
 | `wrong_scale` | `scale_bounds` | 4 |
 | *(clean controls)* | — | 6 |
@@ -29,16 +29,16 @@ Every verdict in this table wears **`verdict@scripted`** on its face, because no
 | defect class | check | TP | FP | FN | TN | FP rate | FN rate | caught? |
 |---|---|---|---|---|---|---|---|---|
 | `black_frame` | `black_frame` | 3 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
-| `noise_fireflies` | `fireflies` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `noise_fireflies` | `fireflies` | 4 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
 | `missing_object` | `flat_patch` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
 | `holes` | `dark_holes` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
 | `texture_swap` | `patch_seam` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
 | `floating_object` | `floating_blob` | 1 | 0 | 1 | 6 | 0.0% | 50.0% | **no** |
 | `wrong_scale` | `scale_bounds` | 4 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
 | `hollow_mesh` | `watertight` | 3 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
-| `clipped_geometry` | `edge_cut` | 1 | 0 | 1 | 1 | 0.0% | 50.0% | **no** |
+| `clipped_geometry` | `edge_cut` | 2 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
 
-Totals: TP 20, FP 0, FN 2, TN 39.
+Totals: TP 23, FP 0, FN 1, TN 39.
 
 ## The band
 
@@ -47,7 +47,6 @@ Totals: TP 20, FP 0, FN 2, TN 39.
 **Out of band.** The scripted checks do not yet hold the band, and the verdicts stay `verdict@scripted` — the plan's M2 named risk, as a measurement rather than a worry.
 
 - `floating_object` (check `floating_blob`): 1 missed.
-- `clipped_geometry` (check `edge_cut`): 1 missed.
 
 ## The thresholds, and what they were measured on
 
