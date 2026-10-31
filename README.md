@@ -28,7 +28,7 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel). The mesher's SDF evaluation in Warp is the third.
-- **The core is integrated and renders for real: 1,196 tests pass** in one
+- **The core is integrated and renders for real: 1,263 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
     2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
@@ -186,13 +186,16 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `honest-week` | The seven-night melt week on real Infinigen 2.0 renders: 106/106 steps, 14 real renders, budgeted from the cost model; found and fixed a kJ figure off by 1,000× ([record](docs/lab/honest-week.md)) | merged |
 | `daytime-world` | The daytime world between nights: one room, one clock, a cheap tick budget that yields to the night, a morning line on what changed (off by default; decision B3) | merged |
 | `mini-night2` | The second real night, with mesh repair and the cost model; TRELLIS.2 graph capture and the fp8 path measured ([record](docs/lab/mini-night-2.md)) | merged |
+| `critic-calib` | The critic calibrated on real sweep renders: a 30-member reference set with seeded defects, an FP/FN table (8 of 9 defect classes in band, zero false positives; floating objects still out), and nightly growth of the set ([table](core/critic/CALIBRATION.md)) | merged |
 
-**`main` today: 1,196 tests pass** (3 skipped; the real-engine tests are opt-in).
+**`main` today: 1,263 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
 - **Engine round 3**: the stage splice for higher cache reuse, and the Warp mesher SDF wired into the engine.
-- **The critic's calibration** (false positives and negatives) on real sweep renders.
+- **The critic's selection** (week 3, item 18), starting from the calibration table; floating objects are the open class.
+- **FP8 for real**: making the generator's fused FP8 path actually run, and pricing the prop stage right.
+- **Lab round 5**: batching the Architect's solver proposals on the GPU.
 - **An overnight Infinigen scene sweep** on the Thor for the scheduler's timings and the calibration set.
 
 ## Machines
