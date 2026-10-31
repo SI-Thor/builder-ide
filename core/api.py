@@ -50,11 +50,14 @@ from .canon import canonical_json
 from .config import Settings, default_settings
 from .errors import (
     CoreError,
+    IntegrityFailure,
     NotFound,
     OtherHalfUnavailable,
     Refused,
     ValidationError,
 )
+from .recipe.errors import IntegrityError as RecipeIntegrityError
+from .recipe.errors import NotFound as RecipeNotFound
 from .events import Actor, character_actor, owner_actor
 from .models import Asset, Rail
 from .svc import Core
@@ -607,6 +610,45 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
         fresh = core.store.get_row("branches", {"id": branch_id})
         return {"branch": branch_id, "head": (fresh or {}).get("payload", {}).get("head"),
                 "recipe_sync": recipe_sync, "taste_bets_scored": taste_scored}
+
+    # ------------------------------------------------------------- recipe read
+
+    @app.get("/v1/recipe/{version_id}", tags=["recipe"])
+    def get_recipe_version(version_id: str, against: str | None = None,
+                           principal: Principal = Depends(
+                               require(OWNER, PANEL, CHARACTER))):
+        """The recipe read door (§1.0/§1.2): a committed version, its hash
+        and its document — or, with ``?against=<base>``, the canonical op
+        list between two versions (§1.1: the diff *is* the op list).
+
+        An agent diffs recipes without a filesystem on the Thor. Read-only,
+        like every recipe door that matters: change is a typed call or a
+        work order, never a PUT. The document is read from its
+        content-addressed blob and verified against ``root_hash`` on read;
+        a blob that does not match fails loud (§5.2).
+        """
+        try:
+            version = core.recipes.version(version_id)
+            if against is not None:
+                ops = core.recipes.diff(against, version_id)
+                return {"base": against, "version": version_id,
+                        "ops": [op.model_dump(mode="json") for op in ops]}
+            return {
+                "version": version_id,
+                "recipe": version["recipe"],
+                "parent": version["parent"],
+                "edit": version["edit"],
+                "root_hash": version["root_hash"],
+                "at": version["at"],
+                "actor": version["actor"],
+                "document": core.recipes.document(version_id),
+            }
+        except OtherHalfUnavailable:
+            raise  # the door's own answer: the seam, named
+        except RecipeNotFound as exc:
+            raise NotFound(str(exc), entity=version_id) from exc
+        except RecipeIntegrityError as exc:
+            raise IntegrityFailure(str(exc)) from exc
 
     # ------------------------------------------------------------- budget
 

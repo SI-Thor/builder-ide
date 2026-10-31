@@ -27,7 +27,7 @@ from __future__ import annotations
 from typing import Protocol
 
 from .errors import OtherHalfUnavailable
-from .models import NodeRef, RecipeEdit
+from .models import NodeRef, Op, RecipeEdit
 
 
 class NodeRegistry(Protocol):
@@ -70,6 +70,10 @@ class RecipeStore(Protocol):
     def commit_edit(self, edit: RecipeEdit) -> str: ...  # -> ver_
     def fast_forward(self, branch_id: str, to_version: str) -> None: ...
     def merge_conflicts(self, main_head: str, branch_head: str) -> list[str]: ...
+    # the recipe read door (GET /v1/recipe/{version}, core-spec §4.2):
+    def version(self, version_id: str) -> dict: ...
+    def document(self, version_id: str) -> dict: ...
+    def diff(self, base: str, head: str) -> list[Op]: ...
 
 
 class UnavailableRecipeStore:
@@ -78,6 +82,19 @@ class UnavailableRecipeStore:
     def commit_edit(self, edit: RecipeEdit) -> str:
         raise OtherHalfUnavailable(
             "committing recipe edits is the recipe half", seam=self.SEAM)
+
+    def version(self, version_id: str) -> dict:
+        raise OtherHalfUnavailable(
+            "the recipe versions are the recipe half's store", seam=self.SEAM)
+
+    def document(self, version_id: str) -> dict:
+        raise OtherHalfUnavailable(
+            "the recipe document is a content-addressed blob behind the "
+            "recipe half's store", seam=self.SEAM)
+
+    def diff(self, base: str, head: str) -> list[Op]:
+        raise OtherHalfUnavailable(
+            "diffing recipe versions is the recipe half's store", seam=self.SEAM)
 
     def fast_forward(self, branch_id: str, to_version: str) -> None:
         raise OtherHalfUnavailable(

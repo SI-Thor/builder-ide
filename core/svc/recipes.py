@@ -146,6 +146,15 @@ class RecipeStoreSeam:
     def document(self, version_id: str) -> dict:
         return self._recipes.get_document(version_id).model_dump(mode="json")
 
+    def version(self, version_id: str) -> dict:
+        """The committed-version record (§1.2): parent, edit, root_hash."""
+        return self._recipes.get_version(version_id).model_dump(mode="json")
+
+    def diff(self, base: str, head: str) -> list[Op]:
+        """The canonical op list that turns ``base`` into ``head`` (§1.1:
+        the diff *is* the op list)."""
+        return self._recipes.diff(base, head)
+
     # -- the port (core/ports.py) ---------------------------------------------
 
     def commit_edit(self, edit: RecipeEdit) -> str:
