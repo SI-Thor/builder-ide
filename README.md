@@ -23,10 +23,10 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel).
-- **The core is written; integration is in progress.** Seven branches total
-  over 650 passing tests. The M1 acceptance session plays one evening, night
+- **The core is integrated on `main`: 831 tests pass** in one suite (seven
+  branches merged, every stand-in replaced; see [INTEGRATION.md](INTEGRATION.md)). The M1 acceptance session plays one evening, night
   and morning end to end in 30 steps, all passing (many still against stand-ins
-  until integration lands).
+  until it is rewired to the integrated core).
 - **Research complete, plan drafted.** 18 reports, three cross-reviews, a
   synthesized understanding and plan, and a core spec (v2). Plan draft 2 and a
   condensed decision sheet for the owner come next.
@@ -128,16 +128,16 @@ Branches are pushed as the agents work and reviewed before they merge into
 
 | Branch | What | State |
 |---|---|---|
-| `core-api` | Audit ledger (SQLite, append-only), FastAPI service, SSE event stream, work orders | done, ~177 tests |
-| `core-recipe` | Recipe store: versions, branches, typed edits, recipe hash, constraint checks | done, 162 tests |
-| `vocab` | Three vocabulary words, the door, the confidence gate, sealed predictions, the Prop-maker loop | done, 111 tests |
-| `why-kernel` | The WHY justification kernel (vendored, MIT), attached to assets, words, branches and work orders | done, 35 tests |
-| `night-runner` | The night: queue, rails, heartbeat and lease, resume after reboot, the **iterator loop**, the morning report | done, ~197 tests |
-| `cold-start` | New builders ask before they act (the switch to acting at two observations); the critic's calibration set | done, 63 tests |
-| `usd-backbone` | Recipe → layered USD, build123d → STEP → GLB, provenance, byte-identical re-emission | done, 79 tests |
+| `core-api` | Audit ledger (SQLite, append-only), FastAPI service, SSE event stream, work orders | merged into main, ~177 tests |
+| `core-recipe` | Recipe store: versions, branches, typed edits, recipe hash, constraint checks | merged into main, 162 tests |
+| `vocab` | Three vocabulary words, the door, the confidence gate, sealed predictions, the Prop-maker loop | merged into main, 111 tests |
+| `why-kernel` | The WHY justification kernel (vendored, MIT), attached to assets, words, branches and work orders | merged into main, 35 tests |
+| `night-runner` | The night: queue, rails, heartbeat and lease, resume after reboot, the **iterator loop**, the morning report | merged into main, ~197 tests |
+| `cold-start` | New builders ask before they act (the switch to acting at two observations); the critic's calibration set | merged into main, 63 tests |
+| `usd-backbone` | Recipe → layered USD, build123d → STEP → GLB, provenance, byte-identical re-emission | merged into main, 79 tests |
 | `m1-acceptance` | The M1 session as an automated test: evening → night → morning, 30 steps | done, 30/30 |
-| `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | in progress |
-| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | in progress |
+| `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | **merged: 831 tests** |
+| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | done, 105/105 steps |
 
 ### In flight
 

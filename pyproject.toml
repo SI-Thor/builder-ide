@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "builder-ide-core"
+version = "0.1.0"
+description = "builder-ide core service: the audit ledger, the HTTP API, the recipe store, the vocabulary, the night runner, cold start and the USD backbone (core-spec v2)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "pydantic>=2.7,<3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "httpx>=0.27",
+]
+# The USD backbone's wheels (usd-core, build123d via cadquery-ocp) are heavy
+# and aarch64-native; they ride as an extra so the core installs without them.
+usd = [
+    "usd-core==26.11",
+    "build123d==0.13.0",
+]
+
+[project.scripts]
+builder-usd = "builder_usd.cli:main"
+
+# One package set for the whole core: `core` is the namespace the seats share
+# (core.recipe is the recipe store, core.vocab the vocabulary, core.night the
+# runner, core.coldstart the cold start) and `builder_usd` is the
+# compiled-scene backbone (core/usd/src).
+[tool.setuptools.packages.find]
+where = [".", "core/usd/src"]
+include = ["core*", "builder_usd*"]
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+# "." keeps the seat packages importable as `core.*`; "core/usd/src" is the
+# USD backbone's own root, so one pytest run covers every seat without
+# touching any seat's own pyproject.
+pythonpath = [".", "core/usd/src"]
+addopts = "-ra"
+filterwarnings = [
+    "ignore::DeprecationWarning:starlette.*",
+    "ignore::DeprecationWarning:httpx.*",
+]
