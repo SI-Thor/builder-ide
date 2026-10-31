@@ -267,6 +267,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
     app.state.settings = settings
     app.state.core = core
     app.state.boot_report = None
+    app.state.active_streams = 0
 
     @app.exception_handler(CoreError)
     async def _core_error(request: Request, exc: CoreError) -> JSONResponse:
@@ -283,6 +284,7 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
             "version": __version__,
             "seq": core.store.max_seq(),
             "fold_seq": core.store.fold_seq(),
+            "streams": app.state.active_streams,
             "boot": app.state.boot_report,
         }
 
@@ -724,20 +726,32 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
             seq = start
             begun = time.monotonic()
             last_beat = begun
-            while True:
-                if await request.is_disconnected():
-                    return
-                if time.monotonic() - begun > SSE_MAX_SECONDS:
-                    return
-                batch = await asyncio.to_thread(core.store.events_since, seq, wanted or None, 500)
-                for ev in batch:
-                    seq = ev.seq
-                    yield _sse_event(ev)
-                now = time.monotonic()
-                if now - last_beat >= SSE_HEARTBEAT_SECONDS:
-                    last_beat = now
-                    yield ": heartbeat\n\n"
-                await asyncio.to_thread(core.store.bus.wait, SSE_POLL_SECONDS)
+            heartbeat = settings.sse_heartbeat_seconds
+            poll = settings.sse_poll_seconds
+            app.state.active_streams += 1
+            try:
+                while True:
+                    if await request.is_disconnected():
+                        return
+                    if time.monotonic() - begun > settings.sse_max_seconds:
+                        return
+                    batch = await asyncio.to_thread(core.store.events_since, seq,
+                                                   wanted or None, 500)
+                    for ev in batch:
+                        seq = ev.seq
+                        yield _sse_event(ev)
+                    now = time.monotonic()
+                    if now - last_beat >= heartbeat:
+                        last_beat = now
+                        yield ": heartbeat\n\n"
+                    # Sleep rather than block a worker thread on the event
+                    # bus: a client that walks away must not hold a pool
+                    # thread for as long as its stream lives, or enough
+                    # abandoned streams will starve the pool the ledger reads
+                    # run on.
+                    await asyncio.sleep(poll)
+            finally:
+                app.state.active_streams -= 1
 
         return StreamingResponse(
             generator(),

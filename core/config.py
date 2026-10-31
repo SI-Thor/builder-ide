@@ -42,6 +42,13 @@ class Settings:
     )
     # Actors who may not submit free text, by class, in code (§4.1).
     kid_actors: frozenset = frozenset({"magnus"})
+    # The SSE heartbeat (§4.3). Short enough to keep proxies from closing a
+    # quiet connection, long enough not to fill the feed with noise.
+    sse_heartbeat_seconds: float = 15.0
+    sse_poll_seconds: float = 0.25
+    # A stream's ceiling. A client that never disconnects must not hold a
+    # connection forever.
+    sse_max_seconds: float = 3600.0
 
     @classmethod
     def for_home(cls, home: str | Path) -> "Settings":

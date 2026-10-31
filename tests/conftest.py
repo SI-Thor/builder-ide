@@ -55,6 +55,42 @@ def client(app):
         yield c
 
 
+@pytest.fixture
+def live_server(settings, core):
+    """A real uvicorn server on an ephemeral port.
+
+    Some things — a client that walks away mid-stream, the exact headers an
+    EventSource sees — are facts about sockets, and the test transport does
+    not reproduce them.
+    """
+    import socket
+    import threading
+    import time
+
+    import uvicorn
+
+    from core.api import create_app
+
+    app = create_app(settings, core=core, run_boot=True)
+    sock = socket.socket()
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port,
+                                           log_level="warning"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    for _ in range(200):
+        if server.started:
+            break
+        time.sleep(0.05)
+    if not server.started:  # pragma: no cover - a broken environment
+        raise RuntimeError("uvicorn did not start")
+    yield f"http://127.0.0.1:{port}", app
+    server.should_exit = True
+    thread.join(timeout=10)
+
+
 # ------------------------------------------------------------------ helpers
 
 
