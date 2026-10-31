@@ -9,33 +9,36 @@ Every verdict in this table wears **`verdict@scripted`** on its face, because no
 
 ## The reference set
 
-**15 members** over real renders, 2 clean controls and 13 with a seeded defect.
+**28 members** over real renders, 6 clean controls and 22 with a seeded defect.
 
 | defect class | check | members |
 |---|---|---|
-| `black_frame` | `black_frame` | 2 |
-| `clipped_geometry` | `edge_cut` | 1 |
-| `hollow_mesh` | `watertight` | 2 |
+| `black_frame` | `black_frame` | 3 |
+| `clipped_geometry` | `edge_cut` | 2 |
+| `floating_object` | `floating_blob` | 2 |
+| `holes` | `dark_holes` | 2 |
+| `hollow_mesh` | `watertight` | 3 |
 | `missing_object` | `flat_patch` | 2 |
 | `noise_fireflies` | `fireflies` | 2 |
+| `texture_swap` | `patch_seam` | 2 |
 | `wrong_scale` | `scale_bounds` | 4 |
-| *(clean controls)* | — | 2 |
+| *(clean controls)* | — | 6 |
 
 ## The table
 
 | defect class | check | TP | FP | FN | TN | FP rate | FN rate | caught? |
 |---|---|---|---|---|---|---|---|---|
-| `black_frame` | `black_frame` | 2 | 0 | 0 | 2 | 0.0% | 0.0% | yes |
-| `noise_fireflies` | `fireflies` | 2 | 0 | 0 | 2 | 0.0% | 0.0% | yes |
-| `missing_object` | `flat_patch` | 2 | 0 | 0 | 2 | 0.0% | 0.0% | yes |
-| `holes` | `dark_holes` | 0 | 0 | 0 | 2 | 0.0% | — | — (no members) |
-| `texture_swap` | `patch_seam` | 0 | 0 | 0 | 2 | 0.0% | — | — (no members) |
-| `floating_object` | `floating_blob` | 0 | 1 | 0 | 1 | 50.0% | — | — (no members) |
+| `black_frame` | `black_frame` | 3 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `noise_fireflies` | `fireflies` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `missing_object` | `flat_patch` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `holes` | `dark_holes` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `texture_swap` | `patch_seam` | 2 | 0 | 0 | 6 | 0.0% | 0.0% | yes |
+| `floating_object` | `floating_blob` | 1 | 0 | 1 | 6 | 0.0% | 50.0% | **no** |
 | `wrong_scale` | `scale_bounds` | 4 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
-| `hollow_mesh` | `watertight` | 2 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
-| `clipped_geometry` | `edge_cut` | 0 | 0 | 1 | 1 | 0.0% | 100.0% | **no** |
+| `hollow_mesh` | `watertight` | 3 | 0 | 0 | 1 | 0.0% | 0.0% | yes |
+| `clipped_geometry` | `edge_cut` | 1 | 0 | 1 | 1 | 0.0% | 50.0% | **no** |
 
-Totals: TP 12, FP 1, FN 1, TN 14.
+Totals: TP 20, FP 0, FN 2, TN 39.
 
 ## The band
 
@@ -43,6 +46,7 @@ Totals: TP 12, FP 1, FN 1, TN 14.
 
 **Out of band.** The scripted checks do not yet hold the band, and the verdicts stay `verdict@scripted` — the plan's M2 named risk, as a measurement rather than a worry.
 
+- `floating_object` (check `floating_blob`): 1 missed.
 - `clipped_geometry` (check `edge_cut`): 1 missed.
 
 ## The thresholds, and what they were measured on

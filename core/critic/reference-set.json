@@ -57,6 +57,17 @@
   },
   {
    "height": 540,
+   "id": "arctic-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/arctic-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "576882802dbf2023e639d023dd33455a72336e14c16124f931de3aeb1a47fe76",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "arctic",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
    "id": "canyon-s1",
    "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
    "image_sha256": "e3ff5b7daf018066d54342429e40d7cd96ccb4f9f3f2d03654eb408a9d78d9da",
@@ -112,6 +123,17 @@
   },
   {
    "height": 540,
+   "id": "canyon-s8",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s8/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "20904aa6d2e113f03a954f60fd2d57190d7d061b24ff35632c263db5d163627b",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "canyon",
+   "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
    "id": "coast-s1",
    "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
    "image_sha256": "2e4df55eb34de057368812daf12268e724e8766a673cfce2d2e023a9ecb46cec",
@@ -148,8 +170,8 @@
    "id": "coast-s5",
    "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/coast-s5/frames/Image/camera_0/Image_0_0_0001_0.png",
    "image_sha256": "3a6a6e5a99de6329edc29a60ef6687d10a5c3f1b0dffa1543a34cf3a80f7fac4",
-   "mesh_path": null,
-   "mesh_sha256": null,
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s5/fine/scene.blend",
+   "mesh_sha256": "8541ea1e40eb88abada97466f3e0d3164d52cd5b0565bf8f27be05a06529d7fb",
    "scene": "coast",
    "seed": 5,
    "width": 960
@@ -262,6 +284,17 @@
    "mesh_sha256": null,
    "scene": "desert",
    "seed": 8,
+   "width": 960
+  },
+  {
+   "height": 540,
+   "id": "desert-s9",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/desert-s9/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "a6ea980abd76e1fdfa859677371b44a52edac54fc16db536e40550cc76af82ac",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "desert",
+   "seed": 9,
    "width": 960
   },
   {
@@ -420,6 +453,17 @@
   },
   {
    "height": 540,
+   "id": "mountain-s9",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s9/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "bdc216a68ffd08521a5a89675d7dc5f989af6122f5bea39e35e22c060e1e95e3",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "mountain",
+   "seed": 9,
+   "width": 960
+  },
+  {
+   "height": 540,
    "id": "plain-s1",
    "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/plain-s1/frames/Image/camera_0/Image_0_0_0001_0.png",
    "image_sha256": "083cbc67e8bdc56a81e3db0d792625b595b8854d83822e5a1b6bdd14768d67bb",
@@ -571,6 +615,17 @@
    "scene": "river",
    "seed": 8,
    "width": 960
+  },
+  {
+   "height": 540,
+   "id": "river-s9",
+   "image_path": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/river-s9/frames/Image/camera_0/Image_0_0_0001_0.png",
+   "image_sha256": "f216f3ac30ff2b970297fedb764810d2ae91b3a1ab1c92bd0b010f98a87495ac",
+   "mesh_path": null,
+   "mesh_sha256": null,
+   "scene": "river",
+   "seed": 9,
+   "width": 960
   }
  ],
  "members": [
@@ -705,11 +760,11 @@
   },
   {
    "base_id": "coast-s6",
-   "defect": "wrong_scale",
+   "defect": "hollow_mesh",
    "derived_path": null,
    "derived_sha256": null,
    "layer": "mesh",
-   "member_id": "mem_f69d7ca38311c22a",
+   "member_id": "mem_2ba7b269c74cf927",
    "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend",
    "night": null,
    "recipe": {
@@ -720,15 +775,230 @@
   },
   {
    "base_id": "arctic-s7",
-   "defect": "black_frame",
-   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_0e8035e57db00e61.png",
-   "derived_sha256": "3a693f9f9c1c0e9b7f64c92339813a291b629eddc90b3a2293e5b480cb90b66d",
+   "defect": "holes",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_307101c469654adf.png",
+   "derived_sha256": "b16e9a514dd83c03b1a05464e110fdf0a50e42c64dea4548cd2025096a4d789d",
    "layer": "image",
-   "member_id": "mem_0e8035e57db00e61",
+   "member_id": "mem_307101c469654adf",
    "mesh_path": null,
    "night": null,
    "recipe": {
     "base_sha256": "aecc534655c33d89e7cfbf3faa14e690769fff7497a369ed4905141673f80986",
+    "bbox": [
+     350,
+     16,
+     489,
+     106
+    ],
+    "darkness": 76,
+    "holes": [
+     [
+      454,
+      45,
+      15
+     ],
+     [
+      437,
+      42,
+      7
+     ],
+     [
+      428,
+      87,
+      15
+     ],
+     [
+      366,
+      60,
+      13
+     ],
+     [
+      431,
+      38,
+      15
+     ],
+     [
+      404,
+      26,
+      9
+     ]
+    ],
+    "kind": "image"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "desert-s6",
+   "defect": "clipped_geometry",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_a21404915b3a75d9",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "arctic-s8",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_f2de39875e8a21f9.png",
+   "derived_sha256": "08c4efb520fc3e274aefff75c69b0d6a6134c3d0df7492d69da5744043d7a52a",
+   "layer": "image",
+   "member_id": "mem_f2de39875e8a21f9",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "576882802dbf2023e639d023dd33455a72336e14c16124f931de3aeb1a47fe76",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "mountain-s6",
+   "defect": "wrong_scale",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_638b4da28c2244d0",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s1",
+   "defect": "texture_swap",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_adc321874fe5a328.png",
+   "derived_sha256": "3109f68c3e309ac8b20ded427d8756a4b9db9435a15f7b674069e81bfb6fd30f",
+   "layer": "image",
+   "member_id": "mem_adc321874fe5a328",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "e3ff5b7daf018066d54342429e40d7cd96ccb4f9f3f2d03654eb408a9d78d9da",
+    "bbox": [
+     288,
+     21,
+     437,
+     132
+    ],
+    "donor": "canyon-s4",
+    "donor_bbox": [
+     627,
+     271,
+     776,
+     382
+    ],
+    "edge_distance": 0.8206,
+    "kind": "image",
+    "visible": true
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "plain-s5",
+   "defect": "hollow_mesh",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_ddf85bcdbb0c8356",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_718023ba022732d4.png",
+   "derived_sha256": "c2e8b0f03351b8867928a83cadc175d6f4aa1507fd2c24c97852db89c1fef46a",
+   "layer": "image",
+   "member_id": "mem_718023ba022732d4",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "e19271eb5eb648e58327932542e57e1ed5e5887ea637f934cc60eaf94b14140a",
+    "contrast": 274.1593,
+    "dest_bbox": [
+     103,
+     79,
+     176,
+     178
+    ],
+    "gap": 0.1204,
+    "kind": "image",
+    "pasted_px": 3371,
+    "placed": true,
+    "source_bbox": null
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "river-s5",
+   "defect": "clipped_geometry",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_a2946b36f70d9c7a",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/river-s5/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/river-s5/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s5",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_006310cbdf937f74.png",
+   "derived_sha256": "091fc9542704892e015cf0343d65b6588be8597ee1df3aebb7776a63d7e035d3",
+   "layer": "image",
+   "member_id": "mem_006310cbdf937f74",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "10fcb3a5592bfafd5e222424b09d447796640863c6cb0f021db93fac984a31b8",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "river-s6",
+   "defect": "wrong_scale",
+   "derived_path": null,
+   "derived_sha256": null,
+   "layer": "mesh",
+   "member_id": "mem_42e3d184b92682d1",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/river-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/river-s6/fine/scene.blend",
+    "kind": "mesh"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "canyon-s6",
+   "defect": "black_frame",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_e5097025648d7b9c.png",
+   "derived_sha256": "3a693f9f9c1c0e9b7f64c92339813a291b629eddc90b3a2293e5b480cb90b66d",
+   "layer": "image",
+   "member_id": "mem_e5097025648d7b9c",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/canyon-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "b81f42a8304695bc03d0756897b30e7f7664f5f25ae6b77656938def7a09f16e",
     "kind": "image",
     "mode": "zero",
     "shape": [
@@ -739,31 +1009,16 @@
    "seed": 902
   },
   {
-   "base_id": "desert-s6",
-   "defect": "hollow_mesh",
-   "derived_path": null,
-   "derived_sha256": null,
-   "layer": "mesh",
-   "member_id": "mem_da34e48146d7f28f",
-   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend",
-   "night": null,
-   "recipe": {
-    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend",
-    "kind": "mesh"
-   },
-   "seed": 902
-  },
-  {
-   "base_id": "canyon-s1",
+   "base_id": "canyon-s7",
    "defect": "noise_fireflies",
-   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_7b3aca4626a20d2a.png",
-   "derived_sha256": "515ebcf6df70c280d60f856ec4dbf4a7ba83a545c0f8b83ca1a8ae8e39e9491c",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_966194306043c892.png",
+   "derived_sha256": "399bb7ad80054637a47d0005d9c40f53b64710d397c1cb4a38707ce24f57f997",
    "layer": "image",
-   "member_id": "mem_7b3aca4626a20d2a",
+   "member_id": "mem_966194306043c892",
    "mesh_path": null,
    "night": null,
    "recipe": {
-    "base_sha256": "e3ff5b7daf018066d54342429e40d7cd96ccb4f9f3f2d03654eb408a9d78d9da",
+    "base_sha256": "9e3a2eec0b57444229699f63c85f4b164b8dba3b58c09c03f997da4fa78086ce",
     "contrasting": true,
     "count": 320,
     "kind": "image",
@@ -776,74 +1031,199 @@
    "seed": 902
   },
   {
-   "base_id": "mountain-s6",
-   "defect": "clipped_geometry",
-   "derived_path": null,
-   "derived_sha256": null,
-   "layer": "mesh",
-   "member_id": "mem_9da4afec17d2d80f",
-   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend",
-   "night": null,
-   "recipe": {
-    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend",
-    "kind": "mesh"
-   },
-   "seed": 902
-  },
-  {
-   "base_id": "canyon-s4",
+   "base_id": "canyon-s8",
    "defect": null,
-   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_7d1caf41fc62e11d.png",
-   "derived_sha256": "3763383290d278a0722ce302596f41d5bb1a2e5d833f4e9158d863bf7a7f52be",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_9d6d264ba8126d40.png",
+   "derived_sha256": "ae2ff988b61ae0a61f11cece58178254f137c77530fa064d718631c168bc986b",
    "layer": "image",
-   "member_id": "mem_7d1caf41fc62e11d",
+   "member_id": "mem_9d6d264ba8126d40",
    "mesh_path": null,
    "night": null,
    "recipe": {
-    "base_sha256": "e19271eb5eb648e58327932542e57e1ed5e5887ea637f934cc60eaf94b14140a",
+    "base_sha256": "20904aa6d2e113f03a954f60fd2d57190d7d061b24ff35632c263db5d163627b",
     "kind": "clean"
    },
    "seed": 902
   },
   {
-   "base_id": "plain-s5",
-   "defect": "wrong_scale",
-   "derived_path": null,
-   "derived_sha256": null,
-   "layer": "mesh",
-   "member_id": "mem_14590f70a0c91752",
-   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend",
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_65684b3ca047a1ae.png",
+   "derived_sha256": "7cec84ca235b743ec226ce5ae09abb2ad917e75d7b85ba992bacee1edbccb91c",
+   "layer": "image",
+   "member_id": "mem_65684b3ca047a1ae",
+   "mesh_path": null,
    "night": null,
    "recipe": {
-    "base_mesh": "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend",
-    "kind": "mesh"
+    "area_frac": 0.03574,
+    "base_sha256": "2e4df55eb34de057368812daf12268e724e8766a673cfce2d2e023a9ecb46cec",
+    "bbox": [
+     619,
+     214,
+     775,
+     331
+    ],
+    "fill": [
+     96,
+     121,
+     95
+    ],
+    "kind": "image"
    },
    "seed": 902
   },
   {
-   "base_id": "canyon-s5",
-   "defect": "missing_object",
-   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_023e8a09b8f3a0b7.png",
-   "derived_sha256": "90dd9ddb83f1e378a7d23b32f397b1c8a6364b2c03e368341f784dc0dfd503d9",
+   "base_id": "coast-s2",
+   "defect": "holes",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_f718dd9be64c17e4.png",
+   "derived_sha256": "bb46270f3945b01fa08edfaea484ea3dcc91858e96e715255f11ca9173aad46f",
    "layer": "image",
-   "member_id": "mem_023e8a09b8f3a0b7",
+   "member_id": "mem_f718dd9be64c17e4",
    "mesh_path": null,
    "night": null,
    "recipe": {
-    "area_frac": 0.05408,
-    "base_sha256": "10fcb3a5592bfafd5e222424b09d447796640863c6cb0f021db93fac984a31b8",
+    "base_sha256": "bd3b638489ba890f62018061ceb419235d3d4239eba48721b398a23b61be2f3e",
     "bbox": [
-     680,
-     184,
-     893,
-     314
+     602,
+     82,
+     806,
+     184
     ],
-    "fill": [
-     190,
-     176,
-     158
+    "darkness": 76,
+    "holes": [
+     [
+      621,
+      127,
+      11
+     ],
+     [
+      692,
+      116,
+      7
+     ],
+     [
+      773,
+      153,
+      14
+     ],
+     [
+      752,
+      158,
+      13
+     ],
+     [
+      755,
+      144,
+      13
+     ]
     ],
     "kind": "image"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s4",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_5dce9a3310b1eba5.png",
+   "derived_sha256": "ee46a563b160a78633ce49bcf65eb61b8b613eb4d7acf9c372794cb9b0d29edb",
+   "layer": "image",
+   "member_id": "mem_5dce9a3310b1eba5",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "4cc7ecbb5540089febd1224895a9aee2c840adbff7e933ba226e9912a433e0ae",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s5",
+   "defect": "texture_swap",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_1d6e6ecc9529fb17.png",
+   "derived_sha256": "212fd1c5ba449562de5d1c9d8928c449b1ee8a6ce9dd08f741482df0696ae9ca",
+   "layer": "image",
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s5/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "3a6a6e5a99de6329edc29a60ef6687d10a5c3f1b0dffa1543a34cf3a80f7fac4",
+    "bbox": [
+     691,
+     358,
+     918,
+     442
+    ],
+    "donor": "coast-s6",
+    "donor_bbox": [
+     502,
+     421,
+     729,
+     505
+    ],
+    "edge_distance": 0.7559,
+    "kind": "image",
+    "visible": true
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s6",
+   "defect": "floating_object",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_d5c1c6cc24413705.png",
+   "derived_sha256": "db55d33ed83c53751e11ffdcf12319f7db9e597e58bbcc1b54a30db91b4e224a",
+   "layer": "image",
+   "member_id": "mem_d5c1c6cc24413705",
+   "mesh_path": "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend",
+   "night": null,
+   "recipe": {
+    "base_sha256": "5c69ad6e96b301713933a8c636ceecaa2a602e90c6b403c951288b9267fee980",
+    "contrast": 179.3453,
+    "dest_bbox": [
+     74,
+     275,
+     185,
+     372
+    ],
+    "gap": 0.1204,
+    "kind": "image",
+    "pasted_px": 4601,
+    "placed": true,
+    "source_bbox": null
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s7",
+   "defect": null,
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_b521f152359d1cde.png",
+   "derived_sha256": "8262584c06abd6be78a5762c4bd3c52fa5db4ce7973f5f23cdb590d1cde4af4d",
+   "layer": "image",
+   "member_id": "mem_b521f152359d1cde",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "e8432e31d595f72bdaa8a96a93bb41a4a95f4ce464a6f52ecb3b0f117d9e8584",
+    "kind": "clean"
+   },
+   "seed": 902
+  },
+  {
+   "base_id": "coast-s8",
+   "defect": "black_frame",
+   "derived_path": "/home/caseydigennaro/lm-wt/critic-calib/core/critic/.cache/mem_202aa986e4168c4c.png",
+   "derived_sha256": "3a693f9f9c1c0e9b7f64c92339813a291b629eddc90b3a2293e5b480cb90b66d",
+   "layer": "image",
+   "member_id": "mem_202aa986e4168c4c",
+   "mesh_path": null,
+   "night": null,
+   "recipe": {
+    "base_sha256": "ff9a18ed8ac8a3d14290f10fb4fcfe889b0596ddd3a0e5af88ef52ad7b9da851",
+    "kind": "image",
+    "mode": "zero",
+    "shape": [
+     540,
+     960
+    ]
    },
    "seed": 902
   }
