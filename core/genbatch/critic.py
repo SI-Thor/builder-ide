@@ -11,7 +11,13 @@ oracle set uses:
 
 * **watertightness** — the prop is a closed, consistently wound solid with a
   positive volume. A hole or a flipped triangle and it is not a solid, so
-  this one is all or nothing.
+  this one is all or nothing. It is measured on the **repaired** mesh: the
+  repair stage (see :mod:`core.genbatch.repair`) welds the UV seams the
+  generator leaves behind, and without it the check cannot tell a closed
+  solid from an open one.
+* **repair_fidelity** — the repair did not quietly reshape the prop: the
+  silhouette IoU between the repaired mesh and the mesh the generator
+  handed over.
 * **triangle_budget** — the prop stays inside the triangle budget the
   request set.
 * **bbox_aspect** — the prop's proportions are the ones asked for. Only
@@ -38,6 +44,7 @@ from core.records import Task
 
 from core.genbatch.mesh import MeshReport
 from core.genbatch.models import CheckResult, PropRequest, PropVerdict, StageKind
+from core.genbatch.repair import RepairReport
 from core.genbatch.schedule import NightPlan
 from core.genbatch.store import PropStore
 
@@ -46,6 +53,7 @@ __all__ = ["CHECK_WEIGHTS", "PropCritic", "judge"]
 #: How much each check counts for.
 CHECK_WEIGHTS: dict[str, float] = {
     "watertight": 3.0,
+    "repair_fidelity": 1.0,
     "triangle_budget": 2.0,
     "bbox_aspect": 2.0,
     "solid_volume": 2.0,
@@ -69,18 +77,45 @@ def _normalise(extent: tuple[float, float, float]) -> tuple[float, float, float]
     return tuple(axis / largest for axis in extent)
 
 
-def _check_watertight(report: MeshReport) -> CheckResult:
+def _check_watertight(
+    report: MeshReport, repair: RepairReport | None = None
+) -> CheckResult:
+    """Is the prop a solid?
+
+    The measurement is of the **repaired** mesh. A repair that did not
+    succeed is a repair that cannot be trusted, and a prop that was not
+    repaired cannot be called a solid at all.
+    """
     weight = CHECK_WEIGHTS["watertight"]
+    if repair is not None and not repair.ok:
+        return CheckResult(
+            name="watertight",
+            score=0.0,
+            weight=weight,
+            passed=False,
+            detail=(
+                f"the repair did not succeed: {repair.reason}"
+                if repair.reason
+                else "the repair did not succeed"
+            ),
+        )
     if report.watertight and report.consistent_winding and report.volume > 0:
+        detail = (
+            f"closed and consistently wound, {report.triangles:,} triangles, "
+            f"volume {report.volume:.4g}"
+        )
+        if repair is not None:
+            detail += (
+                f" — after welding {repair.welded_vertices:,} coincident "
+                f"vertices and splitting {repair.nonmanifold_edges_split} "
+                "self-crossing edges"
+            )
         return CheckResult(
             name="watertight",
             score=1.0,
             weight=weight,
             passed=True,
-            detail=(
-                f"closed and consistently wound, {report.triangles:,} triangles, "
-                f"volume {report.volume:.4g}"
-            ),
+            detail=detail,
         )
     faults: list[str] = []
     if not report.watertight:
@@ -98,6 +133,42 @@ def _check_watertight(report: MeshReport) -> CheckResult:
         weight=weight,
         passed=False,
         detail="; ".join(faults),
+    )
+
+
+def _check_repair_fidelity(
+    repair: RepairReport | None, request: PropRequest
+) -> CheckResult | None:
+    """Did the repair keep the prop looking like the prop?
+
+    The silhouette IoU between the repaired mesh and the mesh the generator
+    handed over. Skipped when the repair stage was not run.
+    """
+    if repair is None:
+        return None
+    weight = CHECK_WEIGHTS["repair_fidelity"]
+    floor = request.repair.min_fidelity
+    fidelity = repair.fidelity
+    detail = (
+        f"the silhouette of the repaired prop is {fidelity:.4f} of the "
+        f"original's (a floor of {floor:.2f})"
+    )
+    if fidelity >= floor:
+        return CheckResult(
+            name="repair_fidelity",
+            score=1.0,
+            weight=weight,
+            passed=True,
+            detail=detail,
+        )
+    # Graded: a repair that came close still says something.
+    score = max(0.0, fidelity / floor) if floor > 0 else 0.0
+    return CheckResult(
+        name="repair_fidelity",
+        score=score,
+        weight=weight,
+        passed=False,
+        detail=detail,
     )
 
 
@@ -303,10 +374,20 @@ def _check_degenerate(report: MeshReport) -> CheckResult:
     )
 
 
-def judge(report: MeshReport, request: PropRequest) -> PropVerdict:
-    """Judge one measured prop against the request that asked for it."""
+def judge(
+    report: MeshReport,
+    request: PropRequest,
+    repair: RepairReport | None = None,
+) -> PropVerdict:
+    """Judge one measured prop against the request that asked for it.
+
+    ``repair`` is the repair stage's report, when the stage ran: the
+    watertightness check is made against it, and the fidelity check reads
+    the outline the repair left behind.
+    """
     checks = [
-        _check_watertight(report),
+        _check_watertight(report, repair),
+        _check_repair_fidelity(repair, request),
         _check_budget(report, request),
         _check_aspect(report, request),
         _check_volume(report, request),
@@ -372,7 +453,8 @@ class PropCritic:
                 reason=f"no mesh was measured for variant {variant.id!r}",
                 degraded=True,
             )
-        verdict = judge(report, request)
+        repair = self._store.repair(task.id, variant.id)
+        verdict = judge(report, request, repair)
         return CriticScore(
             score=verdict.score,
             reason=verdict.reason,
