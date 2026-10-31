@@ -26,6 +26,20 @@ core/coldstart/
 
 from .askmode import AskMode, AskRefusal, AskSession, AskOutcome
 from .bank import night_one_bank
+from .calibration import (
+    CALIBRATION_QUEUE_POSITION,
+    COST_PER_MEMBER,
+    FP_BOUND,
+    TARGET_REFERENCE_SET,
+    CalibrationService,
+    CalibrationTable,
+    ScriptedChecks,
+    calibration_table,
+    grow_reference_set,
+    plan_nightly_growth,
+    seed_member,
+    seed_members,
+)
 from .claims import ClaimLine, render_taste_claim
 from .gate import MELT_AT, ColdDecision, ColdStartGate
 from .models import (
@@ -83,10 +97,23 @@ __all__ = [
     "SeedStarter",
     "companion_opening",
     "opening_line",
+    # the calibration batch
+    "CALIBRATION_QUEUE_POSITION",
+    "COST_PER_MEMBER",
+    "FP_BOUND",
+    "TARGET_REFERENCE_SET",
+    "CalibrationService",
+    "CalibrationTable",
     "CalibrationRow",
     "ConfusionCounts",
     "CheckResult",
+    "ScriptedChecks",
     "ReferenceMember",
+    "calibration_table",
+    "grow_reference_set",
+    "plan_nightly_growth",
+    "seed_member",
+    "seed_members",
     "DEFECT_KINDS",
     # the records and the seams
     "REASON_CODES",
