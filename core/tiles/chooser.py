@@ -46,12 +46,23 @@ class Choice:
 
     ``reason`` is on the record because a win rate that cannot say how the
     tile was picked is a win rate nobody can improve on.
+
+    ``propensity`` is the probability that this chooser, in this state, at
+    this moment, picked this tile. It is measured *here*, at the choice,
+    because it cannot be reconstructed afterwards: the exploration rate
+    decays and the greedy arm moves as the chooser learns, so a propensity
+    computed after the fact would be a different number from the one the
+    choice was actually drawn from. It is what makes an off-policy
+    estimate of a future chooser possible (see :mod:`core.tiles.ope`).
+    ``None`` means this choice did not come from a chooser that measures
+    its own propensity, and an off-policy estimate cannot weight it.
     """
 
     tile_id: str
     reason: str
     bucket: str
     score: float
+    propensity: float | None = None
 
 
 @runtime_checkable
@@ -166,15 +177,20 @@ class ContextualBandit:
                 reason="only_option",
                 bucket=bucket,
                 score=self.estimate(bucket, only.id),
+                propensity=1.0,
             )
 
-        if self._rng.random() < self.current_epsilon():
+        # The exploration rate is read once, here, so that the propensity
+        # below is the rate the choice was actually drawn from.
+        epsilon = self.current_epsilon()
+        if self._rng.random() < epsilon:
             explored = self._rng.choice(eligible)
             return Choice(
                 tile_id=explored.id,
                 reason="explore",
                 bucket=bucket,
                 score=self.estimate(bucket, explored.id),
+                propensity=epsilon / len(eligible),
             )
 
         best = min(eligible, key=lambda tile: self._rank(bucket, tile.id))
@@ -184,6 +200,10 @@ class ContextualBandit:
             reason="cold" if cold else "greedy",
             bucket=bucket,
             score=self.estimate(bucket, best.id),
+            # The greedy tile is picked outright with probability 1 - eps,
+            # and it is also in the exploration pool with probability
+            # eps / |eligible|. Both ways count.
+            propensity=(1.0 - epsilon) + epsilon / len(eligible),
         )
 
     def current_epsilon(self) -> float:

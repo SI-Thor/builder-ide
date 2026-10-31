@@ -21,7 +21,7 @@ Two rules shape everything here:
 
 from __future__ import annotations
 
-from typing import Any, Literal, Mapping
+from typing import Any, Literal, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -327,6 +327,16 @@ class PlayRecord(BaseModel):
     chooser: str = ""
     chooser_version: str = ""
     night: str | None = None
+    #: How likely the chooser was to make this choice, in this state, at
+    #: that moment. Without it the play cannot be weighted for an
+    #: off-policy estimate (:mod:`core.tiles.ope`). ``None`` means it was
+    #: not measured — never a default of 1.0, which would be a bias nobody
+    #: could see.
+    propensity: float | None = None
+    #: The eligible set the choice was made from. A target policy's
+    #: probability has to normalise over the same set, so this travels with
+    #: the play.
+    candidates: tuple[str, ...] = ()
 
     @property
     def reward(self) -> float:
@@ -410,6 +420,8 @@ def build_play_record(
     chooser: str = "",
     chooser_version: str = "",
     night: str | None = None,
+    propensity: float | None = None,
+    candidates: Sequence[str] = (),
 ) -> PlayRecord:
     """Build a play record. Its id is derived from the play itself (§3).
 
@@ -426,6 +438,8 @@ def build_play_record(
         "chooser": chooser,
         "chooser_version": chooser_version,
         "night": night,
+        "propensity": propensity,
+        "candidates": list(candidates),
     }
     return PlayRecord(
         id=f"play_{short_hash(payload, 12)}",
@@ -438,6 +452,8 @@ def build_play_record(
         chooser=chooser,
         chooser_version=chooser_version,
         night=night,
+        propensity=propensity,
+        candidates=tuple(candidates),
     )
 
 

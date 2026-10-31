@@ -27,6 +27,7 @@ module's docstring cites it; the citations are the contract.
 | `chooser.py` | the decision model: the contextual bandit, behind the `TileChooser` door |
 | `retrain.py` | the nightly loop: refit, rank, retire, and the feedback packets |
 | `stats.py` | the numbers the seat's claims are made of: Wilson, Newcombe, the two-proportion z |
+| `ope.py` | the off-policy estimators: what a **new** chooser would have earned on the old log ([`OPE.md`](OPE.md)) |
 | `events.py` | the tile group's four audit types (§1.8) |
 | `ports.py` | the two seams: the ledger and the vocabulary |
 
@@ -54,6 +55,13 @@ module's docstring cites it; the citations are the contract.
    and a sealed prediction that held are three different measurements, and
    the record says which one it was. Mixing them would let the critic's
    optimism quietly become the builder's taste.
+8. **A play carries the propensity it was drawn with.** The chooser
+   measures the probability of its own choice at the moment it makes it,
+   because the exploration rate decays and the greedy arm moves: a
+   propensity computed afterwards is a different number from the one the
+   choice was drawn from. Without it the play cannot be weighted for an
+   off-policy estimate, and a missing propensity is **never** defaulted to
+   1.0 — a default is a bias nobody can see. See [`OPE.md`](OPE.md).
 
 ## The acceptance run, and the numbers
 
@@ -94,9 +102,15 @@ cd ~/lm-wt/tiles
 .venv/bin/python -m pytest -q                     # the whole core
 ```
 
-93 tests for this seat, no network, no GPU, no LLM: the seat's whole point
+114 tests for this seat, no network, no GPU, no LLM: the seat's whole point
 is that the loop, the library, the chooser and the learning can be
 exercised before the engine lands.
+
+The off-policy estimators print their own numbers:
+
+```bash
+PYTHONPATH=. .venv/bin/python docs/lab/tiles-ope-scripts/measure_ope.py
+```
 
 ## How it connects to the core
 
@@ -114,6 +128,19 @@ exercised before the engine lands.
 * **the engine and the critic are the game.** What happened when a tile was
   played is the engine's and the critic's to say; this seat writes the
   record.
+
+## Scoring a chooser that has not run yet
+
+[`OPE.md`](OPE.md) is the note: the three estimators, the variance and the
+interval, the weight diagnostics, the negative control, and the measured
+numbers. In one line — the log carries the propensity the chooser measured
+at the moment of each choice, and `core.tiles.ope.evaluate()` turns a log
+into an estimate of what a **new** policy would have earned, with an
+interval and a denominator, refusing rather than guessing when the log
+cannot support the question.
+
+The numbers and how to reproduce them are in
+[`docs/lab/exp-tiles-ope.md`](../../docs/lab/exp-tiles-ope.md).
 
 ## What is not here yet
 
