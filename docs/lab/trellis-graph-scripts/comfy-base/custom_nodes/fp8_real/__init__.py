@@ -29,16 +29,17 @@ matmuls, which is the signature of the fallback path, not of fp8.
 **The fix.**  At the point where the weight is assigned, cast the
 checkpoint's tensor to the dtype the module was built for, so the weight the
 model ends up holding is the fp8 one it asked for.  The cast is paid once, at
-load, and it is cheap: about 6 GB/s on this box, so ~1.5 s for the whole
-9.7 GB UNet.
+load: measured at 13.0 s for the whole UNet (832 tensors, 5.00 G elements),
+a little over 1 GB/s of fp8 output.
 
 The fix also removes work rather than adding it.  The dynamic loader's
 staging geometry is already fp8 (``setup_param`` sets
 ``weight._model_dtype`` from ``weight_comfy_model_dtype``), so with a bf16
 parameter the loader had to *re-quantise* every weight on its way to the
 device, and the manual-cast path had to *up-cast* it again on every use.  With
-the weight already fp8 the geometry and the data agree, the load-time cast
-disappears, and the fused path consumes the staged fp8 bytes directly.
+the weight already fp8 the geometry and the data agree, the loader's
+re-quantise disappears, and the fused path consumes the staged fp8 bytes
+directly.
 
 **What it does not touch.**  A module is cast only when it is a
 ``comfy.ops.fp8_ops.Linear`` *and* its ``weight_comfy_model_dtype`` is
