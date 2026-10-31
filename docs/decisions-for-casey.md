@@ -19,7 +19,7 @@ Part B is where the team has a view and your call settles it.
 
 | Item | Answer | What changes |
 |---|---|---|
-| A1 | "As permissive as possible" | **Being clarified.** A1 is the ledger's writers and the Critic's scope; the team reads "permissive" as no gate on what may be written, keeping only what makes a bet checkable. Until then, (a) stands. |
+| A1 | **Permissive.** "We will be in development for a long while and want to move fast." | No gates on who may write what while we develop: the night may write taste rows, and a critic may learn taste as well as judge defects. Every row still records **who** wrote it (owner, Magnus, which builder, the night, which critic), so the record stays readable and can be tightened later without losing history. |
 | A2 | **Magnus can do it all**: spoken input, free text, full apply. "That's part of the fun." Casey is with him at runtime. | The chips-only and proposals-only limits come off. The separate `author` scope stays, so his work is credited to him. Still true: no transcripts or audio are stored. |
 | A3 | Fine (low priority now) | (a) stands |
 | A4 | Fine | (a) stands |
