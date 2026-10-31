@@ -115,6 +115,41 @@ if "these" could mean two groups, the computer asks which.
 This is how speech stays short: the context does the explaining, as it does
 between people who are standing in the same room.
 
+### The engineer also makes things: characters, objects and generative batches
+
+The ship's computer is consulted for **character and object changes** as well
+as code: "Computer, give the Landscaper a lantern and a slower walk", "make this
+chair Victorian". Two paths, chosen by what the request needs:
+
+- **Text to a recipe, through curated, typed building blocks.** The model is
+  nexu-io/motion-anything (Apache-2.0, 2026-07): describe the feeling and the
+  agent ships the motion. That project is about web and UI motion (shaders,
+  kinetic text, page animation), not 3D characters, but its *pattern* is the
+  one we want. A library of recipes, each carrying taste ("avoid when ...").
+  A router that picks from it by intent. Recipes exported as portable skills
+  (SKILL.md). The agent engine plugged in over ACP. For us: character looks,
+  props, materials and motions are recipe entries with taste notes, chosen and
+  composed by intent, and new entries are added as work orders.
+- **Generation, when the library has nothing that fits.** The builder sets up
+  **generative batches**, run through the model scheduler (overnight if large),
+  and returns candidates scored by the critic for you to pick from:
+  - **textures and materials**: image generation, then the PBR maps the
+    renderer needs;
+  - **3D objects and props**: image-to-3D, then cleaned and scaled into the
+    scene;
+  - **CAD-precise parts** (hinges, gears, machinery): the engineer writes
+    parametric CAD code (e.g. CadQuery). Deterministic and parametric, so it is
+    recipe-native: a small script, not a mesh;
+  - **character motion**: text-to-motion models producing skeletal clips,
+    retargeted onto the avatar's rig;
+  - **music and sound**: text-to-music and sound-effect models for the place's
+    ambience and the builders' work sounds.
+
+Every generated asset enters the project's library with its **provenance**
+(prompt, model, seed, version) and **licence** (several image and music model
+weights are non-commercial: a checked list, not an afterthought), so it can be
+regenerated, traced and swapped when a better Thor-native model arrives.
+
 ## Phases
 
 1. **Feasibility spike (days).** Blender 4.2 on the Thor; Infinigen Hello Room
