@@ -198,18 +198,28 @@ def build_members(
 
     plan: list[tuple[BaseRender, str | None]] = []
     rotation = _rotation(IMAGE_DEFECTS, max(len(image_bases), 1))
-    for i, base in enumerate(image_bases):
-        defect = rotation[i % len(rotation)] if rotation else None
-        plan.append((base, defect))
+    image_plan = [
+        (base, rotation[i % len(rotation)] if rotation else None)
+        for i, base in enumerate(image_bases)
+    ]
 
-    # The mesh classes take the bases that have geometry. They are added
-    # after the image members so the set's size is driven by the renders.
+    # The mesh classes take the bases that have geometry. They are
+    # **interleaved** with the image members rather than put after them: the
+    # set has to cover every defect class, and the image members alone would
+    # fill it first — the measurement's own set had thirty image members and
+    # not one mesh member, which is a table with three empty rows.
     mesh_rotation = _rotation(MESH_DEFECTS, max(len(mesh_bases), 1))
-    for i, base in enumerate(mesh_bases):
-        defect = mesh_rotation[i % len(mesh_rotation)] if mesh_rotation else None
-        if defect is None:
-            continue
-        plan.append((base, defect))
+    mesh_plan = [
+        (base, mesh_rotation[i % len(mesh_rotation)] if mesh_rotation else None)
+        for i, base in enumerate(mesh_bases)
+    ]
+    mesh_plan = [(base, defect) for base, defect in mesh_plan if defect is not None]
+    plan = []
+    for i in range(max(len(image_plan), len(mesh_plan))):
+        if i < len(mesh_plan):
+            plan.append(mesh_plan[i])
+        if i < len(image_plan):
+            plan.append(image_plan[i])
 
     for base, defect in plan:
         if len(members) >= target:
