@@ -23,6 +23,10 @@ seat you work from.
   procfunc**, with our Warp terrain as a v2-native stage. The confirming
   experiment is running on the Thor; its first step already passed (a v2 room
   rendered on the GPU). See [docs/research/ig2-procfunc.md](docs/research/ig2-procfunc.md).
+- **The engine is decided: Infinigen 2.0 + procfunc.** On the Thor, 2.0 renders on
+  the GPU, a one-parameter edit regenerates one node of 4,231, and
+  `fine_terrain` is now deterministic (CPU and CUDA, at no speed cost)
+  ([v2-thor-experiment](docs/research/v2-thor-experiment.md)).
 - **Two lab breakthroughs.** Unified memory lets NumPy, PyTorch and CUDA kernels
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
@@ -104,6 +108,10 @@ seat you work from.
 | Report | Subject |
 |---|---|
 | [spike-phase1](docs/research/spike-phase1.md) | **Infinigen on the Thor, measured**: the bpy build, Hello Room/World, CPU vs GPU, walls hit, phase 2 |
+| [v2-thor-experiment](docs/research/v2-thor-experiment.md) | **The engine confirmed**: Infinigen 2.0 + procfunc on the Thor, tracer on |
+| [ig2-procfunc](docs/research/ig2-procfunc.md) | Infinigen 1.x vs 2.0 and procfunc: the engine decision |
+| [trellis-spike](docs/research/trellis-spike.md) | TRELLIS.2 on the Thor: works, clean licence, BF16 not FP8, CPU-bound mesh tail |
+| [warm-scene](docs/research/warm-scene.md) | The warm scene server spike: the win is builder wait and crash recovery |
 | [ux-day](docs/research/ux-day.md) | A day and a night with your builders: the three clocks, ten moments that must feel great, the screens |
 | [ux-trust](docs/research/ux-trust.md) | Trust, taste and growing together; Magnus (a kid co-designer); failure modes and the rules against them |
 | [rev-ux](docs/research/rev-ux.md) | Cross-review of the two, against the technology: the merged experience spine |
@@ -132,6 +140,11 @@ seat you work from.
 | [NVMe bandwidth](docs/lab/exp-nvme-bandwidth.md) | Useful. Load speed decides the hot/warm/cold scheduler's shape |
 | [Critic PNG round-trip](docs/lab/exp-critic-png-roundtrip.md) | Useful. The critic should read the render buffer, not a PNG |
 | [Solver scoring](docs/lab/exp-solver-scoring.md) | Useful. Python vs numba vs Warp vs restructured CPU for the layout solver |
+| [Engines on the Thor](docs/lab/exp-engines.md) | PVA v3, NVENC/NVDEC and INA power rails are real; **no NVDLA, no OFA** |
+| [Batched shared model](docs/lab/exp-batched-shared-model.md) | FP8 is 3.0× on a GEMM chain, 1.3× end to end (launch-bound); batching is free only when weights dominate |
+| [Joules per fixed point](docs/lab/exp-joules-per-fixed-point.md) | Warm starts converge in 2–3 iterations (6 cold), 1.39 J each; the critic belongs on the GPU |
+| [Adapters](docs/lab/exp-adapters.md) | Skill adapters are cheap to hold (60 MiB) but slow to switch (73–119 ms) |
+| [CUDA Graphs](docs/lab/exp-cuda-graphs-nvenc.md) · [NVENC round-trip](docs/lab/exp-nvenc-roundtrip.md) | Graphs pay; NVENC is free but not a warm-start store |
 | [IDEAS.md](docs/lab/IDEAS.md) | The mined candidates, what's next, and the killed-by-fact list |
 
 ## The code
@@ -156,18 +169,16 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `render-rung` | **The render rung, real**: the v2 venv behind the seam (`core.engine.venv2`), the M1 session's `-m engine` run renders Infinigen 2.0 on the Thor's GPU with artifact hashes, provenance and licence rows in the ledger | **this branch** |
 | `plan-v2` | Plan draft 2 and the owner's decision sheet | merged |
 
+| `engine-adapter` | One seam between the recipe and the engine: protocol, fake, Infinigen 1.x and 2.0 adapters | **merged** |
+| `render-rung` | The M1 render steps render for real (Infinigen 2.0, Cycles on the Thor GPU) | **merged** |
+| `scene-server` | The resident engine: builder wait 4.7× lower, exact crash recovery | **merged: 948 tests** |
+
 ### In flight
 
-These were paused when a provider's quota ran out; they resume automatically:
-- **TRELLIS.2 on the Thor:** image to 3D prop with PBR materials. *512³ in
-  101 s, 1024³ in 194 s, measured.*
-- **The warm scene server:** a resident Blender; edit-to-preview latency, batch
-  vs warm. *Measured: the win is builder wait and crash recovery, not render
-  latency.*
-- **Infinigen 2.0 + procfunc:** the engine decision's confirming experiment.
-  *Step 1 passed — a v2 room rendered on the Thor.*
-- **Lab round 3:** batched shared models, adapters, joules per result.
-  *Measured: the Thor has PVA v3, NVENC and NVDEC — and no NVDLA, no OFA node.*
+- **Engine round 2**: whole scenes traceable, a byte-stable recipe graph, Warp terrain as a 2.0 stage.
+- **The Prop-maker's generative batch**: TRELLIS.2 behind the scheduler, N seeds per prop, the critic keeps the best.
+- **Lab round 4** and **the critic's calibration set** on real sweep renders (queued for a provider quota).
+- **An overnight Infinigen scene sweep** on the Thor (8 scene types × 6 seeds) for the scheduler's timings and the calibration set.
 
 ## Machines
 
