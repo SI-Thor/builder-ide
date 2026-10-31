@@ -22,3 +22,14 @@ reports/
 # Build output
 build/
 dist/
+
+# The probe's ComfyUI base directory: its logs, pid and scratch are the
+# experiment's working state, not source.
+docs/lab/trellis-graph-scripts/comfy-base/logs/
+docs/lab/trellis-graph-scripts/comfy-base/temp/
+docs/lab/trellis-graph-scripts/comfy-base/output/
+docs/lab/trellis-graph-scripts/comfy-base/previews/
+docs/lab/trellis-graph-scripts/comfy-base/input/
+docs/lab/trellis-graph-scripts/comfy-base/user/
+docs/lab/trellis-graph-scripts/comfy-base/datasets/
+docs/lab/trellis-graph-scripts/comfy-base/models/
