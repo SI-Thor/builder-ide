@@ -53,7 +53,16 @@ class LedgerStore:
         self.artifacts = artifacts
         self.kid_actors = kid_actors
         self._write_lock = threading.RLock()
-        self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        # isolation_level=None puts the driver in autocommit mode: it never
+        # opens a transaction on our behalf, so the BEGIN/COMMIT pairs below
+        # are the *only* transaction boundaries. In the driver's default
+        # legacy mode an implicit transaction can be left open by any stray
+        # write, and `append()` — which commits only when it opened the
+        # transaction itself — would silently never commit (the data would
+        # roll back at close). §5.1 wants one transaction per state change,
+        # and that means owning them exactly.
+        self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False,
+                                    isolation_level=None)
         self.conn.row_factory = sqlite3.Row
         self._configure()
         self.rows = SqliteRowStore(self.conn)
@@ -360,21 +369,41 @@ class LedgerStore:
             max_seq = self.max_seq()
             fold_seq = self.fold_seq()
             if fold_seq > max_seq:  # DB restored/replaced under us
-                self._full_rebuild()
+                with self._txn():
+                    self._full_rebuild()
                 report["rebuilt"] = True
             elif fold_seq < max_seq:
-                pending = self.events_since(fold_seq)
-                for ev in pending:
-                    apply_event(ev, self.rows, self.ctx)
-                self._set_meta("fold_seq", str(max_seq))
+                with self._txn():
+                    pending = self.events_since(fold_seq)
+                    for ev in pending:
+                        apply_event(ev, self.rows, self.ctx)
+                    self._set_meta("fold_seq", str(max_seq))
                 report["caught_up"] = len(pending)
             diffs = self._verify()
             if diffs:
-                self._full_rebuild()
+                with self._txn():
+                    self._full_rebuild()
                 report["rebuilt"] = True
                 report["repaired"] = True
                 report["diffs"] = diffs[:10]
         return report
+
+    @contextmanager
+    def _txn(self):
+        """One explicit write transaction. Joins an open transaction if there
+        is one, so a batch is still one transaction (§5.1)."""
+        with self._write_lock:
+            began = not self.conn.in_transaction
+            if began:
+                self.conn.execute("BEGIN IMMEDIATE")
+            try:
+                yield
+                if began:
+                    self.conn.execute("COMMIT")
+            except Exception:
+                if began and self.conn.in_transaction:
+                    self.conn.execute("ROLLBACK")
+                raise
 
     def _verify(self) -> list[str]:
         events = self.events_since(0)
