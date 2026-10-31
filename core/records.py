@@ -284,6 +284,21 @@ class Task(BaseModel):
     A task exists before any night (RV patch 11): ``night`` is ``None`` and
     ``state`` is ``"slated"`` on the plan slate, which is why ``cost_estimate``
     — the *ask* — is stored, so the morning can name what was cut (X C11).
+
+    The ask comes from the **cost model** (``core/night/cost``): the task
+    names the job kind it is (``kind``) and the model prices it. Three fields
+    keep that honest on the record:
+
+    ``kind``
+        the job kind the ask was priced from.
+    ``ask_source``
+        ``"model"`` when the model priced it, ``"override"`` when the owner
+        filed their own number. An override is kept, not overwritten — the
+        owner is held to the number they filed.
+    ``ask_basis``
+        the model's own marking of the ask: ``measured``, ``derived`` or
+        ``estimate``. An owner's own number is an estimate until the box
+        measures it.
     """
 
     id: str
@@ -295,6 +310,12 @@ class Task(BaseModel):
     recipe_scope: list[str] = Field(default_factory=list)
     cost_estimate: Rail = Field(default_factory=Rail)
     rail: Rail = Field(default_factory=Rail)
+    #: The cost model's job kind this task's ask was priced from.
+    kind: str = ""
+    #: ``model`` (the measured price) or ``override`` (the owner's own number).
+    ask_source: str = "model"
+    #: The model's marking of the ask: measured, derived or estimate.
+    ask_basis: str = ""
     state: TaskState = "slated"
     predictions: list[str] = Field(default_factory=list)
     branches: list[str] = Field(default_factory=list)

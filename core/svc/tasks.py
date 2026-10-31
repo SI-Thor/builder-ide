@@ -2,13 +2,21 @@
 are Task rows BEFORE any night exists (state slated, night None); the ask
 (cost_estimate) is stored at slate time so the morning can name what was
 cut. The slate view carries capability rows derived from the vocab.call
-log — no new record type (RV patch 18)."""
+log — no new record type (RV patch 18).
+
+**The ask is priced, not typed.** A task names the job kind it is
+(``kind``) and the **cost model** (``core/night/cost``) says what that kind
+costs on this box: the p50 is the ask, the p95 is the rail the task is held
+to. A client may still file its own number — that becomes an **override**,
+recorded on the task and shown on the slate, not silently replaced by the
+model's."""
 from __future__ import annotations
 
 from ..canon import new_id
 from ..errors import NotFound, Refused
 from ..events import Actor
 from ..models import Rail, Task
+from ..night.cost.pricing import DEFAULT_KIND, PricedAsk, hold_to, known_kinds, price_job
 
 
 class TasksService:
@@ -18,7 +26,7 @@ class TasksService:
 
     def create(self, author: str, intention: str, *, owner_character: str = "",
                recipe_scope: list[str] | None = None, cost_estimate: Rail | None = None,
-               rail: Rail | None = None, night: str | None = None,
+               rail: Rail | None = None, kind: str = "", night: str | None = None,
                ends_at: str | None = None, idem_key: str | None = None) -> Task:
         if idem_key is not None:
             cached = self.store.idem_get(idem_key)
@@ -26,11 +34,25 @@ class TasksService:
                 return Task(**cached["body"])
         if night is not None and self.store.get_row("nights", {"id": night}) is None:
             raise NotFound(f"night {night} not found", entity=night)
+        job_kind = kind or DEFAULT_KIND
+        priced = self.price(job_kind)
+        if cost_estimate is not None:
+            # the owner's own number. It is kept, not overwritten: the ask the
+            # owner filed is the ask the night is held to, and it is recorded
+            # as an override so the slate can show it.
+            ask = cost_estimate
+            ask_source = "override"
+            ask_basis = "estimate"
+        else:
+            ask = priced.ask
+            ask_source = "model"
+            ask_basis = priced.basis
         task = Task(
             id=new_id("task"), night=night, author=author, ends_at=ends_at,
             owner_character=owner_character, intention=intention,
-            recipe_scope=recipe_scope or [], cost_estimate=cost_estimate or Rail(),
-            rail=rail or Rail(),
+            recipe_scope=recipe_scope or [], cost_estimate=ask,
+            rail=rail or hold_to(ask, priced),
+            kind=job_kind, ask_source=ask_source, ask_basis=ask_basis,
         )
         ev = self.store.new_event(
             "night.task.created", Actor(kind="character", id=owner_character or "companion")
@@ -44,6 +66,20 @@ class TasksService:
         if resp and resp.get("__replay__"):
             return Task(**resp["body"])
         return task
+
+    def price(self, kind: str) -> PricedAsk:
+        """What the cost model says a job of this kind costs.
+
+        The ask is the band's p50 and the rail its p95; the basis and source
+        come along so the slate can say where the number came from.
+        """
+        try:
+            return price_job(kind)
+        except KeyError:
+            raise Refused(
+                f"the cost model has no price for {kind!r}; it knows "
+                f"{', '.join(known_kinds())}"
+            ) from None
 
     def get(self, task_id: str) -> Task:
         row = self.store.get_row("tasks", {"id": task_id})

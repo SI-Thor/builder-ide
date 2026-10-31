@@ -62,6 +62,69 @@ def test_a_task_filed_before_any_night_has_no_night(core):
     assert task.state == "slated"
 
 
+# ------------------------------------------------------------- the ask
+
+def test_a_task_filed_without_an_ask_is_priced_from_the_cost_model(core):
+    """The slate does not take a number from the client — it asks the model."""
+    from core.night.cost import get_model
+
+    task = TasksService(core).create(author="casey", intention="weather the harbour crates")
+    band = get_model().band("prop.goal")
+    assert task.kind == "prop.goal"
+    assert task.ask_source == "model"
+    assert task.ask_basis == band.basis
+    assert task.cost_estimate.gpu_minutes == pytest.approx(band.p50.gpu_minutes)
+    assert task.cost_estimate.wall_minutes == pytest.approx(band.p50.wall_minutes)
+    # and the rail is the kind's p95 — the most it may spend before it is cut
+    assert task.rail.gpu_minutes == pytest.approx(band.p95.gpu_minutes)
+
+
+def test_a_task_can_name_the_job_kind_it_is(core):
+    from core.night.cost import get_model
+
+    task = TasksService(core).create(author="casey", intention="a picture of a crate",
+                                     kind="prop.image")
+    band = get_model().band("prop.image")
+    assert task.kind == "prop.image"
+    assert task.cost_estimate.wall_minutes == pytest.approx(band.p50.wall_minutes)
+
+
+def test_a_job_kind_the_model_does_not_know_is_refused_by_name(core):
+    from core.errors import Refused
+
+    with pytest.raises(Refused) as caught:
+        TasksService(core).create(author="casey", intention="a very large prop",
+                                  kind="prop.gigantic")
+    assert "prop.gigantic" in str(caught.value)
+    assert "prop.goal" in str(caught.value)
+
+
+def test_a_client_ask_becomes_an_override_and_is_recorded(core):
+    """The owner's own number is kept, not overwritten — and it says so."""
+    from core.models import Rail
+
+    task = TasksService(core).create(
+        author="casey", intention="one very large render",
+        cost_estimate=Rail(gpu_minutes=300.0, wall_minutes=45.0),
+    )
+    assert task.ask_source == "override"
+    assert task.ask_basis == "estimate", "a typed-in number is an estimate"
+    assert task.cost_estimate.gpu_minutes == pytest.approx(300.0)
+    assert task.kind == "prop.goal", "the kind it is held against is still recorded"
+
+
+def test_an_override_is_held_to_its_own_number_not_to_the_model_s(core):
+    """A big override must not be cut by the model's own (smaller) rail."""
+    from core.models import Rail
+
+    task = TasksService(core).create(
+        author="casey", intention="one very large render",
+        cost_estimate=Rail(gpu_minutes=300.0, wall_minutes=45.0),
+    )
+    assert task.rail.gpu_minutes == pytest.approx(300.0)
+    assert task.rail.wall_minutes == pytest.approx(45.0)
+
+
 # ------------------------------------------------------------- the status line
 
 def test_a_night_with_no_heartbeats_did_not_run(core, nights):

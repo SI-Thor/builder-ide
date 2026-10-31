@@ -137,6 +137,11 @@ class TaskBody(BaseModel):
     intention: str = Field(min_length=1)
     owner_character: str = ""
     recipe_scope: list[str] = Field(default_factory=list)
+    #: The cost model's job kind this goal is — what the core prices it from.
+    #: Empty means the default kind (one owner's goal, as the box measures it).
+    kind: str = ""
+    #: The owner's own ask. It overrides the model's price, and is recorded
+    #: and shown as an override.
     cost_estimate: dict | None = None
     ends_at: str | None = None
     night: str | None = None
@@ -425,12 +430,17 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
     @app.post("/v1/tasks", tags=["night"])
     def file_task(body: TaskBody,
                   principal: Principal = Depends(require(CHARACTER, OWNER))):
-        """File a chip/intention as a pre-night Task row (state slated)."""
+        """File a chip/intention as a pre-night Task row (state slated).
+
+        The ask is priced from the cost model unless the caller files its own
+        number, which becomes an override.
+        """
         estimate = Rail(**body.cost_estimate) if body.cost_estimate else None
         task = TasksService(core).create(
             author=principal.actor, intention=body.intention,
             owner_character=body.owner_character,
             recipe_scope=body.recipe_scope, cost_estimate=estimate,
+            kind=body.kind,
             ends_at=body.ends_at, night=body.night,
         )
         return {"task": task.model_dump(mode="json")}

@@ -150,7 +150,7 @@ re-export, so every import path still resolves and
 | `Actor` | frozen (all seats agreed); the seven §1.8 kinds |
 | `AuditEvent` | the spine's — optional `seq` until commit, the `refused` flag, the type check, the subject accessors |
 | `Rail` | night-runner's arithmetic on the three agreed axes |
-| `Task` | §1.9's fields + justification's `slated_at`/`review_by` + the `dropped` state (decisions 1, 4 above) |
+| `Task` | §1.9's fields + justification's `slated_at`/`review_by` + the `dropped` state (decisions 1, 4 above) + the cost model's `kind`/`ask_source`/`ask_basis` (the ask is priced from the measured model, and a client's own number is recorded as an override) |
 | `Job`, `Night`, `IterationPolicy` | night-runner's (`Night.power_mode: int`, the iteration policy rides the night); the spine's `start()` passes `state="running"` explicitly, as the runner's own `start()` does |
 | `Branch`, `NodeRef` | **unfrozen** — projection records the folds mutate in place; §1.0's "the log is the source of truth" is the invariant, not record immutability |
 | `Recipe`, `RecipeEntry`, `EnginePin`, `Op`, `RecipeEdit`, `RecipeVersion` | the recipe seat's (frozen, with the validators: pinned config hash, ≤32 ops, ≤80-char one-line message, dotted ≤3-segment paths) |
