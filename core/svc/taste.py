@@ -45,7 +45,7 @@ class TasteService:
         ev = self.store.new_event(
             "taste.note.appended", actor,
             {"entity_kind": "taste_note", "entity_id": note.id},
-            {"note": note.model_dump(mode="json"), "author": author},
+            {"row": note.model_dump(mode="json"), "author": author},
         )
         self.store.append(ev)
         return self.get(note.id)
@@ -94,7 +94,7 @@ class TasteService:
 
     def _ever_had_rows(self, author: str) -> bool:
         for ev in self.store.events_since(0, types=["taste.note.appended"]):
-            if ev.payload.get("author") == author or ev.payload.get("note", {}).get("author") == author:
+            if ev.payload.get("author") == author or ev.payload.get("row", {}).get("author") == author:
                 return True
         return False
 

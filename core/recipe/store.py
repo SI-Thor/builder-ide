@@ -142,6 +142,10 @@ class RecipeStore:
         for event in self.ledger.events():
             payload = event.payload
             if event.type == "version.committed":
+                if "version" not in payload:
+                    # The spine's spelling (branch + head, document carried by
+                    # the artifact): its projection is the spine's own fold.
+                    continue
                 version = RecipeVersion(
                     id=payload["version"],
                     recipe=payload["recipe"],
@@ -162,6 +166,8 @@ class RecipeStore:
                     ),
                 )
             elif event.type == "branch.created":
+                if "branch" not in payload or "recipe" not in payload:
+                    continue  # the spine's spelling; see version.committed above
                 branch = Branch(
                     id=payload["branch"],
                     name=payload["name"],

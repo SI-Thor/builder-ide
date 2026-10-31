@@ -167,7 +167,7 @@ def test_the_erased_payloads_are_redacted_in_place(core):
     TasteService(core).erase("magnus", owner_actor("casey"))
     for ev in core.store.events_since(0, types=["taste.note.appended"]):
         assert ev.payload.get("redacted") is True
-        assert "subject" not in ev.payload.get("note", {})
+        assert "subject" not in ev.payload.get("row", {})
 
 
 def test_erasing_is_idempotent(core):

@@ -286,7 +286,7 @@ def _ratified(rows: RowStore, author: str) -> bool:
 def _h_taste_note(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> None:
     if ev.payload.get("redacted"):
         return  # erased in place (§1.0's one immutability exception)
-    doc = dict(ev.payload.get("note", ev.payload))
+    doc = dict(ev.payload.get("row", ev.payload))
     tn_id = doc.get("id") or ev.subject_id
     author = doc.get("author", "")
     status = "pending_ratification" if (author in ctx.kid_actors and not _ratified(rows, author)) else "active"
@@ -516,8 +516,17 @@ def _h_job(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> None:
 # ---------------------------------------------------------------- branches / nodes
 
 def _h_branch_created(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> None:
-    br_id = ev.subject_id or ev.payload.get("id")
-    doc = dict(ev.payload.get("branch", {}))
+    # Two spellings, one fact: the spine writes the branch doc under "branch"
+    # (or bare "id"); the recipe store writes it flat with "branch" as the id.
+    payload = ev.payload
+    br_id = ev.subject_id or payload.get("id") or (
+        payload.get("branch") if isinstance(payload.get("branch"), str) else None
+    )
+    if isinstance(payload.get("branch"), dict):
+        doc = dict(payload["branch"])
+    else:
+        doc = {k: v for k, v in payload.items() if k != "branch"}
+    doc.setdefault("name", payload.get("name"))
     doc.setdefault("id", br_id)
     doc.setdefault("head", ev.payload.get("head"))
     doc.setdefault("purpose", "main" if doc.get("name") == "main" else "work-order")
@@ -535,9 +544,10 @@ def _h_branch_head_moved(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> No
     if row is None:
         return
     doc = _load(row)
-    if "from_head" in ev.payload and doc.get("head") != ev.payload["from_head"]:
+    from_head = ev.payload.get("from_head", ev.payload.get("from"))
+    if from_head is not None and doc.get("head") != from_head:
         raise StaleTransition(
-            f"branch {br_id}: expected head {ev.payload['from_head']!r}, found {doc.get('head')!r}",
+            f"branch {br_id}: expected head {from_head!r}, found {doc.get('head')!r}",
             entity=br_id,
         )
     doc["head"] = ev.payload.get("to")

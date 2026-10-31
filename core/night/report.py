@@ -357,7 +357,8 @@ def _numbers(projection: NightProjection, events: Sequence[AuditEvent]) -> Night
         [
             event
             for event in events
-            if event.type == "taste.note.appended" and event.payload.get("verdict") == "keep"
+            if event.type == "taste.note.appended"
+            and (event.payload.get("row") or event.payload).get("verdict") == "keep"
         ]
     )
     numbers.gpu_minutes_spent = projection.spend.gpu_minutes

@@ -310,11 +310,11 @@ class LedgerStore:
                 redacted = 0
                 for r in rows:
                     payload = json.loads(r["payload"])
-                    note = payload.get("note", payload)
+                    note = payload.get("row", payload)
                     if note.get("author") != author or payload.get("redacted"):
                         continue
                     payload["redacted"] = True
-                    payload["note"] = {"id": note.get("id", ""), "author": author,
+                    payload["row"] = {"id": note.get("id", ""), "author": author,
                                        "redacted": True}
                     self.conn.execute(
                         "UPDATE audit SET payload=? WHERE seq=?",

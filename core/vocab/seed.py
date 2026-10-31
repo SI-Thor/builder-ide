@@ -49,7 +49,7 @@ RECIPE_DOCUMENT: dict[str, Any] = {
     "entries": {
         "harbor.crates": {
             "path": "harbor.crates",
-            "kind": "prop",
+            "kind": "prop_set",
             "generator": {
                 "module": "infinigen_thor.structures",
                 "func": "crates",
@@ -64,7 +64,7 @@ RECIPE_DOCUMENT: dict[str, Any] = {
         },
         "harbor.racks": {
             "path": "harbor.racks",
-            "kind": "prop",
+            "kind": "prop_set",
             "generator": {
                 "module": "infinigen_thor.structures",
                 "func": "racks",
