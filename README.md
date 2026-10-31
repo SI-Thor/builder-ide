@@ -19,6 +19,10 @@ seat you work from.
   Thor's GPU at **7.1× its 14 CPU cores**. See
   [SI-Thor/infinigen-thor](https://github.com/SI-Thor/infinigen-thor) (branch
   `thor-spike`) and [docs/research/spike-phase1.md](docs/research/spike-phase1.md).
+- **The engine decision is made.** The world engine is built on **Infinigen 2.0 +
+  procfunc**, with our Warp terrain as a v2-native stage. The confirming
+  experiment is running on the Thor; its first step already passed (a v2 room
+  rendered on the GPU). See [docs/research/ig2-procfunc.md](docs/research/ig2-procfunc.md).
 - **Two lab breakthroughs.** Unified memory lets NumPy, PyTorch and CUDA kernels
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
@@ -27,9 +31,10 @@ seat you work from.
   branches merged, every stand-in replaced; see [INTEGRATION.md](INTEGRATION.md)). The M1 acceptance session plays one evening, night
   and morning end to end in 30 steps, all passing (many still against stand-ins
   until it is rewired to the integrated core).
-- **Research complete, plan drafted.** 18 reports, three cross-reviews, a
-  synthesized understanding and plan, and a core spec (v2). Plan draft 2 and a
-  condensed decision sheet for the owner come next.
+- **Plan draft 2 is written, with a decision sheet.** 18 reports, three
+  cross-reviews, a synthesized understanding, a core spec (v2), the plan
+  ([docs/plan.md](docs/plan.md)) and a condensed sheet of the owner's open
+  decisions ([docs/decisions-for-casey.md](docs/decisions-for-casey.md)).
 - **Nothing is usable end to end yet.** Milestone M1 is "one evening, one night,
   one morning, one builder, one room".
 
@@ -81,7 +86,8 @@ seat you work from.
 |---|---|
 | [docs/vision.md](docs/vision.md) | The why; the three layers; the work order; calling the computer in-game; making characters and objects; the Thor as an iterator |
 | [docs/understanding.md](docs/understanding.md) | **The whole picture in one place**: everything known, by subject, every fact cited; what's decided, believed and unknown; a glossary |
-| [docs/plan.md](docs/plan.md) | **The plan, experience first** (draft 1): milestones M0–M5, the first three weeks, decisions for the owner |
+| [docs/plan.md](docs/plan.md) | **The plan, experience first** (draft 2): milestones M0–M5, the rewrite ladder with the lab's numbers, the first three weeks, the measures |
+| [docs/decisions-for-casey.md](docs/decisions-for-casey.md) | **The owner's open decisions, condensed**: twelve items — the ones that only need a yes, and the real choices, each with what happens if he doesn't decide |
 | [docs/design/core-spec.md](docs/design/core-spec.md) | The core service, specified (v2): data model, engineer adapter, lifecycles, APIs, durability |
 | [docs/rnd-plan.md](docs/rnd-plan.md) | How the research rounds were run |
 | [CLAUDE.md](CLAUDE.md) | How agents and Claude sessions work here: machines, repos, rules |
@@ -138,14 +144,21 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `m1-acceptance` | The M1 session as an automated test: evening → night → morning, 30 steps | done, 30/30 |
 | `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | **merged: 831 tests** |
 | `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | done, 105/105 steps |
+| `m1-real` | Both acceptance suites rewired onto the integrated core (real spine, real recipe store) | in flight |
+| `plan-v2` | Plan draft 2 and the owner's decision sheet | **this branch** |
 
 ### In flight
 
 These were paused when a provider's quota ran out; they resume automatically:
-- **TRELLIS.2 on the Thor:** image to 3D prop with PBR materials.
-- **The warm scene server:** a resident Blender; edit-to-preview latency, batch vs warm.
-- **Infinigen 2.0 + procfunc:** the engine decision.
+- **TRELLIS.2 on the Thor:** image to 3D prop with PBR materials. *512³ in
+  101 s, 1024³ in 194 s, measured.*
+- **The warm scene server:** a resident Blender; edit-to-preview latency, batch
+  vs warm. *Measured: the win is builder wait and crash recovery, not render
+  latency.*
+- **Infinigen 2.0 + procfunc:** the engine decision's confirming experiment.
+  *Step 1 passed — a v2 room rendered on the Thor.*
 - **Lab round 3:** batched shared models, adapters, joules per result.
+  *Measured: the Thor has PVA v3, NVENC and NVDEC — and no NVDLA, no OFA node.*
 
 ## Machines
 
@@ -157,5 +170,9 @@ These were paused when a provider's quota ran out; they resume automatically:
 
 ## Licence
 
-Not yet chosen; the owner decides. Third-party code keeps its own licence: the
-vendored WHY kernel is MIT (`core/why/VENDORED.md`), and Infinigen is BSD-3.
+Not yet chosen; the owner decides — it is item **B4** on the
+[decision sheet](docs/decisions-for-casey.md), with the recommendation
+**BSD-3-Clause** (the licence the whole corpus already uses, and the one
+`infinigen-thor` inherits from Princeton). Third-party code keeps its own
+licence: the vendored WHY kernel is MIT (`core/why/VENDORED.md`), and
+Infinigen is BSD-3.
