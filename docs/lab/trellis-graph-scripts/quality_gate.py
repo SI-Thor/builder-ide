@@ -83,10 +83,16 @@ def _request() -> PropRequest:
 def _find(root: Path, arm: str, seed: int) -> Path | None:
     """The GLB one arm wrote for one seed.
 
-    The arms write into ``<root>/<arm>-r<n>/s<seed>/``, so every round of
-    an arm is found and the best (the one that scored highest) is used.
+    The arms write into ``<root>/<arm>-r<n>/s<seed>/``, and the glob says
+    exactly that — ``{arm}-r*``, not ``{arm}*``.  The loose form would also
+    match the one-off probe runs that share the arm's name's prefix
+    (``fp8-fixed-probe1``, the first ``fp8-fixed`` rehearsal), whose meshes
+    are not rounds of this grid, and — because ComfyUI counts output files
+    per directory — a directory that still holds a mesh from a superseded
+    grid would hand the gate that mesh instead of this grid's.  The rounds
+    sort by name, so the first match is the earliest round.
     """
-    matches = sorted(root.glob(f"{arm}*/s{seed}/prop_s{seed}_*.glb"))
+    matches = sorted(root.glob(f"{arm}-r*/s{seed}/prop_s{seed}_*.glb"))
     return matches[0] if matches else None
 
 
