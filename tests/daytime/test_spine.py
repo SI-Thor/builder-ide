@@ -9,11 +9,12 @@ from __future__ import annotations
 from core.events import owner_actor
 
 
-def test_the_daytime_is_off_by_default(settings):
-    assert settings.daytime_enabled is False
+def test_the_daytime_is_on_by_default(settings):
+    assert settings.daytime_enabled is True
 
 
 def test_the_daytime_does_nothing_while_it_is_off(core, settings, fjellvik):
+    settings.daytime_enabled = False
     from core.svc.daytime import DaytimeService
 
     daytime = DaytimeService(core, settings)

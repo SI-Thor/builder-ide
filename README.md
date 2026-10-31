@@ -208,9 +208,8 @@ Branches are pushed as the agents work and reviewed before they merge into
 
 ## Licence
 
-Not yet chosen; the owner decides — it is item **B4** on the
-[decision sheet](docs/decisions-for-casey.md), with the recommendation
-**BSD-3-Clause** (the licence the whole corpus already uses, and the one
-`infinigen-thor` inherits from Princeton). Third-party code keeps its own
-licence: the vendored WHY kernel is MIT (`core/why/VENDORED.md`), and
-Infinigen is BSD-3.
+**MIT** ([LICENSE](LICENSE)), chosen by the owner on 2026-10-31 (B4): use it,
+change it, evolve it for your own work, and give credit where it is due.
+Third-party code keeps its own licence: the vendored WHY kernel is MIT
+(`core/why/VENDORED.md`), and Infinigen and our fork `infinigen-thor` are
+BSD-3 (Princeton's notice kept).

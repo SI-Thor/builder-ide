@@ -49,9 +49,10 @@ class Settings:
     # A stream's ceiling. A client that never disconnects must not hold a
     # connection forever.
     sse_max_seconds: float = 3600.0
-    # The always-on daytime world (plan item 19, B3). Casey has not decided
-    # B3, so the daytime is off unless this one setting says otherwise.
-    daytime_enabled: bool = False
+    # The always-on daytime world (plan item 19, B3). Casey decided B3 yes
+    # (2026-10-31): on by default; turn it off to give the box to other
+    # growth cycles when an experiment calls for it.
+    daytime_enabled: bool = True
 
     @classmethod
     def for_home(cls, home: str | Path) -> "Settings":

@@ -15,6 +15,69 @@ Part B is where the team has a view and your call settles it.
 
 ---
 
+## Casey's answers (2026-10-31)
+
+| Item | Answer | What changes |
+|---|---|---|
+| A1 | "As permissive as possible" | **Being clarified.** A1 is the ledger's writers and the Critic's scope; the team reads "permissive" as no gate on what may be written, keeping only what makes a bet checkable. Until then, (a) stands. |
+| A2 | **Magnus can do it all**: spoken input, free text, full apply. "That's part of the fun." Casey is with him at runtime. | The chips-only and proposals-only limits come off. The separate `author` scope stays, so his work is credited to him. Still true: no transcripts or audio are stored. |
+| A3 | Fine (low priority now) | (a) stands |
+| A4 | Fine | (a) stands |
+| A5 | Fine | Both stand |
+| B1 | **Build what we need to build to do it right; no cut corners.** | (a) 2.0 + procfunc with **everything** in scope: Warp terrain as a v2 stage, our own constraint solver, mesh export. |
+| B2 | **No LLMs on the Thor.** LLMs come from cloud subscriptions (z.ai, MiniMax, Claude; more can be added; Opus only where its cost is worth it). | See "B2, decided" below: the Thor is for motion, assets, world models and decision models, and the system learns from the scripts. |
+| B3 | **Yes, on by default.** The UX matters most: the always-on world renders precalculated assets so the world is better every time the human joins. Experiment with turning it off to speed other growth cycles. | `Settings.daytime_enabled` now defaults to True. |
+| B4 | **MIT.** "More important that we allow people to use it and change it and evolve it." | `LICENSE` (MIT) added; the fork stays BSD-3 (upstream's terms). |
+| B5 | Needs more information | See the expanded B5 below. |
+| B6 | Casey plugs it in later today; the Thor must power off and move | Plan for a planned shutdown: drain the seats and the sweep first. |
+| B7 | Casey replugs the drive | After the replug: check what survived before any reformat. |
+
+### B2, decided: what the Thor is for
+
+- **Not LLMs.** On the Thor they are slow or weak next to the cloud, and
+  they take memory the renderer and the decision models want. The local
+  coder lane (aider + Qwen3-Coder-30B) is dropped. Engineers and characters
+  that need language call cloud models, each a parameter, priced per call
+  under the night's money bar.
+- **The Thor does what the cloud can't do cheaply:**
+  - **Character motion as virtual robotics:** policies trained and run on
+    the GPU (RL, motion optimisation), so the builders move like robots
+    learning their bodies, not like clips.
+  - **Visual assets:** images, textures, 3D props and terrain.
+  - **World models and engines:** Infinigen, the resident scene and the
+    stage cache.
+  - **Many small decision models** that agents and game engines call at
+    millisecond speed.
+- **The loop that gets better.** Cloud LLMs write **scripts**: behaviours,
+  build steps, recipe edits. Those scripts become the **tiles**, the options
+  a local decision model chooses between. Every use of a script is recorded
+  with its outcome in the game, success or failure. The collections of
+  winning and losing scripts grow, and the decision models are trained on
+  them over time. The cloud writes the options; the Thor learns which ones
+  work and when.
+
+### B5, expanded: why contact the maquette author at all
+
+- **What his project is.** A public GitHub fork of Infinigen (BSD-3) whose
+  author built, by himself, a small version of our builders layer:
+  - an LLM writes Blender scripts, but only against a fixed catalogue of
+    Infinigen's factories;
+  - a queue of work orders, with checkpoints;
+  - a "level of detail" bake that streams the scene to a browser viewer.
+- **Why it matters to us.** It is the closest existing thing to builder-ide.
+  We have already read and borrowed its public ideas, which the licence
+  allows.
+- **What we can't see.** His README points at a second, companion repo with
+  the MCP server and the browser viewer, and that repo is not public. That
+  missing half is the part closest to our in-world view.
+- **The ask.** One short email: "we studied your maquette pipeline, are the
+  MCP server and viewer available, and was the catalogue filter deliberate?"
+- **Why it's your call.** It goes out under your name to a stranger.
+- **If you'd rather not:** we lose nothing we have, only the chance to read
+  the missing half.
+
+---
+
 ## Part A — say yes (already adopted; these need your word, not your time)
 
 ### A1. Who writes the ledger, and what the Critic may judge
@@ -214,9 +277,10 @@ with the renders.
   which act without asking, exactly as the trust report specifies.
 - **The Companion's memory of Magnus's chip requests** — count them, scoped,
   after ratification; they never reweight Casey's builders.
-- **Character motion** — procedural, recipe-authored walk cycles; no
-  generated motion in shipped paths (the data licence flows into shipped
-  outputs).
+- **Character motion** — *superseded by B2 (2026-10-31)*: motion is the
+  Thor's job as virtual robotics (policies trained on the GPU). Generated
+  motion trained on licensed datasets still carries that licence into shipped
+  outputs, so the data is a checked list.
 - **The Critic's model, and when** — scripted checks now (`verdict@scripted`
   on the face), a vision model chosen from the calibration numbers at M2/M3.
 - **Public GitHub repos** — done; both repos are already public.

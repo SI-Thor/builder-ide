@@ -22,9 +22,10 @@ deliberately honest:
   CPU. It has a budget, and admission is before spend (§5.5).
 
 It is built against **core-spec v2** (`docs/design/core-spec.md`) and plan
-item 19 (`docs/plan.md`). B3 — *the always-on daytime world* — is **not
-decided**: the whole lane is behind one setting and is **off by default**
-(`Settings.daytime_enabled`).
+item 19 (`docs/plan.md`). B3 — *the always-on daytime world* — is **decided yes** (Casey,
+2026-10-31): the lane is **on by default**, behind one setting
+(`Settings.daytime_enabled`) that an experiment can turn off to give the box
+to other growth cycles.
 
 ## What it does, in one day
 
@@ -175,7 +176,7 @@ runner.world()                             # the room, from the log — the same
   room that breathes between sessions. The lane's first act is to stand down
   when the night lane is busy, and its budget is a ceiling on the rest.
 
-* **One setting.** `Settings.daytime_enabled`, default **False**. Nothing
+* **One setting.** `Settings.daytime_enabled`, default **True**. Nothing
   about the daytime happens — not one row is written — while it is off, and
   the report reads the same log either way.
 
@@ -202,5 +203,7 @@ runner.world()                             # the room, from the log — the same
   settled — the counts are there, the actor is the core.
 * **It does not run on a schedule yet.** The tick is something a caller asks
   for (`DaytimeService.tick`); nothing yet calls it on a timer.
-* **B3 is undecided.** The lane is off by default, and the plan item's own
-  wording — "one room, one clock" — is deliberately the whole of the scope.
+* **B3 is decided yes; the scope is still small.** The lane is on by
+  default, and "one room, one clock" is still the whole of the scope. Casey's
+  purpose for it: the day renders precalculated assets so the world is
+  better every time a human joins.

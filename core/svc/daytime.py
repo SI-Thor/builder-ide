@@ -84,8 +84,8 @@ class DaytimeService:
 
     @property
     def enabled(self) -> bool:
-        """Is the daytime on? One setting, off until Casey decides B3."""
-        return bool(getattr(self.settings, "daytime_enabled", False))
+        """Is the daytime on? One setting, on by default (B3, decided)."""
+        return bool(getattr(self.settings, "daytime_enabled", True))
 
     def projection(self) -> DayProjection:
         """The log, folded."""

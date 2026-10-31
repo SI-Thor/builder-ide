@@ -23,8 +23,8 @@ take their time, and models swapped in and out by task. That is what a box with
    constraints, seeds); meshes and renders are caches. Diffable, branchable,
    replayable; a night's work is kilobytes.
 3. **The model scheduler.** Owns GPU memory (hot / warm / cold); batches a
-   night's jobs by model to avoid thrash. The cast: a planner/companion (a local
-   LLM, plus the cloud on a budget), a critic (a vision model that looks at
+   night's jobs by model to avoid thrash. The cast: a planner/companion (a cloud
+   LLM; never hosted on the Thor, see below), a critic (a vision model that looks at
    every render), a concept and texture artist (image gen), a prop-maker
    (image-to-3D). Each one is swappable, and chosen for how well it runs on the
    Thor.
@@ -58,8 +58,9 @@ We cannot build the holodeck. We can build toward its UX with what we have.
 1. **The program**: the world. A recipe plus the engine (infinigen-thor):
    generate, render, history.
 2. **Characters**: the avatars in the simulation (Architect, Landscaper,
-   Critic, Companion). Personas you talk to and watch work. They are fast,
-   cheap and local (small models on the Thor, with memory). They **never write
+   Critic, Companion). Personas you talk to and watch work. Their words come
+   from cloud LLMs; their choices and their bodies run on the Thor, through
+   small local decision models and motion policies. They **never write
    code**: they change the world only through the closed, typed vocabulary
    (predict, render, keep or undo).
 3. **The ship's computer / chief engineer**: the backend agents, and the only
@@ -77,8 +78,8 @@ computer extends what they can do.
 
 **The engineer is pluggable** behind one adapter (in: a work order and a
 sandbox branch; out: a commit and test evidence): Claude Code for hard orders on
-a budget, zcode/mcode for bulk, aider on the Thor's local coder for free small
-fixes, OpenHands or Goose as sandboxed runtimes, worth a test. Zed and Theia are
+a budget, zcode/mcode (z.ai and MiniMax subscriptions) for bulk, other cloud
+subscriptions as they prove themselves, OpenHands or Goose as sandboxed runtimes, worth a test. Zed and Theia are
 front ends onto the engineer's work (via ACP), not backends.
 
 **The core is ours and small:** a durable service on the Thor owning work
@@ -170,6 +171,38 @@ shaped as converging loops, not single shots:
 - **Iteration is the budget.** The night's rails are spent as iterations per
   goal, and the quality gained per iteration (and per joule, from the power
   rails) decides how deep a loop goes before it stops.
+
+## What the Thor is for (Casey, B2, 2026-10-31)
+
+**No LLMs on the Thor.** Language comes from the cloud: the z.ai, MiniMax
+and Claude subscriptions, and more as they earn a place. Each is a parameter
+priced per call; Opus is used where its cost is worth it. On the Thor, LLMs
+are slow or weak, and they take memory the renderer and the decision models
+want.
+
+**The Thor does what the cloud can't do cheaply:**
+
+- **Motion as virtual robotics.** The builders are robots in a simulation.
+  Their walking, reaching, carrying and building are policies trained and
+  run on the GPU (RL, motion optimisation), not canned clips.
+- **Visual assets:** images, textures, props and terrain, batched overnight.
+- **World models and engines:** Infinigen, the resident scene, the stage
+  cache, and the game engines that host the world.
+- **Many small decision models:** fast enough for agents and game engines
+  to call every tick.
+
+**The system that gets better.** Cloud LLMs write **scripts**: a behaviour,
+a build step, a recipe edit. Those scripts become **tiles**: the options a
+local decision model chooses between in the moment. Every time a tile is
+played, its outcome in the game is recorded, win or lose. The collections of
+winning and losing scripts grow, and the decision models are trained on them
+over time.
+
+- The cloud is the **author**: slow, smart, and it writes the options.
+- The Thor is the **player and the learner**: fast, and it learns which
+  options work, and when.
+- Each night adds scripts and outcomes, so the builders get better from both
+  ends.
 
 ## Phases
 
