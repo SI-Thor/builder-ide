@@ -855,8 +855,14 @@ def _install_fp8_probe() -> None:
             stats["fp8_linear_none"][0] += 1
         else:
             stats["fp8_linear_used"][0] += 1
-            if not stats.get("weight_dtype"):
-                stats["weight_dtype"] = str(getattr(args[0], "weight", None).dtype)
+        if not stats.get("weight_dtype"):
+            module = args[0] if args else None
+            weight = getattr(module, "weight", None)
+            tensor = args[1] if len(args) > 1 else None
+            stats["weight_dtype"] = str(getattr(weight, "dtype", None))
+            stats["input_ndim"] = (
+                int(tensor.ndim) if isinstance(tensor, torch.Tensor) else None
+            )
         if not stats.get("scale_benchmark"):
             stats["scale_benchmark"] = _benchmark_scale(args)
         return out
@@ -887,10 +893,14 @@ def _install_fp8_probe() -> None:
                 stats["fp8_linear_none"][0] += 1
             else:
                 stats["fp8_linear_used"][0] += 1
-                if not stats.get("weight_dtype"):
-                    stats["weight_dtype"] = str(
-                        getattr(args[0], "weight", None).dtype
-                    )
+            if not stats.get("weight_dtype"):
+                module = args[0] if args else None
+                weight = getattr(module, "weight", None)
+                tensor = args[1] if len(args) > 1 else None
+                stats["weight_dtype"] = str(getattr(weight, "dtype", None))
+                stats["input_ndim"] = (
+                    int(tensor.ndim) if isinstance(tensor, torch.Tensor) else None
+                )
             if not stats.get("scale_benchmark"):
                 stats["scale_benchmark"] = _benchmark_scale(args)
             return out
@@ -964,6 +974,8 @@ def _install_fp8_probe() -> None:
                 payload["fp8_stats"]["scale_benchmark"] = stats["scale_benchmark"]
             if stats.get("weight_dtype"):
                 payload["fp8_stats"]["weight_dtype"] = stats["weight_dtype"]
+            if stats.get("input_ndim") is not None:
+                payload["fp8_stats"]["input_ndim"] = stats["input_ndim"]
             with open(CFG["out"], "w") as fh:
                 json.dump(payload, fh, indent=1)
         except Exception:  # noqa: BLE001
@@ -987,7 +999,7 @@ def _install_fp8_probe() -> None:
 def install() -> None:
     """Install the probe.  Safe to call twice."""
     mode = CFG["mode"]
-    if mode == "off":
+    if mode == "off" and not CFG.get("spy"):
         return
     # The pinned-copy patch is part of the capture machinery, not part of the
     # memo: the control arm must differ from the memo arm by the memo alone.

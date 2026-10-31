@@ -8,6 +8,20 @@ Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md
 
 ---
 
+## Round 4 — the real generator (2026-10-31)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-trellis-graph.md`](exp-trellis-graph.md) | graph-capturing the TRELLIS.2 KSampler step in ComfyUI; the fused-fp8 path's host cost | **useful — and it kills the fp8 scales diagnosis** |
+| [`mini-night-2.md`](mini-night-2.md) | the night again, with the cost model pricing the slate and the mesh repair in the pipeline | **the repair makes solids; the prop band is priced wrong** |
+
+Scripts: [`trellis-graph-scripts/`](trellis-graph-scripts/) — the probe, its
+launcher, and the arm runner; and
+[`mini-night-2-scripts/`](mini-night-2-scripts/) — the repair measured on
+all nine of a night's props.
+
+---
+
 ## Round 3 — Kimi's six claims (2026-10-31)
 
 | file | what it measured | verdict |

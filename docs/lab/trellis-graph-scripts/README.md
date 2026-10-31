@@ -10,11 +10,27 @@ environment (`~/lm-wt/trellis`) is read, never modified** — the probe is a
 monkeypatch loaded into the ComfyUI *process* from a base directory that
 lives here.
 
+The write-up is
+[docs/lab/exp-trellis-graph.md](../../exp-trellis-graph.md). What it found,
+in one paragraph: **both dense UNets capture, bit-identically** (max
+|diff| = 0.0 over 42 paired steps), the CPU issue time collapses by two to
+three orders of magnitude, **and the steps do not get faster** — they are
+GPU-bound, so a graph frees the CPU without making the GPU do less work.
+The sparse stages refuse capture, because a CUDA graph cannot contain the
+host-to-device copy of a constant that TRELLIS.2's sparse path makes every
+step; two of those copies are named and neutralised here, and the third is
+inside the attention. A refused capture can **abort the ComfyUI process**,
+so every arm runs in its own. And the fused fp8 path **never runs on this
+box** — `fp8_linear` declines all 9,460 calls because the weight it is
+handed is bf16, not fp8.
+
 | file | what it is |
 |---|---|
 | `probe.py` | the probe: the capture, the paired eager/graphed measurement, the sparse-layout memo, the fp8 counters |
 | `comfy-base/custom_nodes/trg_probe/__init__.py` | the custom node ComfyUI loads; it installs the probe |
 | `serve_probe.sh` | starts ComfyUI with the probe, from this worktree's base directory |
+| `run_experiment.sh` | one arm at a time: start the service, run the prop, stop the service, report |
+| `run_one_prop.py` | one real prop through a (possibly probed) ComfyUI |
 | `one_prop.json` | one prop, one seed — the smallest run that exercises all three KSampler stages |
 
 ## The probe, in three parts
@@ -68,6 +84,17 @@ PYTHONPATH=. python -m core.genbatch \
 docs/lab/trellis-graph-scripts/serve_probe.sh stop
 ```
 
+Or, the way the experiment was actually run, one arm at a time — each arm
+in its own ComfyUI process, because a refused capture can abort the
+process:
+
+```sh
+bash docs/lab/trellis-graph-scripts/run_experiment.sh stage-memo
+bash docs/lab/trellis-graph-scripts/run_experiment.sh unet-memo
+bash docs/lab/trellis-graph-scripts/run_experiment.sh fp8
+bash docs/lab/trellis-graph-scripts/run_experiment.sh fp8-pre
+```
+
 The probe writes its results to `$TRG_OUT` as JSON: `records` (the paired
 eager/graphed measurements), `refusals` (every capture that was refused, with
 the reason and a traceback), and `layout_stats` (the memo's hit/miss counts
@@ -83,6 +110,7 @@ and how many of its answers were verified).
 | `TRG_WARMUP` | `3` | the warm-up iterations before a capture |
 | `TRG_MEMO_LAYOUT` | `1` | memoise the sparse layout (the sync that stops a graph) |
 | `TRG_PRECOMPUTE_SCALES` | `0` | precompute the fp8 per-layer scales |
+| `TRG_SPY` | `0` | watch the host-to-device copies, without attempting a capture |
 | `TRG_PORT` | `8189` | the port the probe's service listens on |
 
 ## What it stubs
