@@ -27,6 +27,7 @@ from __future__ import annotations
 import pytest
 
 from core.night.iterate import (
+    Attempt,
     CriticScore,
     IterationPolicy,
     NullPowerMeter,
@@ -34,6 +35,9 @@ from core.night.iterate import (
     ScriptedCritic,
     ScriptedVariantSource,
     Variant,
+    best_of,
+    gain_of,
+    summarise_rounds,
 )
 from core.night.models import Task
 
@@ -137,3 +141,77 @@ def test_a_variant_carries_its_seed_its_parameters_and_its_edit():
     assert variant.seed == 1024
     assert variant.params["roughness"] == 0.4
     assert variant.edit["verb"] == "roughen"
+
+
+# -- the loop's arithmetic -------------------------------------------------
+
+
+def attempt(variant_id: str, score: float, round: int = 1, **kwargs) -> Attempt:
+    return Attempt(
+        task_id="task_0001",
+        variant_id=variant_id,
+        score=score,
+        round=round,
+        **kwargs,
+    )
+
+
+def test_the_best_of_a_round_is_the_highest_scoring_variant_that_was_kept():
+    attempts = [
+        attempt("v1", 0.4),
+        attempt("v2", 0.7),
+        attempt("v3", 0.9, outcome="failed"),
+    ]
+    assert best_of(attempts).variant_id == "v2"
+
+
+def test_a_round_with_nothing_kept_has_no_best():
+    """A failed variant must never win by scoring high."""
+    attempts = [attempt("v1", 0.9, outcome="failed")]
+    assert best_of(attempts) is None
+
+
+def test_the_gain_of_the_first_round_is_measured_against_nothing():
+    assert gain_of(0.55, None) == pytest.approx(0.55)
+
+
+def test_the_gain_of_a_round_is_measured_against_the_best_the_loop_had():
+    assert gain_of(0.71, 0.55) == pytest.approx(0.16)
+
+
+def test_the_rounds_summarise_the_quality_gained_in_each_of_them():
+    rounds = summarise_rounds(
+        [
+            attempt("v1", 0.4, 1),
+            attempt("v2", 0.55, 1),
+            attempt("w1", 0.71, 2),
+            attempt("w2", 0.60, 2),
+        ]
+    )
+    assert [row.round for row in rounds] == [1, 2]
+    assert [row.variants for row in rounds] == [2, 2]
+    assert [row.best_score for row in rounds] == [pytest.approx(0.55), pytest.approx(0.71)]
+    assert [row.gain for row in rounds] == [pytest.approx(0.55), pytest.approx(0.16)]
+
+
+def test_a_round_summary_carries_the_cost_the_round_burned():
+    rounds = summarise_rounds(
+        [
+            attempt("v1", 0.4, 1, gpu_minutes=30.0, wall_minutes=45.0),
+            attempt("v2", 0.5, 1, gpu_minutes=30.0, wall_minutes=45.0),
+        ]
+    )
+    assert rounds[0].gpu_minutes == pytest.approx(60.0)
+    assert rounds[0].wall_minutes == pytest.approx(90.0)
+
+
+def test_a_round_summary_leaves_the_joules_unmeasured_until_the_meter_reads_them():
+    rounds = summarise_rounds([attempt("v1", 0.4, 1, joules=None)])
+    assert rounds[0].joules is None
+
+
+def test_a_round_summary_adds_the_joules_when_the_meter_has_read_them():
+    rounds = summarise_rounds(
+        [attempt("v1", 0.4, 1, joules=12.0), attempt("v2", 0.5, 1, joules=8.0)]
+    )
+    assert rounds[0].joules == pytest.approx(20.0)

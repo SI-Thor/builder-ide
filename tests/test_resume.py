@@ -38,11 +38,11 @@ class CrashingExecutor(ScriptedExecutor):
         super().__init__(*args, **kwargs)
         self.crashed = False
 
-    def run(self, task):
+    def run(self, task, variant=None):
         if task.id == "task_0002" and not self.crashed:
             self.crashed = True
             raise RuntimeError("the box rebooted")
-        return super().run(task)
+        return super().run(task, variant)
 
 
 def test_a_restart_rebuilds_the_projection_from_the_log_alone():

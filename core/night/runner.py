@@ -28,8 +28,20 @@ from typing import Callable, Literal, Mapping, Sequence
 from core.night.clock import Clock
 from core.night.executor import ExecutionPlan, TaskExecutor
 from core.night.heartbeat import Heartbeat
+from core.night.iterate import (
+    Attempt,
+    Critic,
+    CriticScore,
+    NullPowerMeter,
+    PowerMeter,
+    Variant,
+    VariantSource,
+    best_of,
+    gain_of,
+    summarise_rounds,
+)
 from core.night.ledger import Ledger
-from core.night.models import Actor, Night, Rail, Task
+from core.night.models import Actor, IterationPolicy, Night, Rail, Task
 from core.night.projection import NightProjection
 from core.night.queue import TaskQueue
 from core.night.rails import LoadBudget, RailBudget, ThrottleLevel
@@ -77,7 +89,18 @@ class NightRunner:
         actor: Actor = _DEFAULT_ACTOR,
         tick_interval_minutes: int = TICK_INTERVAL_MINUTES,
         lease_minutes: int = LEASE_MINUTES,
+        variant_source: VariantSource | None = None,
+        critic: Critic | None = None,
+        iteration: IterationPolicy | None = None,
+        power_meter: PowerMeter | None = None,
     ) -> None:
+        if (critic is None) != (variant_source is None):
+            # Half a loop is not a loop: a score with nothing to score, or
+            # candidates with nobody to judge them.
+            raise ValueError(
+                "the loop needs both a variant source and a critic — "
+                "one without the other is half a loop"
+            )
         self._ledger = ledger
         self._executor = executor
         self.night_id = night_id
@@ -92,6 +115,10 @@ class NightRunner:
         self._actor = actor
         self.tick_interval_minutes = tick_interval_minutes
         self.lease_minutes = lease_minutes
+        self._variant_source = variant_source
+        self._critic = critic
+        self._iteration = iteration or IterationPolicy()
+        self._power_meter = power_meter or NullPowerMeter()
         self._running_job: str | None = None
 
         self.budget = RailBudget(ceiling=rails)
@@ -127,6 +154,10 @@ class NightRunner:
         night = projection.night
         rails = night.rails if night else Rail()
         load_budget = night.load_budget if night else {}
+        if night is not None and night.iteration is not None:
+            # The night resumes at the depth it started at — the policy is a
+            # rail of that night, and it folds out of the log like the rest.
+            kwargs.setdefault("iteration", night.iteration)
         runner = cls(
             ledger,
             executor,
@@ -175,6 +206,7 @@ class NightRunner:
                 "power_mode": self.power_mode,
                 "batch_start": self.batch_start,
                 "detach_deadline": detach_deadline,
+                "iteration": self._iteration.model_dump(),
             },
             at=started_at,
         )
@@ -187,6 +219,7 @@ class NightRunner:
             batch_start=self.batch_start,
             detach_deadline=detach_deadline,
             state="running",
+            iteration=self._iteration,
         )
         # The ProArt is watching the night; the core owns the power mode for
         # the window (§5.5).
@@ -402,25 +435,270 @@ class NightRunner:
     # -- the work ----------------------------------------------------------
 
     def _run_task(self, task: Task, plan: ExecutionPlan) -> None:
+        """Run the task: one attempt, or a loop of variants.
+
+        Without a critic there is no score to keep the best of, so the night
+        runs the task once — what the first eleven commits did. With a critic
+        wired, the task becomes a **loop**: N variants a round, the best kept
+        and refined from, until the gain falls below ε or the rails cut it
+        short.
+        """
+        if self._critic is None or self._variant_source is None:
+            actual, _ = self._run_attempt(task, plan, variant=None, seal=True)
+            state = "reverted" if actual.outcome == "failed" else actual.outcome
+            self._settle(
+                task,
+                state=state,
+                reason=actual.reason,
+                actual=actual,
+                winner=None,
+                record=None,
+            )
+            return
+        self._run_loop(task)
+
+    def _run_loop(self, task: Task) -> None:
+        """The iterator loop: N variants, keep the best, refine from it.
+
+        The rules it keeps:
+
+        * **the best is kept** — only a variant that was actually kept can
+          win, so a failure never wins by scoring high;
+        * **the warm start** — the next round is generated from the winner, so
+          the loop narrows in instead of starting over;
+        * **ε** — a round that gains no more than ε ends the loop;
+        * **the bar can cut it** — at the graduated throttle the night stops
+          opening rounds, and the morning says which round it stopped on.
+        """
+        policy = self._iteration
+        attempts: list[Attempt] = []
+        winner: Attempt | None = None
+        winner_variant: Variant | None = None
+        winner_actual: ExecutionPlan | None = None
+        stop: dict = {}
+
+        for round_no in range(1, policy.max_rounds + 1):
+            previous_best = winner.score if winner is not None else None
+            cut = self._bar_cuts_the_loop()
+            if cut:
+                stop = {"reason": "rail", "detail": cut, "round": round_no - 1}
+                break
+            variants = self._variant_source.variants(
+                task,
+                round=round_no,
+                parent=winner_variant,
+                count=policy.variants_per_round,
+            )
+            if not variants:
+                stop = {
+                    "reason": "no variants",
+                    "detail": f"the source offered nothing for round {round_no}",
+                    "round": round_no - 1,
+                }
+                break
+            round_attempts: list[Attempt] = []
+            for variant in variants:
+                variant_plan = self._executor.plan(task, variant)
+                cost = Rail(
+                    gpu_minutes=variant_plan.gpu_minutes,
+                    hosted_cents=variant_plan.hosted_cents,
+                    wall_minutes=variant_plan.wall_minutes,
+                )
+                if not self.budget.can_admit(cost):
+                    # Admission is before spend (§5.5): the loop stops here
+                    # rather than starting work the rail cannot cover.
+                    stop = {
+                        "reason": "rail",
+                        "detail": (
+                            f"the rail could not cover another variant "
+                            f"({cost.gpu_minutes:.0f} lane-min) in round {round_no}"
+                        ),
+                        "round": round_no,
+                    }
+                    break
+                actual, score = self._run_attempt(
+                    task,
+                    variant_plan,
+                    variant=variant,
+                    seal=not attempts,
+                    round_no=round_no,
+                    first_attempt=not attempts,
+                )
+                attempt = Attempt(
+                    task_id=task.id,
+                    variant_id=variant.id,
+                    label=variant.label,
+                    round=round_no,
+                    parent_id=variant.parent_id,
+                    score=score.score if score else 0.0,
+                    outcome=actual.outcome,
+                    reason=actual.reason,
+                    critic_reason=score.reason if score else "",
+                    gpu_minutes=actual.gpu_minutes,
+                    wall_minutes=actual.wall_minutes,
+                    hosted_cents=actual.hosted_cents,
+                    joules=self._power_meter.joules(
+                        gpu_minutes=actual.gpu_minutes,
+                        wall_minutes=actual.wall_minutes,
+                    ),
+                )
+                attempts.append(attempt)
+                round_attempts.append(attempt)
+                if actual.outcome == "kept" and (
+                    winner is None or attempt.score > winner.score
+                ):
+                    winner = attempt
+                    winner_variant = variant
+                    winner_actual = actual
+            if stop:
+                break
+            round_best = best_of(round_attempts)
+            if round_best is None:
+                stop = {
+                    "reason": "nothing kept",
+                    "detail": f"no variant in round {round_no} was kept",
+                    "round": round_no,
+                }
+                break
+            gain = gain_of(round_best.score, previous_best)
+            if gain <= policy.min_gain:
+                stop = {
+                    "reason": "no improvement",
+                    "detail": (
+                        f"the gain was {gain:.2f}, below the {policy.min_gain:.2f} bar "
+                        f"after round {round_no}"
+                    ),
+                    "round": round_no,
+                }
+                break
+
+        if not stop:
+            stop = {
+                "reason": "rounds exhausted",
+                "detail": f"the loop ran its {policy.max_rounds} rounds",
+                "round": policy.max_rounds,
+            }
+
+        record = {
+            "winner": (
+                {
+                    "variant_id": winner.variant_id,
+                    "label": winner.label,
+                    "score": winner.score,
+                    "round": winner.round,
+                    "reason": winner.critic_reason,
+                }
+                if winner is not None
+                else None
+            ),
+            "rounds": [row.model_dump() for row in summarise_rounds(attempts)],
+            "stop": stop,
+            "attempts": len(attempts),
+        }
+
+        if winner_actual is not None:
+            reason = (
+                f"the winner scored {winner.score:.2f} ({winner.label}, round {winner.round}) "
+                f"— it beat {len(attempts) - 1} other variant(s)"
+            )
+            if stop["reason"] != "rounds exhausted":
+                reason = f"{reason}; {stop['detail']}"
+            self._settle(
+                task,
+                state="kept",
+                reason=reason,
+                actual=winner_actual,
+                winner=winner,
+                record=record,
+            )
+            return
+
+        # Nothing was kept: the work failed, or the bar cut the loop before
+        # anything could run.
+        failed = next(
+            (attempt for attempt in attempts if attempt.outcome == "failed"), None
+        )
+        if failed is not None:
+            self._settle(
+                task,
+                state="reverted",
+                reason=failed.reason or "the work failed",
+                actual=None,
+                winner=None,
+                record=record,
+            )
+            return
+        self._settle(
+            task,
+            state="cut",
+            reason=stop["detail"],
+            actual=None,
+            winner=None,
+            record=record,
+        )
+
+    def _bar_cuts_the_loop(self) -> str | None:
+        """Why the bar stops the loop now, or ``None`` when it may go on.
+
+        §5.5's degradation order: at 80% the night stops opening new batches
+        and branches. A new round of variants is exactly that, so the loop
+        stops here and the morning says on which round.
+        """
+        level = self.budget.throttle_level()
+        if level is ThrottleLevel.NOMINAL:
+            return None
+        pct = {
+            ThrottleLevel.DRAINING: 80,
+            ThrottleLevel.STOPPING: 95,
+            ThrottleLevel.SPENT: 100,
+        }[level]
+        return f"the {pct}% bar stopped the loop"
+
+    def _run_attempt(
+        self,
+        task: Task,
+        plan: ExecutionPlan,
+        *,
+        variant: Variant | None = None,
+        seal: bool = False,
+        round_no: int = 0,
+        first_attempt: bool = True,
+    ) -> tuple[ExecutionPlan, CriticScore | None]:
+        """One attempt: seal, enqueue, run, spend, score, record.
+
+        The bet is sealed and committed before the render job exists (§5.1).
+        The seal covers the *goal*, so in a loop it is written once — before
+        the first variant's job — and every later variant is covered by it.
+        """
         now = self.clock.now()
         self._job_counter += 1
         job_id = f"job_{self._job_counter:04d}"
-        # The bet is sealed and committed before the render job exists (§5.1).
-        for prediction in plan.predictions:
-            self._append(
-                "prediction.sealed",
-                {
-                    "prediction_id": prediction["prediction_id"],
-                    "builder": prediction.get("builder", task.owner_character),
-                    "claim_type": prediction.get("claim_type", "shadow_count"),
-                    "claim": prediction.get("claim", ""),
-                    "confidence": prediction.get("confidence", "guess"),
-                    "basis": prediction.get("basis", "0 observations"),
-                    "task_id": task.id,
-                },
-                at=now,
-            )
+        if seal:
+            for prediction in plan.predictions:
+                self._append(
+                    "prediction.sealed",
+                    {
+                        "prediction_id": prediction["prediction_id"],
+                        "builder": prediction.get("builder", task.owner_character),
+                        "claim_type": prediction.get("claim_type", "shadow_count"),
+                        "claim": prediction.get("claim", ""),
+                        "confidence": prediction.get("confidence", "guess"),
+                        "basis": prediction.get("basis", "0 observations"),
+                        "task_id": task.id,
+                    },
+                    at=now,
+                )
 
+        request: dict = {}
+        if variant is not None:
+            request = {
+                "variant_id": variant.id,
+                "label": variant.label,
+                "round": round_no,
+                "parent_id": variant.parent_id,
+                "seed": variant.seed,
+                "params": dict(variant.params),
+            }
         self._append(
             "job.enqueued",
             {
@@ -433,6 +711,7 @@ class NightRunner:
                     "hosted_cents": plan.hosted_cents,
                     "wall_minutes": plan.wall_minutes,
                 },
+                "request": request,
             },
             at=now,
         )
@@ -450,13 +729,14 @@ class NightRunner:
             },
             at=now,
         )
-        self.queue.mark(task.id, "running")
+        if first_attempt:
+            self.queue.mark(task.id, "running")
         self._running_job = job_id
         try:
             # The work itself: the executor runs it and reports what it cost.
             # If the box dies here, the night dies with it — and the time the
             # work would have taken is the time the morning will call lost.
-            actual = self._executor.run(task)
+            actual = self._executor.run(task, variant)
         finally:
             self._running_job = None
         actual_cost = Rail(
@@ -486,54 +766,88 @@ class NightRunner:
             # stopped, not trusted, and it waits for tomorrow.
             overrun = actual.wall_minutes - task.rail.wall_minutes
             outcome = "cut"
-        self._append(
-            "job.done",
-            {
-                "job_id": job_id,
-                "task_id": task.id,
-                "outcome": "failed" if outcome == "failed" else outcome,
-                "reason": actual.reason,
-                "artifact": actual.artifact,
-                "cost": actual_cost.model_dump(),
-            },
-            at=done_at,
-        )
+            actual = actual.model_copy(update={"outcome": "cut"})
 
-        for branch in actual.branches:
-            self._append(
-                "branch.created",
-                {"branch": branch, "task_id": task.id},
-                at=done_at,
-            )
+        # The critic scores what the attempt produced — the score is what
+        # picks the winner, so it is written with the attempt itself.
+        score: CriticScore | None = None
+        if variant is not None and self._critic is not None:
+            score = self._critic.score(task, variant)
 
-        for verdict in actual.verdicts:
-            self._append(
-                "critic.verdict",
-                {
-                    "prediction_id": verdict["prediction_id"],
-                    "verdict": verdict["verdict"],
-                    "degraded": bool(verdict.get("degraded", actual.degraded)),
-                    "summary": verdict.get("summary", "verdict@scripted"),
-                    "task_id": task.id,
-                },
-                at=done_at,
-            )
-            self._append(
-                "prediction.scored",
-                {
-                    "prediction_id": verdict["prediction_id"],
-                    "verdict": verdict["verdict"],
-                },
-                at=done_at,
-            )
+        done_payload = {
+            "job_id": job_id,
+            "task_id": task.id,
+            "outcome": "failed" if outcome == "failed" else outcome,
+            "reason": actual.reason,
+            "artifact": actual.artifact,
+            "cost": actual_cost.model_dump(),
+        }
+        if variant is not None:
+            done_payload["variant_id"] = variant.id
+            done_payload["round"] = round_no
+            done_payload["score"] = score.score if score else 0.0
+            done_payload["critic_reason"] = score.reason if score else ""
+        self._append("job.done", done_payload, at=done_at)
+        return actual, score
 
-        # The night's keep or revert is a **verdict** write, never a taste
-        # write (§1.7): the owner scores taste in the morning.
-        state = "reverted" if outcome == "failed" else outcome
-        reason = actual.reason
-        if overrun:
+    def _settle(
+        self,
+        task: Task,
+        *,
+        state: str,
+        reason: str | None,
+        actual: ExecutionPlan | None,
+        winner: Attempt | None,
+        record: dict | None,
+    ) -> None:
+        """Close the task: its branches, its bet's verdict, its state.
+
+        The night's keep or revert is a **verdict** write, never a taste write
+        (§1.7): the owner scores taste in the morning. Only the kept work
+        reaches the morning — a variant that lost is not an option.
+        """
+        done_at = self.clock.now()
+        if (
+            state == "cut"
+            and actual is not None
+            and not task.rail.is_zero
+            and actual.wall_minutes > task.rail.wall_minutes
+        ):
+            # The seat hard-kills at the per-attempt rail (§5.5): the work is
+            # stopped, not trusted, and it waits for tomorrow.
+            overrun = actual.wall_minutes - task.rail.wall_minutes
             reason = f"the seat stopped it at its own rail — {overrun:.0f} min over"
-        self.queue.mark(task.id, state, reason)
+        if actual is not None:
+            for branch in actual.branches:
+                self._append(
+                    "branch.created",
+                    {"branch": branch, "task_id": task.id},
+                    at=done_at,
+                )
+
+            for verdict in actual.verdicts:
+                self._append(
+                    "critic.verdict",
+                    {
+                        "prediction_id": verdict["prediction_id"],
+                        "verdict": verdict["verdict"],
+                        "degraded": bool(verdict.get("degraded", actual.degraded)),
+                        "summary": verdict.get("summary", "verdict@scripted"),
+                        "task_id": task.id,
+                    },
+                    at=done_at,
+                )
+                self._append(
+                    "prediction.scored",
+                    {
+                        "prediction_id": verdict["prediction_id"],
+                        "verdict": verdict["verdict"],
+                    },
+                    at=done_at,
+                )
+
+        extra = {"iteration": record} if record is not None else None
+        self.queue.mark(task.id, state, reason, extra=extra)
 
     # -- time --------------------------------------------------------------
 

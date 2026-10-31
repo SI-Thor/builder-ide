@@ -36,7 +36,7 @@ from typing import Any, Mapping, Protocol, Sequence, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-from core.night.models import Task
+from core.night.models import IterationPolicy, Task
 
 __all__ = [
     "Attempt",
@@ -46,12 +46,14 @@ __all__ = [
     "NullPowerMeter",
     "PerturbationSource",
     "PowerMeter",
+    "RoundSummary",
     "ScriptedCritic",
     "ScriptedVariantSource",
     "Variant",
     "VariantSource",
     "best_of",
     "gain_of",
+    "summarise_rounds",
 ]
 
 
@@ -101,18 +103,6 @@ class Attempt(BaseModel):
     wall_minutes: float = 0.0
     hosted_cents: int = 0
     joules: float | None = None
-
-
-class IterationPolicy(BaseModel):
-    """How deep the night goes on one goal — N, K and ε.
-
-    It is a **rail**, not a preference: the budget can cut a loop short, and
-    the morning says where it was cut.
-    """
-
-    variants_per_round: int = Field(default=3, ge=1)
-    max_rounds: int = Field(default=3, ge=1)
-    min_gain: float = Field(default=0.02, ge=0.0)
 
 
 @runtime_checkable
@@ -277,12 +267,15 @@ class NullPowerMeter:
 
 
 def best_of(attempts: Sequence[Attempt]) -> Attempt | None:
-    """The best attempt of a round: the highest score, the earliest on a tie."""
+    """The best attempt of a round: the highest score, the earliest on a tie.
+
+    Only attempts that were **kept** can win — a variant that failed must
+    never win by scoring high.
+    """
     kept = [attempt for attempt in attempts if attempt.outcome == "kept"]
-    pool = kept or list(attempts)
-    if not pool:
+    if not kept:
         return None
-    return max(pool, key=lambda attempt: (attempt.score, -attempt.round))
+    return max(kept, key=lambda attempt: (attempt.score, -attempt.round))
 
 
 def gain_of(round_best: float, previous_best: float | None) -> float:
@@ -293,3 +286,58 @@ def gain_of(round_best: float, previous_best: float | None) -> float:
     winner they have to beat.
     """
     return round_best - (previous_best if previous_best is not None else 0.0)
+
+
+class RoundSummary(BaseModel):
+    """One round of a loop: what it scored, what it gained, what it cost."""
+
+    round: int
+    variants: int = 0
+    best_score: float = 0.0
+    gain: float = 0.0
+    gpu_minutes: float = 0.0
+    wall_minutes: float = 0.0
+    hosted_cents: int = 0
+    joules: float | None = None
+
+
+def summarise_rounds(attempts: Sequence[Attempt]) -> list[RoundSummary]:
+    """The rounds of one task's loop, with the quality gained in each.
+
+    This is the data the depth policy is tuned from: how much a round bought,
+    what it cost, and — once the power meter reads — how many joules it
+    took. The gain of each round is measured against the best the loop had
+    before that round, which is the same number the loop stops on.
+    """
+    by_round: dict[int, list[Attempt]] = {}
+    for attempt in attempts:
+        by_round.setdefault(attempt.round, []).append(attempt)
+
+    summaries: list[RoundSummary] = []
+    previous_best: float | None = None
+    for round_no in sorted(by_round):
+        round_attempts = by_round[round_no]
+        best = best_of(round_attempts)
+        best_score = best.score if best is not None else 0.0
+        gain = gain_of(best_score, previous_best)
+        joules_values = [attempt.joules for attempt in round_attempts]
+        joules = (
+            sum(value for value in joules_values if value is not None)
+            if all(value is not None for value in joules_values)
+            else None
+        )
+        summaries.append(
+            RoundSummary(
+                round=round_no,
+                variants=len(round_attempts),
+                best_score=best_score,
+                gain=gain,
+                gpu_minutes=sum(attempt.gpu_minutes for attempt in round_attempts),
+                wall_minutes=sum(attempt.wall_minutes for attempt in round_attempts),
+                hosted_cents=sum(attempt.hosted_cents for attempt in round_attempts),
+                joules=joules,
+            )
+        )
+        if best is not None and (previous_best is None or best.score > previous_best):
+            previous_best = best.score
+    return summaries

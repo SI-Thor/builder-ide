@@ -16,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 __all__ = [
     "Actor",
     "AuditEvent",
+    "IterationPolicy",
     "Rail",
     "Task",
     "TaskState",
@@ -101,6 +102,20 @@ NightState = Literal["starting", "running", "stopping", "stopped"]
 NightStatus = Literal["ran as planned", "ran short", "ran degraded", "did not run"]
 
 
+class IterationPolicy(BaseModel):
+    """How deep the night goes on one goal — N, K and ε.
+
+    It is a **rail**, not a preference: the budget can cut a loop short, and
+    the morning says where it was cut. It rides on the night (the night's
+    ``iteration``), so the depth the night ran at is foldable from the log
+    like everything else.
+    """
+
+    variants_per_round: int = Field(default=3, ge=1)
+    max_rounds: int = Field(default=3, ge=1)
+    min_gain: float = Field(default=0.02, ge=0.0)
+
+
 class Task(BaseModel):
     """One unit of the owner's plan (§1.9).
 
@@ -160,3 +175,6 @@ class Night(BaseModel):
     state: NightState = "starting"
     status: NightStatus | None = None
     report: str | None = None
+    #: The night's depth policy — how many variants per round, how many
+    #: rounds, and the ε the loop stops below (the iterator's rails).
+    iteration: IterationPolicy | None = None

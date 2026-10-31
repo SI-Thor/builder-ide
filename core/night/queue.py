@@ -96,14 +96,27 @@ class TaskQueue:
         self._order.append(task.id)
         return task
 
-    def mark(self, task_id: str, state: TaskState, reason: str | None = None) -> None:
-        """Record a task's state change — one event, one row (§5.1)."""
+    def mark(
+        self,
+        task_id: str,
+        state: TaskState,
+        reason: str | None = None,
+        extra: dict | None = None,
+    ) -> None:
+        """Record a task's state change — one event, one row (§5.1).
+
+        ``extra`` carries the task's own record with the row: the iteration
+        loop's winner, its rounds and where it stopped. It is part of the
+        task's row, not a second story told elsewhere.
+        """
         task = self._tasks.get(task_id)
         if task is None:
             raise KeyError(f"unknown task: {task_id!r}")
         payload: dict = {"task_id": task_id, "state": state}
         if reason:
             payload["reason"] = reason
+        if extra:
+            payload.update(extra)
         self._ledger.append(
             type="night.task.state",
             actor=self._actor,

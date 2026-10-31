@@ -14,7 +14,8 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from core.night.models import AuditEvent, Night, Rail, Task
+from core.night.iterate import Attempt
+from core.night.models import AuditEvent, IterationPolicy, Night, Rail, Task
 
 __all__ = ["NightProjection"]
 
@@ -50,6 +51,12 @@ class NightProjection:
         self.booted = False
         self.recovered = False
         self.job_outcomes: list[dict[str, Any]] = []
+        #: The iterator loop's record, per task: the winner, the rounds and
+        #: where the loop stopped.
+        self.iterations: dict[str, dict[str, Any]] = {}
+        #: Every variant attempt, in the order the night made them.
+        self.attempts: list[Attempt] = []
+        self._job_requests: dict[str, dict[str, Any]] = {}
         self._fold(events)
 
     # -- the fold ---------------------------------------------------------
@@ -70,6 +77,11 @@ class NightProjection:
             power_mode=int(payload.get("power_mode", 0)),
             batch_start=payload.get("batch_start", "both"),
             detach_deadline=payload.get("detach_deadline"),
+            iteration=(
+                IterationPolicy(**payload["iteration"])
+                if payload.get("iteration")
+                else None
+            ),
         )
 
     def _on_night_stopped(self, event: AuditEvent) -> None:
@@ -105,6 +117,10 @@ class NightProjection:
         # The reason belongs to the state: a task that is merely running has
         # no reason, and must not keep the reason of the state before it.
         self.task_reasons[task.id] = payload.get("reason")
+        # The loop's own record rides on the task's row: the winner, the
+        # rounds it ran and where it stopped.
+        if payload.get("iteration"):
+            self.iterations[task.id] = dict(payload["iteration"])
 
     def _on_budget_spend(self, event: AuditEvent) -> None:
         payload = event.payload
@@ -162,11 +178,50 @@ class NightProjection:
         if event.payload.get("degraded"):
             self.degraded_verdicts += 1
 
+    def _on_job_enqueued(self, event: AuditEvent) -> None:
+        payload = event.payload
+        job_id = payload.get("job_id")
+        if job_id:
+            self._job_requests[job_id] = payload
+
     def _on_job_done(self, event: AuditEvent) -> None:
         payload = event.payload
         self.job_outcomes.append(payload)
         if payload.get("outcome") == "failed":
             self.failures.append(payload)
+        self._fold_attempt(payload)
+
+    def _fold_attempt(self, payload: dict[str, Any]) -> None:
+        """One variant attempt out of the log: what it was and what it scored.
+
+        The variant rides on the job's request (seeded and bounded, §1.9) and
+        the score rides on the job's outcome — the two halves join here, so
+        the morning can say which variant beat which.
+        """
+        variant_id = payload.get("variant_id")
+        if not variant_id:
+            return
+        request = (self._job_requests.get(payload.get("job_id")) or {}).get(
+            "request", {}
+        )
+        cost = payload.get("cost") or {}
+        self.attempts.append(
+            Attempt(
+                task_id=payload.get("task_id", ""),
+                variant_id=variant_id,
+                label=request.get("label", ""),
+                round=int(payload.get("round", request.get("round", 1))),
+                parent_id=request.get("parent_id"),
+                score=float(payload.get("score", 0.0)),
+                outcome=payload.get("outcome", "kept"),
+                reason=payload.get("reason"),
+                critic_reason=payload.get("critic_reason", ""),
+                gpu_minutes=float(cost.get("gpu_minutes", 0.0)),
+                wall_minutes=float(cost.get("wall_minutes", 0.0)),
+                hosted_cents=int(cost.get("hosted_cents", 0)),
+                joules=payload.get("joules"),
+            )
+        )
 
     def _on_branch_created(self, event: AuditEvent) -> None:
         self.branches.append(event.payload)
@@ -201,3 +256,28 @@ class NightProjection:
 
     def reason_for(self, task_id: str) -> str | None:
         return self.task_reasons.get(task_id)
+
+    # -- the loop ----------------------------------------------------------
+
+    def attempts_for(self, task_id: str) -> list[Attempt]:
+        """Every variant attempt the night made for one goal, in order."""
+        return [attempt for attempt in self.attempts if attempt.task_id == task_id]
+
+    def winner_for(self, task_id: str) -> Attempt | None:
+        """The variant the loop kept — the best that was actually kept."""
+        record = self.iterations.get(task_id) or {}
+        winner = record.get("winner") or {}
+        winner_id = winner.get("variant_id")
+        if not winner_id:
+            return None
+        for attempt in self.attempts_for(task_id):
+            if attempt.variant_id == winner_id:
+                return attempt
+        return None
+
+    def stop_for(self, task_id: str) -> dict[str, Any] | None:
+        """Why the loop stopped: ``no improvement``, ``rail``, and where."""
+        record = self.iterations.get(task_id)
+        if not record:
+            return None
+        return record.get("stop")
