@@ -59,35 +59,32 @@ if [ "$READY" != "1" ]; then
 fi
 echo "the VLM is up"
 
-# -- the peak memory sampler ---------------------------------------------------
-PEAK_FILE="$LOGDIR/vlm-stage-peak.json"
-(
-  peak_used=0
-  peak_avail=122
-  while true; do
-    read -r used avail <<<"$(free -g | awk 'NR==2 {print $3, $7}')"
-    [ "${used:-0}" -gt "$peak_used" ] && peak_used=$used
-    [ "${avail:-0}" -lt "$peak_avail" ] && peak_avail=$avail
-    printf '{"peak_used_gb": %s, "min_available_gb": %s}\n' "$peak_used" "$peak_avail" > "$PEAK_FILE"
-    sleep 3
-  done
-) &
-SAMPLER_PID=$!
+# -- the box's state, sampled beside the stage --------------------------------
+echo
+echo "=== the box's state, beside the numbers ==="
+.venv/bin/python "$HERE/stage_box.py" --out "$LOGDIR/vlm-stage-box.json" &
+BOX_PID=$!
+trap 'kill $BOX_PID 2>/dev/null || true; cleanup' EXIT
+
+# -- the hybrid ----------------------------------------------------------------
+# First, because the hybrid is what the pick rests on: it is eight model
+# calls (the two escalated members and the six clean controls), while the
+# captions are twenty-one long ones. If the stage has to be cut short, the
+# hybrid's table is the one that must exist.
+echo
+echo "=== the hybrid: the checks first, the model on the out-of-band class ==="
+.venv/bin/python "$HERE/score_set.py" --candidate hybrid --set delegate=vlm 2>&1 \
+  | tee "$LOGDIR/hybrid-run.log"
 
 # -- the captions ---------------------------------------------------------------
 echo
 echo "=== the VLM's descriptions of the frames ==="
 .venv/bin/python "$HERE/caption_frames.py" 2>&1 | tee "$LOGDIR/captions-run.log"
 
-# -- the hybrid ----------------------------------------------------------------
-echo
-echo "=== the hybrid: the checks first, the model on the out-of-band class ==="
-.venv/bin/python "$HERE/score_set.py" --candidate hybrid --set delegate=vlm 2>&1 \
-  | tee "$LOGDIR/hybrid-run.log"
-
 # -- done ----------------------------------------------------------------------
-kill "$SAMPLER_PID" 2>/dev/null || true
+kill "$BOX_PID" 2>/dev/null || true
+wait "$BOX_PID" 2>/dev/null || true
 echo
-echo "=== the box's peak memory during this stage ==="
-cat "$PEAK_FILE"
+echo "=== the box during this stage ==="
+cat "$LOGDIR/vlm-stage-box.json" 2>/dev/null || echo "(the box capture did not finish)"
 free -g | sed -n '2p'

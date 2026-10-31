@@ -20,12 +20,17 @@ counting rule, the same timing.
 | `caption_frames.py` | one neutral description per frame from the local VLM — the text Jev reads (Jev never sees a picture) |
 | `run_dino.py` | the DINOv2-large probe, in its two heads (kNN, linear) and its two splits (leave-one-base-out, leave-one-member-out) |
 | `plant_leak.py` | how far each plant moves the picture in DINOv2's embedding space — the cosine between a member and the base render it was planted on |
-| `run_jev.py` | the Jev arms: `verify`/`classify` × with-measurements/description-only |
+| `run_jev.py` | the Jev arms: `verify`/`classify` × measurements-only / description-only / description+measurements |
 | `report.py` | print every candidate's table side by side, and write `core/critic/selection.json` |
+| `figures.py` | print each candidate's table, latency spread and model time straight out of the result files — the write-up's numbers come from here, not from memory |
+| `latency_split.py` | split the wall time by layer (the checks' 882 ms image verdict against its 21.8 s mesh verdict) and pull the per-question model time out of the verdicts |
 | `start_vlm.sh` | start the local VLM (Muse Glimmer 30B, Apache-2.0, the Thor's own copy) on loopback:8123 |
-| `run_vlm_stage.sh` | the VLM stage **under the box's shared heavy lock**: start the server, make the captions, score the hybrid, stop the server, record the peak memory |
+| `run_vlm_stage.sh` | the VLM stage **under the box's shared heavy lock**: start the server, score the hybrid, make the captions, stop the server, capture the box's state |
+| `stage_box.py` | the box's state beside the stage: peak memory and the whole-box power rails (context, not an attribution — the box is shared) |
 | `run_rest.sh` | the rest of the bake-off in one go (captions, hybrid, Jev's four arms) |
 | `boxstate.py` | the box-state sampler: load, GPU, tegrastats power rails, and the other seats' processes — the state that goes beside every number |
+| `check_jev_description.py` | one member, one call — the check that Jev's description arm works before the whole arm is run |
+| `check_publish_selection.py` | render the published file's selection section with a synthetic selection, so the formatting is checked before the real one exists |
 | `check_no_key.py` | assert the Jev API key is in none of the artifacts (it never is) |
 
 ## The results

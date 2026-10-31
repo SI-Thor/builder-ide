@@ -76,7 +76,16 @@ def main() -> int:
     payload["arm"] = args.arm
     payload["measurements"] = args.measurements
     payload["has_descriptions"] = bool(descriptions)
-    name = f"jev-{args.arm}-{'measurements' if args.measurements else 'description'}"
+    # The name says what Jev was given, so the three arms cannot collide:
+    # the measurements alone, the description alone, and the description
+    # with the measurements.
+    if args.measurements and descriptions:
+        suffix = "description+measurements"
+    elif args.measurements:
+        suffix = "measurements"
+    else:
+        suffix = "description"
+    name = f"jev-{args.arm}-{suffix}"
     write_result(payload, name)
     return 0
 

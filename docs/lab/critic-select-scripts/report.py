@@ -27,14 +27,17 @@ from harness import RESULTS, ROOT  # noqa: E402
 
 #: The order the candidates are printed in, and the label each one gets.
 ORDER = [
-    ("scripted", "scripted (the baseline)"),
+    ("scripted", "scripted (the baseline, cold probe cache)"),
+    ("scripted-warm", "scripted (the baseline, warm probe cache)"),
     ("dino-knn-base", "dino-probe, kNN head, leave-one-base-out"),
     ("dino-knn-member", "dino-probe, kNN head, leave-one-member-out"),
     ("dino-linear-base", "dino-probe, linear head, leave-one-base-out"),
     ("dino-linear-member", "dino-probe, linear head, leave-one-member-out"),
     ("vlm", "the local VLM (Muse Glimmer 30B)"),
-    ("jev-verify-measurements", "Jev, verify arm, with the measurements"),
-    ("jev-classify-measurements", "Jev, classify arm, with the measurements"),
+    ("jev-verify-measurements", "Jev, verify arm, measurements only"),
+    ("jev-classify-measurements", "Jev, classify arm, measurements only"),
+    ("jev-verify-description+measurements", "Jev, verify arm, description + measurements"),
+    ("jev-classify-description+measurements", "Jev, classify arm, description + measurements"),
     ("jev-verify-description", "Jev, verify arm, description only"),
     ("jev-classify-description", "Jev, classify arm, description only"),
     ("hybrid", "hybrid: scripted + the model on the out-of-band class"),

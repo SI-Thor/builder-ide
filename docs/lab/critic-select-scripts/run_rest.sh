@@ -39,6 +39,5 @@ echo
 echo "=== Jev: classify, description only ==="
 .venv/bin/python "$HERE/run_jev.py" --arm classify \
   --captions "$HERE/results/captions.json"
-
 echo
 echo "done"

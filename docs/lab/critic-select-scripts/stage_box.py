@@ -61,7 +61,10 @@ def _peak_memory(should_stop=lambda: False) -> tuple[int, int, float, dict, dict
             averages[rail] = round(
                 sum(p for _, p in series) / max(len(series), 1) / 1000.0, 2
             )
-    return peak_used, min_avail, elapsed, joules, averages
+    # The sampler stops when the context manager exits, so the window is
+    # measured here — the samples' own timestamps are the truth.
+    window = max((s["t"] for s in sampler.samples), default=0.0)
+    return peak_used, min_avail, window, joules, averages
 
 
 def main() -> int:
