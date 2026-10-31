@@ -54,6 +54,16 @@ class WorkOrdersService:
             return Rail(**wo.spend_so_far)
         return Rail()
 
+    def _attempt_fits(self, wo: WorkOrder) -> bool:
+        """Whether the per_order rail can cover one more attempt (§1.3)."""
+        spent = self._spend_so_far(wo.id)
+        per_order, per_attempt = wo.budget.per_order, wo.budget.per_attempt
+        if spent.gpu_minutes + per_attempt.gpu_minutes > per_order.gpu_minutes + 1e-9:
+            return False
+        if spent.hosted_cents + per_attempt.hosted_cents > per_order.hosted_cents:
+            return False
+        return True
+
     # ------------------------------------------------------------- filing & compile
 
     def file(
@@ -188,8 +198,13 @@ class WorkOrdersService:
                     budget=wo.budget, vocabulary_gap=wo.vocabulary_gap,
                     branch=wo.branch,
                 )
-                est = amendments.get("estimate") if amendments else (
+                # An amendment that does not mention the estimate keeps the
+                # original one: dropping it would make the refiled order
+                # uncompilable (a confirm line needs both price lines).
+                est = (amendments.get("estimate") if amendments else None) or (
                     wo.estimate.model_dump(mode="json") if wo.estimate else None)
+                if isinstance(est, dict):
+                    est = Estimate(**est)
                 line = amendments.get("confirm_line", wo.confirm_line) if amendments else wo.confirm_line
                 drafted = self.compile_draft(
                     new.id, title=new.title, goal=new.goal, targets=new.targets,
@@ -240,18 +255,31 @@ class WorkOrdersService:
     # ------------------------------------------------------------- attempts & gate
 
     def start_attempt(self, wo_id: str, engineer: str) -> Attempt:
-        """queued → building [seat built; rails pre-checked]."""
+        """queued → building [seat built; rails pre-checked].
+
+        Also building → building: attempt n+1 after a failed gate, which
+        §1.3 routes back to ``building`` so the next attempt has a seat.
+        """
         wo = self.get(wo_id)
-        if wo.state not in ("queued", "testing"):
+        if wo.state not in ("queued", "testing", "building"):
             raise Refused(f"work order {wo_id} is {wo.state}; attempts start from queued "
-                          "(or testing, as attempt n+1 after a failed gate)", entity=wo_id)
+                          "(or building/testing, as attempt n+1 after a failed gate)",
+                          entity=wo_id)
         n = (wo.attempts[-1].n + 1) if wo.attempts else 1
+        if wo.attempts and wo.attempts[-1].state == "running" and wo.state == "building":
+            # an attempt is already in flight: attempt ids are never reused
+            # and a seat is one attempt at a time (§5.3)
+            raise Refused(f"work order {wo_id} already has attempt {n - 1} running",
+                          entity=wo_id)
         # rails pre-checked (§2.2): per_attempt must fit the remaining per_order
-        spent = self._spend_so_far(wo_id)
-        per_order, per_attempt = wo.budget.per_order, wo.budget.per_attempt
-        if (spent.gpu_minutes + per_attempt.gpu_minutes > per_order.gpu_minutes + 1e-9
-                or spent.hosted_cents + per_attempt.hosted_cents > per_order.hosted_cents):
-            self.fail(wo_id, "per_order rail cannot cover another attempt")
+        if not self._attempt_fits(wo):
+            if wo.state == "testing":
+                # attempts or rail exhausted → terminal (§1.3)
+                self.fail(wo_id, "per_order rail cannot cover another attempt",
+                          to_state="failed")
+            elif wo.state == "queued":
+                # waiting on budget → parked, resumable (§1.3)
+                self.park(wo_id, "waiting on budget: the per_order rail cannot cover an attempt")
             raise Refused("per_order rail exhausted; order failed (§2.2)", entity=wo_id)
         seat_dir = self.core.settings.sandboxes_dir / wo_id / str(n)
         seat_dir.mkdir(parents=True, exist_ok=True)
@@ -357,14 +385,27 @@ class WorkOrdersService:
         self.store.append(ev)
         return self.get(wo_id)
 
-    def fail(self, wo_id: str, reason: str) -> WorkOrder:
+    def fail(self, wo_id: str, reason: str, *, to_state: str | None = None) -> WorkOrder:
+        """A failed gate.
+
+        §1.3 gives one ``wo.failed`` event two targets: ``building`` (attempt
+        n+1, if the per_order rail allows another attempt) or ``failed``
+        (attempts or rail exhausted). The rail decides; the event carries the
+        target so the fold never has to guess.
+        """
         wo = self.get(wo_id)
         if wo.state not in ("testing", "building"):
             raise Refused(f"work order {wo_id} is {wo.state}; fail needs testing/building",
                           entity=wo_id)
+        target = to_state or ("building" if self._attempt_fits(wo) else "failed")
+        payload = {
+            "from_state": wo.state, "gate": {"reason": reason}, "to_state": target,
+        }
+        if wo.attempts:
+            payload["failed_attempt_n"] = wo.attempts[-1].n
         ev = self.store.new_event(
             "wo.failed", core_actor(), {"entity_kind": "work_order", "entity_id": wo_id},
-            {"from_state": wo.state, "gate": {"reason": reason}},
+            payload,
         )
         self.store.append(ev)
         return self.get(wo_id)

@@ -28,7 +28,9 @@ WO_FROM_STATES: dict[str, frozenset[str]] = {
     "wo.confirmed": frozenset({"draft"}),
     "wo.cancelled": frozenset({"draft"}),
     "wo.queued": frozenset({"draft", "queued"}),
-    "wo.attempt.started": frozenset({"queued", "testing"}),  # testing→building = attempt n+1 after gate.failed
+    # §1.3's own diagram routes a failed gate to `building` (attempt n+1, if
+    # the per_order rail allows), so an attempt may start from there.
+    "wo.attempt.started": frozenset({"queued", "testing", "building"}),
     "wo.attempt.delivered": frozenset({"building"}),
     "wo.testing": frozenset({"building", "testing"}),
     "wo.landed": frozenset({"testing"}),
@@ -171,7 +173,10 @@ def _h_gate_result(ev: AuditEvent, rows: RowStore, ctx: FoldContext, state: str)
         for a in doc.get("attempts", []):
             if a.get("n") == ev.payload["failed_attempt_n"]:
                 a["state"] = ev.payload.get("attempt_outcome", "gate_failed")
-    doc["state"] = state
+    # §1.3: one wo.failed event, two possible targets — building (attempt
+    # n+1, if the per_order rail allows) or failed (attempts or rail
+    # exhausted). The service decides which; the event carries it.
+    doc["state"] = ev.payload.get("to_state", state)
     _wo_save(rows, wo_id, doc, ev.seq)
 
 
