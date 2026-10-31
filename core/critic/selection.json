@@ -1,0 +1,1312 @@
+{
+ "measured_at": "2026-10-31",
+ "set": {
+  "members": 30,
+  "image_members": 21,
+  "mesh_members": 9,
+  "clean_controls": 6
+ },
+ "chosen": "hybrid",
+ "report": "docs/lab/exp-critic-select.md",
+ "candidates": [
+  {
+   "name": "scripted",
+   "label": "scripted (the baseline, cold probe cache)",
+   "layers": "image,mesh",
+   "tp": 23,
+   "fp": 0,
+   "fn": 1,
+   "tn": 39,
+   "fp_rate": 0.0,
+   "in_band": false,
+   "median_ms": 1059.3,
+   "mean_ms": 7412.1,
+   "cpu_ms": 0.0,
+   "members": 30,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    },
+    {
+     "defect": "wrong_scale",
+     "check": "scale_bounds",
+     "members": 4,
+     "tp": 4,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "hollow_mesh",
+     "check": "watertight",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "clipped_geometry",
+     "check": "edge_cut",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    }
+   ]
+  },
+  {
+   "name": "scripted-warm",
+   "label": "scripted (the baseline, warm probe cache)",
+   "layers": "image,mesh",
+   "tp": 23,
+   "fp": 0,
+   "fn": 1,
+   "tn": 39,
+   "fp_rate": 0.0,
+   "in_band": false,
+   "median_ms": 673.4,
+   "mean_ms": 594.1,
+   "cpu_ms": 592.8,
+   "members": 30,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    },
+    {
+     "defect": "wrong_scale",
+     "check": "scale_bounds",
+     "members": 4,
+     "tp": 4,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "hollow_mesh",
+     "check": "watertight",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "clipped_geometry",
+     "check": "edge_cut",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    }
+   ]
+  },
+  {
+   "name": "dino-knn-base",
+   "label": "dino-probe, kNN head, leave-one-base-out",
+   "layers": "image",
+   "tp": 5,
+   "fp": 5,
+   "fn": 10,
+   "tn": 31,
+   "fp_rate": 0.1388888888888889,
+   "in_band": false,
+   "median_ms": 3.2,
+   "mean_ms": 11.9,
+   "cpu_ms": 0.0,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 2,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 1,
+     "fn": 2,
+     "tn": 5,
+     "fp_rate": 0.16666666666666666,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    }
+   ]
+  },
+  {
+   "name": "dino-knn-member",
+   "label": "dino-probe, kNN head, leave-one-member-out",
+   "layers": "image",
+   "tp": 5,
+   "fp": 5,
+   "fn": 10,
+   "tn": 31,
+   "fp_rate": 0.1388888888888889,
+   "in_band": false,
+   "median_ms": 1.0,
+   "mean_ms": 4.4,
+   "cpu_ms": 0.0,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 2,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 1,
+     "fn": 2,
+     "tn": 5,
+     "fp_rate": 0.16666666666666666,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    }
+   ]
+  },
+  {
+   "name": "dino-linear-base",
+   "label": "dino-probe, linear head, leave-one-base-out",
+   "layers": "image",
+   "tp": 7,
+   "fp": 12,
+   "fn": 8,
+   "tn": 24,
+   "fp_rate": 0.3333333333333333,
+   "in_band": false,
+   "median_ms": 1397.3,
+   "mean_ms": 5510.2,
+   "cpu_ms": 0.0,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 2,
+     "fn": 0,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 0,
+     "fp": 4,
+     "fn": 2,
+     "tn": 2,
+     "fp_rate": 0.6666666666666666,
+     "fn_rate": 1.0
+    }
+   ]
+  },
+  {
+   "name": "dino-linear-member",
+   "label": "dino-probe, linear head, leave-one-member-out",
+   "layers": "image",
+   "tp": 7,
+   "fp": 12,
+   "fn": 8,
+   "tn": 24,
+   "fp_rate": 0.3333333333333333,
+   "in_band": false,
+   "median_ms": 804.1,
+   "mean_ms": 5886.1,
+   "cpu_ms": 27258.0,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 2,
+     "fn": 0,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 0,
+     "fp": 4,
+     "fn": 2,
+     "tn": 2,
+     "fp_rate": 0.6666666666666666,
+     "fn_rate": 1.0
+    }
+   ]
+  },
+  {
+   "name": "vlm",
+   "label": "the local VLM (Muse Glimmer 30B)",
+   "layers": "image",
+   "tp": 10,
+   "fp": 2,
+   "fn": 5,
+   "tn": 34,
+   "fp_rate": 0.05555555555555555,
+   "in_band": false,
+   "median_ms": 107211.1,
+   "mean_ms": 101615.1,
+   "cpu_ms": 0.0,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 1,
+     "fp": 0,
+     "fn": 3,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.75
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 2,
+     "fp": 1,
+     "fn": 0,
+     "tn": 5,
+     "fp_rate": 0.16666666666666666,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 2,
+     "fp": 1,
+     "fn": 0,
+     "tn": 5,
+     "fp_rate": 0.16666666666666666,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    }
+   ]
+  },
+  {
+   "name": "jev-verify-measurements",
+   "label": "Jev, verify arm, measurements only",
+   "layers": "image",
+   "tp": 10,
+   "fp": 3,
+   "fn": 5,
+   "tn": 33,
+   "fp_rate": 0.08333333333333333,
+   "in_band": false,
+   "median_ms": 3828.7,
+   "mean_ms": 4136.8,
+   "cpu_ms": 2499.8,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 3,
+     "fn": 0,
+     "tn": 3,
+     "fp_rate": 0.5,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    }
+   ]
+  },
+  {
+   "name": "jev-classify-measurements",
+   "label": "Jev, classify arm, measurements only",
+   "layers": "image",
+   "tp": 8,
+   "fp": 3,
+   "fn": 7,
+   "tn": 33,
+   "fp_rate": 0.08333333333333333,
+   "in_band": false,
+   "median_ms": 2971.8,
+   "mean_ms": 3284.8,
+   "cpu_ms": 0.0,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 3,
+     "fn": 0,
+     "tn": 3,
+     "fp_rate": 0.5,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    }
+   ]
+  },
+  {
+   "name": "jev-verify-description+measurements",
+   "label": "Jev, verify arm, description + measurements",
+   "layers": "image",
+   "tp": 14,
+   "fp": 3,
+   "fn": 1,
+   "tn": 33,
+   "fp_rate": 0.08333333333333333,
+   "in_band": false,
+   "median_ms": 1006.9,
+   "mean_ms": 1039.7,
+   "cpu_ms": 840.3,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 3,
+     "fn": 0,
+     "tn": 3,
+     "fp_rate": 0.5,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    }
+   ]
+  },
+  {
+   "name": "jev-classify-description+measurements",
+   "label": "Jev, classify arm, description + measurements",
+   "layers": "image",
+   "tp": 10,
+   "fp": 2,
+   "fn": 5,
+   "tn": 34,
+   "fp_rate": 0.05555555555555555,
+   "in_band": false,
+   "median_ms": 1047.4,
+   "mean_ms": 1090.9,
+   "cpu_ms": 832.2,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 2,
+     "fn": 0,
+     "tn": 4,
+     "fp_rate": 0.3333333333333333,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    }
+   ]
+  },
+  {
+   "name": "jev-verify-description",
+   "label": "Jev, verify arm, description only",
+   "layers": "image",
+   "tp": 10,
+   "fp": 4,
+   "fn": 5,
+   "tn": 32,
+   "fp_rate": 0.1111111111111111,
+   "in_band": false,
+   "median_ms": 182.7,
+   "mean_ms": 230.3,
+   "cpu_ms": 8.1,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 3,
+     "fp": 3,
+     "fn": 1,
+     "tn": 3,
+     "fp_rate": 0.5,
+     "fn_rate": 0.25
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 2,
+     "fp": 1,
+     "fn": 0,
+     "tn": 5,
+     "fp_rate": 0.16666666666666666,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    }
+   ]
+  },
+  {
+   "name": "jev-classify-description",
+   "label": "Jev, classify arm, description only",
+   "layers": "image",
+   "tp": 10,
+   "fp": 6,
+   "fn": 5,
+   "tn": 30,
+   "fp_rate": 0.16666666666666666,
+   "in_band": false,
+   "median_ms": 200.3,
+   "mean_ms": 206.1,
+   "cpu_ms": 7.3,
+   "members": 21,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 5,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.8333333333333334,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 0,
+     "fp": 0,
+     "fn": 2,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 1.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 2,
+     "fp": 1,
+     "fn": 0,
+     "tn": 5,
+     "fp_rate": 0.16666666666666666,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 1,
+     "fp": 0,
+     "fn": 1,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.5
+    }
+   ]
+  },
+  {
+   "name": "hybrid",
+   "label": "hybrid: scripted + the model on the out-of-band class",
+   "layers": "image,mesh",
+   "tp": 24,
+   "fp": 0,
+   "fn": 0,
+   "tn": 39,
+   "fp_rate": 0.0,
+   "in_band": true,
+   "median_ms": 695.9,
+   "mean_ms": 3450.0,
+   "cpu_ms": 572.7,
+   "members": 30,
+   "rows": [
+    {
+     "defect": "black_frame",
+     "check": "black_frame",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "noise_fireflies",
+     "check": "fireflies",
+     "members": 4,
+     "tp": 4,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "missing_object",
+     "check": "flat_patch",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "holes",
+     "check": "dark_holes",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "texture_swap",
+     "check": "patch_seam",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "floating_object",
+     "check": "floating_blob",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 6,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "wrong_scale",
+     "check": "scale_bounds",
+     "members": 4,
+     "tp": 4,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "hollow_mesh",
+     "check": "watertight",
+     "members": 3,
+     "tp": 3,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    },
+    {
+     "defect": "clipped_geometry",
+     "check": "edge_cut",
+     "members": 2,
+     "tp": 2,
+     "fp": 0,
+     "fn": 0,
+     "tn": 1,
+     "fp_rate": 0.0,
+     "fn_rate": 0.0
+    }
+   ]
+  }
+ ],
+ "box": {
+  "timestamp": "2026-10-31 14:11:48 AKDT",
+  "loadavg": [
+   6.51,
+   6.06,
+   6.23
+  ],
+  "n_cores": 14,
+  "power_mode": "NV Power Mode: MAXN",
+  "gpu_util_pct": 86,
+  "gpu_clock_mhz": 1575.0,
+  "gpu_clock_limits": {
+   "gpc": {
+    "min_mhz": 315.0,
+    "max_mhz": 1575.0,
+    "governor": "nvhost_podgov"
+   },
+   "nvd": {
+    "min_mhz": 315.0,
+    "max_mhz": 1692.0,
+    "governor": "nvhost_podgov"
+   }
+  },
+  "mem_mib": {
+   "MemTotal": 125748,
+   "MemFree": 51561,
+   "MemAvailable": 111927,
+   "Cached": 46171
+  },
+  "gpu_processes": [
+   {
+    "pid": 56212,
+    "name": "/home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server",
+    "mem_mib": "3780",
+    "cmdline": "/home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-BF16.gguf --host 127.0.0.1 --port 8145 -ngl 99 --flash-attn on --ctx-size 8192 -ub 4096 --alias d1-2B-BF16"
+   }
+  ]
+ }
+}

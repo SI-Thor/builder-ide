@@ -1,0 +1,94 @@
+{
+ "note": "Whole-box numbers on a shared Thor. The joules are the box's rails during the stage, not the critic's: the seed sweep and other seats were running beside it, so they are context, not an attribution.",
+ "before": {
+  "timestamp": "2026-10-31 14:00:26 AKDT",
+  "loadavg": [
+   7.14,
+   7.2,
+   6.73
+  ],
+  "n_cores": 14,
+  "power_mode": "NV Power Mode: MAXN",
+  "gpu_util_pct": 0,
+  "gpu_clock_mhz": 1395.0,
+  "gpu_clock_limits": {
+   "gpc": {
+    "min_mhz": 315.0,
+    "max_mhz": 1575.0,
+    "governor": "nvhost_podgov"
+   },
+   "nvd": {
+    "min_mhz": 315.0,
+    "max_mhz": 1692.0,
+    "governor": "nvhost_podgov"
+   }
+  },
+  "mem_mib": {
+   "MemTotal": 125748,
+   "MemFree": 54970,
+   "MemAvailable": 98009,
+   "Cached": 43369
+  },
+  "gpu_processes": [
+   {
+    "pid": 42838,
+    "name": "/home/caseydigennaro/llama.cpp/build/bin/llama-server",
+    "mem_mib": "17426",
+    "cmdline": "/home/caseydigennaro/llama.cpp/build/bin/llama-server -m /home/caseydigennaro/models/Muse-Glimmer-30B-GGUF/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf --mmproj /home/caseydigennaro/models/Muse-Glimmer-30B-GGUF/mmproj-Muse-Glimmer-30B-Q4_K_M.gguf -a muse-glimmer-30b -ngl 99 -c 16384 -np 1 --host 127.0.0.1 --port 8123 --jinja --temp 0.0 --top-p 1.0 --top-k 1 --reasoning-budget 320 --chat-template-kwargs {\"reasoning_strength\":\"low\"}"
+   }
+  ]
+ },
+ "after": {
+  "timestamp": "2026-10-31 14:08:32 AKDT",
+  "loadavg": [
+   5.46,
+   5.84,
+   6.23
+  ],
+  "n_cores": 14,
+  "power_mode": "NV Power Mode: MAXN",
+  "gpu_util_pct": 0,
+  "gpu_clock_mhz": 1125.0,
+  "gpu_clock_limits": {
+   "gpc": {
+    "min_mhz": 315.0,
+    "max_mhz": 1575.0,
+    "governor": "nvhost_podgov"
+   },
+   "nvd": {
+    "min_mhz": 315.0,
+    "max_mhz": 1692.0,
+    "governor": "nvhost_podgov"
+   }
+  },
+  "mem_mib": {
+   "MemTotal": 125748,
+   "MemFree": 51164,
+   "MemAvailable": 94787,
+   "Cached": 43441
+  },
+  "gpu_processes": [
+   {
+    "pid": 42838,
+    "name": "/home/caseydigennaro/llama.cpp/build/bin/llama-server",
+    "mem_mib": "17568",
+    "cmdline": "/home/caseydigennaro/llama.cpp/build/bin/llama-server -m /home/caseydigennaro/models/Muse-Glimmer-30B-GGUF/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf --mmproj /home/caseydigennaro/models/Muse-Glimmer-30B-GGUF/mmproj-Muse-Glimmer-30B-Q4_K_M.gguf -a muse-glimmer-30b -ngl 99 -c 16384 -np 1 --host 127.0.0.1 --port 8123 --jinja --temp 0.0 --top-p 1.0 --top-k 1 --reasoning-budget 320 --chat-template-kwargs {\"reasoning_strength\":\"low\"}"
+   }
+  ]
+ },
+ "peak_used_mib": 42968,
+ "min_available_mib": 82780,
+ "window_s": 0.0,
+ "whole_box_joules": {
+  "VDD_GPU": 16384.7,
+  "VDD_CPU_SOC_MSS": 8532.9,
+  "VIN_SYS_5V0": 7312.6,
+  "VIN": 37369.2
+ },
+ "whole_box_mean_rail_watts": {
+  "VDD_GPU": 33.72,
+  "VDD_CPU_SOC_MSS": 17.56,
+  "VIN_SYS_5V0": 15.05,
+  "VIN": 76.91
+ }
+}
