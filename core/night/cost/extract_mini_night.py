@@ -56,6 +56,23 @@ def _sample(row: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def extract(ledger: Path) -> dict[str, Any]:
+    """A night's lane splits, in the recorded-data shape.
+
+    One sample per job the night ran, with the GPU lane and the CPU lane
+    measured separately. The model's refresh path writes this file.
+    """
+    samples = [_sample(row) for row in _rows(Path(ledger))]
+    return {
+        "source": "mini_night",
+        "origin": str(ledger),
+        "doc": "docs/lab/mini-night.md",
+        "rule": "one prompt at a time; the CPU lane is wall - gpu",
+        "jobs": len(samples),
+        "samples": samples,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -68,16 +85,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    samples = [_sample(row) for row in _rows(args.ledger)]
-    document = {
-        "source": "mini_night",
-        "origin": str(args.ledger),
-        "doc": "docs/lab/mini-night.md",
-        "rule": "one prompt at a time; the CPU lane is wall - gpu",
-        "jobs": len(samples),
-        "samples": samples,
-    }
-    print(json.dumps(document, indent=2))
+    print(json.dumps(extract(args.ledger), indent=2))
     return 0
 
 

@@ -120,6 +120,70 @@ def test_the_cost_estimate_covers_the_requested_work():
     assert mesh_task.cost_estimate.wall_minutes > image_task.cost_estimate.wall_minutes
 
 
+def test_the_costs_come_from_the_cost_model():
+    """The schedule's numbers are the model's, not typed in here."""
+    from core.night.cost import get_model
+
+    plan = NightPlan(_requests())
+    model = get_model()
+
+    image_task = next(task for task in plan.tasks if task.id == "img:crate")
+    mesh_task = next(task for task in plan.tasks if task.id == "prop:crate")
+    picture = model.band("prop.image")
+    prop = model.band("prop.512")
+
+    assert image_task.kind == "prop.image"
+    assert image_task.ask_source == "model"
+    assert image_task.cost_estimate.gpu_minutes == pytest.approx(
+        picture.p50.gpu_minutes * 3)
+    assert image_task.cost_estimate.wall_minutes == pytest.approx(
+        picture.p50.wall_minutes * 3)
+
+    assert mesh_task.kind == "prop.512"
+    assert mesh_task.cost_estimate.gpu_minutes == pytest.approx(
+        prop.p50.gpu_minutes * 3)
+    assert mesh_task.cost_estimate.wall_minutes == pytest.approx(
+        prop.p50.wall_minutes * 3)
+
+
+def test_the_rail_is_the_models_p95():
+    """The rail is the bad case: past it, the work is stopped, not trusted."""
+    from core.night.cost import get_model
+
+    plan = NightPlan(_requests())
+    picture = get_model().band("prop.image")
+
+    image_task = next(task for task in plan.tasks if task.id == "img:crate")
+
+    assert image_task.rail.wall_minutes == pytest.approx(picture.p95.wall_minutes * 3)
+    assert image_task.rail.wall_minutes > image_task.cost_estimate.wall_minutes
+
+
+def test_a_request_at_1024_is_priced_as_the_1024_prop():
+    from core.night.cost import get_model
+
+    plan = NightPlan([PropRequest(id="big", prompt="a big crate", seeds=1, resolution=1024)])
+    mesh_task = next(task for task in plan.tasks if task.id == "prop:big")
+
+    assert mesh_task.kind == "prop.1024"
+    assert mesh_task.cost_estimate.gpu_minutes == pytest.approx(
+        get_model().band("prop.1024").p50.gpu_minutes)
+
+
+def test_the_executor_plans_the_same_price_the_task_asks_for():
+    """The executor's plan and the task's ask are one measurement: otherwise
+    the night cuts work it planned itself."""
+    plan = NightPlan(_requests())
+
+    for task in plan.tasks:
+        request = plan.request(task.id)
+        count = request.seeds
+        gpu, wall = plan.per_variant_cost(task.id)
+        assert task.cost_estimate.gpu_minutes == pytest.approx(gpu * count)
+        assert task.cost_estimate.wall_minutes == pytest.approx(wall * count)
+        assert task.rail.fits(task.cost_estimate)
+
+
 def test_the_rules_name_what_the_spike_found():
     plan = NightPlan(_requests())
 
@@ -128,3 +192,4 @@ def test_the_rules_name_what_the_spike_found():
     assert "batch_by_model" in names
     assert "cpu_mesh_tail" in names
     assert "no_overlap" in names
+    assert "costs_from_the_model" in names

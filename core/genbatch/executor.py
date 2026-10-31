@@ -105,10 +105,13 @@ class PropExecutor:
         )
 
     def _per_variant_cost(self, task_id: str) -> tuple[float, float]:
-        """The GPU minutes and the wall minutes of one attempt."""
-        if self._plan.stage_kind(task_id) == StageKind.IMAGE:
-            return (0.5, 0.7)
-        return (0.5, 2.2)
+        """The GPU minutes and the wall minutes of one attempt.
+
+        From the cost model, like the ask and the rail: the executor's plan
+        and the schedule's tasks must be the same measurement, or the night
+        cuts work it planned itself.
+        """
+        return self._plan.per_variant_cost(task_id)
 
     # -- the work ----------------------------------------------------------
 
