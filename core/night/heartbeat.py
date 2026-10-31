@@ -71,10 +71,10 @@ class Heartbeat:
         return self.tick(kind="stall", note=note, minutes=minutes)
 
     def batches_started(
-        self, *, late_minutes: float = 0.0, cause: str | None = None
+        self, *, late_minutes: float = 0.0, cause: str | None = None, **extra
     ) -> AuditEvent:
         """The big batches started — on detach, or at the deadline."""
-        return self.tick(kind="batches", late_minutes=late_minutes, cause=cause)
+        return self.tick(kind="batches", late_minutes=late_minutes, cause=cause, **extra)
 
 
 def tick_gaps(ticks: Sequence[AuditEvent]) -> list[float]:

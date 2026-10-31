@@ -99,10 +99,11 @@ def compute_status(
         degraded_clauses.append(
             f"one batch stalled {projection.stall_minutes:.0f} min on the lane"
         )
-    if projection.late_minutes > 0:
-        cause = (projection.batches or {}).get("cause") or "the client never detached"
+    batches = projection.batches or {}
+    if batches.get("trigger") == "deadline":
+        cause = batches.get("cause") or "the client never detached"
         degraded_clauses.append(
-            f"{cause} started the batches {projection.late_minutes:.0f} min late"
+            f"{cause} — the deadline started the batches {projection.late_minutes:.0f} min late"
         )
     if projection.degraded_verdicts:
         count = projection.degraded_verdicts

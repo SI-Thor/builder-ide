@@ -1,0 +1,124 @@
+"""The executor seam — where the night's work happens.
+
+In this seat the work is **simulated**: scripted fake tasks with injected
+failures, not real renders. The seam is the part that matters. The runner
+asks an executor two things — *what will this task cost and which model does
+it need* (checked before the spend, §5.5) and *run it* — and when the engine
+and the GPU stations land, they implement the same two methods and the night
+runner does not change.
+"""
+
+from __future__ import annotations
+
+from typing import Literal, Mapping, Protocol, runtime_checkable
+
+from pydantic import BaseModel, Field
+
+from core.night.models import Task
+
+__all__ = [
+    "ExecutionPlan",
+    "ScriptedExecutor",
+    "ScriptedTask",
+    "TaskExecutor",
+]
+
+TaskOutcome = Literal["kept", "reverted", "failed", "parked"]
+
+
+class ExecutionPlan(BaseModel):
+    """What a task will cost and what it will do."""
+
+    model: str | None = None
+    gpu_minutes: float = 0.0
+    hosted_cents: int = 0
+    wall_minutes: float = 0.0
+    outcome: TaskOutcome = "kept"
+    reason: str | None = None
+    degraded: bool = False
+    artifact: str | None = None
+    branches: list[str] = Field(default_factory=list)
+    predictions: list[dict] = Field(default_factory=list)
+    verdicts: list[dict] = Field(default_factory=list)
+
+
+class ScriptedTask(BaseModel):
+    """The script for one simulated task.
+
+    ``None`` costs fall back to the task's own ask (the estimate stored on the
+    slate), so a scenario only scripts the part it cares about.
+    """
+
+    model: str | None = None
+    gpu_minutes: float | None = None
+    hosted_cents: int = 0
+    wall_minutes: float | None = None
+    outcome: TaskOutcome = "kept"
+    reason: str | None = None
+    degraded: bool = False
+    artifact: str | None = None
+    branches: list[str] = Field(default_factory=list)
+    predictions: list[dict] = Field(default_factory=list)
+    verdicts: list[dict] = Field(default_factory=list)
+
+
+@runtime_checkable
+class TaskExecutor(Protocol):
+    """What the runner asks of the world."""
+
+    def plan(self, task: Task) -> ExecutionPlan:
+        """What this task will cost, and which model it needs.
+
+        Called **before** the spend: admission control projects the cost and
+        refuses what a rail cannot cover (§5.5).
+        """
+
+    def run(self, task: Task) -> ExecutionPlan:
+        """Do the work; report what it actually cost and what it produced."""
+
+
+class ScriptedExecutor:
+    """The simulated work: scripted tasks with injected failures."""
+
+    def __init__(self, scripts: Mapping[str, ScriptedTask] | None = None) -> None:
+        self._scripts: dict[str, ScriptedTask] = dict(scripts or {})
+
+    def script(self, task_id: str, script: ScriptedTask) -> "ScriptedExecutor":
+        """Add or replace one task's script; returns self, so it chains."""
+        self._scripts[task_id] = script
+        return self
+
+    def plan(self, task: Task) -> ExecutionPlan:
+        script = self._scripts.get(task.id)
+        if script is None:
+            return ExecutionPlan(
+                gpu_minutes=task.cost_estimate.gpu_minutes,
+                hosted_cents=task.cost_estimate.hosted_cents,
+                wall_minutes=task.cost_estimate.wall_minutes,
+            )
+        return ExecutionPlan(
+            model=script.model,
+            gpu_minutes=(
+                task.cost_estimate.gpu_minutes
+                if script.gpu_minutes is None
+                else script.gpu_minutes
+            ),
+            hosted_cents=script.hosted_cents,
+            wall_minutes=(
+                task.cost_estimate.wall_minutes
+                if script.wall_minutes is None
+                else script.wall_minutes
+            ),
+            outcome=script.outcome,
+            reason=script.reason,
+            degraded=script.degraded,
+            artifact=script.artifact,
+            branches=list(script.branches),
+            predictions=[dict(prediction) for prediction in script.predictions],
+            verdicts=[dict(verdict) for verdict in script.verdicts],
+        )
+
+    def run(self, task: Task) -> ExecutionPlan:
+        if task.id not in self._scripts:
+            raise KeyError(f"no script for task {task.id!r}")
+        return self.plan(task)

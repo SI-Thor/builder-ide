@@ -137,6 +137,7 @@ def test_batches_that_started_late_after_the_deadline_say_ran_degraded(night):
     night.tick(
         "2026-10-30T21:44:00Z",
         kind="batches",
+        trigger="deadline",
         late_minutes=40.0,
         cause="the ProArt stayed attached",
     )
