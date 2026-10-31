@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "builder-usd"
+version = "0.1.0"
+description = "The USD backbone of builder-ide: recipe → layered USD, build123d STEP→GLB, provenance in customData, deterministic re-emission"
+requires-python = ">=3.12"
+dependencies = [
+    "usd-core==26.11",
+    "build123d==0.13.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+builder-usd = "builder_usd.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["builder_usd"]
+
+[tool.pytest.ini_options]
+testpaths = ["../../tests/usd"]
+pythonpath = ["src"]
