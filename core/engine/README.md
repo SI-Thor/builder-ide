@@ -58,6 +58,9 @@ the compiled-output rule (§7.11)      ◄──  export
 | `infinigen2.py` | 2.0 + procfunc in-process — the decision's engine (E §3, option C) | the translation: our entries → generator calls (the `_rand_from_params` convention), our edit ops → graph edits; the envelope that names the lower layer | the imported runtime (procfunc pins `bpy==4.2.0` / Python `==3.11.*`; this core is 3.12 — E §2) and the mesh exporter (v2 ships none; `builder_usd` is its natural home) |
 | `venv2.py` | **2.0 through its own venv's CLI** — the subprocess boundary that renders on the Thor today (the confirming experiment's venv, `~/lm-wt/v2-thor`, read-only) | **the render rung and the traced stage, live**: `render` is the subject entry's chain through `render_cycles` (Cycles CUDA) at the ladder's resolution/samples; `trace` is `--trace graph` at `RANDOM_CONTROL`, **normalized to byte-stability** (the experiment §3.3's two wobbles — the `$repr` pointer leak, the `generator_times` wall-clock — removed); the **pin is interrogated** from the venv (resolved packages + clone commit → the config hash); the licence row comes from the venv's own metadata | `replace`/`execute` (single-node re-execution needs the engine-side instrumentation the experiment built in its `choice_tool.py`; upstream ships no CLI for it) and `export` (v2 ships no exporter) |
 | `resident/` | the warm scene server (plan item 15): one resident process holds the scene while builders work — the win is **builder wait** (the launch tax paid once) and **crash recovery** (replay, not reload) | the whole adapter, measured on this box against the fake backend: the subprocess + RPC, the journal/snapshot/checkpoint durable recipe (the whole-file rewrite is gone), the four dials (health checks, restart budget, checkpoint cadence, memory-growth guard), and the digest-checked kill→replay recovery | the real engine behind it — `resident/blender_backend.py` is opt-in (needs `bpy` and its own 3.11 interpreter); the scheduler's `scene.loaded`/`scene.evicted` residency bookkeeping (§1.9) is not wired |
+| `graph.py` | **the procfunc graph as the recipe's lower layer** (E §2): stored by hash beside the recipe, diffed by node id, closed over consumers — the dirty-subtree term of the dirty-set contract | everything, verified against the real round-2 graphs (`docs/research/engine-round2.md` §4.1): the desk edit diffs +2,698 added / 0 removed / 2 changed (join `n16943`, re-bound tail `n18724`), closure 2,704 nodes = 12.6 % of the head graph, 240 ms to diff the two 5 MB documents; the store dedupes identical graphs across stage keys | nothing structural — richer node semantics stay engine-side by rule 5 |
+| `stagecache.py` | **the stage cache on disk** (plan item 9): keyed by §1.9's arithmetic (`core/recipe/stagecache.py` — one home for the keys), a hit skips the stage, eviction by size | the store: hash-verified reads, the byte-budget LRU eviction, the refused re-put of different bytes under a live key (contract rule 3), the hit/miss/eviction counters the nightly measure reads | a shared-multi-process store (the core service owns one today; say so before growing one) |
+| `regen.py` | **partial regeneration** (plan item 9): `Regenerator.regenerate(base, head)` — the dirty-set contract's driver, through this seam | the whole flow, on the fake, the graph double, the venv boundary and the resident engine: hit/miss/partial verdicts per entry, re-execute under the entry's ops, scoped regeneration fallback when the engine refuses, graph diffs in the report, cache counters per run | the in-place subtree execution itself at the venv boundary (its `replace`/`execute` refusal; the marginal-work measurement is round 2's +5.5 s / +61 choices) |
 | `gate.py` | the merge gate's engine rungs (`core.ports.MergeGateEngine`, §2.3) over any engine | the deterministic-rebuild rung really byte-compares two generated stages; the render rung renders through the seam | the verdict's critic half (stays `verdict@scripted` until a critic is calibrated, RV patch 15) |
 | `registry.py` | `open_engine(spec)` / `engine_from_env()` | everything | nothing — this *is* the configuration story |
 
@@ -138,8 +141,16 @@ swap.
   (plan/run) is the scheduler's half; an engine-backed executor composes
   this seam with rails and the iteration loop — that wiring is the
   render-rung item (week-1 item 4).
-- **The stage cache** (`core/recipe/stagecache.py`): the keys this seam
-  reports; the on-disk cache and partial regeneration are week-2 item 9.
+- **The stage cache and partial regeneration** (`core/engine/stagecache.py`,
+  `core/engine/graph.py`, `core/engine/regen.py` — plan item 9, the branch
+  you are reading): the keys this seam reports (`core/recipe/stagecache.py`)
+  address the on-disk cache; `Regenerator` drives hit/miss/partial per
+  entry through this seam and reports each stage's graph diff. The
+  contract both obey is `core/engine/DIRTY.md` — written before either of
+  them. The Thor measurement (full vs partial for "add a desk" and "edit
+  one room", and a 10-edit session's hit rate) is
+  `docs/research/stage-cache-thor.md`, reproduced by
+  `examples/stage_cache_thor.py`.
 - **The warm scene server** (`core/engine/resident/`): a fourth flavour on
   this same seam — the resident engine keeps the scene across requests, so
   a builder's edit reaches a process that already holds it. Its README
