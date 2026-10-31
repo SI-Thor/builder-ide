@@ -105,6 +105,38 @@ def test_a_task_that_was_running_when_the_box_died_goes_back_in_the_queue():
     assert projection.task("task_0002").state == "queued"
 
 
+def test_the_crashed_job_is_requeued_when_the_box_comes_back():
+    """The job's lease expired with no heartbeat — it is requeued (§5.2 step 3)."""
+    ledger = InMemoryLedger()
+    executor = CrashingExecutor(
+        {
+            "task_0001": ScriptedTask(gpu_minutes=30.0, wall_minutes=45.0),
+            "task_0002": ScriptedTask(gpu_minutes=30.0, wall_minutes=45.0),
+        }
+    )
+    runner = NightRunner(
+        ledger,
+        executor,
+        night_id=NIGHT,
+        rails=Rail(gpu_minutes=360.0, wall_minutes=560.0),
+        clock=ScriptedClock("2026-10-30T21:14:00Z"),
+    )
+    runner.start([a_task("task_0001"), a_task("task_0002")])
+    try:
+        runner.run()
+    except RuntimeError:
+        pass
+
+    outcome = recover(
+        ledger,
+        executor,
+        night_id=NIGHT,
+        clock=ScriptedClock("2026-10-30T23:30:00Z"),
+    )
+    assert "job_0002" in outcome.requeued_jobs
+    assert any(event.type == "job.requeued" for event in ledger.events())
+
+
 def test_a_job_whose_lease_expired_is_requeued():
     ledger = InMemoryLedger()
     ledger.append(

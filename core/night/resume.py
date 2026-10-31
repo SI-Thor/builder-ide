@@ -167,19 +167,37 @@ def _elapsed_minutes(started_at: str, projection: NightProjection) -> float:
 def _requeue_dead_jobs(
     ledger: Ledger, projection: NightProjection, *, now: str, actor: Actor
 ) -> list[str]:
-    """Step 3: a job whose lease expired with no heartbeat is requeued."""
+    """Step 3: a job whose lease expired with no heartbeat is requeued.
+
+    The lease is written when the job starts and renewed by every heartbeat
+    while it runs, so a job that is still alive holds a lease in the future.
+    A job that started, never finished, and whose lease has run out is dead:
+    the GPU render re-runs from the seed and the CPU steps replay
+    byte-identically (§5.2).
+    """
+    leases: dict[str, str] = {}
+    started: dict[str, dict] = {}
+    finished: set[str] = set()
+    for event in ledger.events():
+        if event.type == "job.started":
+            job_id = event.payload.get("job_id", event.subject.get("entity_id"))
+            started[job_id] = event.payload
+            if event.payload.get("lease_until"):
+                leases[job_id] = event.payload["lease_until"]
+        elif event.type == "job.done":
+            finished.add(event.payload.get("job_id"))
+        elif event.type == "night.tick":
+            renewed = event.payload.get("renewed")
+            if renewed:
+                leases[renewed["job_id"]] = renewed["lease_until"]
+
     requeued: list[str] = []
-    for event in ledger.events(types=["job.started"]):
-        payload = event.payload
-        lease_until = payload.get("lease_until")
-        heartbeat_at = payload.get("heartbeat_at")
-        if lease_until is None:
+    for job_id, payload in started.items():
+        if job_id in finished:
             continue
-        if heartbeat_at is not None and _parse(heartbeat_at) > _parse(lease_until):
+        lease = leases.get(job_id) or payload.get("lease_until")
+        if lease is None or _parse(lease) > _parse(now):
             continue
-        if _parse(lease_until) > _parse(now):
-            continue
-        job_id = payload.get("job_id", event.subject.get("entity_id"))
         ledger.append(
             type="job.requeued",
             actor=actor,

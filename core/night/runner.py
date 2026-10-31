@@ -43,6 +43,10 @@ _DEFAULT_ACTOR = Actor(kind="scheduler", id="night-runner")
 #: 10-minute tick).
 TICK_INTERVAL_MINUTES = 10
 
+#: How long a job's claim on the seat is valid without a heartbeat (§5.2
+#: step 3). The heartbeat renews it while the job runs.
+LEASE_MINUTES = 15
+
 
 def _parse(stamp: str) -> datetime:
     return datetime.fromisoformat(stamp.replace("Z", "+00:00"))
@@ -74,6 +78,7 @@ class NightRunner:
         lane_free: Callable[[str], bool] | None = None,
         actor: Actor = _DEFAULT_ACTOR,
         tick_interval_minutes: int = TICK_INTERVAL_MINUTES,
+        lease_minutes: int = LEASE_MINUTES,
     ) -> None:
         self._ledger = ledger
         self._executor = executor
@@ -88,6 +93,8 @@ class NightRunner:
         self._lane_free = lane_free
         self._actor = actor
         self.tick_interval_minutes = tick_interval_minutes
+        self.lease_minutes = lease_minutes
+        self._running_job: str | None = None
 
         self.budget = RailBudget(ceiling=rails)
         self.loads = LoadBudget(caps=self.load_budget)
@@ -433,13 +440,27 @@ class NightRunner:
         )
         if plan.model:
             self._append("sched.model.load", {"model": plan.model}, at=now)
-        self._append("job.started", {"job_id": job_id, "task_id": task.id}, at=now)
+        # The claim on the seat is a lease, and the heartbeat renews it while
+        # the job runs (§5.2 step 3).
+        self._append(
+            "job.started",
+            {
+                "job_id": job_id,
+                "task_id": task.id,
+                "lease_until": _plus_minutes(now, self.lease_minutes),
+                "heartbeat_at": now,
+            },
+            at=now,
+        )
         self.queue.mark(task.id, "running")
-
-        # The work itself: the executor runs it and reports what it cost. If
-        # the box dies here, the night dies with it — and the time the work
-        # would have taken is the time the morning will call lost.
-        actual = self._executor.run(task)
+        self._running_job = job_id
+        try:
+            # The work itself: the executor runs it and reports what it cost.
+            # If the box dies here, the night dies with it — and the time the
+            # work would have taken is the time the morning will call lost.
+            actual = self._executor.run(task)
+        finally:
+            self._running_job = None
         actual_cost = Rail(
             gpu_minutes=actual.gpu_minutes,
             hosted_cents=actual.hosted_cents,
@@ -519,10 +540,23 @@ class NightRunner:
     # -- time --------------------------------------------------------------
 
     def _advance_ticking(self, minutes: float) -> None:
-        """Move the clock forward, ticking the window as it goes."""
+        """Move the clock forward, ticking the window as it goes.
+
+        Each tick renews the lease of the job that is running, so a live job
+        is never mistaken for a dead one when the box comes back (§5.2).
+        """
         remaining = minutes
         while remaining > 0:
             step = min(self.tick_interval_minutes, remaining)
             self.clock.advance(step)
             remaining -= step
-            self.heartbeat.tick()
+            renewal = None
+            if self._running_job is not None:
+                renewal = {
+                    "job_id": self._running_job,
+                    "lease_until": _plus_minutes(self.clock.now(), self.lease_minutes),
+                }
+            if renewal is None:
+                self.heartbeat.tick()
+            else:
+                self.heartbeat.tick(renewed=renewal)
