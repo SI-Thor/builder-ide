@@ -107,6 +107,10 @@ director knows what is waiting:
 7. **`branch.created` is the recipe store's event.** The runner writes it
    only to carry the branch into the morning's branch list; the recipe
    store owns the branch itself, and the two halves agree on the type name.
+8. **The job lease rides on the heartbeat.** The lease is written when the
+   job starts and renewed by each tick while it runs, so the boot sequence's
+   "expired lease with no heartbeat" rule has something real to read without
+   adding an event type to a closed set (§1.8, §5.2 step 3).
 
 ## How to reproduce
 

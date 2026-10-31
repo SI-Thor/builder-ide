@@ -31,8 +31,8 @@ aarch64. Measured 2026-10-30:
 | Operation | Measured | Budget | Margin |
 |---|---|---|---|
 | morning report: fold + HTML + text (50 events) | **0.2 ms** | 3 s | ~15 000× |
-| status line: one fold of 50 events | **0.051 ms** | instant (a ledger read) | — |
-| append: one fsynced `night.tick` (WAL, synchronous=FULL) | **0.67 ms** | — | — |
+| status line: one fold of 50 events | **0.052 ms** | instant (a ledger read) | — |
+| append: one fsynced `night.tick` (WAL, synchronous=FULL) | **0.70 ms** | — | — |
 
 The page is 3 385 bytes of HTML and 853 bytes of text — it is a page, not an
 application.

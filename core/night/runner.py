@@ -54,9 +54,7 @@ def _parse(stamp: str) -> datetime:
 
 def _plus_minutes(stamp: str, minutes: float) -> str:
     moment = _parse(stamp) + timedelta(minutes=minutes)
-    return moment.astimezone(_parse("2026-10-30T00:00:00Z").tzinfo).strftime(
-        "%Y-%m-%dT%H:%M:%SZ"
-    )
+    return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class NightRunner:
