@@ -140,6 +140,24 @@ Everything that does not need a GPU is tested, including the whole night
 driven end to end against a fake ComfyUI that writes a real GLB. The tests
 never open a socket.
 
+## The mini-night, run for real
+
+On 2026-10-31 the night above ran against the real TRELLIS.2 environment:
+3 requests × 3 seeds, 18 prompts, **24 min 44 s end to end**, one load per
+model, zero overlapping prompts, all six tasks kept, the night inside its
+own ask (24.7 min of wall against a 26.1-min estimate). Three assets
+entered the library with MIT licence rows and full provenance; the
+morning names each winner, its score, and the two variants it beat.
+
+Two findings the night itself paid for, both now load-bearing: TRELLIS.2's
+remeshed output is **never watertight** (155 k–234 k boundary edges, 0
+non-manifold — the heaviest check fails for every candidate, and the
+graded scores are what still produce a ranked winner), and every prop
+came back **~cubic** whatever aspect was asked (100–150 % off on the
+missing axis — the aspect ask has to reach the image prompt, not the
+mesh). The full numbers, with the box's load beside every one, are in
+[docs/lab/mini-night.md](../../docs/lab/mini-night.md).
+
 ## What it stubs, and how it joins the rest
 
 * **The TRELLIS.2 environment** (`~/lm-wt/trellis`) is read for its two

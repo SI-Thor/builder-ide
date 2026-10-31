@@ -125,6 +125,7 @@ seat you work from.
 | [NVMe bandwidth](docs/lab/exp-nvme-bandwidth.md) | Useful. Load speed decides the hot/warm/cold scheduler's shape |
 | [Critic PNG round-trip](docs/lab/exp-critic-png-roundtrip.md) | Useful. The critic should read the render buffer, not a PNG |
 | [Solver scoring](docs/lab/exp-solver-scoring.md) | Useful. Python vs numba vs Warp vs restructured CPU for the layout solver |
+| [The mini-night](docs/lab/mini-night.md) | **Ran as planned.** The Prop-maker's first real night: 3 props × 3 seeds, 18 prompts, 24 min 44 s end to end, one load per model, the morning's winners — and two honest defects the critic surfaced |
 | [IDEAS.md](docs/lab/IDEAS.md) | The mined candidates, what's next, and the killed-by-fact list |
 
 ## The code
@@ -145,13 +146,17 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | **merged: 842 tests** |
 | `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | **merged: 105/105 on the integrated core** |
 | `m1-real` | Both acceptance suites rewired onto the integrated core (real spine, real recipe store) | in flight |
-| `plan-v2` | Plan draft 2 and the owner's decision sheet | **this branch** |
+| `propmaker-batch` | The Prop-maker's generative batch: image → TRELLIS.2 → GLB behind the core's scheduler; N seeds a prop, a scripted critic, the morning's winner | **a real mini-night ran end to end on the Thor** (see [docs/lab/mini-night.md](docs/lab/mini-night.md)) |
+| `plan-v2` | Plan draft 2 and the owner's decision sheet | merged |
 
 ### In flight
 
 These were paused when a provider's quota ran out; they resume automatically:
 - **TRELLIS.2 on the Thor:** image to 3D prop with PBR materials. *512³ in
-  101 s, 1024³ in 194 s, measured.*
+  101 s, 1024³ in 194 s, measured.* **The Prop-maker's batch now runs it
+  behind the core's scheduler** — a real 3×3 mini-night ran end to end
+  ([docs/lab/mini-night.md](docs/lab/mini-night.md)); a watertight
+  post-process and a calibrated vision critic are what it asked for next.
 - **The warm scene server:** a resident Blender; edit-to-preview latency, batch
   vs warm. *Measured: the win is builder wait and crash recovery, not render
   latency.*
