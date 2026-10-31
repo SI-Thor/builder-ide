@@ -10,11 +10,11 @@
   "sources": {
     "sweep": {
       "file": "infinigen_sweep.tsv",
-      "origin": "~/src/infinigen-thor/outputs/sweep/sweep.tsv",
+      "origin": "/home/caseydigennaro/src/infinigen-thor/outputs/sweep/sweep.tsv",
       "doc": "docs/research/spike-phase1.md",
-      "rows": 100,
-      "md5": "b848ccd9878972eba20739fb53d4f953",
-      "note": "the sweep was still running when this snapshot was taken (2026-10-31 07:29 AKDT); every scene x stage cell holds 4-5 seeds, so the p50 and p95 are stable, but the file is a snapshot and not the finished sweep"
+      "rows": 120,
+      "md5": "a40e5048109b8f42d69243afb90aa7c1",
+      "note": "snapshot of the sweep recording (2026-10-31 08:28 AKDT); 120 rows, pinned by md5 so the model reads a file that does not move under it — run --check to see whether the recording has moved on since"
     },
     "trellis": {
       "doc": "docs/research/trellis-spike.md",
