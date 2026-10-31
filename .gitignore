@@ -7,6 +7,10 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 
+# Tooling caches
+.ruff_cache/
+.mypy_cache/
+
 # Local service state (the ledger lives under $BUILDER_HOME, but a dev may
 # point it at the worktree)
 *.db
