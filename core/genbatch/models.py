@@ -17,6 +17,7 @@ __all__ = [
     "ImageResult",
     "LaneSplit",
     "NodeTiming",
+    "PromptRecord",
     "PropRequest",
     "PropVerdict",
     "StageKind",
@@ -119,6 +120,33 @@ class ImageResult(BaseModel):
     height: int = 0
     seconds: float = 0.0
     prompt: str = ""
+
+
+class PromptRecord(BaseModel):
+    """One prompt, and the window it held the box for.
+
+    The window is what the night's overlap rule is checked against: the
+    mesh tail of one prop must never run inside the sampling of the next.
+    """
+
+    task_id: str
+    variant_id: str
+    stage: str
+    model: str
+    prompt_id: str = ""
+    started_at: float = 0.0
+    ended_at: float = 0.0
+    gpu_seconds: float = 0.0
+    cpu_seconds: float = 0.0
+    unknown_seconds: float = 0.0
+
+    @property
+    def seconds(self) -> float:
+        return max(0.0, self.ended_at - self.started_at)
+
+    def overlaps(self, other: "PromptRecord") -> bool:
+        """True when the two windows share any time at all."""
+        return self.started_at < other.ended_at and other.started_at < self.ended_at
 
 
 class LaneSplit(BaseModel):

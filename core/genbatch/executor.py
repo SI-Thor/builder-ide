@@ -34,7 +34,7 @@ from core.genbatch.glb import GlbError, read_glb
 from core.genbatch.images import ImageError, png_dimensions
 from core.genbatch.licences import licence_for
 from core.genbatch.mesh import measure_mesh
-from core.genbatch.models import ImageResult, PropRequest, StageKind
+from core.genbatch.models import ImageResult, PropRequest, PromptRecord, StageKind
 from core.genbatch.schedule import MESH_MODEL, NightPlan
 from core.genbatch.store import PropStore
 from core.genbatch.workflow import (
@@ -146,6 +146,7 @@ class PropExecutor:
             filename_prefix=f"genbatch/{request.id}_s{seed}",
         )
         result = self._run(workflow, request.id, seed, "image")
+        self._record_prompt(task, request, seed, result, "image")
         if not result.ok:
             return ExecutionPlan(outcome="failed", reason=result.error)
         node_id = self._node_of(workflow, "SaveImage")
@@ -209,6 +210,7 @@ class PropExecutor:
         except WorkflowError as exc:
             return ExecutionPlan(outcome="failed", reason=str(exc))
         result = self._run(workflow, request.id, seed, "mesh")
+        self._record_prompt(task, request, seed, result, "mesh")
         if not result.ok:
             return ExecutionPlan(outcome="failed", reason=result.error)
         node_id = self._node_of(workflow, "SaveGLB")
@@ -238,12 +240,41 @@ class PropExecutor:
             asset=asset,
             split=result.split,
             seconds=result.wall_seconds,
+            seed=seed,
         )
         self._resident.add(MESH_MODEL)
         return ExecutionPlan(
             gpu_minutes=result.split.gpu_seconds / 60.0,
             wall_minutes=result.wall_seconds / 60.0,
             artifact=str(glb),
+        )
+
+    def _record_prompt(
+        self,
+        task: Task,
+        request: PropRequest,
+        seed: int,
+        result: PromptResult,
+        stage: str,
+    ) -> None:
+        """Record the window one prompt held the box for.
+
+        The window is what the night's overlap rule is checked against: the
+        mesh tail of one prop must never run inside the sampling of the next.
+        """
+        self._store.record_prompt(
+            PromptRecord(
+                task_id=task.id,
+                variant_id=f"{task.id}_s{seed}",
+                stage=stage,
+                model=self._plan.model_for(task.id),
+                prompt_id=result.prompt_id,
+                started_at=result.started_at,
+                ended_at=result.ended_at,
+                gpu_seconds=result.split.gpu_seconds,
+                cpu_seconds=result.split.cpu_seconds,
+                unknown_seconds=result.split.unknown_seconds,
+            )
         )
 
     # -- the recipe --------------------------------------------------------

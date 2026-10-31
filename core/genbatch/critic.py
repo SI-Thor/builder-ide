@@ -37,7 +37,8 @@ from core.night.iterate import CriticScore, Variant
 from core.records import Task
 
 from core.genbatch.mesh import MeshReport
-from core.genbatch.models import CheckResult, PropRequest, PropVerdict
+from core.genbatch.models import CheckResult, PropRequest, PropVerdict, StageKind
+from core.genbatch.schedule import NightPlan
 from core.genbatch.store import PropStore
 
 __all__ = ["CHECK_WEIGHTS", "PropCritic", "judge"]
@@ -337,15 +338,22 @@ class PropCritic:
     run it. This asks the store what the executor measured and judges that.
     A variant the store never heard of scores zero — a score nobody measured
     must never win a variant by accident.
+
+    The image stage is judged too, and by the only thing that can be
+    measured about a picture without looking at it: that it was made, and
+    that it is the size it was asked to be. A picture at the wrong size is a
+    picture the mesh stage would silently mis-condition on.
     """
 
     def __init__(
         self,
         requests: Mapping[str, PropRequest],
         store: PropStore,
+        plan: "NightPlan | None" = None,
     ) -> None:
         self._requests = dict(requests)
         self._store = store
+        self._plan = plan
 
     def score(self, task: Task, variant: Variant) -> CriticScore:
         request = self._requests.get(task.id)
@@ -355,6 +363,8 @@ class PropCritic:
                 reason=f"no request for task {task.id!r}",
                 degraded=True,
             )
+        if self._plan is not None and self._plan.stage_kind(task.id) == StageKind.IMAGE:
+            return self._score_image(request, variant)
         report = self._store.mesh(task.id, variant.id)
         if report is None:
             return CriticScore(
@@ -367,4 +377,27 @@ class PropCritic:
             score=verdict.score,
             reason=verdict.reason,
             degraded=verdict.degraded,
+        )
+
+    def _score_image(self, request: PropRequest, variant: Variant) -> CriticScore:
+        seed = variant.seed if variant.seed is not None else 0
+        image = self._store.image(request.id, seed)
+        if image is None:
+            return CriticScore(
+                score=0.0,
+                reason=f"no image was made for seed {seed}",
+                degraded=True,
+            )
+        if image.width != request.image_size or image.height != request.image_size:
+            return CriticScore(
+                score=0.0,
+                reason=(
+                    f"the picture came back {image.width}×{image.height}, "
+                    f"not {request.image_size}×{request.image_size}"
+                ),
+                degraded=True,
+            )
+        return CriticScore(
+            score=1.0,
+            reason=f"a {image.width}×{image.height} picture of {request.prompt!r}",
         )

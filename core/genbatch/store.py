@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from core.models import Asset
 
-from core.genbatch.models import ImageResult, LaneSplit
+from core.genbatch.models import ImageResult, LaneSplit, PromptRecord
 from core.genbatch.mesh import MeshReport
 
 __all__ = ["PropStore"]
@@ -25,7 +25,9 @@ class PropStore:
         self._assets: dict[tuple[str, str], Asset] = {}
         self._splits: dict[tuple[str, str], LaneSplit] = {}
         self._seconds: dict[tuple[str, str], float] = {}
+        self._seeds: dict[tuple[str, str], int] = {}
         self._images: dict[str, dict[int, ImageResult]] = {}
+        self._prompts: list[PromptRecord] = []
 
     # -- the meshes --------------------------------------------------------
 
@@ -38,6 +40,7 @@ class PropStore:
         asset: Asset | None = None,
         split: LaneSplit | None = None,
         seconds: float = 0.0,
+        seed: int = 0,
     ) -> None:
         """Record what one attempt produced."""
         key = (task_id, variant_id)
@@ -47,9 +50,14 @@ class PropStore:
         if split is not None:
             self._splits[key] = split
         self._seconds[key] = seconds
+        self._seeds[key] = seed
 
     def mesh(self, task_id: str, variant_id: str) -> MeshReport | None:
         return self._meshes.get((task_id, variant_id))
+
+    def seed(self, task_id: str, variant_id: str) -> int:
+        """The seed the attempt was made with."""
+        return self._seeds.get((task_id, variant_id), 0)
 
     def asset(self, task_id: str, variant_id: str) -> Asset | None:
         return self._assets.get((task_id, variant_id))
@@ -77,3 +85,13 @@ class PropStore:
 
     def images(self, request_id: str) -> list[ImageResult]:
         return list(self._images.get(request_id, {}).values())
+
+    # -- the prompts -------------------------------------------------------
+
+    def record_prompt(self, record: PromptRecord) -> None:
+        """Record the window one prompt held the box for."""
+        self._prompts.append(record)
+
+    def prompts(self) -> list[PromptRecord]:
+        """Every prompt of the night, in the order they ran."""
+        return list(self._prompts)
