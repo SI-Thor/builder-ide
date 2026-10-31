@@ -12,12 +12,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
 from .grow import NightBudget, grow
-from .select import CRITIC_DEFAULT, candidate_names, resolve_critic
+from .select import candidate_names, configured_name, resolve_critic
 
 __all__ = ["main"]
 
@@ -97,8 +96,9 @@ def main(argv: list[str] | None = None) -> int:
 
     # The critic is a parameter with a default: the scripted checks, which
     # are also the fallback. A critic that cannot be built on this box
-    # falls back to them and says why.
-    wanted = args.critic or os.environ.get("BUILDER_CRITIC") or CRITIC_DEFAULT
+    # falls back to them and says why. The name comes from the flag, then
+    # the box's configuration (``BUILDER_CRITIC``), then the default.
+    wanted = args.critic or configured_name()
     critic, reason = resolve_critic(wanted)
     if reason:
         print(f"! {reason} — the scripted critic answers instead")

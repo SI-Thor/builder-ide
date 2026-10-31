@@ -32,9 +32,10 @@ from core.night.iterate import CriticScore
 
 from .critic import ReferenceCritic, ScriptedReferenceCritic
 from .models import DEFECT_TARGETS
+from .select import configured_critic
 from .set import MemberRecipe
 
-__all__ = ["RenderCritic", "render_of_artifact"]
+__all__ = ["RenderCritic", "build_render_critic", "render_of_artifact"]
 
 
 def render_of_artifact(
@@ -133,3 +134,35 @@ class RenderCritic:
             reason=reason,
             degraded=fell_back,
         )
+
+
+def build_render_critic(
+    name: str | None = None,
+    *,
+    render_of: Callable[[Any, Any], str | None] | None = None,
+    classes: Sequence[str] | None = None,
+    settings: Any = None,
+    **kwargs: Any,
+) -> tuple[RenderCritic, str | None]:
+    """The core's ``Critic`` seam, built from the configured critic.
+
+    The night runner asks one question after the executor has run a variant
+    — *how good is this variant?* — and this is the one call that puts the
+    chosen critic behind that seam.
+
+    It returns the critic and the reason it is not the one asked for
+    (``None`` when it is). The **fallback is the scripted checks**: a
+    candidate that cannot be built on this box (no torch, no VLM resident,
+    no API key) is not a crash, and a night that cannot reach its model
+    still gets a table — of the checks, with the reason attached.
+
+    The name comes from ``settings`` (the config, which reads
+    ``BUILDER_CRITIC``) when there is one, and from the argument otherwise.
+    """
+    if name is None:
+        critic, reason = configured_critic(settings, **kwargs)
+    else:
+        from .select import resolve_critic
+
+        critic, reason = resolve_critic(name, **kwargs)
+    return RenderCritic(critic, render_of=render_of, classes=classes), reason

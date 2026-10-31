@@ -49,9 +49,11 @@ from core.critic.select import (  # noqa: E402
     CriticUnavailable,
     build_critic,
     candidate_names,
+    configured_critic,
+    configured_name,
     resolve_critic,
 )
-from core.critic.service import RenderCritic  # noqa: E402
+from core.critic.service import RenderCritic, build_render_critic  # noqa: E402
 from core.critic.set import MemberRecipe  # noqa: E402
 
 
@@ -259,6 +261,96 @@ def test_building_an_unknown_critic_raises():
 
 def test_the_scripted_critic_sees_both_layers():
     assert ScriptedReferenceCritic().layers == ("image", "mesh")
+
+
+# -- the configured critic ----------------------------------------------------
+
+
+def test_the_configured_critic_is_the_default_when_nothing_is_configured():
+    assert configured_name() == CRITIC_DEFAULT
+
+
+def test_the_configured_critic_comes_from_the_settings(monkeypatch):
+    """The settings carry the name, so the night and the re-score agree."""
+    monkeypatch.delenv("BUILDER_CRITIC", raising=False)
+
+    class _Settings:
+        critic = "hybrid"
+
+    assert configured_name(_Settings()) == "hybrid"
+
+
+def test_the_configured_critic_comes_from_the_environment(monkeypatch):
+    monkeypatch.setenv("BUILDER_CRITIC", "vlm")
+    assert configured_name() == "vlm"
+
+
+def test_the_configured_critic_falls_back_to_the_checks(monkeypatch):
+    """A critic that cannot be built is not a crash: the checks answer."""
+    monkeypatch.setenv("BUILDER_CRITIC", "no-such-critic")
+    critic, reason = configured_critic()
+    assert critic.name == "scripted"
+    assert reason is not None
+
+
+def test_the_core_seam_is_built_from_the_configured_critic(monkeypatch):
+    """One call puts the chosen critic behind the core's ``Critic`` seam."""
+    monkeypatch.setenv("BUILDER_CRITIC", "scripted")
+    critic, reason = build_render_critic(render_of=lambda task, variant: None)
+    assert reason is None
+    assert critic.critic.name == "scripted"
+
+
+def test_the_core_seam_falls_back_and_says_why(monkeypatch):
+    monkeypatch.setenv("BUILDER_CRITIC", "no-such-critic")
+    critic, reason = build_render_critic(render_of=lambda task, variant: None)
+    assert critic.critic.name == "scripted"
+    assert reason is not None
+    assert "no-such-critic" in reason
+
+
+def test_the_nightly_growth_scores_with_the_chosen_critic(tmp_path):
+    """``grow`` re-scores with the critic it is given, not always the checks."""
+    from core.critic.grow import NightBudget, grow
+
+    _sweep(tmp_path, count=4)
+    result = grow(
+        sweep_root=tmp_path,
+        manifest_path=tmp_path / "manifest.json",
+        cache_dir=tmp_path / "cache",
+        budget=NightBudget(wall_minutes=100.0),
+        publish=False,
+        critic=ScriptedReferenceCritic(),
+    )
+    assert result.critic == "scripted"
+    assert result.verdicts
+    assert all(v.label == "verdict@scripted" for v in result.verdicts)
+
+
+def _sweep(tmp_path, count: int = 4):
+    """A sweep's worth of renders for the growth to harvest."""
+    from core.critic.models import BaseRender
+
+    out = []
+    for i in range(count):
+        scene = tmp_path / f"scene-s{i}"
+        frames = scene / "frames" / "Image" / "camera_0"
+        frames.mkdir(parents=True)
+        path = frames / "Image_0_0_0001_0.png"
+        image = np.full((180, 320, 3), 40 + (i % 10) * 20, dtype=np.uint8)
+        save_rgb(path, image)
+        out.append(
+            BaseRender(
+                id=f"scene-s{i}",
+                scene="scene",
+                seed=i,
+                image_path=str(path),
+                image_sha256="0" * 64,
+                width=320,
+                height=180,
+            )
+        )
+    return out
 
 
 # -- the fold and the layers -------------------------------------------------

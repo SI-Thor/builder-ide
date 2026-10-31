@@ -27,6 +27,7 @@ The candidates that need a model are imported **lazily**, inside their
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
@@ -39,6 +40,8 @@ __all__ = [
     "CANDIDATES",
     "candidate_names",
     "build_critic",
+    "configured_critic",
+    "configured_name",
     "resolve_critic",
 ]
 
@@ -215,3 +218,34 @@ def resolve_critic(
 
 class CriticUnavailable(RuntimeError):
     """The named critic cannot be built on this box."""
+
+
+# -- the configured critic ----------------------------------------------------
+
+
+def configured_name(settings: Any = None) -> str:
+    """The name of the critic this box is configured to use.
+
+    One place, so the nightly re-score and the night runner cannot disagree
+    about which critic is in service. The order is: the **settings** (which
+    the config already reads from ``BUILDER_CRITIC``), then the environment
+    directly, and then the default — the scripted checks.
+    """
+    name = getattr(settings, "critic", None)
+    if name:
+        return str(name)
+    env = os.environ.get("BUILDER_CRITIC")
+    return env or CRITIC_DEFAULT
+
+
+def configured_critic(
+    settings: Any = None,
+    **kwargs: Any,
+) -> tuple[ReferenceCritic, str | None]:
+    """The configured critic, and the reason it is not the one asked for.
+
+    The same fallback rule as :func:`resolve_critic`: the scripted checks
+    answer whenever the chosen critic cannot be built, and the reason travels
+    with the verdict.
+    """
+    return resolve_critic(configured_name(settings), **kwargs)
