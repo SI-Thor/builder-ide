@@ -149,6 +149,12 @@ class Actor(BaseModel):
     §1.8: an audit event's actor may also be ``critic``, ``scheduler`` or
     ``client``.
 
+    ``agent`` names a per-agent token's agent — one actor, many agents
+    (the world-mcp round's extension of §4.1): the log answers "which
+    agent acted for whom" from the row alone. Recorded on every event the
+    agent writes; gating nothing (A1 is permissive), and ``None`` for
+    every token that does not carry the claim.
+
     Frozen: an actor is an identity, and the log must not be able to
     rewrite who did something after the fact.
     """
@@ -158,6 +164,7 @@ class Actor(BaseModel):
     kind: ActorKind
     id: str
     via: str | None = None
+    agent: str | None = None
 
 
 class AuditEvent(BaseModel):

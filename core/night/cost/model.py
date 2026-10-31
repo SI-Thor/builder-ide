@@ -185,7 +185,7 @@ class CostModel:
         return sorted((self.data.index.get("jobs") or {}))
 
     def all_kinds(self) -> list[str]:
-        """Every job kind the model can price: the recorded ones and the two
+        """Every job kind the model can price: the recorded ones and the
         derived ones."""
         return sorted(set(self.kinds()) | set(self._derived_kinds()))
 
@@ -227,14 +227,17 @@ class CostModel:
     # -- the derived kinds ------------------------------------------------
 
     def _derived_kinds(self) -> tuple[str, ...]:
-        return ("prop.goal", "scene.goal")
+        return ("prop.goal", "scene.goal", "plan.intention")
 
     def _derived_band(self, kind: str, *, scene: str | None = None) -> CostBand:
-        """The two kinds that are sums of recorded kinds.
+        """The kinds that are built from the recorded ones.
 
         ``prop.goal`` — one owner's goal, tried ``seeds`` times: a picture,
         then a 3D prop, then the verdict. ``scene.goal`` — one scene, built
-        coarse, fine, rendered.
+        coarse, fine, rendered. ``plan.intention`` — an agent's proposal on
+        the night's slate: the proposal's own footprint, a slate row and
+        the owner's decision on it; the night work it may seed is priced
+        by its own kind when the night runs it.
         """
         if kind == "prop.goal":
             seeds = 3
@@ -257,6 +260,8 @@ class CostModel:
             label = f"one scene goal ({scene_type})"
             note = "coarse, fine, render"
             iterations = 1
+        elif kind == "plan.intention":
+            return self._intention_band()
         else:  # pragma: no cover - guarded by _derived_kinds
             raise KeyError(kind)
 
@@ -271,6 +276,47 @@ class CostModel:
             p50=p50,
             p95=p95,
             scene=scene,
+        )
+
+    def _intention_band(self) -> CostBand:
+        """The band for an agent's plan intention (world-mcp round).
+
+        Filing an intention runs nothing on the box: the GPU is 0, the
+        hosted cents are 0, and the wall figure is the owner's decision on
+        the proposal — the model's one attention estimate, which stays
+        marked ``estimate`` until a morning measures it. The intention's
+        ask is small on purpose: it prices the proposal, not the work the
+        proposal may seed. That work is priced by its own kind when the
+        night runs it, so the slate cannot be fattened by a proposal that
+        promises the box it knows not what.
+        """
+        attention = self.attention_minutes_per_decision()
+        wall = attention * 60.0
+
+        def _end() -> CostEstimate:
+            estimate = CostEstimate(
+                kind="plan.intention",
+                gpu_minutes=0.0,
+                cpu_lane_minutes=0.0,
+                wall_minutes=attention,
+                hosted_cents=0,
+                joules=self.data.rails.vin_w * wall / 1000.0,
+                iterations=1,
+                samples=0,
+            )
+            estimate.joules_above_idle = self._combine_joules(estimate)
+            return estimate
+
+        return CostBand(
+            kind="plan.intention",
+            label="one agent's intention on the slate",
+            basis=ESTIMATE,
+            source="the attention estimate (core.night.cost.records): the "
+                   "owner's decision on the proposal",
+            note="a slate row and the owner's decision on it; the night "
+                 "work it may seed is priced by its own kind",
+            p50=_end(),
+            p95=_end(),
         )
 
     def _sum(self, parts: Sequence[CostEstimate], *, iterations: int) -> CostEstimate:

@@ -8,6 +8,14 @@ Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md
 
 ---
 
+## Round 6 — the core's doors (2026-10-31)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-store-race.md`](exp-store-race.md) | the store race behind the doors' intermittent 500: one SQLite connection, two threadpool threads; lock vs per-thread read connections, measured | **useful — the lock won on the number and per-thread connections broke read-your-own-writes** |
+
+---
+
 ## Round 4 — the real generator (2026-10-31)
 
 | file | what it measured | verdict |
