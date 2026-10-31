@@ -92,7 +92,7 @@ class EngineDescriptor(BaseModel):
     verbatim, so it drops straight into a ``Recipe``; ``source`` is the one
     human sentence a card or a log line shows."""
 
-    flavour: Literal["fake", "infinigen-1x", "infinigen-2-procfunc"]
+    flavour: Literal["fake", "infinigen-1x", "infinigen-2-procfunc", "resident"]
     pin: EnginePin
     capabilities: EngineCapabilities
     source: str

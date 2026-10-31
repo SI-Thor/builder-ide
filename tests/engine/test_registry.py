@@ -9,6 +9,7 @@ from core.engine import (
     FakeEngine,
     Infinigen1xEngine,
     Infinigen2Engine,
+    ResidentEngine,
     engine_from_env,
     open_engine,
 )
@@ -47,6 +48,21 @@ def test_the_v2_flavour_builds_the_in_process_adapter():
         "runtime": RecordingRuntime(),
     })
     assert isinstance(engine, Infinigen2Engine)
+
+
+def test_the_resident_flavour_builds_a_warm_engine(tmp_path):
+    """The warm scene server is one configuration line like the rest —
+    `root` is where its journal lives, `policy` arrives as plain JSON."""
+    engine = open_engine({
+        "flavour": "resident",
+        "pin": PIN_V1.model_dump(),
+        "root": tmp_path / "resident",
+        "policy": {"max_restarts": 5, "restart_backoff_s": 0.01},
+    })
+    assert isinstance(engine, ResidentEngine)
+    assert engine.describe().flavour == "resident"
+    assert engine.describe().pin == PIN_V1
+    engine.stop()
 
 
 def test_an_unknown_flavour_names_the_flavours():

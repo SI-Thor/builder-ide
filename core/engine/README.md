@@ -57,6 +57,7 @@ the compiled-output rule (§7.11)      ◄──  export
 | `infinigen1.py` | v1 as the spike runs it (`docs/research/spike-phase1.md`): one pinned subprocess per stage | the whole subprocess contract: argv, task flags, the rung ladder, content-addressed outputs, the config-bundle verification, every refusal | the engine repo's `infinigen_thor.stage_runner` (our fork's half of the seam) and the entries→gin translation; without the checkout, `EngineUnavailable` names it |
 | `infinigen2.py` | 2.0 + procfunc in-process — the decision's engine (E §3, option C) | the translation: our entries → generator calls (the `_rand_from_params` convention), our edit ops → graph edits; the envelope that names the lower layer | the imported runtime (procfunc pins `bpy==4.2.0` / Python `==3.11.*`; this core is 3.12 — E §2) and the mesh exporter (v2 ships none; `builder_usd` is its natural home) |
 | `venv2.py` | **2.0 through its own venv's CLI** — the subprocess boundary that renders on the Thor today (the confirming experiment's venv, `~/lm-wt/v2-thor`, read-only) | **the render rung and the traced stage, live**: `render` is the subject entry's chain through `render_cycles` (Cycles CUDA) at the ladder's resolution/samples; `trace` is `--trace graph` at `RANDOM_CONTROL`, **normalized to byte-stability** (the experiment §3.3's two wobbles — the `$repr` pointer leak, the `generator_times` wall-clock — removed); the **pin is interrogated** from the venv (resolved packages + clone commit → the config hash); the licence row comes from the venv's own metadata | `replace`/`execute` (single-node re-execution needs the engine-side instrumentation the experiment built in its `choice_tool.py`; upstream ships no CLI for it) and `export` (v2 ships no exporter) |
+| `resident/` | the warm scene server (plan item 15): one resident process holds the scene while builders work — the win is **builder wait** (the launch tax paid once) and **crash recovery** (replay, not reload) | the whole adapter, measured on this box against the fake backend: the subprocess + RPC, the journal/snapshot/checkpoint durable recipe (the whole-file rewrite is gone), the four dials (health checks, restart budget, checkpoint cadence, memory-growth guard), and the digest-checked kill→replay recovery | the real engine behind it — `resident/blender_backend.py` is opt-in (needs `bpy` and its own 3.11 interpreter); the scheduler's `scene.loaded`/`scene.evicted` residency bookkeeping (§1.9) is not wired |
 | `gate.py` | the merge gate's engine rungs (`core.ports.MergeGateEngine`, §2.3) over any engine | the deterministic-rebuild rung really byte-compares two generated stages; the render rung renders through the seam | the verdict's critic half (stays `verdict@scripted` until a critic is calibrated, RV patch 15) |
 | `registry.py` | `open_engine(spec)` / `engine_from_env()` | everything | nothing — this *is* the configuration story |
 
@@ -98,6 +99,15 @@ engine = open_engine({
 
 # the decision's engine in-process, when the v2 gate (week-1 item 2) lands
 engine = open_engine({"flavour": "infinigen-2-procfunc", "pin": {...}})
+
+# the warm scene server (plan item 15) — root is where its journal lives
+engine = open_engine({
+    "flavour": "resident", "pin": {...},
+    "root": "$BUILDER_HOME/resident",
+    "backend": "fake",                  # "blender" behind the opt-in backend
+    "python": ".../.venv/bin/python",   # the engine's own interpreter (bpy)
+    "policy": {"max_restarts": 3, "checkpoint_every_ops": 25},
+})
 ```
 
 The same shape reads from `BUILDER_ENGINE` (JSON) via `engine_from_env()`,
@@ -130,6 +140,11 @@ swap.
   render-rung item (week-1 item 4).
 - **The stage cache** (`core/recipe/stagecache.py`): the keys this seam
   reports; the on-disk cache and partial regeneration are week-2 item 9.
+- **The warm scene server** (`core/engine/resident/`): a fourth flavour on
+  this same seam — the resident engine keeps the scene across requests, so
+  a builder's edit reaches a process that already holds it. Its README
+  (`core/engine/resident/README.md`) is the handover note: what is
+  measured, what is opt-in, and the benchmark's commands.
 
 ## The render rung, measured (2026-10-31, first live run)
 

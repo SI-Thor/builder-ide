@@ -20,6 +20,9 @@ putting our schema above the engine):
   the pin interrogated from the venv, re-execution and export refused with
   their missing pieces named;
 * :mod:`core.engine.gate` — the merge gate's engine rungs over any engine;
+* :mod:`core.engine.resident` — the warm scene server: a resident process
+  holding the scene while builders work (plan item 15 — the win is builder
+  wait and crash recovery, not edit→preview latency);
 * :mod:`core.engine.registry` — :func:`open_engine` / :func:`engine_from_env`:
   pointing the core at a real engine is configuration.
 
@@ -49,6 +52,7 @@ from core.engine.gate import EngineGateEngine
 from core.engine.infinigen1 import Infinigen1xEngine
 from core.engine.infinigen2 import Infinigen2Engine
 from core.engine.registry import engine_from_env, open_engine
+from core.engine.resident import ResidentEngine, ResidentPolicy
 
 __all__ = [
     "Engine",
@@ -65,6 +69,8 @@ __all__ = [
     "Infinigen1xEngine",
     "Infinigen2Engine",
     "PreviewRequest",
+    "ResidentEngine",
+    "ResidentPolicy",
     "PreviewResult",
     "ReexecuteRequest",
     "StageMechanism",

@@ -15,6 +15,9 @@ one line the acceptance suites hold, and the one line a real engine changes:
     {"flavour": "infinigen-2-procfunc", "pin": {...}}              # in-process,
                                                                    # when the v2
                                                                    # gate lands
+    {"flavour": "resident", "pin": {...}, "root": "$BUILDER_HOME/resident",
+     "backend": "fake" | "blender", "python": ".../.venv/bin/python",
+     "policy": {"max_restarts": 3, ...}}                           # the warm scene
 
 `engine_from_env()` reads the same shape from ``BUILDER_ENGINE`` (JSON), so
 deploying a real engine to the Thor is one environment variable on the
@@ -35,6 +38,7 @@ from core.engine.contract import Engine
 from core.engine.fake import FakeEngine
 from core.engine.infinigen1 import Infinigen1xEngine
 from core.engine.infinigen2 import Infinigen2Engine
+from core.engine.resident import ResidentEngine, ResidentPolicy
 from core.records import EnginePin
 
 __all__ = ["open_engine", "engine_from_env"]
@@ -67,9 +71,17 @@ def open_engine(spec: Mapping[str, Any]) -> Engine:
                 "flavour) or an injected ProcfuncRuntime double"
             )
         return Infinigen2Engine(pin=pin, runtime=runtime)
+    if flavour == "resident":
+        pin = EnginePin.model_validate(spec.pop("pin"))
+        policy = spec.pop("policy", None)
+        if isinstance(policy, Mapping):
+            policy = ResidentPolicy(**dict(policy))
+        return ResidentEngine(
+            pin=pin, root=spec.pop("root"), policy=policy, **spec
+        )
     raise ValueError(
         f"unknown engine flavour {flavour!r}; the flavours are 'fake', "
-        "'infinigen-1x' and 'infinigen-2-procfunc'"
+        "'infinigen-1x', 'infinigen-2-procfunc' and 'resident'"
     )
 
 
