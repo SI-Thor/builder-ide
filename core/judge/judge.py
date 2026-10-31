@@ -250,7 +250,13 @@ class Judge:
             "model": backend.model,
             "author": f"judge@{backend.name}:{backend.model}",
             "n_questions": len(questions),
-            "judgments": [judgment.model_dump() for judgment in judgments],
+            # the gate decision is derived (confidence, τ, escalated), but the
+            # row carries it anyway: a log that needs a computation to say
+            # what was acted on is a log that lies by omission
+            "judgments": [
+                {**judgment.model_dump(), "gate": judgment.gate}
+                for judgment in judgments
+            ],
             "latency_seconds": reply.wall_seconds if reply else 0.0,
             "cost": (
                 backend.cost_of(reply).model_dump()
