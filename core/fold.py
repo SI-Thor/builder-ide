@@ -157,8 +157,25 @@ def _h_attempt_delivered(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> No
     doc["attempts"] = attempts
     if "deliverable" in ev.payload:
         doc["last_deliverable"] = ev.payload["deliverable"]
+        # the deliverable's evidence is the work order's evidence — "no card
+        # without an artifact": the owner sees the test run before deciding.
+        doc["evidence"] = _merge_evidence(doc.get("evidence", []),
+                                          ev.payload["deliverable"].get("evidence", []))
     doc["state"] = "testing"
     _wo_save(rows, wo_id, doc, ev.seq)
+
+
+def _merge_evidence(existing: list, incoming: list) -> list:
+    """Append evidence, keeping one copy of each artifact."""
+    out = list(existing)
+    seen = {(e.get("kind"), e.get("sha256"), e.get("ref")) for e in out}
+    for e in incoming:
+        key = (e.get("kind"), e.get("sha256"), e.get("ref"))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(e)
+    return out
 
 
 def _h_gate_result(ev: AuditEvent, rows: RowStore, ctx: FoldContext, state: str) -> None:
@@ -166,7 +183,8 @@ def _h_gate_result(ev: AuditEvent, rows: RowStore, ctx: FoldContext, state: str)
     if "preview" in ev.payload:
         doc["preview"] = ev.payload["preview"]
     if "evidence" in ev.payload:
-        doc["evidence"] = list(doc.get("evidence", [])) + list(ev.payload["evidence"])
+        doc["evidence"] = _merge_evidence(doc.get("evidence", []),
+                                          ev.payload["evidence"])
     if "gate" in ev.payload:
         doc["last_gate"] = ev.payload["gate"]
     if "failed_attempt_n" in ev.payload:
@@ -383,8 +401,16 @@ def _h_night_event(ev: AuditEvent, rows: RowStore, ctx: FoldContext) -> None:
         doc["state"] = "stopped"
         doc["stopped_at"] = ev.payload.get("stopped_at", ev.at)
         doc["stop_reason"] = ev.payload.get("reason")
+        doc["status"] = ev.payload.get("status")
         if "report" in ev.payload:
-            doc["report"] = ev.payload["report"]
+            rep = ev.payload["report"]
+            # the model's `report` is a reference (the json artifact's hash);
+            # the full descriptors stay alongside it
+            doc["report_artifacts"] = rep
+            if isinstance(rep, dict):
+                doc["report"] = (rep.get("json") or {}).get("sha256")
+            else:
+                doc["report"] = rep
     elif kind == "kill.switch":
         doc["kill_switch"] = True
     elif kind == "power.mode.set":

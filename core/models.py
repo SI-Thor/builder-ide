@@ -332,7 +332,8 @@ class Night(BaseModel):
     detach_deadline: str | None = None
     state: Literal["starting", "running", "stopping", "stopped"] = "running"
     status: str | None = None  # computed at stop from heartbeats (§3.4)
-    report: str | None = None
+    stop_reason: str | None = None  # why it stopped — never hidden (D, T, G §2)
+    report: str | None = None  # the report artifact's hash
 
 
 class Task(BaseModel):
