@@ -204,6 +204,17 @@ over time.
 - Each night adds scripts and outcomes, so the builders get better from both
   ends.
 
+### The first mile is on the ProArt (Casey, 2026-10-31)
+
+The human's side of every exchange is fast and local. A small Liquid voice or omni model (LFM3-Audio-2B / LFM3-Omni-2B) on the ProArt's GPU listens, takes turns and **answers within a breath**: "on it", or "the east span or the north?". It never waits on the slow paths. Behind it, it routes:
+
+- **quick typed questions** go to decision models (d1, Clef, Jev);
+- **world actions** go to world-mcp, with the context packet attached;
+- **hard asks** become work orders for cloud LLMs and engineers;
+- **assets and renders** go to the Thor.
+
+Results come back as short spoken updates when they land. Speed is the first mile's job; depth comes from everything behind it. The spike is `first-mile` (ProArt).
+
 ## Phases
 
 1. **Feasibility spike (days).** Blender 4.2 on the Thor; Infinigen Hello Room
