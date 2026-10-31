@@ -182,9 +182,11 @@ a writer (§1.9's hard rule), and its stage keys are these same keys.
 
 ## 7. The contract's mechanical checks
 
-Each sentence above that can be checked is checked, in
+Each sentence above that can be checked is checked — in
 `tests/engine/test_graph.py`, `tests/engine/test_stagecache.py` and
-`tests/engine/test_regen.py`:
+`tests/engine/test_regen.py` for the contract's own flow (plus the
+adapters' suites for rule 5's refusals, and the opt-in
+`tests/engine/test_stagecache_real.py` against the real venv):
 
 - a hit is byte-identical to re-evaluation (fake and graph-runtime
   doubles), and the engine is *never called* for a hit;

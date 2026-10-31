@@ -282,6 +282,7 @@ class Infinigen2Engine:
             # the entry that missed
             wanted = set(request.entries)
             calls = [call for call in calls if call.entry_path in wanted]
+        started = time.monotonic()
         graph = self._runtime.trace(calls, dict(request.recipe.seeds))
         data = self._envelope(request, graph)
         return StageResult(
@@ -290,6 +291,7 @@ class Infinigen2Engine:
             artifact={"sha256": bytes_hash(data), "kind": "stage",
                       "bytes": len(data)},
             mechanism="graph-edit",
+            wall_ms=(time.monotonic() - started) * 1000.0,
         )
 
     def reexecute(self, request: ReexecuteRequest) -> StageResult:

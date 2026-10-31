@@ -1,0 +1,299 @@
+{
+ "date": "2026-10-31",
+ "engine_home": "/home/caseydigennaro/lm-wt/v2-next",
+ "scenarios": {
+  "add_a_desk": {
+   "baseline_choices": 7185,
+   "box_state": "07:54:26 up 1 day,  6:55,  5 users,  load average: 26.29, 21.46, 16.28 | 0 %, 2.76 W",
+   "edit": "room.py:661 chosen_idx 0 -> 1 (the desk), seed 0",
+   "full_regeneration": {
+    "choices": 8065,
+    "generation_wall_s": 36.64,
+    "peak_rss_mb": 828.8,
+    "trace_wall_s": 33.625
+   },
+   "graph_diff": {
+    "added": 2698,
+    "added_kinds": {
+     "MutatedArgument": 889,
+     "__getitem__": 135,
+     "_operator.add": 52,
+     "_operator.getitem": 12,
+     "_operator.gt": 6,
+     "_operator.mul": 126,
+     "_operator.neg": 3,
+     "_operator.pow": 27,
+     "_operator.sub": 36,
+     "_operator.truediv": 32,
+     "astype": 3,
+     "bsdf": 5,
+     "builtins.Vector": 7,
+     "builtins.max": 5,
+     "builtins.min": 6,
+     "clone": 1,
+     "displacement": 22,
+     "fiber_map": 5,
+     "flake_map": 5,
+     "grain_map": 5,
+     "height": 2,
+     "infinigen2.objects.chair._curvy_seat_geometry": 1,
+     "infinigen2.objects.door._door_body_geometry": 1,
+     "infinigen2.objects.furniture_bases.base_four_leg": 1,
+     "infinigen2.objects.handles._handle_bar_pull_geometry": 1,
+     "infinigen2.objects.storage._shelf_geometry": 1,
+     "infinigen2.objects.storage._storage_drawers_rand": 1,
+     "infinigen2.objects.storage.storage_cell_bounds": 1,
+     "infinigen2.objects.storage.storage_cell_counts": 1,
+     "infinigen2.objects.table.table_top": 1,
+     "infinigen2.scenes.room.room._with_objects": 1,
+     "infinigen2.shaders.base_materials.glass_colored.glass_colored": 1,
+     "infinigen2.shaders.base_materials.metal_brushed.metal_brushed": 4,
+     "infinigen2.shaders.base_materials.metal_hammered.metal_hammered": 1,
+     "infinigen2.shaders.base_materials.paint.paint": 1,
+     "infinigen2.shaders.base_materials.plastic._plastic": 6,
+     "infinigen2.shaders.base_materials.wood_grain.wood_grain_generator": 5,
+     "infinigen2.shaders.base_materials.wood_grain.wood_shader": 5,
+     "infinigen2.shaders.composites.wood_planks._grain_color_mix_x": 2,
+     "infinigen2.shaders.composites.wood_planks._grain_color_mix_y": 2,
+     "infinigen2.shaders.masks.brick_cutter.brick_cutter": 2,
+     "infinigen2.shaders.masks.cracks.cracks_mask": 1,
+     "infinigen2.shaders.masks.scratches.scratches_linear": 2,
+     "infinigen2.shaders.masks.scratches.scratches_random": 4,
+     "infinigen2.shaders.masks.splats.splat_dots": 10,
+     "infinigen2.shaders.masks.splats.streaks": 6,
+     "infinigen2.util.mesh.crease_sharp": 2,
+     "knot_map": 5,
+     "mask": 2,
+     "max": 1,
+     "min": 1,
+     "object": 1,
+     "procfunc.color.hsv_color": 42,
+     "procfunc.control.choice": 49,
+     "procfunc.nodes.color.hue_saturation": 6,
+     "procfunc.nodes.execute.execute.to_mesh_object": 6,
+     "procfunc.nodes.func.switch": 5,
+     "procfunc.nodes.geo.bound_box": 1,
+     "procfunc.nodes.geo.input_mesh_edge_angle": 1,
+     "procfunc.nodes.geo.input_normal": 1,
+     "procfunc.nodes.geo.input_position": 1,
+     "procfunc.nodes.geo.set_material": 2,
+     "procfunc.nodes.geo.set_shade_smooth": 1,
+     "procfunc.nodes.geo.store_named_attribute": 2,
+     "procfunc.nodes.geo.transform": 2,
+     "procfunc.nodes.math.combine_xyz": 9,
+     "procfunc.nodes.math.constant": 2,
+     "procfunc.nodes.math.mix": 1,
+     "procfunc.nodes.math.vector_absolute": 1,
+     "procfunc.nodes.shader.anisotropic_bsdf": 1,
+     "procfunc.nodes.shader.coord": 4,
+     "procfunc.nodes.shader.diffuse_bsdf": 5,
+     "procfunc.nodes.shader.displacement": 1,
+     "procfunc.nodes.shader.mapping": 5,
+     "procfunc.nodes.shader.mix_shader": 5,
+     "procfunc.ops.modifier.bevel": 2,
+     "procfunc.ops.modifier.subdivide_surface": 6,
+     "procfunc.ops.object.join": 5,
+     "procfunc.ops.object.set_material": 4,
+     "procfunc.ops.object.set_transform": 4,
+     "procfunc.random.clip_gaussian": 206,
+     "procfunc.random.randint": 1,
+     "procfunc.random.uniform": 727,
+     "random": 4,
+     "shader": 6,
+     "spawn": 60,
+     "surface": 8,
+     "unsigned_angle": 1,
+     "uv": 3,
+     "vector": 2,
+     "x": 16,
+     "y": 18,
+     "z": 14
+    },
+    "additive": true,
+    "base_hash": "sha256:e16ab20d70ff4b7015205c3328e254fbb6eb72dcbde0a513fa2fd6c4c9575d88",
+    "base_nodes": 18725,
+    "changed": 2,
+    "changed_kinds": {
+     "__getitem__": 1,
+     "_operator.add": 1
+    },
+    "closure_nodes": 2704,
+    "closure_share": 0.1262,
+    "edited": [],
+    "head_hash": "sha256:4415d2c6725e61158e7534568cec8eda681502028f1aa07c4b1c8781915f7c9a",
+    "head_nodes": 21423,
+    "join_points": [
+     "n16943"
+    ],
+    "outputs_touched": true,
+    "rebound": [
+     "n18724"
+    ],
+    "removed": 0,
+    "splice_safe": false,
+    "wall_ms": 313.627228999394
+   },
+   "partial_regeneration": {
+    "baseline_generation_wall_s": 20.76,
+    "graph_diff_ms": 313.627228999394,
+    "marginal_generation_s": 15.88
+   }
+  },
+  "edit_one_room": {
+   "box_state": "07:52:24 up 1 day,  6:53,  5 users,  load average: 21.56, 19.64, 15.10 | 0 %, 2.76 W",
+   "full_regeneration": {
+    "per_entry": {
+     "fjellvik.crates": 2.175,
+     "fjellvik.room": 44.44,
+     "fjellvik.terrain": 1.92
+    },
+    "verdicts": {
+     "hit": 0,
+     "miss": 3,
+     "partial": 0
+    },
+    "wall_s": 48.696
+   },
+   "partial_regeneration": {
+    "per_entry": {
+     "fjellvik.crates": 0.0,
+     "fjellvik.room": 57.946,
+     "fjellvik.terrain": 0.0
+    },
+    "verdicts": {
+     "hit": 2,
+     "miss": 1,
+     "partial": 0
+    },
+    "wall_s": 60.061
+   },
+   "prime_walls": {
+    "fjellvik.crates": 2.441,
+    "fjellvik.room": 40.511,
+    "fjellvik.terrain": 2.992
+   },
+   "recipe_entries": [
+    "crates",
+    "room",
+    "terrain"
+   ],
+   "saved": -11.365,
+   "speedup": 0.81
+  },
+  "session_10_edits": {
+   "box_state": "07:57:14 up 1 day,  6:58,  5 users,  load average: 27.13, 24.23, 18.20 | 0 %, 2.36 W",
+   "cache_stats": {
+    "bytes": 10099684,
+    "entries": 10,
+    "evictions": 0,
+    "hit_rate": 0.7667,
+    "hits": 23,
+    "max_bytes": 8589934592,
+    "misses": 7
+   },
+   "cached_wall_s": 122.603,
+   "edits": [
+    {
+     "edit": "room.seed -> 1",
+     "verdicts": {
+      "hit": 2,
+      "miss": 1,
+      "partial": 0
+     },
+     "wall_s": 66.243
+    },
+    {
+     "edit": "crates.seed -> 43",
+     "verdicts": {
+      "hit": 2,
+      "miss": 1,
+      "partial": 0
+     },
+     "wall_s": 4.153
+    },
+    {
+     "edit": "terrain.seed -> 1",
+     "verdicts": {
+      "hit": 2,
+      "miss": 1,
+      "partial": 0
+     },
+     "wall_s": 3.286
+    },
+    {
+     "edit": "crates.seed -> 44",
+     "verdicts": {
+      "hit": 2,
+      "miss": 1,
+      "partial": 0
+     },
+     "wall_s": 2.389
+    },
+    {
+     "edit": "room.seed -> 2",
+     "verdicts": {
+      "hit": 2,
+      "miss": 1,
+      "partial": 0
+     },
+     "wall_s": 40.712
+    },
+    {
+     "edit": "crates.seed -> 45",
+     "verdicts": {
+      "hit": 2,
+      "miss": 1,
+      "partial": 0
+     },
+     "wall_s": 3.509
+    },
+    {
+     "edit": "terrain.seed -> 2",
+     "verdicts": {
+      "hit": 2,
+      "miss": 1,
+      "partial": 0
+     },
+     "wall_s": 2.26
+    },
+    {
+     "edit": "crates.seed -> 42",
+     "verdicts": {
+      "hit": 3,
+      "miss": 0,
+      "partial": 0
+     },
+     "wall_s": 0.02
+    },
+    {
+     "edit": "room.seed -> 0",
+     "verdicts": {
+      "hit": 3,
+      "miss": 0,
+      "partial": 0
+     },
+     "wall_s": 0.01
+    },
+    {
+     "edit": "terrain.seed -> 0",
+     "verdicts": {
+      "hit": 3,
+      "miss": 0,
+      "partial": 0
+     },
+     "wall_s": 0.021
+    }
+   ],
+   "hit_rate": 0.7667,
+   "hits": 23,
+   "misses": 7,
+   "no_cache_wall_s_computed": 702.44,
+   "per_entry_walls_measured": {
+    "fjellvik.crates": 3.928,
+    "fjellvik.room": 63.052,
+    "fjellvik.terrain": 3.263
+   },
+   "stage_asks": 30
+  }
+ }
+}
