@@ -122,6 +122,13 @@ class RecipeStoreSeam:
     def head(self, alias_or_id: str = MAIN) -> str:
         return self._recipes.get_branch(self.branch_id(alias_or_id)).head
 
+    @property
+    def store(self) -> TheRecipeStore:
+        """The recipe store itself — e.g. for the compiler's adapter
+        (``builder_usd.recipe_source.BuilderRecipeSource``), which reads
+        committed versions through the store's own interface."""
+        return self._recipes
+
     def document(self, version_id: str) -> dict:
         return self._recipes.get_document(version_id).model_dump(mode="json")
 

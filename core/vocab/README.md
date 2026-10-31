@@ -72,29 +72,23 @@ fall back to the library, and the owner's morning scores the taste bet
 `partial`. On night one it seals a `guess`, refuses the taste claim, and parks
 the question.
 
-## The seams, and exactly what was stubbed
+## The seams — after the merge
 
-`ports.py` holds the protocols; `stubs.py` holds in-memory implementations.
-The protocol docstrings carry the invariants each real implementation owes.
+`ports.py` holds the protocols. The seats are merged, so the seams resolve
+to real implementations where the real half exists:
 
-**`LedgerPort` — core-api's (branch `core-api`):** the append-only audit log.
-Stubbed: `append` (gapless `seq`, idempotent replay, the **sealed-before-render
-guard**), `head_seq`, `events(since_seq, types)`, `find`. Not stubbed: the
-SQLite store and WAL, the projections table, SSE `/v1/events`, the HTTP API,
-the taste export/erase/ratify endpoints, the tally API.
-
-**`RecipeStorePort` — core-recipe's (branch `core-recipe`):** the recipe store.
-Stubbed: versions, branches, `apply_edit` (with the vocabulary's validator
-injected, so the store asks the vocabulary whether a touched entry's params
-are still inside its schema, §1.1), the **recipe hash** (`sha256` over the
-canonical JSON), and `move_head` (fast-forward only). Not stubbed: the
-dirty-set contract and partial regeneration, the node registry, constraint
-checking beyond the vocabulary schema, the recipe → USD/glTF compile.
-
-**`SchedulerPort` — a third seam the brief does not name.** The preview step
-needs a job door (§1.9), and the job's enqueue is the event that must come
-after the seal. It belongs to core-api's night runner; stubbed here as
-`enqueue_render` + `job`.
+- **`LedgerPort`** — the spine's SQLite store (`core.store`) is the log of
+  record. The in-memory implementation remains in `stubs.py` as this seat's
+  unit-test seam; the Prop-maker's loop runs against it exactly as before.
+- **`RecipeStorePort`** — the real store (`core.recipe`), reached from the
+  spine through `core.svc.recipes.RecipeStoreSeam`: a call that goes through
+  the spine's door commits a validated version into the one ledger
+  (`tests/test_integration_vocab_store.py`). The in-memory implementation
+  stays for this seat's own tests, and its `branch.head.moved` events keep
+  the same shape the real store writes.
+- **`SchedulerPort`** — the job door the preview step needs. The night
+  runner's executor seam is the real owner; the scripted stand-in stays
+  until the GPU stations land (§6.2).
 
 ## Deviations from the spec
 
