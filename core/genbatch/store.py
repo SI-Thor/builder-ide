@@ -66,12 +66,14 @@ class PropStore:
 
     # -- the images --------------------------------------------------------
 
-    def record_images(self, task_id: str, images: list[ImageResult]) -> None:
+    def record_images(self, request_id: str, images: list[ImageResult]) -> None:
         """Record the image stage's output for a request."""
-        self._images[task_id] = {image.seed: image for image in images}
+        held = self._images.setdefault(request_id, {})
+        for image in images:
+            held[image.seed] = image
 
-    def image(self, task_id: str, seed: int) -> ImageResult | None:
-        return self._images.get(task_id, {}).get(seed)
+    def image(self, request_id: str, seed: int) -> ImageResult | None:
+        return self._images.get(request_id, {}).get(seed)
 
-    def images(self, task_id: str) -> list[ImageResult]:
-        return list(self._images.get(task_id, {}).values())
+    def images(self, request_id: str) -> list[ImageResult]:
+        return list(self._images.get(request_id, {}).values())

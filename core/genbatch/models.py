@@ -7,6 +7,7 @@ translation layer.
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -27,12 +28,8 @@ __all__ = [
 Lane = Literal["gpu", "cpu", "unknown"]
 
 
-class StageKind(str):
-    """The two GPU stages of a prop, in the order the night runs them.
-
-    A plain string enum, kept as a class so the values read as
-    ``StageKind.IMAGE`` without an extra import at every use.
-    """
+class StageKind(str, Enum):
+    """The two GPU stages of a prop, in the order the night runs them."""
 
     IMAGE = "image"
     MESH = "mesh"
