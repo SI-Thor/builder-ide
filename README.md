@@ -28,7 +28,7 @@ seat you work from.
   share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
   is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
   than its own CUDA kernel). The mesher's SDF evaluation in Warp is the third.
-- **The core is integrated and renders for real: 1,494 tests pass** in one
+- **The core is integrated and renders for real: 1,505 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
     2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
@@ -202,8 +202,9 @@ Branches are pushed as the agents work and reviewed before they merge into
 | PR #2 prop plausibility (MiniMax agent) | Every check in the prop critic was a consistency check, which passes a prop that matches its image and could not exist; the plausibility side and an ambiguity gate that escalates ([exp](docs/lab/exp-genbatch-plausibility.md)) | merged |
 | PR #3 hysteresis gate (MiniMax agent) | A wandering confidence produced 56 state changes in 20 s at one threshold; split thresholds plus a dwell time hold it still, at a measured latency (`core/hysteresis/`, [exp](docs/lab/exp-hysteresis-gate.md)) | merged |
 | `core-judge` | One seam for typed judgments (choice, score, noul, verify) over four backends (fake, local d1, Jev, Clef); the confidence gate escalates up a ladder; every judgment is a ledger row. On the Thor, d1-2B as the tiles' cold-start prior wins **0.66 vs 0.54** over the first 50 plays at **42 ms** ([exp](docs/lab/exp-judge-tiles-coldstart.md)) | merged |
+| `research/ecology-bridge` (the z.ai agent) | A read-only Python mirror of [ecology-thor](https://github.com/SI-Thor/ecology-thor)'s attention auction and rail conservation (GPU seconds, joules, cents); the bridge for testing an auction-driven night against our runner ([note](docs/research/ecology-thor.md)) | merged |
 
-**`main` today: 1,494 tests pass** (3 skipped; the real-engine tests are opt-in).
+**`main` today: 1,505 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
