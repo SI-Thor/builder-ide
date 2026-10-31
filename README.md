@@ -11,11 +11,27 @@ build it, but we design toward its experience with what we have: an NVIDIA
 Jetson AGX Thor doing the long, patient, generative work, and a laptop as the
 seat you work from.
 
-> Status (2026-10-31): **research complete, first code in progress.** Six R&D
-> reports, three cross-reviews, a synthesized understanding and plan, a core
-> service spec (v2), and two lab rounds are in `docs/`. The core is being built
-> on branches (below). Nothing is usable end to end yet; milestone M1 is "one
-> evening, one night, one morning, one builder, one room".
+## Status (2026-10-31)
+
+- **The engine runs on the Thor.** Infinigen (Princeton, BSD-3) runs natively
+  on the Jetson Thor. Blender 4.2's Python module was built from source for
+  aarch64, Hello Room and Hello World both work, and Cycles renders on the
+  Thor's GPU at **7.1× its 14 CPU cores**. See
+  [SI-Thor/infinigen-thor](https://github.com/SI-Thor/infinigen-thor) (branch
+  `thor-spike`) and [docs/research/spike-phase1.md](docs/research/spike-phase1.md).
+- **Two lab breakthroughs.** Unified memory lets NumPy, PyTorch and CUDA kernels
+  share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
+  is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
+  than its own CUDA kernel).
+- **The core is written; integration is in progress.** Seven branches total
+  over 650 passing tests. The M1 acceptance session plays one evening, night
+  and morning end to end in 30 steps, all passing (many still against stand-ins
+  until integration lands).
+- **Research complete, plan drafted.** 18 reports, three cross-reviews, a
+  synthesized understanding and plan, and a core spec (v2). Plan draft 2 and a
+  condensed decision sheet for the owner come next.
+- **Nothing is usable end to end yet.** Milestone M1 is "one evening, one night,
+  one morning, one builder, one room".
 
 ## How it fits together
 
@@ -32,6 +48,8 @@ seat you work from.
                                         model scheduler, vocabulary, audit log
 ```
 
+### The principles
+
 - **Recipes, not meshes.** A project's source of truth is its recipe:
   generators, parameters, constraints and seeds. Meshes and renders are caches.
   A night's work is a small, diffable history you can branch, undo and replay.
@@ -45,80 +63,99 @@ seat you work from.
 - **Calling the computer in-game takes few words.** It knows your selection,
   what you're looking at, and what just happened, so a short phrase becomes a
   full work order, confirmed in one line.
+- **The Thor is an iterator.** Resident models and scenes make
+  propose → critique → refine loops cheap. At night that means breadth: many
+  variants, the best kept and refined, and the morning report shows what the
+  winner beat. By day it means warm starts.
 - **Thor-native, not ported.** Everything we build on is open source, and we
   rewrite it for the Thor's chips: unified memory, FP8 tensor cores, its
-  hardware engines, its 14 cores. Ideas become measured experiments in days.
+  hardware engines, its 14 cores. Ideas become measured experiments in days,
+  failures included.
+- **Nothing survives without a reason.** Every asset, word, branch and work
+  order carries a justification chain (the WHY kernel). When a goal dies, its
+  dependents become *questionable*; they are not deleted.
 
 ## Read this first
 
 | Document | What it is |
 |---|---|
-| [docs/vision.md](docs/vision.md) | The why, the three layers, the work order, calling the computer in-game, making characters and objects |
-| [docs/understanding.md](docs/understanding.md) | **The whole picture in one place.** Everything known, by subject, every fact cited; what's decided, believed and unknown; a glossary |
-| [docs/plan.md](docs/plan.md) | **The plan, experience first.** Milestones M0–M5 that each deliver something you live through, the first three weeks in detail, decisions for the owner |
+| [docs/vision.md](docs/vision.md) | The why; the three layers; the work order; calling the computer in-game; making characters and objects; the Thor as an iterator |
+| [docs/understanding.md](docs/understanding.md) | **The whole picture in one place**: everything known, by subject, every fact cited; what's decided, believed and unknown; a glossary |
+| [docs/plan.md](docs/plan.md) | **The plan, experience first** (draft 1): milestones M0–M5, the first three weeks, decisions for the owner |
 | [docs/design/core-spec.md](docs/design/core-spec.md) | The core service, specified (v2): data model, engineer adapter, lifecycles, APIs, durability |
+| [docs/rnd-plan.md](docs/rnd-plan.md) | How the research rounds were run |
 | [CLAUDE.md](CLAUDE.md) | How agents and Claude sessions work here: machines, repos, rules |
 
 ### Research ([docs/research/](docs/research/))
 
 | Report | Subject |
 |---|---|
+| [spike-phase1](docs/research/spike-phase1.md) | **Infinigen on the Thor, measured**: the bpy build, Hello Room/World, CPU vs GPU, walls hit, phase 2 |
 | [ux-day](docs/research/ux-day.md) | A day and a night with your builders: the three clocks, ten moments that must feel great, the screens |
 | [ux-trust](docs/research/ux-trust.md) | Trust, taste and growing together; Magnus (a kid co-designer); failure modes and the rules against them |
 | [rev-ux](docs/research/rev-ux.md) | Cross-review of the two, against the technology: the merged experience spine |
 | [gaps](docs/research/gaps.md) | The first evening, the Thor busy or off, Magnus's first session, honest versions of promises we can't keep yet |
-| [res-3d](docs/research/res-3d.md) | 3D generators on the Thor (TRELLIS.2 first), licences of code and weights |
+| [res-3d](docs/research/res-3d.md) | 3D generators on the Thor (TRELLIS.2 first); licences of code and weights |
 | [res-cad](docs/research/res-cad.md) | CadQuery/build123d, OpenUSD, textures, motion, music, the overnight scheduler |
 | [rev-tech](docs/research/rev-tech.md) | Cross-review: one dependency ledger, one licence register, the environment plan, the first five spikes |
 | [split](docs/research/split.md) | How to shift the processing burden across the Thor, the laptop, the cloud and the Orin |
 | [rev-spec](docs/research/rev-spec.md) | The core spec checked against the experience and the compute plan |
 | [bakeoff](docs/research/bakeoff.md) | The engineer bake-off: Claude Code, zcode, mcode, aider, OpenHands, Goose |
 | [landscape](docs/research/landscape.md) | Who else builds agentic worlds, and where we're different |
-| [cogeco](docs/research/cogeco.md) | Fit study: cognitive-ecology (our crew's project); we vendor its WHY kernel |
+| [cogeco](docs/research/cogeco.md) | Fit study: cognitive-ecology (our crew's project). We vendor its WHY kernel |
+| [forks](docs/research/forks.md) | The Infinigen fork network: no GPU or Jetson work anywhere, so ours is new; a few unmerged fixes |
+| [maquette](docs/research/maquette.md) | tangos302's maquette prototype of a builders layer: take the ideas, not the code |
+| [solidcraft](docs/research/solidcraft.md) | SolidCraft (open-source Rust CAD with MCP): borrow its tool surface and oracle checks |
 | [casey-ideas-fromgoogle5](docs/research/casey-ideas-fromgoogle5.md) | The owner's collected ideas on shifting the burden (triaged in `split`) |
 
 ### The lab ([docs/lab/](docs/lab/))
 
-Small experiments that mine for Thor-native breakthroughs. Wins and failures are
-both kept.
-
 | Experiment | Verdict |
 |---|---|
-| [Unified memory](docs/lab/exp-unified-memory.md) | **Breakthrough.** One 4 GB buffer is shared by NumPy, PyTorch and a CUDA kernel with no copy. GPU reads of CPU memory run at 100.9 GB/s |
-| [NVIDIA Warp terrain](docs/lab/exp-warp-terrain.md) | **Useful.** A 4096² heightfield takes 4.6 ms on the GPU, but a restructured CPU algorithm beat the GPU. Rethink the algorithm; don't just move it |
-| [FP8/FP4 tensor cores](docs/lab/exp-fp8-tensorcores.md) | **FP8 useful** (1.6–1.7× faster, half the memory); **FP4 a measured no** on this stack |
+| [Unified memory](docs/lab/exp-unified-memory.md) | **Breakthrough.** One 4 GB buffer is shared by NumPy, PyTorch and a CUDA kernel with no copy; GPU reads of CPU memory run at 100.9 GB/s |
+| [Warp terrain port](docs/lab/exp-warp-terrain-port.md) | **Breakthrough.** Infinigen's `mountains` in Warp is bit-identical and 44–56× faster than the CPU path, 6× faster than its CUDA kernel |
+| [Warp terrain](docs/lab/exp-warp-terrain.md) | Useful. A restructured CPU algorithm beat the GPU: rethink the algorithm, don't just move it |
+| [FP8/FP4 tensor cores](docs/lab/exp-fp8-tensorcores.md) | FP8 useful (1.6–1.7× faster, half the memory); **FP4 a measured no** on this stack |
+| [NVMe bandwidth](docs/lab/exp-nvme-bandwidth.md) | Useful. Load speed decides the hot/warm/cold scheduler's shape |
+| [Critic PNG round-trip](docs/lab/exp-critic-png-roundtrip.md) | Useful. The critic should read the render buffer, not a PNG |
+| [Solver scoring](docs/lab/exp-solver-scoring.md) | Useful. Python vs numba vs Warp vs restructured CPU for the layout solver |
 | [IDEAS.md](docs/lab/IDEAS.md) | The mined candidates, what's next, and the killed-by-fact list |
 
-## The code (in progress)
+## The code
 
-Branches are pushed as the agents work, and reviewed before they merge into
-`main`.
+Branches are pushed as the agents work and reviewed before they merge into
+`main`. Each package has its own README.
 
 | Branch | What | State |
 |---|---|---|
-| `core-api` | Audit ledger (SQLite, append-only), FastAPI service, SSE event stream, work orders | in progress |
+| `core-api` | Audit ledger (SQLite, append-only), FastAPI service, SSE event stream, work orders | done, ~177 tests |
 | `core-recipe` | Recipe store: versions, branches, typed edits, recipe hash, constraint checks | done, 162 tests |
 | `vocab` | Three vocabulary words, the door, the confidence gate, sealed predictions, the Prop-maker loop | done, 111 tests |
-| `why-kernel` | The WHY justification kernel (vendored from cognitive-ecology), attached to assets, words, branches, work orders | done, 35 tests |
-| `night-runner` | The night: task queue, budget rails, heartbeat, resume after reboot, the morning report page | in progress |
-| `usd-backbone` | Recipe → layered USD, build123d → STEP → GLB, provenance, byte-identical re-emission | in progress |
-| `cold-start` | New builders ask before they act; the critic's calibration set | in progress |
+| `why-kernel` | The WHY justification kernel (vendored, MIT), attached to assets, words, branches and work orders | done, 35 tests |
+| `night-runner` | The night: queue, rails, heartbeat and lease, resume after reboot, the **iterator loop**, the morning report | done, ~197 tests |
+| `cold-start` | New builders ask before they act (the switch to acting at two observations); the critic's calibration set | done, 63 tests |
+| `usd-backbone` | Recipe → layered USD, build123d → STEP → GLB, provenance, byte-identical re-emission | done, 79 tests |
+| `m1-acceptance` | The M1 session as an automated test: evening → night → morning, 30 steps | done, 30/30 |
+| `integrate-core` | All of the above merged into one core, stand-ins replaced, one green suite | in progress |
+| `melt-week` | A seven-night simulated week: the ask-to-act switch, attention cost falling | in progress |
 
-The world engine is a separate repo: **[SI-Thor/infinigen-thor](https://github.com/SI-Thor/infinigen-thor)**,
-a fork of Princeton's Infinigen (BSD-3) being ported to the Thor. Branch
-`thor-spike` builds Blender 4.2's Python module for aarch64; Infinigen's own
-install guide offers no Linux ARM64 build.
+### In flight
+
+These were paused when a provider's quota ran out; they resume automatically:
+- **TRELLIS.2 on the Thor:** image to 3D prop with PBR materials.
+- **The warm scene server:** a resident Blender; edit-to-preview latency, batch vs warm.
+- **Infinigen 2.0 + procfunc:** the engine decision.
+- **Lab round 3:** batched shared models, adapters, joules per result.
 
 ## Machines
 
 | Machine | Role |
 |---|---|
-| Jetson AGX Thor (aarch64, 14 cores, 122 GB unified memory, Blackwell GPU, CUDA 13.2) | All generation, rendering, models and the builders |
+| Jetson AGX Thor (aarch64, 14 cores, 122 GB unified memory, Blackwell GPU sm_110, CUDA 13.2; no RT cores) | All generation, rendering, models and the builders |
 | ASUS ProArt laptop (Ryzen AI 9 HX 370, RTX 4050 6 GB, 31 GB) | The seat: in-world view, fast previews, the human |
 | Jetson Orin (8 GB) | Spare |
 
 ## Licence
 
 Not yet chosen; the owner decides. Third-party code keeps its own licence: the
-vendored WHY kernel is MIT (see `core/why/VENDORED.md` on its branch), and
-Infinigen is BSD-3.
+vendored WHY kernel is MIT (`core/why/VENDORED.md`), and Infinigen is BSD-3.
