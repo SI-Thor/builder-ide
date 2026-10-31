@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "recorded_at": "2026-10-31",
+  "box": {
+    "host": "thor",
+    "gpu": "Blackwell (Jetson AGX Thor, 122 GB unified)",
+    "cpu_count": 14,
+    "power_mode": "MAXN"
+  },
+  "sources": {
+    "sweep": {
+      "file": "infinigen_sweep.tsv",
+      "origin": "~/src/infinigen-thor/outputs/sweep/sweep.tsv",
+      "doc": "docs/research/spike-phase1.md",
+      "rows": 100,
+      "md5": "b848ccd9878972eba20739fb53d4f953",
+      "note": "the sweep was still running when this snapshot was taken (2026-10-31 07:29 AKDT); every scene x stage cell holds 4-5 seeds, so the p50 and p95 are stable, but the file is a snapshot and not the finished sweep"
+    },
+    "trellis": {
+      "doc": "docs/research/trellis-spike.md",
+      "sections": "§4.1-§4.4, §8"
+    },
+    "mini_night": {
+      "doc": "docs/lab/mini-night.md",
+      "file": "mini_night.json",
+      "note": "the only whole night the box has run end to end: 18 jobs, one at a time, with both lanes measured"
+    },
+    "warm_scene": {
+      "doc": "docs/research/warm-scene.md",
+      "section": "§4.1"
+    },
+    "spike": {
+      "doc": "docs/research/spike-phase1.md",
+      "section": "§3"
+    },
+    "rails": {
+      "doc": "docs/lab/exp-engines.md",
+      "section": "§4.4"
+    },
+    "joules": {
+      "doc": "docs/lab/exp-joules-per-fixed-point.md"
+    },
+    "critic": {
+      "file": "critic_verdict.json",
+      "script": "core/night/cost/measure_critic.py",
+      "note": "measured on this box on 2026-10-31 against the mini-night's own assets"
+    }
+  },
+  "power_rails": {
+    "vin_w": 47.5,
+    "vdd_gpu_w": 20.85,
+    "vdd_cpu_soc_mss_w": 8.27,
+    "vin_sys_5v0_w": 8.69,
+    "idle_vin_w": 26.5,
+    "idle_source": "docs/research/split.md §5 — 25-28 W at the VIN rail with the desktop up and the GPU idle; the midpoint is used"
+  },
+  "joules_per_iteration": {
+    "value": 1.392,
+    "source": "joules",
+    "note": "the marginal cost of one more fixed-point iteration of the equilibrium loop: the whole-box INA238 rail, 64 MiB field, linear in the iteration count (R²=0.998). It is the price of one more iteration of *that* loop, not of a night's variant."
+  },
+  "attention_minutes_per_decision": {
+    "value": 15.0,
+    "basis": "estimate",
+    "source": "spec",
+    "note": "the owner's attention per decision. Nobody has measured this yet; the page marks it [e] and it stays marked until a morning measures it."
+  },
+  "jobs": {
+    "prop.image": {
+      "label": "one 1024² picture (SDXL base 1.0, 30 steps)",
+      "lane": "gpu",
+      "source": "mini_night",
+      "filter": {"kind": "image"},
+      "note": "the image stage of the text path; the trellis spike measured the same stage end to end at 27.6 s (docs/research/trellis-spike.md §8)"
+    },
+    "prop.512": {
+      "label": "one TRELLIS.2 prop at 512³ (BF16): the sampling and the mesh tail",
+      "lane": "mixed",
+      "source": "trellis",
+      "samples": [
+        {"name": "512_bf16_a", "gpu_seconds": 16.02, "cpu_seconds": 91.83, "other_seconds": 5.96, "wall_seconds": 114.77},
+        {"name": "512_bf16_b", "gpu_seconds": 16.13, "cpu_seconds": 75.93, "other_seconds": 5.32, "wall_seconds": 98.35}
+      ],
+      "note": "the GPU lane is the sampling, the CPU lane is the mesh tail; the tail is ~80 s per prop and does not scale with resolution (docs/research/trellis-spike.md §4.2, §4.3). The FP8 rows in the same table are not comparable — they were taken later, while other seats held the box (§4.1)."
+    },
+    "prop.1024": {
+      "label": "one TRELLIS.2 prop at 1024³ (BF16): the sampling and the mesh tail",
+      "lane": "mixed",
+      "source": "trellis",
+      "samples": [
+        {"name": "1024_bf16_a", "gpu_seconds": 64.49, "cpu_seconds": 86.48, "other_seconds": 13.76, "wall_seconds": 165.53},
+        {"name": "1024_bf16_b", "gpu_seconds": 67.22, "cpu_seconds": 96.09, "other_seconds": 14.19, "wall_seconds": 178.62}
+      ],
+      "note": "the same generator at 1024³, from the same two runs as prop.512 so the resolution comparison is inside one measurement family"
+    },
+    "prop.night": {
+      "label": "one prop as the night runs it (image -> 3D -> measured -> judged)",
+      "lane": "mixed",
+      "source": "mini_night",
+      "filter": {"kind": "prop"},
+      "note": "the mini-night's own prop jobs: the sampling on the GPU lane, the mesh tail and the mesh measurement on the CPU lane, and the GLB written to disk. It runs longer than the bare generator because it does the measuring too."
+    },
+    "prop.text": {
+      "label": "the whole text path at 512³ (text -> image -> 3D)",
+      "lane": "mixed",
+      "source": "trellis",
+      "samples": [
+        {"name": "textprop_512", "gpu_seconds": 27.6, "cpu_seconds": 152.3, "other_seconds": 0.0, "wall_seconds": 179.9}
+      ],
+      "note": "text -> image 27.6 s and image -> 3D 152.3 s, measured end to end (docs/research/trellis-spike.md §8). The image stage is charged to the GPU and the 3D stage to the CPU lane, which is where the sampling and the mesh tail sit."
+    },
+    "mesh.measure": {
+      "label": "measuring one mesh (topology, winding, volume, area, centre of mass)",
+      "lane": "cpu",
+      "source": "critic",
+      "series": "measure_seconds",
+      "note": "the heavy part of the critic's work: ~700k triangles in ~0.28 s"
+    },
+    "critic.verdict": {
+      "label": "the critic's verdict on one variant",
+      "lane": "cpu",
+      "source": "critic",
+      "series": "judge_seconds",
+      "note": "seven analytic checks over an already-measured mesh: ~21 microseconds. The verdict is free; the measurement it reads is not."
+    },
+    "rung.1": {
+      "label": "rung 1 — the fast layout preview (seconds)",
+      "lane": "cpu",
+      "source": "warm_scene",
+      "samples": [
+        {"name": "synthetic warm edit->preview", "gpu_seconds": 0.0, "cpu_seconds": 0.912, "other_seconds": 0.0, "wall_seconds": 0.912},
+        {"name": "hello-room warm edit->preview", "gpu_seconds": 0.0, "cpu_seconds": 7.319, "other_seconds": 0.0, "wall_seconds": 7.319}
+      ],
+      "note": "the warm scene server's edit->preview, 16 spp (docs/research/warm-scene.md §4.1). The preview's cost tracks the scene: 0.912 s on a 12-object synthetic scene and 7.319 s on the 196-object Hello Room. The synthetic scene's previews were CPU renders; the Hello Room's were GPU renders, so this record charges both to the CPU lane and says so."
+    },
+    "rung.2": {
+      "label": "rung 2 — the mid still with lighting and materials (about a minute)",
+      "lane": "gpu",
+      "source": "sweep",
+      "from": {"stage": "render"},
+      "note": "the sweep's render stage, 33 runs across 8 scene types (p50 63 s, p95 148 s). The spec's 'about a minute' is the measured number, not an estimate."
+    },
+    "rung.3": {
+      "label": "rung 3 — the full render (minutes)",
+      "lane": "gpu",
+      "source": "spike",
+      "samples": [
+        {"name": "hello-room 8192spp all passes", "gpu_seconds": 1307.0, "cpu_seconds": 0.0, "other_seconds": 0.0, "wall_seconds": 1307.0}
+      ],
+      "note": "the Hello Room's full render: 8192 spp at 1280x720, 15 ground-truth passes and the beauty pass, GPU util 98% (docs/research/spike-phase1.md §3). One sample, so p50 and p95 are the same number."
+    },
+    "infinigen.coarse": {
+      "label": "the Infinigen coarse stage",
+      "lane": "cpu",
+      "source": "sweep",
+      "from": {"stage": "coarse"},
+      "by": "scene",
+      "note": "CPU 225% on the Hello Room's coarse stage (docs/research/spike-phase1.md §3); the solver's own work, not the renderer's."
+    },
+    "infinigen.fine": {
+      "label": "the Infinigen fine stage",
+      "lane": "cpu",
+      "source": "sweep",
+      "from": {"stage": "fine"},
+      "by": "scene",
+      "note": "the fine pass over the coarse scene (populate + fine_terrain)."
+    },
+    "infinigen.render": {
+      "label": "the Infinigen render stage",
+      "lane": "gpu",
+      "source": "sweep",
+      "from": {"stage": "render"},
+      "by": "scene",
+      "note": "the sweep's own render stage; this is also rung 2's cost."
+    }
+  }
+}
