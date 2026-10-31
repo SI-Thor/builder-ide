@@ -120,3 +120,67 @@ def test_the_store_reports_the_dirty_set_between_two_versions(store, fjellvik, a
     )
     dirty = store.dirty_set("ver_0001", "ver_0002")
     assert dirty.entries == {"harbor.crates"}
+
+
+# ------------------------------------------------- the effective-input key
+
+
+def test_effective_seed_falls_back_to_the_recipe_seed():
+    """The seed an entry's stage actually runs with: its own when set, else
+    the recipe seed for its root segment — the fallback the adapters apply
+    (DIRTY.md §1)."""
+    from core.recipe.stagecache import effective_seed
+
+    own = _entry()
+    own.seed = 7
+    fallback = RecipeEntry(path="harbor.crates", kind="prop_set")
+    assert effective_seed("harbor.crates", own, {"harbor": 99}) == 7
+    assert effective_seed("harbor.crates", fallback, {"harbor": 99}) == 99
+    assert effective_seed("harbor.crates", fallback, None) == 0
+
+
+def test_a_fallback_seeded_entrys_key_moves_with_the_recipe_seed():
+    """Key drift, not op shape, decides: no op addressed this entry, but
+    the bytes would change, so the key must change too."""
+    entry = RecipeEntry(path="harbor.crates", kind="prop_set")
+    before = entry_stage_key("harbor.crates", entry, _pin(), seeds={"harbor": 1})
+    after = entry_stage_key("harbor.crates", entry, _pin(), seeds={"harbor": 2})
+    assert before != after
+
+
+def test_an_owned_seed_shields_the_entry_from_recipe_seed_edits():
+    entry = RecipeEntry(path="harbor.crates", kind="prop_set", seed=42)
+    before = entry_stage_key("harbor.crates", entry, _pin(), seeds={"harbor": 1})
+    after = entry_stage_key("harbor.crates", entry, _pin(), seeds={"harbor": 2})
+    assert before == after
+
+
+def test_a_coupled_entrys_key_carries_its_dep_keys():
+    """A coupled entry re-evaluates because of its coupling; its key says
+    so, so two different couplings never alias one cache slot."""
+    entry = _entry()
+    coupled = entry_stage_key(
+        "harbor.oak", entry, _pin(), dep_keys=["sha256:" + "1" * 64])
+    recoupled = entry_stage_key(
+        "harbor.oak", entry, _pin(), dep_keys=["sha256:" + "2" * 64])
+    uncoupled = entry_stage_key("harbor.oak", entry, _pin())
+    assert coupled != recoupled and coupled != uncoupled
+
+
+def test_the_stores_entry_key_covers_the_fallback_seed(tmp_path):
+    from core.recipe.ledger import InMemoryLedger
+    from core.recipe.store import RecipeStore
+    from core.recipe.models import Actor, Op, Recipe
+
+    store = RecipeStore(ledger=InMemoryLedger(), require_schema=False)
+    recipe = Recipe(
+        id="rcp_fjellvik", name="Fjellvik", engine_pin=_pin(),
+        seeds={"harbor": 5},
+        entries={"harbor.crates": _entry()},
+    )
+    store.create_recipe(recipe, Actor(kind="owner", id="casey"))
+    head = store.apply_edit(
+        "ver_0001", [Op(op="set", path="seeds.harbor", value=6)],
+        author=Actor(kind="owner", id="casey"), message="reseed")
+    assert store.entry_stage_key(head.parent, "harbor.crates") != \
+        store.entry_stage_key(head.id, "harbor.crates")

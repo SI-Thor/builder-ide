@@ -39,6 +39,7 @@ __all__ = [
     "apply_ops",
     "diff_recipes",
     "touched_entries",
+    "ops_by_entry",
     "DOCUMENT_KEYS",
     "MAX_ENTRY_SEGMENTS",
 ]
@@ -206,6 +207,23 @@ def touched_entries(recipe: Recipe, ops: list[Op]) -> set[str]:
         if path:
             touched.add(path)
     return touched
+
+
+def ops_by_entry(recipe: Recipe, ops: list[Op]) -> dict[str, list[Op]]:
+    """An op list grouped by the entry each op is addressed inside.
+
+    The regenerator's slicing: a per-entry stage re-executes under *its*
+    ops, not the whole diff. Ops outside any entry (document-relative keys
+    like ``seeds`` or ``engine_pin``) are not in any group — their effect
+    reaches entries through the effective-key rule, not through op shape
+    (``core/engine/DIRTY.md`` §1)."""
+    document = recipe.model_dump()
+    grouped: dict[str, list[Op]] = {}
+    for op in ops:
+        path = _entry_path_of(document, op.path)
+        if path:
+            grouped.setdefault(path, []).append(op)
+    return grouped
 
 
 def _diff_mapping(base: dict[str, Any], head: dict[str, Any], prefix: str) -> list[Op]:

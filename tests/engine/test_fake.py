@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from core.engine import FakeEngine
 from core.engine.contract import (
     ExportRequest,
@@ -90,3 +92,57 @@ def test_the_entry_digest_helper_reads_the_same_bytes_the_seam_does():
 
 def test_the_default_pin_names_no_real_checkout():
     assert "fake" in FAKE_PIN.repo
+
+
+# ------------------------------------------------------------------ the scope
+
+
+def _scoped(engine, path, recipe):
+    from core.engine.contract import StageRequest
+
+    return engine.generate_stage(StageRequest(
+        recipe=recipe, version_hash="sha256:" + "a" * 64,
+        stage=f"entry:{path}", entries=[path]))
+
+
+def test_a_scoped_stage_carries_only_its_entry():
+    """The per-entry stage's bytes are a function of the entry's effective
+    inputs — exactly what entry_stage_key hashes — so the hit-is-byte-
+    identical invariant is demonstrable against the fake."""
+    from core.recipe.stagecache import entry_stage_key
+
+    engine = FakeEngine(PIN_V1)
+    recipe = fjellvik(PIN_V1)
+    stage = _scoped(engine, "harbor.crates", recipe)
+    doc = json.loads(stage.data)
+    assert list(doc["entries"]) == ["harbor.crates"]
+    assert entry_stage_key(
+        "harbor.crates", recipe.entries["harbor.crates"], PIN_V1,
+        seeds=recipe.seeds,
+    )  # the key the regenerator will address this stage by
+
+
+def test_a_siblings_edit_leaves_a_scoped_stage_byte_identical():
+    """The dirty-set contract's first promise, on the fake: an edit inside
+    harbor.racks changes neither harbor.crates' bytes nor its key."""
+    engine = FakeEngine(PIN_V1)
+    base = fjellvik(PIN_V1)
+    edited = base.model_copy(deep=True)
+    edited.entries["harbor.racks"].params["count"] = 30
+    assert _scoped(engine, "harbor.crates", base).data == _scoped(
+        engine, "harbor.crates", edited).data
+
+
+def test_a_recipe_seed_edit_reaches_a_fallback_seeded_entrys_stage():
+    """crates carries seed 42 of its own, racks falls back to the recipe's
+    seeds — so moving the recipe seed changes racks' scoped bytes (and its
+    effective key) while crates' stand still."""
+    engine = FakeEngine(PIN_V1)
+    base = fjellvik(PIN_V1)
+    reseeded = base.model_copy(deep=True)
+    reseeded.entries["harbor.racks"].seed = None  # the fallback case
+    reseeded.seeds["harbor"] = 99
+    assert _scoped(engine, "harbor.crates", base).data == _scoped(
+        engine, "harbor.crates", reseeded).data
+    assert _scoped(engine, "harbor.racks", base).data != _scoped(
+        engine, "harbor.racks", reseeded).data

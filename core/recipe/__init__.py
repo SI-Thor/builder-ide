@@ -45,7 +45,7 @@ from core.recipe.dirty import (
     StaticAssetProducers,
     compute_dirty_set,
 )
-from core.recipe.edits import apply_ops, diff_recipes, touched_entries
+from core.recipe.edits import apply_ops, diff_recipes, ops_by_entry, touched_entries
 from core.recipe.errors import (
     BranchError,
     ConstraintViolation,
@@ -89,7 +89,7 @@ from core.recipe.schema import (
     validate_params,
     validate_schema_definition,
 )
-from core.recipe.stagecache import entry_stage_key, stage_cache_key
+from core.recipe.stagecache import effective_seed, entry_stage_key, stage_cache_key
 from core.recipe.store import ApplyHook, QuestionSink, RecipeStore
 
 __version__ = "0.1.0"
@@ -145,6 +145,8 @@ __all__ = [
     "apply_ops",
     "diff_recipes",
     "touched_entries",
+    "ops_by_entry",
+    "effective_seed",
     "stage_cache_key",
     "entry_stage_key",
     # events

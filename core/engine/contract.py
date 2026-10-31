@@ -105,13 +105,22 @@ class EngineDescriptor(BaseModel):
 
 
 class StageRequest(BaseModel):
-    """Generate one stage of a recipe version (§1.9)."""
+    """Generate one stage of a recipe version (§1.9).
+
+    ``entries`` scopes the stage to a subset of the recipe's generator
+    entries — a per-entry stage request names exactly one. Scoping is what
+    makes "edit one room re-solves only the touched room" an engine fact
+    and not a hope: an engine asked for one entry's stage must not charge
+    (or trace) its siblings. ``None`` means the whole recipe.
+    """
 
     recipe: Recipe
     version_hash: str
     stage: str
     #: Upstream stage-cache keys this stage consumes — part of the key.
     dep_keys: list[str] = Field(default_factory=list)
+    #: The entry paths this stage covers; None = every generator entry.
+    entries: list[str] | None = None
 
 
 class ReexecuteRequest(BaseModel):
