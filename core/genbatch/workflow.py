@@ -182,15 +182,25 @@ def build_trellis_workflow(
             f"the mesh template has {len(samplers)} samplers; "
             "the structure, shape and texture stages need three"
         )
-    for (_, node), seed, stage_steps in zip(samplers[:3], seeds, steps):
+    for index, ((_, node), seed, stage_steps) in enumerate(
+        zip(samplers[:3], seeds, steps)
+    ):
         node["inputs"]["seed"] = int(seed)
         node["inputs"]["steps"] = int(stage_steps)
-        node["inputs"]["cfg"] = float(cfg)
         node["inputs"]["sampler_name"] = sampler
         node["inputs"]["scheduler"] = scheduler
+        if index < 2:
+            # The structure and the shape stage take the request's CFG. The
+            # texture stage does not: the template gives it 1.0, and the
+            # CFGOverride nodes on either side of it set the rest of its
+            # schedule. Changing it would change the texture, not sharpen it.
+            node["inputs"]["cfg"] = float(cfg)
 
     _, decode = _one(workflow, "VaeDecodeStructureTrellis2")
-    decode["inputs"]["resolution"] = int(resolution)
+    # The resolution is a combo widget, and a combo's value is its label:
+    # the string "32", not the number 32. ComfyUI refuses the prompt
+    # otherwise, and says so only in its log.
+    decode["inputs"]["resolution"] = str(resolution)
 
     _, save = _one(workflow, "SaveGLB")
     save["inputs"]["filename_prefix"] = filename_prefix

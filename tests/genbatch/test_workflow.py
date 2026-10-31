@@ -172,7 +172,29 @@ def test_the_mesh_workflow_carries_the_resolution(tmp_path):
         resolution=32,
     )
 
-    assert workflow["52"]["inputs"]["resolution"] == 32
+    # A combo widget's value is its label: the string "32", not the number.
+    assert workflow["52"]["inputs"]["resolution"] == "32"
+
+
+def test_the_texture_stage_keeps_the_templates_own_cfg(tmp_path):
+    # The template gives the texture stage a CFG of 1.0 and puts CFGOverride
+    # nodes either side of it; changing it changes the texture, not sharpens it.
+    template = load_template(_write_template(tmp_path, "trellis2.api.json", TEMPLATE))
+
+    workflow = build_trellis_workflow(
+        template,
+        image_name="crate.png",
+        seeds=(1, 2, 3),
+        steps=(12, 20, 12),
+        cfg=7.5,
+        sampler="euler",
+        scheduler="normal",
+        filename_prefix="genbatch/crate",
+    )
+
+    assert workflow["51"]["inputs"]["cfg"] == 7.5
+    assert workflow["54"]["inputs"]["cfg"] == 7.5
+    assert workflow["62"]["inputs"]["cfg"] == 1.0
 
 
 def test_a_template_without_the_nodes_we_need_is_an_error(tmp_path):
