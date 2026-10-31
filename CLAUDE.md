@@ -63,6 +63,18 @@ works.
   TRELLIS.2 first, then TripoSR, build123d/CadQuery, ACE-Step and MoMask.
   Infinigen was approved before. Any other third-party project from GitHub
   still needs his OK.
+- **No LLMs on the Thor** (Casey, B2, 2026-10-31). Language comes from cloud
+  subscriptions (z.ai, MiniMax, Claude, others), each a parameter priced per
+  call. The Thor is for motion as virtual robotics, visual assets, world models
+  and engines, and many small decision models. Cloud LLMs write scripts that
+  become the tiles local decision models choose between; every play's outcome
+  is recorded, win or lose, so the decision models learn over time. See
+  `docs/vision.md` §"What the Thor is for".
+- **Move fast; permissive by default** (Casey, A1/A2, 2026-10-31). We are in
+  development for a long while: no gates on who may write what. Every row
+  still records its author. Magnus may do everything (spoken input, full
+  apply); Casey is with him at runtime. No transcripts or audio are stored.
+- **MIT licence** (B4) for this repo; third-party code keeps its own.
 - **Keep the READMEs current** (Casey, 2026-10-31). Every package or directory
   a seat creates gets a README (what it is, how to run its tests, what it
   stubs, how it connects to the rest), and every change updates it. The top
