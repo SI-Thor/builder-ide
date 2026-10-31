@@ -145,18 +145,23 @@ def test_a_variant_carries_its_seed_its_parameters_and_its_edit():
 
 def test_the_iterators_seams_are_part_of_the_package_surface():
     """The loop is public: the engine and the GPU stations use these names."""
-    from core.night import (  # noqa: F401
-        Critic,
-        CriticScore,
-        IterationPolicy,
-        NullPowerMeter,
-        PerturbationSource,
-        PowerMeter,
-        ScriptedCritic,
-        ScriptedVariantSource,
-        Variant,
-        VariantSource,
-    )
+    import importlib
+
+    module = importlib.import_module("core.night")
+    for name in (
+        "Critic",
+        "CriticScore",
+        "IterationPolicy",
+        "NullPowerMeter",
+        "PerturbationSource",
+        "PowerMeter",
+        "ScriptedCritic",
+        "ScriptedVariantSource",
+        "Variant",
+        "VariantSource",
+    ):
+        assert name in module.__all__, name
+        assert getattr(module, name) is not None, name
 
 
 # -- the loop's arithmetic -------------------------------------------------

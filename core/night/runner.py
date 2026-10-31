@@ -761,11 +761,10 @@ class NightRunner:
             self.loads.record_load(plan.model)
 
         outcome = actual.outcome
-        overrun = 0.0
         if not task.rail.is_zero and actual.wall_minutes > task.rail.wall_minutes:
             # The seat hard-kills at the per-attempt rail (§5.5): the work is
-            # stopped, not trusted, and it waits for tomorrow.
-            overrun = actual.wall_minutes - task.rail.wall_minutes
+            # stopped, not trusted, and it waits for tomorrow. The reason is
+            # written when the task is settled.
             outcome = "cut"
             actual = actual.model_copy(update={"outcome": "cut"})
 

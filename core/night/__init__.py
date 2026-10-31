@@ -55,7 +55,6 @@ from core.night.heartbeat import Heartbeat, lost_minutes, tick_gaps
 from core.night.iterate import (
     Critic,
     CriticScore,
-    IterationPolicy,
     NullPowerMeter,
     PerturbationSource,
     PowerMeter,
