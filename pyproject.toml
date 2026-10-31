@@ -1,0 +1,18 @@
+[project]
+name = "builder-ide-core"
+version = "0.1.0"
+description = "The durable core service of builder-ide (docs/design/core-spec.md). Work in progress on seat branches."
+requires-python = ">=3.12"
+dependencies = ["pydantic>=2.7,<3"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# "." keeps the seat packages importable as ``core.night`` (the why-kernel
+# sibling's convention); "core/src" is the recipe store's root, added here so
+# the merged tree imports both without touching either pyproject.
+pythonpath = [".", "core/src"]
+addopts = "-q"
+filterwarnings = ["error"]
