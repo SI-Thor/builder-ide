@@ -6,7 +6,7 @@ group; the API half owns the rest.
 
 from __future__ import annotations
 
-__all__ = ["EVENT_TYPES", "RECIPE_EVENT_TYPES", "QUESTION_EVENT_TYPES"]
+__all__ = ["EVENT_TYPES", "RECIPE_EVENT_TYPES", "QUESTION_EVENT_TYPES", "DAYTIME_EVENT_TYPES"]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
     {
@@ -59,6 +59,15 @@ NIGHT_EVENT_TYPES = frozenset(
     }
 )
 
+DAYTIME_EVENT_TYPES = frozenset(
+    {
+        "day.world.opened",
+        "day.tick",
+        "day.change",
+        "day.yielded",
+    }
+)
+
 SCHEDULER_EVENT_TYPES = frozenset(
     {
         "sched.model.load",
@@ -98,6 +107,7 @@ EVENT_TYPES = frozenset(
     | TASTE_EVENT_TYPES
     | VOCABULARY_EVENT_TYPES
     | NIGHT_EVENT_TYPES
+    | DAYTIME_EVENT_TYPES
     | SCHEDULER_EVENT_TYPES
     | CRITIC_EVENT_TYPES
     | BUDGET_EVENT_TYPES
