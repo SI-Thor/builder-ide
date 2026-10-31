@@ -126,7 +126,7 @@ class TasksService:
                 f"the slate does not fit tonight's rails — {reason}",
                 night=night_id,
                 cut=check.cut_names,
-                estimate=estimate.model_dump(mode="json"),
+                estimate=estimate.as_dict(),
             )
         attached = []
         for row in self.store.scan("tasks"):

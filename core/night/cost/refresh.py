@@ -114,12 +114,6 @@ def _patch(text: str, path: list[str], changes: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _write_index(data_dir: Path, index: dict[str, Any]) -> None:
-    (data_dir / "recorded.json").write_text(
-        json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-
-
 def _now() -> str:
     return datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
 
