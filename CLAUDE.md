@@ -57,6 +57,16 @@ works.
   proof: a render, a timing, a test.
 - **Licences are a checked list**, especially for models: some image models are
   non-commercial. See the Thor model inventory notes.
+- **Thor-native rewrites are welcome, and breakthroughs are the point**
+  (Casey, 2026-10-30). Everything here is open source, and we are pioneering
+  new abilities and uses for the Thor: heavily rewrite any program (Infinigen,
+  Blender stages, generators) to fit the Thor's specific chips. That means its
+  unified memory, the Blackwell GPU and tensor cores (FP8/FP4), its hardware
+  engines, and its 14 Neoverse cores. Don't settle for "make it run as it does
+  on x86". Mine ideas for breakthroughs by **running small experiments**: an
+  idea becomes a measured result (or a measured no) within days, not a debate.
+  Record every experiment, wins and failures alike, in `docs/lab/` with the
+  numbers and how to reproduce them.
 
 ## Status (2026-10-30)
 
