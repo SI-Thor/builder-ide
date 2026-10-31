@@ -151,6 +151,13 @@ def schemas() -> StaticSchemaRegistry:
 
 
 @pytest.fixture
+def blobs(tmp_path):
+    from builder_recipe.blobs import FileBlobStore
+
+    return FileBlobStore(tmp_path / "builder-home")
+
+
+@pytest.fixture
 def ledger():
     from builder_recipe.ledger import InMemoryLedger
 
@@ -158,13 +165,31 @@ def ledger():
 
 
 @pytest.fixture
-def store(ledger, schemas: StaticSchemaRegistry, clock):
+def store(ledger, blobs, schemas: StaticSchemaRegistry, clock):
     from builder_recipe.store import RecipeStore
 
-    return RecipeStore(ledger=ledger, schemas=schemas, clock=clock)
+    return RecipeStore(ledger=ledger, blobs=blobs, schemas=schemas, clock=clock)
 
 
 @pytest.fixture
 def root_version(store: RecipeStore, fjellvik: Recipe, actor: Actor) -> str:
     store.create_recipe(fjellvik, actor)
     return "ver_0001"
+
+
+class RecordingQuestions:
+    """A stand-in for the API half's question store (test-only)."""
+
+    def __init__(self) -> None:
+        self.parked: list[dict] = []
+
+    def park(self, *, name: str, branch: str, options: list[str], detail: str) -> str:
+        self.parked.append(
+            {"name": name, "branch": branch, "options": options, "detail": detail}
+        )
+        return f"q_{len(self.parked):04d}"
+
+
+@pytest.fixture
+def questions() -> RecordingQuestions:
+    return RecordingQuestions()

@@ -11,6 +11,7 @@ from typing import Any, Sequence
 __all__ = [
     "RecipeError",
     "NotFound",
+    "IntegrityError",
     "SchemaDefinitionError",
     "SchemaViolation",
     "ConstraintViolation",
@@ -26,6 +27,10 @@ class RecipeError(Exception):
 
 class NotFound(RecipeError):
     """A recipe, version, branch or edit does not exist."""
+
+
+class IntegrityError(RecipeError):
+    """A blob is missing or does not match its hash — fails loud (§5.2)."""
 
 
 class SchemaDefinitionError(RecipeError):

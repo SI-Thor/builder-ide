@@ -254,6 +254,21 @@ class RecipeRecord(BaseModel):
     created_at: str
 
 
+class BranchProposal(BaseModel):
+    """A kid actor's branch choice, pending the owner's confirmation.
+
+    Magnus's apply is a proposal, not an edit: a branch apply is a real edit,
+    so his is ``branch.proposed`` until Casey confirms it (§7.15).
+    """
+
+    id: str
+    branch: str
+    proposed_head: str
+    by: Actor
+    at: str
+    state: Literal["pending", "confirmed", "declined"] = "pending"
+
+
 class ValidationReport(BaseModel):
     """What the pre-render checks found about a candidate document."""
 
