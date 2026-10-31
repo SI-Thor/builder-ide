@@ -69,7 +69,8 @@ class TasteService:
                 # §7.6: kid authors' rows (pending or not) are never in a slice
                 if doc.get("author") in self.store.kid_actors:
                     continue
-            if not include_pending and doc.get("status") == "pending_ratification":
+            # the pending/active status lives on the row, not in the payload
+            if not include_pending and row.get("status") == "pending_ratification":
                 continue
             out.append(doc)
         return out

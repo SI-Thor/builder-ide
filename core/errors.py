@@ -65,3 +65,17 @@ class Overflow(CoreError):
 class IntegrityFailure(CoreError):
     status = 500
     code = "integrity"
+
+
+class AuthError(CoreError):
+    """No usable token: missing, malformed, or unknown (§4.1)."""
+
+    status = 401
+    code = "unauthorized"
+
+
+class Forbidden(CoreError):
+    """A valid token, but the wrong class for this door (§4.1)."""
+
+    status = 403
+    code = "forbidden"

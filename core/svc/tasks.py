@@ -114,6 +114,10 @@ class TasksService:
             "money": "$0.00 (local) — hosted spend is off by default",
         }
 
+    def capability_rows(self) -> list[dict]:
+        """The capability view: what has actually been built, per word."""
+        return self._capability_rows()
+
     def _capability_rows(self) -> list[dict]:
         """Derived from vocab.call counts and kept work orders — claims are
         records, not decoration (X C12)."""

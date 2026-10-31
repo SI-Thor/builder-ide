@@ -26,8 +26,11 @@ def _parse(ts: str) -> datetime:
 
 
 class Boot:
-    def __init__(self, store, settings) -> None:
-        self.store = store
+    def __init__(self, core, settings) -> None:
+        # The Core, not the bare store: step 5 stops a night, and stopping a
+        # night builds a report — which needs the whole service layer.
+        self.core = core
+        self.store = core.store
         self.settings = settings
 
     def run(self) -> dict:
@@ -120,7 +123,7 @@ class Boot:
     def recover_nights(self) -> tuple[list[dict], str | None]:
         from .svc.nights import NightsService  # late import: report builder needed
 
-        svc = NightsService(self.store, self.settings)
+        svc = NightsService(self.core, self.settings)
         stopped: list[dict] = []
         resumed: str | None = None
         now = _parse(now_utc())
