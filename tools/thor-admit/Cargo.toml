@@ -28,6 +28,10 @@ libc = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+[dev-dependencies]
+# The integration test reads the daemon's status as JSON.
+serde_json = "1"
+
 [profile.release]
 opt-level = 2
 lto = "thin"

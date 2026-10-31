@@ -1,0 +1,597 @@
+//! The integration run: synthetic memory hogs on the real box.
+//!
+//! These tests use the CPU only (no CUDA) and take the box's own stopgap
+//! lock (`~/lm-wt/heavy.lock`) while they run, so they cannot collide with
+//! another seat's heavy work. Every hog is capped, and the total memory in
+//! use stays under 60 GiB.
+//!
+//! The box state is measured, not assumed: the tests read `/proc/meminfo`
+//! and `/proc/vmstat` while they run, and the numbers they assert on are
+//! the numbers the kernel reported.
+
+use std::io::Read;
+use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
+use std::time::{Duration, Instant};
+
+use serde_json::Value;
+
+const BIN: &str = env!("CARGO_BIN_EXE_thor-admit");
+const HOG: &str = env!("CARGO_BIN_EXE_thor-admit-hog");
+
+/// A GiB.
+const GIB: u64 = 1024 * 1024 * 1024;
+
+/// The box's stopgap lock: the one every seat takes for heavy work today.
+fn heavy_lock_path() -> PathBuf {
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    PathBuf::from(home).join("lm-wt/heavy.lock")
+}
+
+/// Take the box's stopgap lock, so the test does not collide with a seat.
+///
+/// The heavy tests wait for it: the box's queue of seats is exactly the
+/// contention this daemon is meant to replace. `THOR_ADMIT_HEAVY_WAIT_SECS`
+/// says how long to wait (zero skips the test).
+struct HeavyLock {
+    _file: std::fs::File,
+}
+
+impl HeavyLock {
+    fn take() -> Option<HeavyLock> {
+        use std::os::unix::io::AsRawFd;
+        let path = heavy_lock_path();
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(&path)
+            .ok()?;
+        let fd = file.as_raw_fd();
+        let wait: u64 = std::env::var("THOR_ADMIT_HEAVY_WAIT_SECS")
+            .ok()
+            .and_then(|text| text.parse().ok())
+            .unwrap_or(0);
+        let deadline = Instant::now() + Duration::from_secs(wait);
+        loop {
+            // Non-blocking first: if another seat is working, this test
+            // steps aside rather than fighting for the box.
+            let rc = unsafe { libc::flock(fd, libc::LOCK_EX | libc::LOCK_NB) };
+            if rc == 0 {
+                return Some(HeavyLock { _file: file });
+            }
+            if Instant::now() >= deadline {
+                return None;
+            }
+            eprintln!("waiting for the box's heavy lock...");
+            std::thread::sleep(Duration::from_secs(5));
+        }
+    }
+}
+
+/// A daemon under test.
+struct DaemonUnderTest {
+    child: Child,
+    socket: PathBuf,
+    state_dir: PathBuf,
+}
+
+impl DaemonUnderTest {
+    fn start(extra: &[&str]) -> DaemonUnderTest {
+        let mut state_dir = std::env::temp_dir();
+        state_dir.push(format!(
+            "thor-admit-it-{}-{}",
+            std::process::id(),
+            extra.join("_").replace(['/', ' '], "-")
+        ));
+        let _ = std::fs::remove_dir_all(&state_dir);
+        std::fs::create_dir_all(&state_dir).unwrap();
+        let socket = state_dir.join("sock");
+        let mut command = Command::new(BIN);
+        command
+            .arg("daemon")
+            .arg("--socket")
+            .arg(&socket)
+            .arg("--state-dir")
+            .arg(&state_dir)
+            .arg("--idle-exit")
+            .arg("600")
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped());
+        for argument in extra {
+            command.arg(argument);
+        }
+        let child = command.spawn().expect("the daemon starts");
+        let daemon = DaemonUnderTest {
+            child,
+            socket,
+            state_dir,
+        };
+        daemon.wait_for_socket();
+        daemon
+    }
+
+    fn wait_for_socket(&self) {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while Instant::now() < deadline {
+            if self.socket.exists() && std::os::unix::net::UnixStream::connect(&self.socket).is_ok() {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(50));
+        }
+        panic!("the daemon did not come up on {}", self.socket.display());
+    }
+
+    fn status(&self) -> Value {
+        let output = Command::new(BIN)
+            .arg("status")
+            .arg("--socket")
+            .arg(&self.socket)
+            .arg("--json")
+            .output()
+            .expect("the status runs");
+        serde_json::from_slice(&output.stdout).expect("the status is JSON")
+    }
+
+    fn log(&self) -> String {
+        std::fs::read_to_string(self.state_dir.join("daemon.log")).unwrap_or_default()
+    }
+
+    fn history(&self) -> Vec<Value> {
+        let text =
+            std::fs::read_to_string(self.state_dir.join("peaks.jsonl")).unwrap_or_default();
+        text.lines()
+            .filter(|line| !line.trim().is_empty())
+            .filter_map(|line| serde_json::from_str(line).ok())
+            .collect()
+    }
+}
+
+impl Drop for DaemonUnderTest {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        let _ = std::fs::remove_dir_all(&self.state_dir);
+    }
+}
+
+/// `MemAvailable`, in bytes, as the kernel sees it right now.
+fn mem_available() -> u64 {
+    let text = std::fs::read_to_string("/proc/meminfo").unwrap();
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("MemAvailable:") {
+            let kb: u64 = rest.split_whitespace().next().unwrap().parse().unwrap();
+            return kb * 1024;
+        }
+    }
+    0
+}
+
+/// The number of times the kernel's OOM killer has fired.
+fn oom_kills() -> u64 {
+    let text = std::fs::read_to_string("/proc/vmstat").unwrap_or_default();
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("oom_kill ") {
+            return rest.trim().parse().unwrap_or(0);
+        }
+    }
+    0
+}
+
+/// The resident set of a process, in bytes.
+fn rss_of(pid: u32) -> u64 {
+    let text = std::fs::read_to_string(format!("/proc/{pid}/status")).unwrap_or_default();
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("VmRSS:") {
+            let kb: u64 = rest.split_whitespace().next().unwrap_or("0").parse().unwrap_or(0);
+            return kb * 1024;
+        }
+    }
+    0
+}
+
+/// The CPU time a process has used, in seconds.
+fn cpu_seconds(pid: u32) -> f64 {
+    let text = std::fs::read_to_string(format!("/proc/{pid}/stat")).unwrap_or_default();
+    let close = text.rfind(')').unwrap_or(0);
+    let fields: Vec<&str> = text[close + 1..].split_whitespace().collect();
+    let utime: f64 = fields.get(11).and_then(|v| v.parse().ok()).unwrap_or(0.0);
+    let stime: f64 = fields.get(12).and_then(|v| v.parse().ok()).unwrap_or(0.0);
+    // The kernel counts in clock ticks; the Thor runs at 100 Hz.
+    (utime + stime) / 100.0
+}
+
+/// Run a command under a lease and wait for it.
+fn leased(daemon: &DaemonUnderTest, label: &str, peak: &str, command: &[&str]) -> Child {
+    leased_with_priority(daemon, label, peak, 0, command)
+}
+
+/// Run a command under a lease with a priority.
+fn leased_with_priority(
+    daemon: &DaemonUnderTest,
+    label: &str,
+    peak: &str,
+    priority: i32,
+    command: &[&str],
+) -> Child {
+    Command::new(BIN)
+        .arg("run")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .arg("--peak")
+        .arg(peak)
+        .arg("--label")
+        .arg(label)
+        .arg("--priority")
+        .arg(priority.to_string())
+        .arg("--")
+        .args(command)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the lease starts")
+}
+
+/// Read a child's output after it finishes.
+fn output_of(child: &mut Child) -> String {
+    let mut text = String::new();
+    if let Some(mut stdout) = child.stdout.take() {
+        let _ = stdout.read_to_string(&mut text);
+    }
+    let mut errors = String::new();
+    if let Some(mut stderr) = child.stderr.take() {
+        let _ = stderr.read_to_string(&mut errors);
+    }
+    text.push_str(&errors);
+    text
+}
+
+#[test]
+fn three_thirty_gigabyte_hogs_are_serialised() {
+    let Some(_lock) = HeavyLock::take() else {
+        eprintln!("skipping: another seat holds the box's heavy lock");
+        return;
+    };
+    // A floor of 65 GiB means only one 30 GiB hog fits at a time on a
+    // 122 GiB box: 122 - 30 = 92 free, and the second hog would take it to
+    // 62, below the floor. The default floor is 25 GiB, which would let two
+    // run at once; this test is about the *serialisation*, so it raises the
+    // floor to make it visible.
+    let daemon = DaemonUnderTest::start(&["--floor", "65G"]);
+
+    let mut hogs = Vec::new();
+    for index in 0..3 {
+        hogs.push(leased(
+            &daemon,
+            &format!("hog{index}"),
+            "30G",
+            &[HOG, "--bytes", "30G", "--hold", "4"],
+        ));
+    }
+
+    // Watch the box while they run.
+    let mut max_active = 0usize;
+    let mut min_available = u64::MAX;
+    let deadline = Instant::now() + Duration::from_secs(40);
+    while Instant::now() < deadline {
+        let status = daemon.status();
+        let active = status["leases"].as_array().map(|a| a.len()).unwrap_or(0);
+        max_active = max_active.max(active);
+        min_available = min_available.min(mem_available());
+        let mut running = 0;
+        for child in hogs.iter_mut() {
+            if child.try_wait().ok().flatten().is_none() {
+                running += 1;
+            }
+        }
+        if running == 0 && active == 0 {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+
+    let mut finished = Vec::new();
+    for mut hog in hogs {
+        let _ = hog.wait();
+        finished.push(output_of(&mut hog));
+    }
+
+    assert_eq!(
+        max_active, 1,
+        "only one 30 GiB hog may run at a time; the log was:\n{}",
+        daemon.log()
+    );
+    // One hog at a time: the box never dropped by more than one hog's worth.
+    assert!(
+        min_available > 60 * GIB,
+        "the box fell to {} MiB free, which is more than one hog's worth",
+        min_available / (1024 * 1024)
+    );
+    for text in &finished {
+        assert!(
+            text.contains("hog: done"),
+            "a hog did not finish:\n{text}"
+        );
+    }
+}
+
+#[test]
+fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
+    let Some(_lock) = HeavyLock::take() else {
+        eprintln!("skipping: another seat holds the box's heavy lock");
+        return;
+    };
+    // The emergency floor is scaled down: the real one is 8 GiB, and driving
+    // the box to 8 GiB free would need 110 GiB of allocation, which is not
+    // safe on a box that is also running a seat's work. 100 GiB of free
+    // memory is the same rule, measured 92 GiB earlier.
+    let daemon = DaemonUnderTest::start(&["--emergency-floor", "100G", "--min-victim-rss", "2G"]);
+
+    let oom_before = oom_kills();
+    let mut hog = leased(
+        &daemon,
+        "runaway",
+        "40G",
+        &[HOG, "--bytes", "40G", "--hold", "60"],
+    );
+
+    // Wait for the watchdog to act.
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let mut stopped_at_available = None;
+    let mut min_available = u64::MAX;
+    while Instant::now() < deadline {
+        let available = mem_available();
+        min_available = min_available.min(available);
+        let log = daemon.log();
+        if let Some(index) = log.find("watchdog.stopped") {
+            // The event carries the free memory at the moment of the stop.
+            let line = log[index..].lines().next().unwrap_or("").to_string();
+            if let Ok(event) = serde_json::from_str::<Value>(&line) {
+                stopped_at_available = event["mem_available_bytes"].as_u64();
+                break;
+            }
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    let Some(available_at_stop) = stopped_at_available else {
+        let _ = hog.kill();
+        let _ = hog.wait();
+        panic!("the watchdog did not stop the hog; the log was:\n{}", daemon.log());
+    };
+
+    // The whole point: the box was stopped while there was still a lot of
+    // memory free — long before the kernel's OOM killer would have run.
+    assert!(
+        available_at_stop > 2 * GIB,
+        "the hog was stopped with only {} MiB free, which is inside the OOM zone",
+        available_at_stop / (1024 * 1024)
+    );
+    assert_eq!(
+        oom_kills(),
+        oom_before,
+        "the kernel's OOM killer fired; the watchdog was too late"
+    );
+
+    // The hog must actually be stopped, not merely signalled.
+    let hog_pid = hog.id();
+    let mut state = String::new();
+    for _ in 0..100 {
+        if let Ok(text) = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")) {
+            if let Some(close) = text.rfind(')') {
+                state = text[close + 1..]
+                    .split_whitespace()
+                    .next()
+                    .unwrap_or("")
+                    .to_string();
+            }
+        }
+        if state == "T" || state == "t" {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(
+        state == "T" || state == "t",
+        "the runaway was not stopped (state {state:?})"
+    );
+
+    let _ = hog.kill();
+    let _ = hog.wait();
+}
+
+#[test]
+fn a_dead_client_cannot_leak_a_lease() {
+    let daemon = DaemonUnderTest::start(&[]);
+
+    let mut client = leased(&daemon, "ghost", "1G", &["sleep", "120"]);
+
+    // Wait for the lease to be real.
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while Instant::now() < deadline {
+        let status = daemon.status();
+        if status["leases"].as_array().map(|a| a.len()).unwrap_or(0) == 1 {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert_eq!(
+        daemon.status()["leases"].as_array().unwrap().len(),
+        1,
+        "the lease never started"
+    );
+
+    // Kill the client outright: no release message, no goodbye.
+    let _ = client.kill();
+    let _ = client.wait();
+
+    // The kernel drops the client's lock, so the daemon must give the
+    // memory back without being told.
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while Instant::now() < deadline {
+        let status = daemon.status();
+        if status["leases"].as_array().map(|a| a.len()).unwrap_or(0) == 0 {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert_eq!(
+        daemon.status()["leases"].as_array().unwrap().len(),
+        0,
+        "the lease leaked after the client died"
+    );
+    assert!(
+        daemon.log().contains("lease.client_gone"),
+        "the daemon did not notice the client was gone"
+    );
+}
+
+#[test]
+fn the_daemon_costs_almost_nothing() {
+    let daemon = DaemonUnderTest::start(&[]);
+    let pid = daemon.child.id();
+
+    // Warm up, then measure over ten seconds of doing nothing.
+    std::thread::sleep(Duration::from_secs(2));
+    let rss_before = rss_of(pid);
+    let cpu_before = cpu_seconds(pid);
+    let wall = Instant::now();
+    std::thread::sleep(Duration::from_secs(10));
+    let rss_after = rss_of(pid);
+    let cpu_after = cpu_seconds(pid);
+    let elapsed = wall.elapsed().as_secs_f64();
+    let cpu_percent = (cpu_after - cpu_before) / elapsed * 100.0;
+
+    assert!(
+        rss_after < 64 * 1024 * 1024,
+        "the daemon holds {} MiB of resident memory, which is more than a few MB",
+        rss_after / (1024 * 1024)
+    );
+    assert!(
+        cpu_percent < 5.0,
+        "the daemon used {cpu_percent:.2}% of a core while doing nothing"
+    );
+    eprintln!(
+        "daemon overhead: {} MiB resident, {cpu_percent:.2}% of one core over {:.0}s",
+        rss_after / (1024 * 1024),
+        elapsed
+    );
+    let _ = rss_before;
+}
+
+#[test]
+fn a_learned_peak_is_used_by_the_next_run() {
+    let daemon = DaemonUnderTest::start(&[]);
+
+    // One run with an explicit peak teaches the daemon what the label costs.
+    let mut first = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
+    let _ = first.wait();
+    let _ = output_of(&mut first);
+
+    let history = daemon.history();
+    assert_eq!(history.len(), 1, "the run was recorded");
+    assert_eq!(history[0]["label"], "auto-label");
+    let measured = history[0]["peak_rss_bytes"].as_u64().unwrap();
+    assert!(
+        measured > 1 * GIB,
+        "the peak was {measured} bytes, which is not the 2 GiB the hog took"
+    );
+
+    // The next run with --peak auto must use what was learned.
+    let mut second = leased(&daemon, "auto-label", "auto", &[HOG, "--bytes", "2G", "--hold", "1"]);
+    let output = {
+        let _ = second.wait();
+        output_of(&mut second)
+    };
+    assert!(
+        output.contains("admitted after"),
+        "the automatic peak was not used:\n{output}"
+    );
+    assert!(
+        !output.contains("no history for the label"),
+        "the automatic peak found no history:\n{output}"
+    );
+}
+
+#[test]
+fn the_queue_is_ordered_by_priority() {
+    // The default floor (25 GiB) and a 50 GiB reservation: the first lease
+    // fits (118 - 50 = 68 free, above the floor) and the second does not
+    // (68 - 50 = 18, below it). The reservation is what blocks the queue —
+    // the commands themselves use nothing.
+    let daemon = DaemonUnderTest::start(&[]);
+
+    let low = leased_with_priority(&daemon, "low", "50G", 0, &["sleep", "6"]);
+    std::thread::sleep(Duration::from_millis(800));
+
+    let normal = leased_with_priority(&daemon, "normal", "50G", 0, &["sleep", "6"]);
+    std::thread::sleep(Duration::from_millis(400));
+
+    // A high-priority request must overtake the one that arrived first.
+    let high = leased_with_priority(&daemon, "high", "50G", 5, &["sleep", "2"]);
+    std::thread::sleep(Duration::from_millis(800));
+
+    let status = daemon.status();
+    let queue: Vec<String> = status["queue"]
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .map(|item| item["label"].as_str().unwrap_or("?").to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    assert!(
+        !queue.is_empty(),
+        "nothing was queued; the status was {status}"
+    );
+    assert_eq!(
+        queue.first().map(String::as_str),
+        Some("high"),
+        "the queue is {queue:?}, and the high-priority request is not first"
+    );
+    assert_eq!(
+        queue.get(1).map(String::as_str),
+        Some("normal"),
+        "the queue is {queue:?}; the earlier request should be behind the later one"
+    );
+
+    for mut child in [low, normal, high] {
+        let _ = child.kill();
+        let _ = child.wait();
+    }
+}
+
+/// The daemon must never signal the box's own services.
+#[test]
+fn the_watchdog_leaves_small_leases_alone() {
+    // The emergency floor is above the box's free memory, so the watchdog is
+    // armed from the first sample.
+    let daemon = DaemonUnderTest::start(&["--emergency-floor", "200G", "--min-victim-rss", "2G"]);
+
+    let mut small = leased(&daemon, "small", "1G", &["sleep", "8"]);
+    std::thread::sleep(Duration::from_secs(3));
+
+    let status = daemon.status();
+    let leases = status["leases"].as_array().cloned().unwrap_or_default();
+    assert_eq!(leases.len(), 1, "the small lease is still running");
+    let small_pid = leases[0]["pid"].as_i64().unwrap_or(0) as i32;
+    let state = std::fs::read_to_string(format!("/proc/{small_pid}/stat")).unwrap_or_default();
+    let close = state.rfind(')').unwrap_or(0);
+    let code = state[close + 1..].split_whitespace().next().unwrap_or("");
+    assert_ne!(
+        code, "T",
+        "the watchdog stopped a lease that was too small to be the cause"
+    );
+    assert!(
+        !daemon.log().contains("watchdog.stopped"),
+        "the watchdog acted on a small lease"
+    );
+
+    let _ = small.kill();
+    let _ = small.wait();
+}
