@@ -197,11 +197,14 @@ def grow(
             already_known=len(known),
         )
 
-    # Only bases that are not in the set yet may contribute — that is what
-    # "grows" means, and it keeps the set from churning.
-    fresh = [b for b in bases if b.id not in known_bases]
+    # The plan is made over **every** base, not only the fresh ones: the
+    # defect classes are handed out in a rotation over the bases, and if
+    # the rotation restarted each night it would hand out the same first
+    # classes every night — and two of the nine classes would never get a
+    # member at all. The bases already in the set are skipped by their
+    # member id, so the set does not churn.
     candidates = build_members(
-        fresh,
+        bases,
         target=room,
         seed=seed,
         night=night,
