@@ -437,7 +437,7 @@ class CoreDoor:
             # the [e] fields the slate marked are replaced by measurements)
             completed["timing"] = {
                 "what": "render", "measured_ms": round(preview.wall_ms, 1),
-                "label": "measured (engine render, rung {0})".format(rung)}
+                "label": f"measured (engine render, rung {rung})"}
         self.event(
             "render.completed", actor, {"entity_kind": "job", "entity_id": job_id},
             completed,

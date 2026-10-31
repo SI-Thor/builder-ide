@@ -28,6 +28,28 @@ One venv for the repo:
 105 steps, seven cycles, one fresh `$BUILDER_HOME`. The step table and the
 melt table land in `run/<timestamp>/steps.txt`.
 
+**The honest week — the same seven nights with a real engine behind the
+render rungs** (plan item 14, opt-in; ~1.5 min on the Thor):
+
+```sh
+.venv/bin/python tests/acceptance/week/realweek.py             # headless
+.venv/bin/python -m pytest tests/acceptance/week -m engine -q  # asserted
+```
+
+`BUILDER_V2_HOME` (default `~/lm-wt/v2-thor`) names the venv; without it
+the run skips, naming the missing piece. Every render rung — the world
+bet's render and the landed order's preview, each night — is Infinigen
+2.0 + procfunc through Cycles on the GPU at rung 2 (14 real renders,
+3.4–6.0 s each in the recorded run); the week is **budgeted from the
+cost model** (`weekbudget.py`: each night's three jobs priced at p95,
+the admission check, the owner's two lines) and the measured cost is
+folded back from the ledger beside the estimate. The whole record —
+step table, melt table, budget table, the engine's pin, the box states —
+lands in `run/engine/week.txt`, and the run itself is written up in
+[`docs/lab/honest-week.md`](../../../docs/lab/honest-week.md) (including
+the kJ bug the first budgeted evening caught in the cost package's two
+lines).
+
 ## The week, in one table (from the last run)
 
 ```
@@ -96,7 +118,7 @@ a night later. The bank codes melt the Companion, which is why the
 | the melt is a fold — kill -9 safe | `night/n4-gate-rebuild` (a rebuilt gate agrees on every axis); `week/melt-table` (the spine's ledger carries it code for code) |
 | capability rows present every morning; stop reading 0 | `evening/n{k}-slate`, `morning/n{k}-capability-and-estimates` (zeros on night one, non-zero from morning two) |
 | two-line estimates everywhere | `evening/n{k}-work-order` (both halves on every confirm), `morning/n{k}-capability-and-estimates` (every order the morning reads; the landed order's estimate carries both halves) |
-| `[e]` replaced by measurements | `evening/n{k}-slate` (marked asks), `morning/n{k}-report` ("the box" carries the night's measured verdict timings) |
+| `[e]` replaced by measurements | `evening/n{k}-slate` (marked asks), `morning/n{k}-report` ("the box" carries the night's measured timings — the verdict writes, and the render walls on the real-engine run) |
 | standing exits in every branch set | `morning/n{k}-branches` (both surfaces, all seven mornings) + `week/melt-table` |
 | decision budget at the queue, never exceeded | `night/n1-queue-dam` (dam + admission + cut, named), `morning/n{k}-attention` (≤ 10 every morning; night 1 exactly 10), `week/melt-table` |
 | attention cost falls across the week | `morning/n{k}-attention` (per-cycle counts), `week/melt-table` (16 > 9 > 4 ≥ 4 ≥ 2 ≥ 2 ≥ 2) |
@@ -115,6 +137,16 @@ carry — taste rows, policy-sealed bets, verdicts mirrored back, the
 apply-scores-taste bridge — are deleted; what they were papering over is
 fixed in the core (see `tests/test_integration_melt_ledger.py`).
 
+The render rungs run on the core's engine seam (`core/engine`) — behind
+the **fake engine** on the default run (`real:engine(...)` labels come
+from the engine seat, so the table names whichever engine is configured)
+and behind the **v2 venv** on the `-m engine` run, where every render is
+a real PNG with its measured wall in the ledger and the night's bar
+carries the measured GPU/wall minutes (folded from `render.completed`).
+The night's two-line budget on that run comes from the cost model
+(`weekbudget.py`), and the morning's `the box` section quotes the
+measured render walls (`render.completed.timing`).
+
 **One bridge remains** (`bridge:queue-half`): the decision-budget admission
 (G §4.3 / spec §3.2.8-7) — the spine owns the blocking dam, but the queue
 service that would enforce the morning's budget of 10 AT the queue does not
@@ -122,10 +154,7 @@ exist yet; `weekseat.admit_ask_cards` performs it, cutting and naming.
 Stubs, as the plan expects (M1 risks): the scripted critic
 (`verdict@scripted` on its face) and the stub engineer — the same two
 remaining pieces as M1, each with its missing piece named in
-`../m1/README.md`. The render rungs and the gate's engine half are no
-longer stubs: they run on the core's engine seam (`core/engine`) behind
-the **fake engine** (`fake:engine` in the step table) — the real seam, a
-fake engine, one configuration line from a real one.
+`../m1/README.md`.
 
 ## Honest notes (what this run is and is not)
 
@@ -168,6 +197,16 @@ fake engine, one configuration line from a real one.
   therefore asserted in its [now] shape (a claim that renders with its
   denominator, uncertainty leading); the content-level jetty-and-stairs
   sentence of G §1.9 is M2's to earn against a real owner.
+* **The melt is engine-independent — proven, not assumed.** The real-engine
+  week (`realweek.py`, `-m engine`) folds the *identical* melt table from
+  its own ledger with Infinigen 2.0 behind all fourteen render rungs; see
+  `docs/lab/honest-week.md` for the run, its budget from the cost model,
+  and what it exposed (including a kJ bug in the cost package's two lines).
+* **The scripted critic's `timing` row is an authored stand-in** (812 ms,
+  "measured on the stub rung"): a payload cannot carry the duration of the
+  transaction that persists it, so the honest measurement of the verdict
+  write (~1 ms) rides the run's own tables (`rec["critic_verdict_ms"]`)
+  while the event's row keeps its label.
 
 ## Layout
 
@@ -178,7 +217,15 @@ script.py        the seven nights as scripted facts (edits, bets, flaws, WOs, th
 weekseat.py      the week's adapters: the melt over the ONE ledger, the queue's
                  decision-budget admission, the per-morning decision count
 meltweek.py      the driver: boot → seven cycles → the melt table; `main()` headless
+weekbudget.py    the week's budget from the cost model: the per-night plan (p95
+                 asks), the admission check, the two lines, the measured fold
+realweek.py      the honest week, headless: the same week with BUILDER_ENGINE
+                 pointed at the v2 venv; box state, budget table, run/engine/
 conftest.py      sys.path to m1 (its seats) + a fresh $BUILDER_HOME per run
 test_week_session.py   the pytest wrapper (plays the week; re-derives the checks)
-run/             scratch, gitignored
+test_weekbudget.py     the budget's arithmetic, in the default suite
+test_week_engine.py    the real-engine week (opt-in, `-m engine`): real PNGs
+                 behind all 14 render rungs, measured bar, budget fits, the
+                 melt reproduced on real renders, computed statuses
+run/             scratch, gitignored (run/engine/ holds the real week's record)
 ```

@@ -40,7 +40,10 @@ from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
 _M1 = _HERE.parent / "m1"
-for _p in (str(_M1), str(_HERE)):
+_ROOT = _HERE.parents[2]  # the repo root — `core.*` imports headless (pytest
+#                          gets it from pyproject's pythonpath; a direct run
+#                          does not, and weekbudget imports core.night.cost)
+for _p in (str(_M1), str(_HERE), str(_ROOT)):
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
