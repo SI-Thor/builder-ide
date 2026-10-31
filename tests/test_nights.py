@@ -62,6 +62,165 @@ def test_a_task_filed_before_any_night_has_no_night(core):
     assert task.state == "slated"
 
 
+# ------------------------------------------------------------- the ask
+
+def test_a_task_filed_without_an_ask_is_priced_from_the_cost_model(core):
+    """The slate does not take a number from the client — it asks the model."""
+    from core.night.cost import get_model
+
+    task = TasksService(core).create(author="casey", intention="weather the harbour crates")
+    band = get_model().band("prop.goal")
+    assert task.kind == "prop.goal"
+    assert task.ask_source == "model"
+    assert task.ask_basis == band.basis
+    assert task.cost_estimate.gpu_minutes == pytest.approx(band.p50.gpu_minutes)
+    assert task.cost_estimate.wall_minutes == pytest.approx(band.p50.wall_minutes)
+    # and the rail is the kind's p95 — the most it may spend before it is cut
+    assert task.rail.gpu_minutes == pytest.approx(band.p95.gpu_minutes)
+
+
+def test_a_task_can_name_the_job_kind_it_is(core):
+    from core.night.cost import get_model
+
+    task = TasksService(core).create(author="casey", intention="a picture of a crate",
+                                     kind="prop.image")
+    band = get_model().band("prop.image")
+    assert task.kind == "prop.image"
+    assert task.cost_estimate.wall_minutes == pytest.approx(band.p50.wall_minutes)
+
+
+def test_a_job_kind_the_model_does_not_know_is_refused_by_name(core):
+    from core.errors import Refused
+
+    with pytest.raises(Refused) as caught:
+        TasksService(core).create(author="casey", intention="a very large prop",
+                                  kind="prop.gigantic")
+    assert "prop.gigantic" in str(caught.value)
+    assert "prop.goal" in str(caught.value)
+
+
+def test_a_client_ask_becomes_an_override_and_is_recorded(core):
+    """The owner's own number is kept, not overwritten — and it says so."""
+    from core.models import Rail
+
+    task = TasksService(core).create(
+        author="casey", intention="one very large render",
+        cost_estimate=Rail(gpu_minutes=300.0, wall_minutes=45.0),
+    )
+    assert task.ask_source == "override"
+    assert task.ask_basis == "estimate", "a typed-in number is an estimate"
+    assert task.cost_estimate.gpu_minutes == pytest.approx(300.0)
+    assert task.kind == "prop.goal", "the kind it is held against is still recorded"
+
+
+def test_an_override_is_held_to_its_own_number_not_to_the_model_s(core):
+    """A big override must not be cut by the model's own (smaller) rail."""
+    from core.models import Rail
+
+    task = TasksService(core).create(
+        author="casey", intention="one very large render",
+        cost_estimate=Rail(gpu_minutes=300.0, wall_minutes=45.0),
+    )
+    assert task.rail.gpu_minutes == pytest.approx(300.0)
+    assert task.rail.wall_minutes == pytest.approx(45.0)
+
+
+# ------------------------------------------------------------- the slate's two lines
+
+def test_the_slate_shows_the_owner_two_lines(core):
+    """The owner reads what tonight will cost, and whether it fits, before
+    the night starts."""
+    TasksService(core).create(author="casey", intention="weather the harbour crates")
+    slate = TasksService(core).slate()
+    lines = slate["estimate"]["lines"]
+    assert len(lines) == 2
+    assert lines[0].startswith("Tonight: 1 goal")
+    assert "It fits" in lines[1]
+    assert slate["estimate"]["fits"] is True
+
+
+def test_the_slate_shows_where_each_ask_came_from(core):
+    TasksService(core).create(author="casey", intention="weather the harbour crates")
+    row = TasksService(core).slate()["rows"][0]
+    assert row["kind"] == "prop.goal"
+    assert row["ask_source"] == "model"
+    assert row["overridden"] is False
+    assert row["marked"] == "", "a measured price is not an estimate"
+
+
+def test_an_override_is_shown_next_to_the_model_price(core):
+    """The owner sees what the box says the work costs beside the number
+    they filed."""
+    from core.models import Rail
+
+    TasksService(core).create(
+        author="casey", intention="one very large render",
+        cost_estimate=Rail(gpu_minutes=300.0, wall_minutes=45.0),
+    )
+    row = TasksService(core).slate()["rows"][0]
+    assert row["overridden"] is True
+    assert row["marked"] == "[e]", "every estimate is marked until it is measured"
+    assert row["ask"]["gpu_minutes"] == pytest.approx(300.0)
+    assert row["model_ask"]["gpu_minutes"] < 300.0
+
+
+def test_a_slate_that_does_not_fit_names_the_cut(core):
+    from core.models import Rail
+
+    TasksService(core).create(
+        author="casey", intention="the impossible render",
+        cost_estimate=Rail(gpu_minutes=900.0, wall_minutes=900.0),
+    )
+    slate = TasksService(core).slate()
+    assert slate["estimate"]["fits"] is False
+    assert "It does not fit" in slate["estimate"]["line_two"]
+    assert slate["estimate"]["cut"], "the cut is named"
+
+
+def test_a_slate_that_does_not_fit_is_refused_with_the_cut_named(core, nights):
+    """The refusal happens before the night spends anything, and it names the
+    goal that falls off the end."""
+    from core.errors import Refused
+    from core.models import Rail
+
+    started = nights.start(core_actor())
+    nid = started["night"]["id"]
+    TasksService(core).create(
+        author="casey", intention="the impossible render",
+        cost_estimate=Rail(gpu_minutes=900.0, wall_minutes=900.0),
+    )
+    with pytest.raises(Refused) as caught:
+        TasksService(core).attach_slate_to_night(nid)
+    assert "does not fit" in str(caught.value)
+    assert "the impossible render" in str(caught.value)
+    # and nothing was cut silently: the goal is still on the slate
+    assert [t.intention for t in TasksService(core).slated_tasks()] == [
+        "the impossible render"]
+
+
+def test_a_night_that_does_not_fit_is_not_started(core, nights):
+    from core.errors import Refused
+    from core.models import Rail
+
+    TasksService(core).create(
+        author="casey", intention="the impossible render",
+        cost_estimate=Rail(gpu_minutes=900.0, wall_minutes=900.0),
+    )
+    with pytest.raises(Refused):
+        nights.start(core_actor())
+    assert [n for n in core.store.scan("nights") if n.get("state") == "running"] == []
+
+
+def test_the_night_start_writes_the_two_lines_into_the_log(core, nights):
+    """The morning quotes the two lines the owner read this evening."""
+    TasksService(core).create(author="casey", intention="weather the harbour crates")
+    started = nights.start(core_actor())
+    assert len(started["estimate"]["lines"]) == 2
+    events = core.store.events_since(0, types=["night.started"])
+    payload = events[-1].payload
+    assert payload["estimate"]["lines"][0].startswith("Tonight: 1 goal")
+
+
 # ------------------------------------------------------------- the status line
 
 def test_a_night_with_no_heartbeats_did_not_run(core, nights):

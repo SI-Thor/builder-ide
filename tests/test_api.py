@@ -297,6 +297,71 @@ def test_a_companion_files_a_task(client):
     assert r.json()["task"]["state"] == "slated"
 
 
+def test_a_filed_task_is_priced_from_the_cost_model(client):
+    """The client files an intention; the model says what it costs."""
+    from core.night.cost import get_model
+
+    r = client.post("/v1/tasks", headers=COMPANION,
+                    json={"intention": "weather the harbour crates"})
+    assert r.status_code == 200
+    task = r.json()["task"]
+    band = get_model().band("prop.goal")
+    assert task["kind"] == "prop.goal"
+    assert task["ask_source"] == "model"
+    assert task["cost_estimate"]["gpu_minutes"] == pytest.approx(band.p50.gpu_minutes)
+    assert task["rail"]["gpu_minutes"] == pytest.approx(band.p95.gpu_minutes)
+
+
+def test_a_client_ask_is_an_override_and_the_api_says_so(client):
+    r = client.post("/v1/tasks", headers=COMPANION,
+                    json={"intention": "one very large render",
+                          "cost_estimate": {"gpu_minutes": 300.0, "wall_minutes": 45.0}})
+    assert r.status_code == 200
+    task = r.json()["task"]
+    assert task["ask_source"] == "override"
+    assert task["ask_basis"] == "estimate"
+    assert task["cost_estimate"]["gpu_minutes"] == pytest.approx(300.0)
+
+
+def test_a_task_can_name_its_job_kind(client):
+    r = client.post("/v1/tasks", headers=COMPANION,
+                    json={"intention": "a picture of a crate", "kind": "prop.image"})
+    assert r.status_code == 200
+    assert r.json()["task"]["kind"] == "prop.image"
+
+
+def test_a_job_kind_the_model_does_not_know_is_refused(client):
+    r = client.post("/v1/tasks", headers=COMPANION,
+                    json={"intention": "a very large prop", "kind": "prop.gigantic"})
+    assert r.status_code == 422
+    assert "prop.gigantic" in r.json()["error"]["message"]
+
+
+def test_the_slate_shows_the_owner_two_lines(client):
+    client.post("/v1/tasks", headers=COMPANION,
+                json={"intention": "weather the harbour crates"})
+    r = client.get("/v1/slate", headers=OWNER)
+    assert r.status_code == 200
+    slate = r.json()
+    assert len(slate["estimate"]["lines"]) == 2
+    assert slate["estimate"]["lines"][0].startswith("Tonight: 1 goal")
+    assert slate["rows"][0]["kind"] == "prop.goal"
+
+
+def test_a_slate_that_does_not_fit_is_refused_by_the_api(client):
+    """The night does not start on a plan that does not fit, and the refusal
+    names what falls off the end."""
+    client.post("/v1/tasks", headers=COMPANION,
+                json={"intention": "the impossible render",
+                      "cost_estimate": {"gpu_minutes": 900.0, "wall_minutes": 900.0}})
+    r = client.post("/v1/night", headers=OWNER, json={})
+    assert r.status_code == 422
+    body = r.json()["error"]
+    assert "does not fit" in body["message"]
+    assert "the impossible render" in body["message"]
+    assert body["cut"], "the cut is named"
+
+
 # ------------------------------------------------------------- budget
 
 def test_the_budget_endpoint_reports_the_rails(client):

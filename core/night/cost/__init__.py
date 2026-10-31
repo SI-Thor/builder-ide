@@ -12,7 +12,10 @@ night needs before it spends anything:
   fit the rails, and what is cut, named;
 * the **two-line estimate**
   (:func:`~core.night.cost.estimates.owner_estimate`) — what the owner reads
-  this evening, in two lines.
+  this evening, in two lines;
+* a **price** (:func:`~core.night.cost.pricing.price_job`) — what one job
+  kind costs as a task carries it: the ask (the p50) and the rail (the p95),
+  with the band's basis and source beside them.
 
 Everything the model says comes from a measurement with a source beside it
 (:mod:`core.night.cost.records`). The one exception is the owner's attention
@@ -35,6 +38,13 @@ from core.night.cost.admission import (
 )
 from core.night.cost.estimates import OwnerEstimate, owner_estimate
 from core.night.cost.model import CostBand, CostEstimate, CostModel, get_model, percentile
+from core.night.cost.pricing import (
+    DEFAULT_KIND,
+    PricedAsk,
+    hold_to,
+    known_kinds,
+    price_job,
+)
 from core.night.cost.records import (
     DATA_DIR,
     JobRecord,
@@ -51,17 +61,22 @@ __all__ = [
     "CostModel",
     "CutLine",
     "DATA_DIR",
+    "DEFAULT_KIND",
     "JobRecord",
     "NightPlan",
     "OwnerEstimate",
     "PlannedJob",
     "PowerRails",
+    "PricedAsk",
     "RecordedData",
     "Sample",
     "admission_check",
     "get_model",
+    "hold_to",
+    "known_kinds",
     "load_recorded",
     "owner_estimate",
     "percentile",
     "plan_from_asks",
+    "price_job",
 ]

@@ -69,7 +69,7 @@ pip install -e ".[propgen]"
 Without it the night still runs — the lane split is simply unmeasured — but
 the timing is worth having.
 
-## The three scheduling rules
+## The four scheduling rules
 
 These are the TRELLIS.2 spike's findings, written as rules the scheduler
 keeps (`schedule.py`), and the report says which ones ran:
@@ -92,6 +92,18 @@ keeps (`schedule.py`), and the report says which ones ran:
    swing when two props ran at once and their tails fought over the same
    cores; the price of the rule is that the GPU idles through every tail,
    and the report says how much.
+4. **`costs_from_the_model`** — what each stage costs is the **cost model's**
+   number, not one typed in here (`core/night/cost`). The image stage is
+   priced as `prop.image` (one 1024² picture) and the mesh stage as the
+   TRELLIS.2 prop at the request's own resolution — `prop.512` or
+   `prop.1024`, the sampling and the mesh tail. The task's **ask** is the
+   model's p50 and its **rail** the model's p95, the same convention the
+   core's night runner uses, so a task means the same thing in both places.
+   The executor's plan reads the same price (`plan.per_variant_cost`), or
+   the night would cut the work it planned itself.
+
+   The night still adds its own headroom to the rails it runs under
+   (`_rails_for`): that is the night's policy, not a cost.
 
 ## The critic
 
@@ -167,5 +179,7 @@ mesh). The full numbers, with the box's load beside every one, are in
 * **The core's night runner** does the queueing, the rails, the load cap,
   the iterator and the morning report. This seat supplies the executor, the
   variant source, the critic and the plan — the seams the core defines.
+* **The core's cost model** (`core/night/cost`) says what each stage costs,
+  so this seat's numbers are the box's measured ones and not its own.
 * **The core's ledger** is where the night is written, so the morning can
   be folded out of the log without anybody's memory of it.

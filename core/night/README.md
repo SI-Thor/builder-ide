@@ -80,10 +80,20 @@ measurements taken on this box, and it lives in
   ladder, a critic's verdict), with p50 and p95 from the recorded samples,
   in GPU-minutes, CPU-lane minutes, wall minutes, hosted cents, iterations
   per goal and **joules**;
+* a **price** — a job kind as a task carries it: the p50 is the **ask** and
+  the p95 the **rail** the task is held to, with the band's basis and source
+  beside them. A task names its kind and the model prices it; a client that
+  files its own number gets an **override**, recorded and shown, and is held
+  to its own number rather than to the model's;
 * an **admission check** — does tonight's plan fit the rails, and what is
   cut, **named**;
 * the owner's **two lines** — what tonight will cost, and whether it fits —
-  written into `night.started` and read back by the morning.
+  written into `night.started` and read back by the morning. The API's plan
+  slate shows the same two lines before the night starts, and a slate that
+  does not fit is refused at the door with the cut named;
+* a **refresh path** — when the box records new timings, the model's data
+  follows: the recording is re-pinned by md5 and row count, and `--check`
+  says whether it has moved on since.
 
 The joules are the board's **measured** rails, so the morning's line has a
 fourth number that is a measurement rather than an estimate. The only

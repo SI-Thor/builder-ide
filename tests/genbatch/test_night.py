@@ -207,6 +207,7 @@ def test_the_rules_are_in_the_report(tmp_path):
         "batch_by_model",
         "cpu_mesh_tail",
         "no_overlap",
+        "costs_from_the_model",
     ]
 
 

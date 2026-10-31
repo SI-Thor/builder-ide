@@ -13,6 +13,14 @@ props ran at once and their tails fought over the same cores. So:
 * the mesh tail is charged to the **CPU lane**, not to the GPU's bar; and
 * the night is **serial** — one prompt at a time, never two.
 
+**What each stage costs comes from the cost model** (``core/night/cost``),
+not from numbers typed in here: the image stage is priced as ``prop.image``
+(one 1024² picture) and the mesh stage as the TRELLIS.2 prop at the
+request's resolution (``prop.512`` / ``prop.1024`` — the sampling and the
+mesh tail). The ask is the model's p50 and the rail its p95, so the number
+the night plans against is the one the box was measured at, and it moves
+when the measurement moves.
+
 The plan is what the core's night runner is handed: a list of tasks, in
 order, and the iteration policy that says how many seeds each one tries.
 """
@@ -25,7 +33,7 @@ from typing import Sequence
 
 from pydantic import BaseModel, Field
 
-from core.night.models import Rail
+from core.night.cost.pricing import PricedAsk, price_job
 from core.records import IterationPolicy, Task
 
 from core.genbatch.models import PropRequest, StageKind
@@ -38,18 +46,23 @@ IMAGE_MODEL = "sd_xl_base_1.0"
 #: The model the mesh stage needs.
 MESH_MODEL = "trellis2"
 
-#: What a prop costs to make, before anybody has measured it. The GPU lane
-#: is the sampling only — the mesh tail is the CPU lane's — and the wall
-#: clock is the whole prompt.
-_IMAGE_GPU_MINUTES = 0.5
-_IMAGE_WALL_MINUTES = 0.7
-_MESH_GPU_MINUTES = 0.5
-_MESH_WALL_MINUTES = 2.2
+#: The cost model's job kinds for the two stages: one 1024² picture, and one
+#: TRELLIS.2 prop at the resolution the request asks for.
+IMAGE_KIND = "prop.image"
+MESH_KIND = "prop.512"
+MESH_KIND_1024 = "prop.1024"
 
-#: The per-attempt rail: past this, the work is stopped rather than
-#: trusted.
-_IMAGE_ATTEMPT_RAIL = 6.0
-_MESH_ATTEMPT_RAIL = 10.0
+#: The resolution the mesh stage falls back to when the model has no measured
+#: price for the one the request asks for (512³ — the default, and the one
+#: the spike measured).
+DEFAULT_MESH_RESOLUTION = 512
+
+
+def _mesh_kind(resolution: int) -> str:
+    """The cost model's kind for a TRELLIS.2 prop at this resolution."""
+    if resolution == 1024:
+        return MESH_KIND_1024
+    return MESH_KIND
 
 
 class ScheduleRule(BaseModel):
@@ -113,6 +126,27 @@ class NightPlan:
         """The request a task is about."""
         request_id = task_id.split(":", 1)[-1]
         return self._by_id.get(request_id)
+
+    def priced(self, task_id: str) -> PricedAsk:
+        """What the cost model says one job of this stage costs.
+
+        The image stage is a picture (``prop.image``); the mesh stage is the
+        TRELLIS.2 prop at the resolution the request asked for.
+        """
+        request = self.request(task_id)
+        if self.stage_kind(task_id) == StageKind.IMAGE:
+            return price_job(IMAGE_KIND)
+        resolution = request.resolution if request else DEFAULT_MESH_RESOLUTION
+        return price_job(_mesh_kind(resolution))
+
+    def per_variant_cost(self, task_id: str) -> tuple[float, float]:
+        """The GPU minutes and the wall minutes of one attempt of this stage.
+
+        One attempt is one job of the stage's kind, so this is the model's
+        p50 for that kind — the same number the task's ask is made of.
+        """
+        priced = self.priced(task_id)
+        return (priced.ask.gpu_minutes, priced.ask.wall_minutes)
 
     def seeds(self, request_id: str) -> list[int]:
         """The seeds a request's variants use."""
@@ -200,40 +234,64 @@ class NightPlan:
                     "measured a seven-fold swing under contention"
                 ),
             ),
+            ScheduleRule(
+                name="costs_from_the_model",
+                rule=(
+                    "each stage's ask is the cost model's measured p50 and its "
+                    "rail the measured p95 — the picture as prop.image, the "
+                    "prop as the TRELLIS.2 kind for its resolution"
+                ),
+                evidence=(
+                    "core/night/cost — the sweep and the mini-night's ledger; "
+                    "the model's own README says what each kind measured"
+                ),
+            ),
         ]
 
     # -- the tasks ---------------------------------------------------------
 
     def _image_task(self, request: PropRequest) -> Task:
+        """The image stage: one 1024² picture, priced by the cost model.
+
+        The ask is the measured p50 and the rail the measured p95 — the
+        picture's own bad case, so the night stops work that has run past
+        what the box was seen to do.
+        """
         count = len(self._seeds[request.id])
-        return Task(
-            id=f"img:{request.id}",
+        priced = price_job(IMAGE_KIND, count=count)
+        return self._task(
+            task_id=f"img:{request.id}",
             intention=f"picture {request.prompt or request.id}",
-            owner_character="prop-maker",
-            cost_estimate=Rail(
-                gpu_minutes=_IMAGE_GPU_MINUTES * count,
-                wall_minutes=_IMAGE_WALL_MINUTES * count,
-            ),
-            rail=Rail(
-                gpu_minutes=_IMAGE_GPU_MINUTES * count,
-                wall_minutes=_IMAGE_ATTEMPT_RAIL * count,
-            ),
+            priced=priced,
         )
 
     def _mesh_task(self, request: PropRequest) -> Task:
+        """The mesh stage: one TRELLIS.2 prop, priced by the cost model.
+
+        The GPU lane is the sampling alone; the mesh tail is the CPU lane's
+        — which is why the tail is not charged to the GPU's bar.
+        """
         count = len(self._seeds[request.id])
-        return Task(
-            id=f"prop:{request.id}",
+        kind = _mesh_kind(request.resolution)
+        priced = price_job(kind, count=count)
+        return self._task(
+            task_id=f"prop:{request.id}",
             intention=f"prop {request.prompt or request.id}",
+            priced=priced,
+        )
+
+    @staticmethod
+    def _task(task_id: str, intention: str, priced: PricedAsk) -> Task:
+        """A stage's task: the model's ask, and the model's rail."""
+        return Task(
+            id=task_id,
+            intention=intention,
             owner_character="prop-maker",
-            cost_estimate=Rail(
-                gpu_minutes=_MESH_GPU_MINUTES * count,
-                wall_minutes=_MESH_WALL_MINUTES * count,
-            ),
-            rail=Rail(
-                gpu_minutes=_MESH_GPU_MINUTES * count,
-                wall_minutes=_MESH_ATTEMPT_RAIL * count,
-            ),
+            cost_estimate=priced.ask,
+            rail=priced.rail,
+            kind=priced.kind,
+            ask_source="model",
+            ask_basis=priced.basis,
         )
 
     @staticmethod

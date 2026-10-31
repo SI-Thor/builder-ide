@@ -184,6 +184,11 @@ class CostModel:
         """Every recorded job kind."""
         return sorted((self.data.index.get("jobs") or {}))
 
+    def all_kinds(self) -> list[str]:
+        """Every job kind the model can price: the recorded ones and the two
+        derived ones."""
+        return sorted(set(self.kinds()) | set(self._derived_kinds()))
+
     # -- the bands --------------------------------------------------------
 
     def band(self, kind: str, *, scene: str | None = None) -> CostBand:

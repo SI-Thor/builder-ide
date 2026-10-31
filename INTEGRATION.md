@@ -150,7 +150,7 @@ re-export, so every import path still resolves and
 | `Actor` | frozen (all seats agreed); the seven §1.8 kinds |
 | `AuditEvent` | the spine's — optional `seq` until commit, the `refused` flag, the type check, the subject accessors |
 | `Rail` | night-runner's arithmetic on the three agreed axes |
-| `Task` | §1.9's fields + justification's `slated_at`/`review_by` + the `dropped` state (decisions 1, 4 above) |
+| `Task` | §1.9's fields + justification's `slated_at`/`review_by` + the `dropped` state (decisions 1, 4 above) + the cost model's `kind`/`ask_source`/`ask_basis` (the ask is priced from the measured model, and a client's own number is recorded as an override) |
 | `Job`, `Night`, `IterationPolicy` | night-runner's (`Night.power_mode: int`, the iteration policy rides the night); the spine's `start()` passes `state="running"` explicitly, as the runner's own `start()` does |
 | `Branch`, `NodeRef` | **unfrozen** — projection records the folds mutate in place; §1.0's "the log is the source of truth" is the invariant, not record immutability |
 | `Recipe`, `RecipeEntry`, `EnginePin`, `Op`, `RecipeEdit`, `RecipeVersion` | the recipe seat's (frozen, with the validators: pinned config hash, ≤32 ops, ≤80-char one-line message, dotted ≤3-segment paths) |
@@ -224,6 +224,21 @@ Honest list, per seat and in general:
 - **Cold-start's deltas #1–#8** (above) stand as the seat built them,
   pending the spec amendments they propose (notably §1.7's gloss of
   `guess` vs decision 13a's two-observation regime).
+- **The plan slate refuses a plan that does not fit.** §3.2.1 says the
+  builders cut their own lists first and that recovery is a proposal, never an
+  error; the API's slate now *refuses* at the door — starting a night on a
+  slate the rails cannot cover is a `Refused` with the cut named, and the
+  slate is left as it was so the recovery is a trim and a try again. The
+  night's own behaviour is unchanged: it still cuts and re-queues. This is
+  the brief's ask, and it is the last gate before the box spends anything.
+- **The slate's asks are priced, and a client's number is an override.**
+  §3.2.1 stores the ask so the morning can name what was cut, but says
+  nothing about where it comes from: the cost model prices it now (the task
+  names a job kind; the p50 is the ask and the p95 the rail), and a number
+  filed by a client is kept as an **override** — recorded on the task
+  (`ask_source`, `ask_basis`) and shown on the slate beside the model's own
+  price. The `Task` record gained `kind`, `ask_source` and `ask_basis` for
+  this; the table in §3 records the extension.
 - **`docs/lab/` notes keep their historical voice** — they describe the
   spikes as run, including "the store is not merged" statements that were
   true at the time; the package READMEs are the living documents.
