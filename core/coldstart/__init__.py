@@ -26,6 +26,7 @@ from .models import (
     SeedStarter,
     TasteRow,
 )
+from .openline import FOUR_STARTERS, companion_opening, opening_line
 from .ports import Clock, LedgerPort, SealerPort
 from .stubs import (
     FixedClock,
@@ -42,6 +43,9 @@ __all__ = [
     "REASON_CODES",
     "CLAIM_TYPES",
     "DEFECT_KINDS",
+    "FOUR_STARTERS",
+    "companion_opening",
+    "opening_line",
     "Actor",
     "AskCandidate",
     "AskQuestion",
