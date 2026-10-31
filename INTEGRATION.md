@@ -224,6 +224,21 @@ Honest list, per seat and in general:
 - **Cold-start's deltas #1–#8** (above) stand as the seat built them,
   pending the spec amendments they propose (notably §1.7's gloss of
   `guess` vs decision 13a's two-observation regime).
+- **The plan slate refuses a plan that does not fit.** §3.2.1 says the
+  builders cut their own lists first and that recovery is a proposal, never an
+  error; the API's slate now *refuses* at the door — starting a night on a
+  slate the rails cannot cover is a `Refused` with the cut named, and the
+  slate is left as it was so the recovery is a trim and a try again. The
+  night's own behaviour is unchanged: it still cuts and re-queues. This is
+  the brief's ask, and it is the last gate before the box spends anything.
+- **The slate's asks are priced, and a client's number is an override.**
+  §3.2.1 stores the ask so the morning can name what was cut, but says
+  nothing about where it comes from: the cost model prices it now (the task
+  names a job kind; the p50 is the ask and the p95 the rail), and a number
+  filed by a client is kept as an **override** — recorded on the task
+  (`ask_source`, `ask_basis`) and shown on the slate beside the model's own
+  price. The `Task` record gained `kind`, `ask_source` and `ask_basis` for
+  this; the table in §3 records the extension.
 - **`docs/lab/` notes keep their historical voice** — they describe the
   spikes as run, including "the store is not merged" statements that were
   true at the time; the package READMEs are the living documents.

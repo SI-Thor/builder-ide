@@ -13,11 +13,13 @@ over measurements taken on this box.
 |---|---|
 | `records.py` | the recorded measurements, and where each one came from |
 | `model.py` | the **cost model**: what each job kind costs, p50 and p95 |
+| `pricing.py` | the **price**: a job kind as a task carries it — the ask (p50) and the rail (p95) |
 | `admission.py` | the **admission check**: does tonight's plan fit, and what is cut, named |
 | `estimates.py` | the **two lines** the owner reads this evening |
 | `data/` | the measurements themselves — the sweep, the mini-night, the critic |
 | `measure_critic.py` | the one new measurement this package made |
 | `extract_mini_night.py` | extracts the mini-night's lane splits from its ledger |
+| `refresh.py` | re-pins the data when the box records something new |
 
 ## The job kinds, and where their numbers come from
 
@@ -42,6 +44,37 @@ of `p50` (the median run) and `p95` (the bad one). Each band carries its
 Two kinds are **derived** rather than recorded: `prop.goal` (a picture, a
 prop and a verdict, times the goal's depth) and `scene.goal` (coarse, fine,
 render).
+
+## The price: a kind as a task carries it
+
+A task is not a job kind. `pricing.py` is the join between them:
+
+```python
+from core.night.cost import price_job
+
+priced = price_job("prop.image")           # one picture
+priced.ask    # Rail(gpu_minutes=0.233, hosted_cents=0, wall_minutes=0.278) — the p50
+priced.rail   # Rail(gpu_minutes=0.397, hosted_cents=0, wall_minutes=0.427) — the p95
+priced.basis  # "measured" — and priced.source says where it came from
+```
+
+* the **ask** is the p50: what the work usually costs.
+* the **rail** is the p95: the ceiling the task is held to. The seat stops the
+  work when it passes it (§5.5), so it is the *bad* case, not the usual one.
+* the count is the night's: `price_job("prop.image", count=3)` is three p50s.
+
+One rule on top: **the rail is never below the ask** (`hold_to`). An owner who
+files their own number is held to *their* number, not to the model's, so an
+override cannot smuggle work past the ceiling it is measured against.
+
+**Who reads the model now.** The model's numbers are the only numbers:
+
+| Caller | What it asks the model for |
+|---|---|
+| the plan slate (`core/svc/tasks.py`) | each goal's ask — its kind's p50 — and the bar (the spec's 360 GPU-min / 560 wall-min) |
+| the night's start (`core/svc/nights.py`) | the same bar, and the two lines it writes into `night.started` |
+| the prop seat's schedule (`core/genbatch/schedule.py`) | the image stage as `prop.image`, the mesh stage as the TRELLIS.2 kind for the request's resolution |
+| the prop seat's executor (`core/genbatch/executor.py`) | the same price, so its plan and the task's ask are one measurement |
 
 ## The numbers this package found
 
@@ -123,21 +156,29 @@ estimate.lines()
 Line one is the ask, in the owner's units. Line two is the verdict, and when
 the plan does not fit it **names** what falls off the end. The night runner
 writes both into `night.started`, so the morning can put them beside what
-actually happened.
+actually happened — and so does the API's night start, which is the other
+door into the same night.
+
+The **plan slate** shows them too, before the night starts: `/v1/slate` carries
+the two lines, each goal's ask with where it came from (the kind it was
+priced as, the model's marking, and whether the owner overrode it), and the
+verdict with the cut named. A slate that does not fit is **refused** at the
+door, with the cut named — the slate is left as it was, so the recovery is a
+trim and a try again, not a night half spent.
 
 ## Running the tests
 
 The repo's own venv, by the repo's convention (`INTEGRATION.md`):
 
 ```bash
-.venv/bin/python -m pytest -q tests/night/test_cost.py
+.venv/bin/python -m pytest -q tests/night/test_cost.py tests/night/test_refresh.py
 ```
 
 This branch was developed against the **integrated suite's** venv, which has
 the same dependencies:
 
 ```bash
-~/lm-wt/integrate-core/.venv/bin/python -m pytest -q tests/night/test_cost.py
+~/lm-wt/integrate-core/.venv/bin/python -m pytest -q tests/night/test_cost.py tests/night/test_refresh.py
 ```
 
 The tests check the model against the recorded files, against the documents
@@ -157,8 +198,25 @@ so a percentile that quietly became a median fails the suite.
     > core/night/cost/data/mini_night.json
 ```
 
+And the **refresh path** (`refresh.py`), which is the one to use when the box
+has recorded something new — it copies the recording into `data/`, re-pins it
+by md5 and row count in `data/recorded.json`, and patches the index in place
+so a refresh is a changed number and not a reformatted file:
+
+```bash
+# re-pin the sweep snapshot (the default origin is the sweep's own path)
+.venv/bin/python -m core.night.cost.refresh --sweep
+
+# re-extract a night's lane splits from its ledger
+.venv/bin/python -m core.night.cost.refresh --ledger ~/path/to/ledger.db
+
+# has the recording moved on since the snapshot was pinned?
+.venv/bin/python -m core.night.cost.refresh --check
+```
+
 The sweep snapshot in `data/infinigen_sweep.tsv` is copied verbatim from
-`~/src/infinigen-thor/outputs/sweep/sweep.tsv`. **The sweep was still running
-when the snapshot was taken**, so the file carries its row count and its
-checksum in `data/recorded.json`; refresh both together when the sweep
-finishes.
+`~/src/infinigen-thor/outputs/sweep/sweep.tsv`. **The sweep is still running**,
+so the file is a snapshot of a moment, not the finished sweep: it carries its
+row count and its checksum in `data/recorded.json`, and `--check` says
+whether the recording has moved on since. Refresh it whenever the sweep has
+recorded new timings, and the model's numbers follow.
