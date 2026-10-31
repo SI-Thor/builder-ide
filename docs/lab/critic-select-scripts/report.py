@@ -131,6 +131,21 @@ def main() -> int:
                 "mean_ms": mean,
                 "cpu_ms": cpu_summary(payload),
                 "members": len(payload.get("members", [])),
+                "rows": [
+                    {
+                        "defect": row["defect"],
+                        "check": row["check"],
+                        "members": row["members"],
+                        "tp": row["tp"],
+                        "fp": row["fp"],
+                        "fn": row["fn"],
+                        "tn": row["tn"],
+                        "fp_rate": row["fp_rate"],
+                        "fn_rate": row["fn_rate"],
+                    }
+                    for row in table["rows"]
+                    if row["members"]
+                ],
             }
         )
         print(f"## {label}\n")
@@ -182,14 +197,28 @@ def main() -> int:
                     "mean_ms": round(row["mean_ms"], 1),
                     "cpu_ms": round(row["cpu_ms"], 1),
                     "members": row["members"],
+                    # The per-class rows, so the published table can carry
+                    # the chosen critic's own table and not only its totals.
+                    "rows": row["rows"],
                 }
                 for row in summary_rows
             ],
+            "box": _box_state(),
         }
         out = ROOT / "core" / "critic" / "selection.json"
         out.write_text(json.dumps(selection, indent=1) + "\n", encoding="utf-8")
         print(f"\nwrote {out} (chosen: {selection['chosen']})")
     return 0
+
+
+def _box_state() -> dict:
+    """The box the measurement was taken on — beside the numbers."""
+    try:
+        from boxstate import box_state
+
+        return box_state()
+    except Exception:  # noqa: BLE001 - the box's state is context, not the result
+        return {}
 
 
 def _chosen(summary_rows: list[dict]) -> str:

@@ -207,6 +207,35 @@ def render_markdown(
                 f"{latency_text} |"
             )
         lines.append("")
+        # The chosen critic's own table, in the published format: the
+        # comparison above says which candidate won, this says what it
+        # catches and what it misses.
+        chosen_name = selection.get("chosen")
+        chosen = next(
+            (row for row in selection.get("candidates", ()) if row.get("name") == chosen_name),
+            None,
+        )
+        if chosen and chosen.get("rows"):
+            lines.append(
+                f"### The chosen critic's table — `{chosen_name}`"
+            )
+            lines.append("")
+            lines.append(
+                "| defect class | check | TP | FP | FN | TN | FP rate | FN rate | caught? |"
+            )
+            lines.append("|---|---|---|---|---|---|---|---|---|")
+            for row in chosen["rows"]:
+                fp_rate = row.get("fp_rate")
+                fn_rate = row.get("fn_rate")
+                fp_text = "—" if fp_rate is None else f"{fp_rate:.1%}"
+                fn_text = "—" if fn_rate is None else f"{fn_rate:.1%}"
+                caught = "yes" if row.get("fn") == 0 else "**no**"
+                lines.append(
+                    f"| `{row.get('defect')}` | `{row.get('check')}` | "
+                    f"{row.get('tp')} | {row.get('fp')} | {row.get('fn')} | "
+                    f"{row.get('tn')} | {fp_text} | {fn_text} | {caught} |"
+                )
+            lines.append("")
         report = selection.get("report")
         if report:
             lines.append(
