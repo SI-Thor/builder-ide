@@ -1,0 +1,12 @@
+[
+  {
+    "id": "crate",
+    "prompt": "a weathered wooden crate with iron banding, studio product photo, single object, plain light grey background",
+    "negative": "blurry, low quality, watermark, text, deformed, disfigured, multiple objects, cropped",
+    "seeds": 1,
+    "triangle_budget": 750000,
+    "expected_aspect": [1.0, 1.0, 0.8],
+    "aspect_tolerance": 0.35,
+    "base_seed": 101
+  }
+]
