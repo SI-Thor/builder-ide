@@ -72,7 +72,28 @@ pub const DEFAULT_LEDGER_INTERVAL: Duration = Duration::from_secs(1);
 /// The default floor for the GPU's own allocation pool (`tegrastats`' `lfb`):
 /// the least that must stay free of `cudaMalloc` blocks and pinned host
 /// memory, which no amount of `MemAvailable` can reclaim.
-pub const DEFAULT_GPU_FLOOR: u64 = 2 * 1024 * 1024 * 1024;
+///
+/// It is **0** because, measured on this box (2026-11-01, the director's
+/// overnight watch), `lfb` is a contiguous-block figure — `7x4MB` is seven
+/// free 4 MiB blocks of the allocation pool, a fragmentation signal — and
+/// not the GPU's headroom: the Thor's memory is unified, the GPU's real
+/// budget is `MemAvailable`, and the memory rule already governs it. The
+/// old 2 GiB default therefore held **21 requests for over an hour while
+/// ~100 GiB was available** (round 10, item a). The rule is still there
+/// for an operator who wants it — `--gpu-floor 2G` — applied to leases
+/// whose labels have held device memory; a lease that promises none never
+/// waits for the pool (see [`crate::admission::Admission::gpu_admits`]).
+pub const DEFAULT_GPU_FLOOR: u64 = 0;
+/// The default startup deadline: a daemon that has not begun serving within
+/// this long stops itself.
+///
+/// The auto-started daemon of 04:15 on 2026-11-01 hung on the way up and
+/// sat on the box indefinitely; the deadline turns "indefinitely" into a
+/// bounded window after which the next auto-start recovers (round 10,
+/// item b). Fifteen seconds is a long start on this box — the tests' whole
+/// daemons come up in well under two — so a daemon that misses it was not
+/// coming up at all.
+pub const DEFAULT_STARTUP_TIMEOUT: Duration = Duration::from_secs(15);
 /// How many runs a label needs before `--peak auto` will speak.
 ///
 /// A p95 of two runs is a guess wearing a percentile's clothes: one shifted
@@ -169,6 +190,11 @@ pub struct Config {
     /// The least the GPU's own allocation pool must keep free (see
     /// [`DEFAULT_GPU_FLOOR`]). Applied only when something can see the pool.
     pub gpu_floor: u64,
+    /// How long a daemon has to begin serving after it starts. A daemon
+    /// that misses the deadline stops itself: the kernel drops its socket
+    /// lock, and the next client's auto-start takes the socket back
+    /// (round 10, item b). Zero means no deadline.
+    pub startup_timeout: Duration,
     /// The `tegrastats` to run, when it is not the one on the `PATH`.
     ///
     /// It is a test seam, like `meminfo`: the real daemon runs the real
@@ -207,6 +233,7 @@ impl Default for Config {
             heartbeat_grace: DEFAULT_HEARTBEAT_GRACE,
             grant_grace: DEFAULT_GRANT_GRACE,
             gpu_floor: DEFAULT_GPU_FLOOR,
+            startup_timeout: DEFAULT_STARTUP_TIMEOUT,
             tegrastats_command: None,
             flow_file: default_state_dir().join("flow.json"),
         }
@@ -470,6 +497,10 @@ pub struct Daemon {
     state: Mutex<State>,
     wake: Condvar,
     stop: Arc<AtomicBool>,
+    /// Has the acceptor been started? The startup watchdog (the CLI) asks,
+    /// so a daemon that never begins serving does not sit on the box
+    /// forever (round 10, item b).
+    serving: AtomicBool,
     listener: Mutex<Option<UnixListener>>,
     /// The GPU's views, kept fresh by children that keep printing them.
     gpu_watch: Mutex<Vec<GpuWatch>>,
@@ -478,11 +509,13 @@ pub struct Daemon {
     log: Mutex<Option<std::fs::File>>,
     /// The lock on the socket's lock file.
     ///
-    /// It is held for as long as the daemon runs, and it is what makes
-    /// "one daemon per socket" a fact rather than a hope: two daemons on one
-    /// socket would be two admission controllers with two views of the box,
-    /// which is the thing this crate exists to prevent. The kernel drops the
-    /// lock when the daemon dies, whatever killed it.
+    /// It is taken **after** the socket is bound, with nothing between the
+    /// two but the `flock` call itself, and it is held for as long as the
+    /// daemon runs. It is what makes "one daemon per socket" a fact rather
+    /// than a hope: two daemons on one socket would be two admission
+    /// controllers with two views of the box, which is the thing this crate
+    /// exists to prevent. The kernel drops the lock when the daemon dies,
+    /// whatever killed it.
     ///
     /// Nothing reads it: the descriptor *is* the lock.
     #[allow(dead_code)]
@@ -520,10 +553,28 @@ fn learned_peak(state: &State, label: &str) -> Result<u64, String> {
 
 impl Daemon {
     /// Build a daemon.
+    ///
+    /// The order is the fix for round 10, item b: **construct, then bind,
+    /// then lock.** The 04:15 daemon took the socket's lock first and hung
+    /// before it bound the socket — stuck in `futex_wait_queue`, owning the
+    /// one-per-socket lock, with a stale socket file beside it — so every
+    /// later client got "connection refused" and every later daemon was
+    /// refused with "another thor-admit daemon is already running" until a
+    /// human killed the wedged process. With the order turned around:
+    ///
+    /// * a daemon that hangs on the way up (the history file, the log, the
+    ///   meminfo — all of that comes *first*) holds nothing the next daemon
+    ///   needs: no lock to refuse it with, no bound socket to answer nobody;
+    /// * the socket is bound and the lock taken back to back, with nothing
+    ///   between them but the `flock` call, so the window where the two
+    ///   disagree is a syscall wide;
+    /// * the bound socket arbitrates starters on its own — `bind` on an
+    ///   existing path fails — so two daemons racing for one socket still
+    ///   end with exactly one of them running.
     pub fn new(config: Config) -> std::io::Result<Arc<Daemon>> {
+        hang_on_the_way_up_for_test();
         std::fs::create_dir_all(&config.state_dir)?;
         std::fs::create_dir_all(config.state_dir.join("leases"))?;
-        let socket_lock = take_socket_lock(&config.socket)?;
         let history = History::load(&config.history);
         let log = std::fs::OpenOptions::new()
             .create(true)
@@ -557,12 +608,22 @@ impl Daemon {
             flow: None,
             flow_stamp: None,
         };
+        let socket = config.socket.clone();
+        let listener = bind_listener(&socket)?;
+        let socket_lock = take_socket_lock(&socket).inspect_err(|_| {
+            // Somebody else owns this socket by the lock's word — a daemon
+            // whose acceptor has died, or one racing us for a socket whose
+            // file was stale. The socket we just bound is ours (nobody else
+            // could bind it), so it goes with us.
+            let _ = std::fs::remove_file(&socket);
+        })?;
         Ok(Arc::new(Daemon {
             config,
             state: Mutex::new(state),
             wake: Condvar::new(),
             stop: Arc::new(AtomicBool::new(false)),
-            listener: Mutex::new(None),
+            serving: AtomicBool::new(false),
+            listener: Mutex::new(Some(listener)),
             log: Mutex::new(log),
             gpu_watch: Mutex::new(Vec::new()),
             socket_lock,
@@ -592,14 +653,32 @@ impl Daemon {
         self.stop.load(Ordering::SeqCst)
     }
 
+    /// Has the acceptor been started — is the daemon actually serving?
+    ///
+    /// The startup watchdog asks this (round 10, item b): a daemon that
+    /// never got as far as serving must not sit on the box holding a bound
+    /// socket that answers nobody, so the watchdog gives startup a
+    /// deadline and the deadline needs a word for "it began".
+    pub fn is_serving(&self) -> bool {
+        self.serving.load(Ordering::SeqCst)
+    }
+
     /// The path of the socket the daemon listens on.
     pub fn socket_path(&self) -> &Path {
         &self.config.socket
     }
 
     /// Run the daemon until it is stopped.
+    ///
+    /// The socket was bound in [`Daemon::new`]; the acceptor is the first
+    /// thing that runs here, so the daemon answers from the moment the
+    /// process is serving and the startup watchdog can see that it did.
     pub fn run(self: &Arc<Self>) -> std::io::Result<()> {
-        self.bind_socket()?;
+        let daemon = Arc::clone(self);
+        let acceptor = std::thread::Builder::new()
+            .name("thor-admit-accept".to_string())
+            .spawn(move || daemon.accept_loop())?;
+        self.serving.store(true, Ordering::SeqCst);
         self.start_gpu_watch();
         let mem_total = {
             let state = self.state.lock().unwrap();
@@ -611,6 +690,7 @@ impl Daemon {
                 "socket": self.config.socket.display().to_string(),
                 "floor_bytes": self.config.floor,
                 "emergency_floor_bytes": self.config.emergency_floor,
+                "gpu_floor_bytes": self.config.gpu_floor,
                 "sample_interval_ms": self.config.sample_interval.as_millis() as u64,
                 "meminfo": self.config.meminfo.display().to_string(),
                 "gpu_probe": self.config.gpu_probe.as_str(),
@@ -619,12 +699,6 @@ impl Daemon {
                 "flow_file": self.config.flow_file.display().to_string(),
             }),
         );
-
-        // The acceptor runs in its own thread; the clock runs here.
-        let daemon = Arc::clone(self);
-        let acceptor = std::thread::Builder::new()
-            .name("thor-admit-accept".to_string())
-            .spawn(move || daemon.accept_loop())?;
 
         self.clock_loop();
 
@@ -647,42 +721,6 @@ impl Daemon {
                 json!({"id": job.id, "signalled": signalled}),
             );
         }
-    }
-
-    fn bind_socket(&self) -> std::io::Result<()> {
-        if let Some(parent) = self.config.socket.parent() {
-            std::fs::create_dir_all(parent)?;
-        }
-        // If somebody is already listening, this is not our socket to take.
-        if self.config.socket.exists() {
-            if UnixStream::connect(&self.config.socket).is_ok() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::AddrInUse,
-                    "another thor-admit daemon is already running",
-                ));
-            }
-            // The socket answers nobody, but the lock on it may still be
-            // held by a daemon whose acceptor has died. The lock is the
-            // truth: it is dropped by the kernel when the daemon dies, and
-            // it is held for as long as the daemon lives.
-            if socket_lock_is_held(&self.config.socket)? {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::AddrInUse,
-                    "another thor-admit daemon is already running: it holds the lock on \
-                     this socket, so it is alive even though the socket answers nobody",
-                ));
-            }
-            let _ = std::fs::remove_file(&self.config.socket);
-        }
-        let listener = UnixListener::bind(&self.config.socket)?;
-        listener.set_nonblocking(true)?;
-        // The socket is the daemon's front door: only its owner may open it.
-        let _ = std::fs::set_permissions(
-            &self.config.socket,
-            std::os::unix::fs::PermissionsExt::from_mode(0o600),
-        );
-        *self.listener.lock().unwrap() = Some(listener);
-        Ok(())
     }
 
     /// Accept connections until the daemon stops.
@@ -2631,6 +2669,67 @@ pub fn socket_lock_path(socket: &Path) -> PathBuf {
     let mut path = socket.as_os_str().to_os_string();
     path.push(".lock");
     PathBuf::from(path)
+}
+
+/// Bind the socket a daemon will answer on, refusing one that is spoken for.
+///
+/// This runs *before* the socket's lock is taken (round 10, item b), so the
+/// checks it makes are the socket's own word:
+///
+/// * a socket somebody answers on belongs to a running daemon — not ours;
+/// * a socket that answers nobody, with the lock held, belongs to a daemon
+///   that is alive but not accepting (its acceptor has died) — also not
+///   ours. The lock is the truth in that case: the kernel drops it when
+///   the daemon dies, and it is held for as long as the daemon lives;
+/// * anything else is a stale file, and it goes.
+///
+/// `bind` on an existing path fails on its own, so two daemons racing for
+/// one socket still end with exactly one of them bound.
+fn bind_listener(socket: &Path) -> std::io::Result<UnixListener> {
+    if let Some(parent) = socket.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    if socket.exists() {
+        if UnixStream::connect(socket).is_ok() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AddrInUse,
+                "another thor-admit daemon is already running",
+            ));
+        }
+        if socket_lock_is_held(socket)? {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::AddrInUse,
+                "another thor-admit daemon is already running: it holds the lock on \
+                 this socket, so it is alive even though the socket answers nobody",
+            ));
+        }
+        let _ = std::fs::remove_file(socket);
+    }
+    let listener = UnixListener::bind(socket)?;
+    listener.set_nonblocking(true)?;
+    // The socket is the daemon's front door: only its owner may open it.
+    let _ = std::fs::set_permissions(
+        socket,
+        std::os::unix::fs::PermissionsExt::from_mode(0o600),
+    );
+    Ok(listener)
+}
+
+/// A test seam: wedge on the way up, before anything is held or bound.
+///
+/// This reproduces the 04:15 daemon of 2026-11-01 (round 10, item b): one
+/// auto-started by a client, hung in `futex_wait_queue` before it ever
+/// bound its socket, holding the socket's lock and so refusing every later
+/// daemon until a human killed it. `THOR_ADMIT_TEST_CONSTRUCTION_HANG_MS`
+/// is set only by the integration tests; production never sets it, and the
+/// hang sits *before* the bind and the lock, which is exactly where the
+/// old order left the box wedged.
+fn hang_on_the_way_up_for_test() {
+    if let Ok(text) = std::env::var("THOR_ADMIT_TEST_CONSTRUCTION_HANG_MS") {
+        if let Ok(millis) = text.parse::<u64>() {
+            std::thread::sleep(Duration::from_millis(millis));
+        }
+    }
 }
 
 /// Take the exclusive lock on a socket's lock file.
