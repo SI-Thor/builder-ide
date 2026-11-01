@@ -144,21 +144,23 @@ and "the box had nothing to do" stay two different sentences.
 
 ## The log is chained
 
-Every line the daemon writes to its own `daemon.log` carries two extra
-fields, `seq` (its number, unique across restarts) and `chain` (a running
-FNV-1a hash folded over the line's own bytes and every line before it).
-The fold covers the exact bytes of the line as serialized *without* the
-two fields, so a verifier can recompute it from the file alone — no key,
-no sidecar, nothing to back up:
+Every line the daemon writes — its own `daemon.log`, and every hour the
+ledger closes into `ledger.jsonl` — carries two extra fields, `seq` (its
+number, unique across restarts) and `chain` (a running FNV-1a hash folded
+over the line's own bytes and every line before it). The fold covers the
+exact bytes of the line as serialized *without* the two fields, so a
+verifier can recompute it from the file alone — no key, no sidecar,
+nothing to back up:
 
 ```bash
-thor-admit verify                 # the daemon's log, in the default state dir
+thor-admit verify                 # daemon.log and ledger.jsonl, in the default state dir
 thor-admit verify --log PATH      # one file, wherever it was copied to
 thor-admit verify --json
 ```
 
 ```text
 /home/casey/.local/state/thor-admit/daemon.log: 412 chained lines, chain intact (head 9f42a1c0d83b5e17)
+/home/casey/.local/state/thor-admit/ledger.jsonl: 6 chained lines, chain intact (head 1c0a9bd7f4e2a1e3)
 ```
 
 A chain that breaks is named, by seq and reason:

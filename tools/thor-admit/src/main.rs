@@ -90,9 +90,9 @@ thor-admit — a memory-admission daemon for the Thor
         Show where the box's time went, by tier, and why it was idle.
 
   thor-admit verify [--state-dir <path>] [--log <path>] [--json]
-        Walk the daemon's log and check its hash chain: every line, in
-        order, numbered and folded. Says where the chain broke, or the
-        head it ends on.
+        Walk the daemon's log and the ledger's hours, and check their hash
+        chains: every line, in order, numbered and folded. Says where a
+        chain broke, or the head it ends on.
 
   thor-admit stop
         Ask the running daemon to stop.
@@ -905,15 +905,15 @@ fn print_ledger_table(buckets: &[Bucket]) {
 fn run_verify(args: &[String]) -> ExitCode {
     let options = Options::parse(args);
     let paths: Vec<PathBuf> = match options.get("log") {
-        // An explicit file: walk exactly that one. The ledger's hours can
-        // be checked by naming the file, and a copied log by naming it.
+        // An explicit file: walk exactly that one — a copied log, or the
+        // hours on their own.
         Some(path) => vec![PathBuf::from(path)],
         None => {
             let state_dir = match options.get("state-dir") {
                 Some(dir) => PathBuf::from(dir),
                 None => Config::default().state_dir,
             };
-            vec![state_dir.join("daemon.log")]
+            vec![state_dir.join("daemon.log"), state_dir.join("ledger.jsonl")]
         }
     };
     let mut held = true;

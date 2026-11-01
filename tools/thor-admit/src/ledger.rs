@@ -38,6 +38,7 @@ use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 use crate::clock;
+use crate::journal::Chain;
 use crate::tier::Tier;
 
 /// Why the box was idle.
@@ -232,6 +233,9 @@ impl Bucket {
 #[derive(Debug)]
 pub struct Ledger {
     path: PathBuf,
+    /// The hours' hash chain, resumed from the file's tail so a restart
+    /// continues the same chain over the same hours.
+    chain: Chain,
     bucket: Bucket,
     cpu_previous: Option<CpuCounters>,
     cpu_busy_sum: f64,
@@ -239,11 +243,14 @@ pub struct Ledger {
 }
 
 impl Ledger {
-    /// A ledger that writes its closed hours to `path`.
+    /// A ledger that writes its closed hours to `path`. The chain resumes
+    /// from the file's tail, so a daemon restart continues the same chain
+    /// over the same hours.
     pub fn new(path: &Path) -> Ledger {
         let hour = clock::hour_key(clock::unix_seconds());
         Ledger {
             path: path.to_path_buf(),
+            chain: Chain::resume(path),
             bucket: Bucket::new(&hour),
             cpu_previous: None,
             cpu_busy_sum: 0.0,
@@ -402,11 +409,14 @@ impl Ledger {
         self.close_bucket();
     }
 
-    /// Write the bucket out and start a new one.
+    /// Write the bucket out and start a new one. The written line is
+    /// chained: `seq` and `chain` ride along in the same flat object, and
+    /// `thor-admit verify` walks the hours the same way it walks the
+    /// daemon's own log.
     pub fn close_bucket(&mut self) {
         let hour = clock::hour_key(clock::unix_seconds());
         let finished = std::mem::replace(&mut self.bucket, Bucket::new(&hour));
-        if let Err(error) = append_bucket(&self.path, &finished) {
+        if let Err(error) = append_bucket(&self.path, &finished, &mut self.chain) {
             eprintln!(
                 "thor-admit: cannot write the ledger at {}: {error}",
                 self.path.display()
@@ -418,15 +428,27 @@ impl Ledger {
     }
 }
 
-/// Write one bucket to the ledger file, as one line.
-pub fn append_bucket(path: &Path, bucket: &Bucket) -> std::io::Result<()> {
+/// Write one bucket to the ledger file, as one chained line. The chain
+/// fields ride along in the flat object; a reader that does not know them
+/// (the `ledger` command, the Python tools) ignores them, and `verify`
+/// re-walks them.
+pub fn append_bucket(path: &Path, bucket: &Bucket, chain: &mut Chain) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let mut line = serde_json::to_string(bucket).map_err(std::io::Error::other)?;
-    line.push('\n');
+    let mut line = serde_json::to_value(bucket).map_err(std::io::Error::other)?;
+    let (seq, mix) = chain.seal(&line);
+    if let Some(map) = line.as_object_mut() {
+        map.insert("seq".to_string(), serde_json::Value::from(seq));
+        map.insert(
+            "chain".to_string(),
+            serde_json::Value::from(format!("{mix:016x}")),
+        );
+    }
+    let mut text = serde_json::to_string(&line).map_err(std::io::Error::other)?;
+    text.push('\n');
     let mut file = OpenOptions::new().create(true).append(true).open(path)?;
-    file.write_all(line.as_bytes())?;
+    file.write_all(text.as_bytes())?;
     file.flush()
 }
 
@@ -702,4 +724,82 @@ mod tests {
         assert_eq!(buckets[0].memory.available_min, Some(42));
         let _ = std::fs::remove_file(&path);
     }
+    #[test]
+    fn the_closed_hours_are_chained_and_an_edit_is_named() {
+        let path = std::env::temp_dir().join(format!(
+            "thor-admit-ledger-{}-chain.jsonl",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        let mut ledger = Ledger::new(&path);
+        let sample = Sample {
+            running_tiers: vec![Tier::Live],
+            mem_available: 40_000_000_000,
+            gpu_power_mw: Some(39_000),
+            ..Sample::default()
+        };
+        ledger.sample(1.0, &sample);
+        ledger.close_bucket();
+        let sample = Sample {
+            running_tiers: vec![Tier::Study],
+            ..Sample::default()
+        };
+        ledger.sample(2.0, &sample);
+        ledger.close_bucket();
+
+        // The written hours verify as a chain, the same walker the
+        // daemon's own log goes through.
+        let intact = crate::journal::verify(&path).expect("the hours verify");
+        assert_eq!(intact.chained, 2);
+        assert_eq!(intact.unchained, 0);
+
+        // An after-the-fact edit to an hour — a report that "rounds" the
+        // live seconds down — breaks at that hour's seq.
+        let text = std::fs::read_to_string(&path).unwrap();
+        let edited: Vec<String> = text
+            .lines()
+            .map(|line| {
+                let mut value: serde_json::Value =
+                    serde_json::from_str(line).expect("the hour is JSON");
+                value["tiers"]["live"]["running_s"] = serde_json::json!(0.0);
+                serde_json::to_string(&value).unwrap()
+            })
+            .collect();
+        std::fs::write(&path, edited.join("\n")).unwrap();
+        assert_eq!(
+            crate::journal::verify(&path),
+            Err(crate::journal::Break {
+                seq: 1,
+                reason: crate::journal::Reason::Edited
+            })
+        );
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn the_hours_chain_resumes_across_a_restart() {
+        let path = std::env::temp_dir().join(format!(
+            "thor-admit-ledger-{}-resume.jsonl",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&path);
+        {
+            let mut ledger = Ledger::new(&path);
+            ledger.sample(1.0, &Sample::default());
+            ledger.close_bucket();
+        }
+        // The daemon restarts: the new ledger resumes the chain from the
+        // file's tail, and the next hour is seq 2, not seq 1.
+        let mut ledger = Ledger::new(&path);
+        ledger.sample(1.0, &Sample::default());
+        ledger.close_bucket();
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            text.lines().any(|line| line.contains("\"seq\":2")),
+            "the resumed chain numbers on: {text}"
+        );
+        assert_eq!(crate::journal::verify(&path).unwrap().chained, 2);
+        let _ = std::fs::remove_file(&path);
+    }
+
 }
