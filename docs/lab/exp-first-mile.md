@@ -501,3 +501,379 @@ has to be compiled into a reflex.
 6. **The reflex layer's own confirm tier does not wait.** It says "Just
    so I have it right: …" and then acts. The world's confirm gate (§7)
    does wait for the owner's word; the reflex layer's does not.
+
+---
+---
+
+# Round 2: the voice gate, the ladder, and the agents' voices
+
+Everything below was measured on the same ProArt, on 2026-11-01, with the
+box state printed beside each number. The scripts are in `scripts/`, the
+JSON in `out/`.
+
+---
+
+## 11. The voice reflex gate
+
+### What it is
+
+`SuperInstance/voice-reflex-gate` (MIT) is a project by our own crew, and the
+brief asks for its **idea** to be reimplemented here with credit — not
+vendored. So `scripts/gate/voice_gate.py` is our code, written for this
+world, and it says so at the top of the file.
+
+The upstream idea in three lines:
+
+1. hash the speech-to-text output **plus a context vector** into a reflex
+   key;
+2. a known key returns the cached answer with no model call at all;
+3. an unknown key falls through to the model, the answer is **observed**,
+   and after a few similar requests with consistent answers the gate compiles
+   a reflex of its own and serves the next one from the cache.
+
+Four things are ours:
+
+- **The context is the world's.** The version (`project.head`), the selection
+  the human is pointing at, the night's mode, and the time of day. The
+  version is in the key, so an answer the world has since invalidated is
+  never served.
+- **The rate rule** (Casey's time-first rule): a *burst* of the same request
+  promotes a candidate after **two**; the same two spread out over a minute
+  do not. The threshold is a function of how fast the human is asking.
+- **Only idempotent answers are cached.** The gate speaks answers; it never
+  answers a command. A cached answer to "pause the night" would replay the
+  words without pausing anything.
+- **A name is a name.** "What did the Architect do last night?" and "What
+  did the Landscaper do last night?" are 71% the same words. A similarity
+  score alone would serve the first answer for the second, so a question
+  that swaps one capitalised name for another is never a near match, and the
+  two never learn one reflex together.
+
+`venv/bin/python scripts/test_gate.py` holds the rules down: 20 assertions
+over the exact tier, the fuzzy tier, the burst rule, the name rule, the
+world-moved rule, and the command rule.
+
+### The hit rate on a scripted session
+
+Two sessions down one first mile (`scripts/bench_gate.py`), with the gate
+starting **cold** — the first mile was restarted, so the store was empty:
+
+| session | turns | gateable turns | **gate hits** | hit rate | median hit | reflex-layer hits | reached the model |
+|---|---|---|---|---|---|---|---|
+| A: three questions, three times | 9 | 9 | 3 | **33.3%** | **0.027 ms** | 6 | 0 |
+| B: the same questions with commands between | 18 | 9 | 9 | **100%** | **0.027 ms** | 9 | 0 |
+
+Session A is the cold case and the shape is the point: the first time a
+question is asked the gate misses and learns, the second time it misses and
+promotes (by the rate rule — the two asks were 2 s apart), and the third
+time it hits. Session B is the warm case, and the commands between the
+questions changed nothing: filing a draft work order does not move the
+night's plan, so the cached answers are still true and the gate keeps
+serving them.
+
+Three reflexes were learned, **all three by the rate rule**, none by count.
+The name rule fired three times and refused to serve the Architect's answer
+to the Landscaper's question.
+
+### The two things that were wrong
+
+**The gate never observed anything.** The first run reported **0 hits** and
+a 0% hit rate. The reason was an ordering mistake of ours: the gate is
+consulted *before* the reflex layer, and the reflex layer answered the
+seeded questions, so the turn ended there and the gate never saw the answer
+it was supposed to learn from. The gate is now allowed to watch a read-only
+reflex answer (`recall`, `decision`) as well as a model answer. The 0% was
+not the gate failing; it was the gate never being given any evidence.
+
+**The world's version was not known when the first turn arrived.** The gate's
+key contains the world's version, and the version was only learned from the
+core *during* the first turn — so the key changed under the gate and the
+first observation was thrown away. The first mile now asks the core for its
+context once at startup (`the world is at ver_0001 (idle)`) and the key is
+stable from the first turn. A second rule came with it: if the world's head
+moves later, the epoch is bumped, so the cache misses rather than lies.
+
+### Against quilt-pincher
+
+They are not competitors; they answer different questions.
+
+| | quilt-pincher (vendored) | the voice gate (ours) |
+|---|---|---|
+| matches | **commands**, and runs them | **questions**, and answers them |
+| match time | 0.146 ms median (embed + store query) | **0.027 ms** median (hash + dict) |
+| where it runs | a separate service, over HTTP | in the first-mile process, a function call |
+| what it can do that the other cannot | run an action, with a closed-verb veto | **learn** an answer it has never seen, and serve a paraphrase |
+| learned reflexes | 29 seeded + cloud compiles | 3 learned from the session above |
+
+The honest reading of the two sessions: the pincher answers the questions
+that were *seeded into it*, in 0.146 ms, and it is the only one of the two
+that can run a command. The gate answers the questions it has *seen*, in
+0.027 ms, and it is the only one of the two that gets better with use. On
+this scripted session, the pincher took 6 of the 9 questions in session A and
+the gate took the other 3; by session B the gate had all 9 and the pincher
+had only the commands.
+
+---
+
+## 12. The voice ladder
+
+Five rungs, from the fastest to the richest. Same box, same moment, same
+five lines (`scripts/bench_ladder.py`; medians of three runs per line).
+
+| rung | model | where it runs | **time to first audio** | RTF | VRAM | RAM |
+|---|---|---|---|---|---|---|
+| 0 | the cached reflex | memory | **0.0 ms** (0.001 ms worst) | — | — | 193 920 samples in RAM |
+| 1 | **Paradee-8M-v1.2** | CPU, 1 thread | **26–148 ms** | **0.020** | — | 523 MB RSS |
+| 2 | **Audio8 0.1B INT8 ONNX** | CPU, 8 threads | **5675–7542 ms** | **6.41** | — | 2332 MB RSS |
+| 3 | **Audio8 Realistic 0.6B** | the 4050 | **1008–10 529 ms** | **1.42** | 1207 MB weights, 1917 MB with the codec | 3271 MB RSS |
+| 4 | **LFM3-Audio-2B** | the 4050 | **49–56 ms** | **0.170** | 2612 MB | 408 MB RSS |
+
+Per line, time to first audio in milliseconds:
+
+| line | rung 1 | rung 2 | rung 3 | rung 4 |
+|---|---|---|---|---|
+| "On it." | 30.4 | 5675 | 1008 | 51.4 |
+| "Queued. It is in tonight's plan." | 26.2 | 5895 | 3883 | 53.2 |
+| "The north pier is sturdier now." | 48.1 | 6382 | 2787 | 55.5 |
+| "Job task_3dcff63cf17f is done…" | 98.4 | 6812 | 10 529 | 50.9 |
+| "The harbour wall took the tide twice…" | 148.5 | 7261 | 7279 | 49.5 |
+
+**The hardware fact.** The 4050 has 6141 MiB of VRAM and 12 cores; the
+first mile's own budget is 3.5 GB of that VRAM. The ladder is not a choice
+between five good models — it is a choice about *when the first sample of
+audio has to exist*.
+
+(Rung 2's figures are with the 8-second agent reference. The cost of that
+reference is measured in §16: a 26-frame reference gets to the first audio
+in 2.6 s instead of 6.8 s.)
+
+**Why the previous path could not do any of this.** The voice lived on the
+Thor, behind a LAN hop, and a reply that has to cross the network cannot be
+an instant reply (§5). The 2B model was the only mouth, so every
+acknowledgement, every status line and every narrated event paid for a model
+call it did not need.
+
+**What each rung does differently.**
+
+- **Rung 0** is not a model at all: the acknowledgement is synthesised once
+  at startup and copied out of memory in 40 ms steps.
+- **Rung 1** is a 7.88M-parameter distilled Kokoro graph. It speaks four
+  voices and runs 30–50× faster than real time on one CPU thread, so the
+  routine never touches the GPU.
+- **Rung 2** is a real TTS with a cloned voice, but its graph is a
+  **one-token graph** (§16): the reference is prefilled one frame at a time,
+  which is 4.9 s of the 6.8 s.
+- **Rung 3** is a 0.6B DualAR model with a neural codec, sampling 21.5 codec
+  frames a second on the GPU.
+- **Rung 4** is the 2B audio model, which speaks at 0.17 RTF because it is
+  small enough to be resident and it streams tokens.
+
+**What it makes possible.** The routine — every acknowledgement, every
+status line, every narrated event from the text world — moves to the CPU
+and costs the GPU nothing. That leaves the GPU for the conversation, and
+leaves rung 3 free for the thing it is actually good at: a longer, more
+expressive narration where two to ten seconds of latency does not matter.
+
+### The listening set
+
+Every rung spoke the same five lines, and the files are kept:
+`out/listening/rung0 … rung4/<line>.wav` (five files per rung; rung 0 has
+the six cached acknowledgements, because the cache *is* its repertoire).
+This is the check on the numbers — RTF tells you it was fast, not that it
+was good.
+
+### The licences, per rung
+
+| rung | artefact | licence |
+|---|---|---|
+| 0 | our own audio, synthesised by LFM3-Audio-2B | LFM Open (revenue threshold $10M) |
+| 1 | `sahilmahendrakar/Paradee-8M-v1.2` | **Apache-2.0** |
+| 2 | `Edge0/audio8-TTS-0.1B-ONNX-INT8` (the ONNX export) | **Apache-2.0** on the model card |
+| 3 | `Edge0/Audio8-TTS-Realistic-0.6b` | **Apache-2.0** on the model card |
+| 4 | `LiquidAI/LFM3-Audio-2B` | LFM Open License v1.0, $10M revenue threshold (§2) |
+| — | the Audio8 runtime code, vendored under `vendor-audio8/` | **Apache-2.0** (github.com/Edge0-AI/Audio8_TTS) |
+
+**The 0.1B licence, recorded precisely, because the brief asks for it.** The
+**PyTorch** 0.1B checkpoint (`Edge0/Audio8-TTS-Preview-0.1b`) is
+`license: other` — the Audio8 Community License, which is revenue-capped.
+The **ONNX INT8 export** we used (`Edge0/audio8-TTS-0.1B-ONNX-INT8`) states
+`license: apache-2.0` on its own card, and the runtime code is Apache-2.0.
+Everything produced at rung 2 here comes from the Apache-2.0 ONNX export;
+the community-licensed PyTorch checkpoint was not downloaded and not used.
+
+---
+
+## 13. Rungs 3 and 4 on one 6 GB card
+
+The brief asks for both: do they fit together, and do they swap cleanly?
+`scripts/bench_gpu_coexistence.py`, same line for both.
+
+| state | rung 3 (Audio8 0.6B) first audio | rung 4 (LFM3-Audio) first audio | VRAM on the 4050 |
+|---|---|---|---|
+| **together** | 2626 ms (RTF 1.35) | **47 ms** (RTF 0.16) | **5426 MB of 6141 MB** |
+| rung 3 stopped | — | 76 ms (RTF 0.18) | 2646 MB |
+| rung 3 back | 2622 ms (RTF 1.34) | — | 4994 MB |
+
+**They fit together.** With both resident the card is at 5426 MB of 6141 MB,
+and rung 4's first audio is 47 ms — the same figure it gets alone in §3.
+Rung 3's own first audio does not move either (2626 ms together, 2622 ms
+after the swap). Nothing here is paying for the other.
+
+**The swap costs 6.6 s** — the time from stopping the rung-3 service to it
+answering `/health` again, which is the 0.6B weights being read and the
+CUDA context being built. That is the price of *not* having them both, and
+on this box there is no reason to pay it.
+
+(The 47 ms and 76 ms are the same measurement with the GPU in different
+clock states — hot from the rung-3 run in the first row, idle in the
+second. The difference is the card's boost clock, not contention.)
+
+---
+
+## 14. The same agent at every rung
+
+**The cloning rule: the reference audio is never a human recording.** No
+kids, no Casey, no real person. All four agent voices are cloned from a
+synthetic reference: a line spoken by Paradee on this machine
+(`scripts/make_agent_voices.py`, `models/agent-voices/`).
+
+| agent | Paradee voice | reference | rungs it speaks at |
+|---|---|---|---|
+| Ariadne | `af_heart` | 7.95 s, synthetic | 1, 2, 3 |
+| Isolde | `bf_isabella` | 7.78 s, synthetic | 1, 2, 3 |
+| Puck | `am_puck` | 8.25 s, synthetic | 1, 2, 3 |
+| Fable | `bm_fable` | 7.45 s, synthetic | 1, 2, 3 |
+
+The point of a synthetic reference is not only the privacy rule: because
+rung 1 and rung 3 are cloned from the **same seed**, the agent that speaks at
+rung 3 can be the same character as the one that speaks at rung 1. That is a
+claim, so it was measured.
+
+**The SIM measurement** (`scripts/bench_sim.py`): the cosine similarity of
+the x-vectors from `microsoft/wavlm-base-plus-sv` (MIT), a speaker
+verification model. Each rung speaks the *same* line, which is not the
+reference line, so the number is about the voice and not the words.
+
+| | mean over the four agents |
+|---|---|
+| reference vs **rung 1** (the same voice, a different line) — the ceiling | **0.981** |
+| reference vs **rung 2** (0.1B ONNX, cloned) | **0.978** |
+| reference vs **rung 3** (0.6B on the 4050, cloned) | **0.976** |
+| rung 1 vs rung 2 | 0.974 |
+| rung 1 vs rung 3 | 0.974 |
+| rung 2 vs rung 3 | 0.979 |
+| **two different agents, rung 1 — the floor** | **0.572** |
+
+Per agent, reference vs rung 3: Ariadne 0.983, Isolde 0.985, Puck 0.959,
+Fable 0.979.
+
+The clones sit at the ceiling, not at the floor: a 0.6B model cloning a
+synthetic reference lands 0.005 below the original speaker's own second
+utterance, and 0.40 above two different agents. So rung 3 is a *richer
+rendering of the same character*, not a different character.
+
+**What this makes possible.** One voice identity can be carried from a
+8.5 MB CPU graph to a 0.6B GPU model without a human ever being recorded.
+The agents that build at night can have a voice that is the same voice on
+the laptop, in the browser, and on the presentation screen.
+
+---
+
+## 15. Paradee inside Chrome
+
+The claim: the CPU voice can speak with **no server round trip at all** —
+not even a synthesis hop.
+
+`web/paradee.html` loads `onnxruntime-web` (wasm), `phonemizer.js`
+(eSpeak NG compiled to wasm — this is the step that normally needs Python),
+and the Paradee int8 graph, and plays the audio through an `AudioContext`.
+The only requests the page makes are for those files. Measured with headless
+Chrome over the DevTools protocol (`scripts/bench_chrome.py`):
+
+| line | first audio | wall | audio | RTF |
+|---|---|---|---|---|
+| "On it." | **105 ms** | 105 ms | 1.23 s | 0.086 |
+| "Queued. It is in tonight's plan." | 127 ms | 354 ms | 3.42 s | 0.103 |
+| "The north pier is sturdier now." | 200 ms | 200 ms | 2.75 s | 0.073 |
+| "Job task_3dcff63cf17f is done…" | 378 ms | 524 ms | 7.55 s | 0.069 |
+| "The harbour wall took the tide twice…" | 347 ms | 577 ms | 7.08 s | 0.082 |
+
+The model loads in the tab in **1806 ms**.
+
+**The hardware fact.** The wasm build of ONNX Runtime on one browser thread
+is about 3–5× slower than the native onnxruntime build the service uses
+(rung 1's RTF is 0.020 against 0.069–0.103 here), and the page is not
+cross-origin isolated, so it runs single-threaded.
+
+**Why the previous path could not do this.** The text-to-phonemes step is
+misaki — spaCy plus an eSpeak fallback — which is Python and a server. The
+server-side service has it; a browser tab did not.
+
+**What the new path does differently.** eSpeak NG itself is compiled to wasm
+by the `phonemizer` package, and its output is checked against Paradee's
+vocabulary: the 39 phoneme symbols of the same sentence are **100% covered**
+by Paradee's own vocabulary, in both the Python and the wasm path.
+
+**What it makes possible.** A routine line can be spoken with no server
+involved at all — the browser holds the model. That matters for a viewer
+running on a thin client on someone else's machine, where the first mile's
+server may not be reachable at all.
+
+---
+
+## 16. What rung 2's first audio is made of
+
+Rung 2 is slow, and the reason is specific enough to be worth stating.
+
+**The hardware fact.** The Audio8 0.1B graph is a **one-token graph**. The
+runtime's own README: the slow AR "accepts one `[1, 11, 1]` token column at
+a time and carries four recurrent tensors between calls". The prompt — the
+reference codes *plus* the text — is prefilled one column at a time, and
+every column is a full pass over the 24-layer Falcon-H1 hybrid.
+
+**So the first audio is, to first order, `a + b × (reference frames)`.**
+Measured by registering the same voice with references of three lengths
+(`scripts/bench_rung2_prefill.py`):
+
+| reference | audio | reference frames | first audio |
+|---|---|---|---|
+| "On it." | 1.20 s | 26 | **2605 ms** |
+| "The harbour wall took the tide twice last week." | 3.10 s | 67 | **3908 ms** |
+| the full reference line | 7.95 s | 172 | **6773 ms** |
+
+The fit: **first audio = 1929 ms + 28.3 ms per reference frame** (predicted
+6797 ms at 172 frames, measured 6773 ms).
+
+**What it makes possible.** 4.9 s of rung 2's 6.8 s first audio is the
+reference being prefill. A 26-frame reference gets there in 2.6 s instead of
+6.8 s. So the rule for rung 2 is: *short references only* — a one-line
+reference, not a paragraph — and it still is not the fast path. Rung 2 earns
+its place by cloning a voice, not by being quick.
+
+---
+
+## 17. Costs, and what is left
+
+**Cloud spend across every run in this document: $0.00009.** The gate, the
+ladder, the SIM measurement and the browser run are all local. Groq is only
+touched when a brand-new command shape has to be compiled into a reflex.
+
+**What round 2 added, and what is still open:**
+
+1. **The gate and the pincher are both in front of the model, and the
+   pincher is still the only one that can *run* something.** A gate hit
+   answers; it does not act.
+2. **The reflex store still does not persist.** It is in memory, so it is
+   empty again after a restart — and the gate's store with it. Both are
+   content-addressed and could be written out; nothing does it yet.
+3. **Rung 3 is not in the first mile's routing yet.** It is measured and
+   served (`scripts/audio8_gpu_service.py`, port 8815), and it is where the
+   coach's cues and the narrated events should come from, but the router
+   still sends the routine to rung 1 and the conversation to rung 4.
+4. **Rung 2 needs short references** before it is usable at all (§16), and
+   the agent references are currently 7.5–8.3 s.
+5. **The hard-ask route still has a door but no worker** (§10).
+6. **The decision route still points at a URL that is not running** (§10).
+7. **The Thor comparison is still not run** (§8), and still would not change
+   the design: the instant reply has to be local.
+
