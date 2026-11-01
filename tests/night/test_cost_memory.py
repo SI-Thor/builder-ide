@@ -66,19 +66,24 @@ def test_the_band_is_the_model_percentile_convention() -> None:
     peak = column.peak_for("hog.4g")
     assert peak is not None
     assert peak.samples == 3
-    # The three runs measured 4296847360, 4296847360 and 4296912896 bytes.
-    measured = [4296847360.0, 4296847360.0, 4296912896.0]
+    # The three runs measured 4296654848, 4296720384 and 4296785920 bytes
+    # (regenerated 2026-11-01: a run that teaches must have finished cleanly
+    # and outlasted the five-second line, so each hog held its pages for six
+    # seconds and exited 0).
+    measured = [4296654848.0, 4296720384.0, 4296785920.0]
     assert peak.p50_bytes == int(round(_percentile(measured, 0.50)))
     assert peak.p95_bytes == int(round(_percentile(measured, 0.95)))
-    assert peak.p50_bytes == 4296847360
-    assert peak.p95_bytes == 4296906342
+    assert peak.p50_bytes == 4296720384
+    assert peak.p95_bytes == 4296779366
 
 
 def test_the_measured_peak_matches_what_the_hog_took() -> None:
     column = MemoryColumn.load(DATA / "peaks.jsonl")
     peak = column.peak_for("hog.8g")
     assert peak is not None
-    # The hog was asked for 8 GiB and the kernel says it reached 8.0017 GiB.
+    # The hog was asked for 8 GiB and the kernel says it reached 8.0017 GiB
+    # — the same over-reach as the 2026-10-31 measurement, re-measured on
+    # the round-9 build with the run's exit status on the record.
     assert peak.p95_bytes / 1024**3 == pytest.approx(8.0017, abs=0.001)
 
 
@@ -111,10 +116,42 @@ def test_a_torn_line_does_not_take_the_history_with_it(tmp_path: Path) -> None:
 
 def test_the_column_falls_back_to_the_snapshot() -> None:
     # The live history is wherever the daemon writes it; the snapshot is
-    # what the repo carries. The default column must have a source either way.
+    # what the repo carries. The default column must have a source either
+    # way, and the snapshot's own bands must survive the live file being
+    # the one a box is actually writing.
     column = default_memory_column()
     assert column.records, "the memory column has no source at all"
-    assert "hog.4g" in column.kinds()
+    snapshot = MemoryColumn.load(snapshot_path())
+    assert snapshot.peak_for("hog.4g") is not None, "the snapshot's bands are gone"
+
+
+def test_only_runs_that_finished_cleanly_and_lasted_speak() -> None:
+    # The teaching rule, mirrored from the daemon: a no-op's megabytes are
+    # in the file's past, not in the kind's future, and an over-run record
+    # always teaches because it can only raise the number.
+    def record(**overrides: object) -> PeakRecord:
+        payload: dict[str, object] = {
+            "at": "2026-11-01T12:00:00Z",
+            "kind": "k",
+            "label": "k",
+            "peak_rss_bytes": 10,
+            "duration_s": 50.0,
+            "peak_source": "rusage",
+            "exit_code": 0,
+        }
+        payload.update(overrides)
+        return PeakRecord.from_mapping(payload)
+
+    records = [
+        record(),  # clean and long: teaches
+        record(duration_s=0.02),  # a no-op: never
+        record(exit_code=1),  # a failure: never
+        record(duration_s=0.0, peak_source="overrun"),  # an over-run: always
+    ]
+    column = MemoryColumn(records)
+    assert column.peak_for("k") is not None
+    assert column.peak_for("k").samples == 2  # noqa: SLF001 - the band's own count
+    assert column.records, "the raw list keeps everything"
 
 
 def test_the_paths_are_where_the_daemon_writes() -> None:
