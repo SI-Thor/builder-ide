@@ -221,9 +221,10 @@ struct State {
 /// A child process that keeps printing the GPU's view.
 ///
 /// Asking `nvidia-smi` afresh every couple of seconds costs the daemon
-/// about 2.5% of a core in `fork`/`exec` alone. A child that keeps
-/// printing costs one fork, ever: the daemon reads its lines and keeps the
-/// last sample.
+/// a fork and an exec each time: measured on this box, 16 678 minor
+/// faults and half a core's worth of reaped children's CPU over 30 s.
+/// A child that keeps printing costs one fork, ever: the daemon reads
+/// its lines and keeps the last sample.
 struct GpuWatch {
     sample: Arc<Mutex<GpuSample>>,
     source: String,
@@ -453,8 +454,8 @@ impl Daemon {
                 return;
             }
             // The GPU's view is only worth asking for when something is
-            // running: nvidia-smi costs about 24 ms of CPU a call, and an
-            // idle daemon should cost nothing.
+            // running: nvidia-smi takes about 17 ms a call on this box, and
+            // an idle daemon should cost nothing.
             let has_leases = {
                 let state = self.state.lock().unwrap();
                 !state.leases.is_empty()
