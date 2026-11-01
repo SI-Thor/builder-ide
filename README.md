@@ -24,10 +24,10 @@ seat you work from.
   4,231 ([v2-thor-experiment](docs/research/v2-thor-experiment.md),
   [ig2-procfunc](docs/research/ig2-procfunc.md)). Infinigen's `fine_terrain` is
   now deterministic on CPU and CUDA, at no speed cost (fork, phase 3).
-- **Three lab breakthroughs.** Unified memory lets NumPy, PyTorch and CUDA kernels
-  share one buffer with no copy. A Warp port of Infinigen's `mountains` terrain
-  is **bit-identical and 44–56× faster** than its 14-core CPU path (6× faster
-  than its own CUDA kernel). The mesher's SDF evaluation in Warp is the third.
+- **How the Thor's memory and GPU change the engine, measured.**
+  - **One memory for both processors.** On the Thor, memory that the CPU's `malloc` returns (what NumPy uses) is also device-addressable: the device pointer *is* the host pointer. A NumPy array can be wrapped, not copied, as a GPU array, so NumPy, PyTorch and a CUDA kernel read and write the same 4 GB buffer, and the GPU reads CPU-allocated memory at 100.9 GB/s.
+  - **The terrain, ported to Warp.** Infinigen's `mountains` element is deterministic integer hashing plus float math over a grid of positions. Written as one Warp kernel compiled to native sm_110 code, it gives **bit-identical** heights **44–56× faster** than the 14-core CPU path. It is also 6× faster than Infinigen's own CUDA library, because that library allocates a device buffer and copies the positions into it on every call, and on a unified-memory machine that copy buys nothing.
+  - **The mesher's distance field.** The same reasoning moves the OcMesher's signed-distance evaluation (two-thirds of the mesher's time) to Warp, bit-identically, at 75–85× the CPU path. What remains is the octree's bookkeeping. The application is a world that **re-meshes around the camera as it moves**.
 - **The core is integrated and renders for real: 1,505 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
@@ -147,8 +147,8 @@ seat you work from.
 
 | Experiment | Verdict |
 |---|---|
-| [Unified memory](docs/lab/exp-unified-memory.md) | **Breakthrough.** One 4 GB buffer is shared by NumPy, PyTorch and a CUDA kernel with no copy; GPU reads of CPU memory run at 100.9 GB/s |
-| [Warp terrain port](docs/lab/exp-warp-terrain-port.md) | **Breakthrough.** Infinigen's `mountains` in Warp is bit-identical and 44–56× faster than the CPU path, 6× faster than its CUDA kernel |
+| [Unified memory](docs/lab/exp-unified-memory.md) | The host pointer is the device pointer: one 4 GB buffer is shared by NumPy, PyTorch and a CUDA kernel with no copy; GPU reads of CPU memory run at 100.9 GB/s |
+| [Warp terrain port](docs/lab/exp-warp-terrain-port.md) | Infinigen's `mountains` as one Warp kernel: bit-identical, 44–56× the CPU path, 6× Infinigen's CUDA library (which copies its inputs to the device on every call) |
 | [Warp terrain](docs/lab/exp-warp-terrain.md) | Useful. A restructured CPU algorithm beat the GPU: rethink the algorithm, don't just move it |
 | [FP8/FP4 tensor cores](docs/lab/exp-fp8-tensorcores.md) | FP8 useful (1.6–1.7× faster, half the memory); **FP4 a measured no** on this stack |
 | [NVMe bandwidth](docs/lab/exp-nvme-bandwidth.md) | Useful. Load speed decides the hot/warm/cold scheduler's shape |
@@ -159,7 +159,7 @@ seat you work from.
 | [Joules per fixed point](docs/lab/exp-joules-per-fixed-point.md) | Warm starts converge in 2–3 iterations (6 cold), 1.39 J each; the critic belongs on the GPU |
 | [Adapters](docs/lab/exp-adapters.md) | Skill adapters are cheap to hold (60 MiB) but slow to switch (73–119 ms) |
 | [CUDA Graphs](docs/lab/exp-cuda-graphs-nvenc.md) · [NVENC round-trip](docs/lab/exp-nvenc-roundtrip.md) | Graphs pay; NVENC is free but not a warm-start store |
-| [Warp mesher SDF](docs/lab/exp-warp-mesher-sdf.md) | **Breakthrough** on the SDF half: live re-meshing is answered |
+| [Warp mesher SDF](docs/lab/exp-warp-mesher-sdf.md) | The mesher's signed-distance evaluation in Warp, bit-identical at 75–85× the CPU path; the octree bookkeeping is now the remaining cost of live re-meshing |
 | [Critic in a CUDA Graph](docs/lab/exp-critic-cuda-graph.md) | Verdicts in milliseconds, bit-exact |
 | [Skill switch](docs/lab/exp-skill-switch.md) | Switching skills can be nearly free: swap the weights, not the metadata |
 | [Solver batch](docs/lab/exp-solver-batch.md) | **Killed by its own gate**: batching the Architect's proposals and accepting the best changes the annealer's output distribution (KS p ≤ 0.002 at N ≥ 64) and is slower (invalid applies burn the batch); the patch ships as an inert knob |

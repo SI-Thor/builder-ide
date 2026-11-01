@@ -77,6 +77,12 @@ works.
   still records its author. Magnus may do everything (spoken input, full
   apply); Casey is with him at runtime. No transcripts or audio are stored.
 - **MIT licence** (B4) for this repo; third-party code keeps its own.
+- **Documentation explains mechanisms; it never claims** (Casey, 2026-10-31). Never write "breakthrough", "ah-ha", "game-changer" or similar in READMEs and docs, lab verdict lines included. Let engineers reach that understanding themselves. For each result, explain:
+  1. the hardware fact;
+  2. why the old path could not use it;
+  3. what the new path does differently;
+  4. the measured numbers, with the box state beside them;
+  5. what it makes possible, built up to the applications.
 - **Keep the READMEs current** (Casey, 2026-10-31). Every package or directory
   a seat creates gets a README (what it is, how to run its tests, what it
   stubs, how it connects to the rest), and every change updates it. The top
@@ -88,13 +94,13 @@ works.
   proof: a render, a timing, a test.
 - **Licences are a checked list**, especially for models: some image models are
   non-commercial. See the Thor model inventory notes.
-- **Thor-native rewrites are welcome, and breakthroughs are the point**
+- **Thor-native rewrites are welcome, and finding what the hardware can really do is the point**
   (Casey, 2026-10-30). Everything here is open source, and we are pioneering
   new abilities and uses for the Thor: heavily rewrite any program (Infinigen,
   Blender stages, generators) to fit the Thor's specific chips. That means its
   unified memory, the Blackwell GPU and tensor cores (FP8/FP4), its hardware
   engines, and its 14 Neoverse cores. Don't settle for "make it run as it does
-  on x86". Mine ideas for breakthroughs by **running small experiments**: an
+  on x86". Mine ideas by **running small experiments**: an
   idea becomes a measured result (or a measured no) within days, not a debate.
   Record every experiment, wins and failures alike, in `docs/lab/` with the
   numbers and how to reproduce them.
