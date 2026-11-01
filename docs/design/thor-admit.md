@@ -1794,3 +1794,161 @@ does when the daemon is next restarted:
 None of it needs a restart to be *safe*: the old daemon keeps the old rule
 and is not wrong, only blind to work it does not own. Restart it at a moment
 with no leases to lose.
+
+## 17. Round 13 (2026-11-01, ~14:00): the lease comes before the box's lock
+
+### 17.1 The fact: two locks, two questions
+
+The box has two kinds of lock, and they answer different questions.
+
+**The lease** is the daemon's promise about memory: admission before spend.
+It is a `flock(2)` on a per-lease file, held by the *client*, so the kernel
+drops it when the client dies whatever killed it (§1.3).
+
+**The box's own lock** is `~/lm-wt/heavy.lock`: the file lock every seat took
+before the daemon existed, so two seats could not run heavy work at once. It
+is still in use — seats that have not migrated to leases still take it, and
+the crate's own integration tests take it so a test cannot collide with a
+seat.
+
+Both are `flock(2)` locks, and both are exclusive. The difference is *when*
+they are taken, and that is the whole of this round.
+
+### 17.2 Why the old order could not work
+
+The rule the seats were given put the lock **around** the daemon:
+
+```text
+flock ~/lm-wt/heavy.lock thor-admit run --peak 8G --label build -- nvcc ...
+\_____ the lock ____/ \______________ the lease ______________/
+```
+
+So the lock is taken first and the lease second, and a seat that waits in the
+admission queue holds the lock for the whole of its wait. The measurements
+from 2026-11-01 (NOTES.md, 13:47) show what that costs:
+
+* Two seats held `flock ~/lm-wt/heavy.lock` for the whole of that round, and
+  **neither was running anything**: the `nvcc` compile had not started (it is
+  inside the queued client) and the `ctest` shell had no children at all.
+* The fp4 seat had been waiting **3 003 s** for an 8 GiB lease on a box with
+  77 GiB free.
+* The daemon's own queue could not advance either: the head (`serve.glide`,
+  58 GiB) does not fit above the 25 GiB floor with 77 GiB free, and the
+  8 GiB request behind it was held back by the backfill rule's head-delay
+  guarantee.
+
+The box state at 13:47: `MemTotal` 128 766 524 kB (122.8 GiB), 77 GiB
+available, load average 4.35, 14 users, the round-11 daemon (pid 123268)
+running with one lease and two requests waiting.
+
+**Why it is the wrong order, in one sentence:** the lock is what the box's
+*own* work waits for, so a seat that is waiting for room must not hold it.
+The lease is the thing that orders the box; the lock is the thing that
+orders the seats that have not migrated yet. A lease that is waiting has not
+started, so a lock held across that wait is a lock held by nothing.
+
+### 17.3 What changed
+
+**The rule:** the lease comes first, the lock only once the lease is
+granted.
+
+Three ways to ask for it, in the order a seat is likely to meet them:
+
+1. **`thor-admit run --lock <path>`** — the lock is named in the command, and
+   it is taken after the admission. The command never starts without it.
+2. **The old line still works.** `flock heavy.lock thor-admit run ...` is
+   repaired in place: the client gives every lock it inherited back before
+   it asks for its lease, and takes them again the moment the lease is
+   granted. The command runs with the lock held; the queue runs without it.
+   The client says what it found on stderr, so the seat can fix its own line.
+3. **The Python shim** takes `lease(..., lock=...)`, with the same order and
+   the same repair.
+
+`thor-admit status` gained a line that names the holder of the box's lock
+and its command line, so a seat that is waiting can be *seen* waiting:
+
+```
+box lock: /home/caseydigennaro/lm-wt/heavy.lock held by pid 331342 — flock /home/caseydigennaro/lm-wt/heavy.lock ...
+```
+
+That line is read from the kernel's own record (`/proc/locks`), not from the
+daemon, so it is true for a seat that never took a lease.
+
+### 17.4 How a lock is recognised, and why the pid is the wrong key
+
+The first implementation looked for the lock by **pid**: read `/proc/locks`,
+find the entry whose pid is this process, and take its file. It found
+nothing, and the reason is worth recording.
+
+**`flock(1)` forks.** The parent opens the file, takes the lock, and forks;
+the child runs the command. Measured on the box at 14:14, with a client
+started as `flock <lock> thor-admit run ...`:
+
+```
+=== the shell's job pid is 346700
+=== /proc/locks lines naming this inode:
+12: FLOCK  ADVISORY  WRITE 346700 103:01:3578769 0 EOF
+=== every process with this name:
+    PID    PPID STAT COMMAND
+ 346700  346671 S    flock /home/caseydigennaro/lm-wt/thor-admit/tools/thor-admit/.dbg2/box-346671.lock .../thor-admit run ...
+```
+
+The kernel's record names **346700** — the `flock(1)` parent — and the client
+is a *different* process, the parent's child. So the pid in `/proc/locks` is
+not the pid of the process that inherited the descriptor, and matching on it
+finds nothing.
+
+**The test that works is on the descriptor.** Two facts, both from the
+kernel:
+
+1. the file is flock-locked on the box — `/proc/locks` names it, by device
+   and inode;
+2. this process can take the lock on its own descriptor **without waiting** —
+   which is true only when the lock is held by *this* open file description.
+   `flock(2)` on a description that already holds the lock is a no-op, while a
+   lock held by a *different* description blocks even in the same process.
+
+So the client walks its own descriptors, and for each one that is on a
+flock-locked file it asks the kernel whether the lock is its own. The
+descriptor is **copied** with `dup(2)`, not adopted: the descriptor belongs
+to the shell's `flock(1)`, and taking ownership of it would close a file that
+something else still owns. A copy shares the open file description, so it is
+the same lock.
+
+### 17.5 The numbers
+
+* **167 unit tests** pass (160 before this round, plus the `boxlock`
+  module's own seven).
+* **47 integration tests** pass, including the two new ones:
+  `the_lease_comes_before_the_lock` and
+  `a_client_that_inherited_the_box_lock_gives_it_back_while_it_waits`. The
+  first asks for the lock by name; the second is started the old way, under
+  `flock(1)`, and is repaired in place. Both assert the same two things: a
+  **queued** client holds **nothing**, and an **admitted** client holds the
+  lock.
+* **14 Python tests** pass (12 before this round, plus the shim's two).
+
+The box during the round: the Thor at 122.8 GiB unified, 47 GiB of swap,
+load average between 7 and 19 with the other seats' work running, and the
+live daemon (pid 307460, the round-12 binary) serving one to three leases.
+
+### 17.6 The limits, stated
+
+* **The repair only sees locks this process inherited.** A lock taken by a
+  process that did not pass the descriptor down cannot be found, because
+  there is no descriptor for it.
+* **The shim repairs only the locks it was told about** — the `lock=` path
+  and the box's well-known one. The shim runs inside a long-lived seat
+  process that may hold locks of its own, and taking those away would be the
+  shim's business, not the daemon's.
+* **A client that waits for the lock after admission is charged for the
+  lease while it waits.** That is the price of the order, and it is the
+  right way round: the memory is promised, not used, and the daemon names a
+  lease that holds far more than it uses.
+* **The repair changes what a seat's `flock` means.** The seat's lock is now
+  free while the seat waits for room. A seat that depended on holding the
+  lock *while it waited* — which is exactly the flaw — is changed. That is
+  the point, and the client says so when it does it.
+* **The live daemon has not been restarted**, so the repair is in the
+  client, which is where it can be shipped without a restart: the running
+  daemon never sees a lock, and the new clients repair their own.
