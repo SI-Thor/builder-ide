@@ -28,7 +28,7 @@ cites.
 |---|---|
 | `models.py` | the records: `Question`, `Judgment`, `JudgeCost`; the pack hash; the sum-to-one rule |
 | `backends.py` | the wire and the four backends (below); `JudgeRefusal` with a closed reason code |
-| `gate.py` | the confidence gate as policy: `ConfidencePolicy` (τ), `EscalationLadder`, `StandingGate` |
+| `gate.py` | the confidence gate as policy: `ConfidencePolicy` (τ), `EscalationLadder`, `StandingGate` and its `StandingConfig` |
 | `judge.py` | the `Judge` service: ask a pack, walk the ladder, record every attempt; `fold_judgments` |
 | `shortlist.py` | the first caller: `JudgePriorChooser`, the tiles shortlist |
 | `events.py` | the seat's one audit type, `judge.verdict` |
@@ -74,6 +74,30 @@ wraps `core/hysteresis` (built, measured, 13 tests) with the judgment's
 confidence as the continuous signal, τ as the enter line, and a band
 inside which the standing does not move. The clock stays the caller's.
 
+**The standing has its first real wiring, and its defaults are a
+measurement.** `Judge(standing=StandingGate())` routes the ladder's
+escalation trigger through the hysteresis standing: the first rung's
+act-or-escalate decision is the standing's word per question id (the
+subject that persists across ticks), the later rungs stay gated by the
+policy's τ, and `judge(..., now=tick)` is required — a standing without
+the caller's clock cannot replay. The defaults come from replaying the
+liquid study's recorded d1 traces through the gate
+([`docs/lab/exp-hysteresis-d1.md`](../../docs/lab/exp-hysteresis-d1.md)):
+`StandingConfig` = τ `DEFAULT_TAU` (per-task calibration names τ; on
+these traces the calibrated τ was 0.7, where the raw gate flickers 66
+times in 240 ticks), **band 0.15, dwell_up 2, dwell_down 0** — the one
+shape that kills the flicker (→ 1) while keeping the raw gate's catch of
+the model's misreadings and its agreement, at a drop latency of zero and
+an act latency of at most two ticks. The dwells are in ticks of the
+caller's clock; a caller on a seconds clock passes its own numbers. The
+standing's word rides on every `judge.verdict` row and on
+`JudgeAnswer.standing_words`, and `surfaced` follows the standing where
+it governed — the raw gate word and the standing's can differ (a sub-τ
+tick the band holds is acted on; a confident tick during warm-up is
+escalated), so the row carries both. A judgment with no confidence never
+passes and leaves the standing untouched: a continuous gate takes no
+reading from a null.
+
 ## Every judgment is recorded
 
 One `judge.verdict` row per **attempt**: the author
@@ -111,13 +135,15 @@ The play keeps the propensity the chooser measured at the choice
 ## Running it
 
 ```bash
-.venv/bin/python -m pytest -q tests/judge    # 66 tests, no network, no GPU, no LLM
+.venv/bin/python -m pytest -q tests/judge    # 77 tests, no network, no GPU, no LLM
 .venv/bin/python -m pytest -q                # the whole core
 ```
 
 The Thor measurement (cold-start curve, agreement, latency, peak
-memory) and how to reproduce it:
-[`docs/lab/exp-judge-tiles-coldstart.md`](../../docs/lab/exp-judge-tiles-coldstart.md).
+memory): [`docs/lab/exp-judge-tiles-coldstart.md`](../../docs/lab/exp-judge-tiles-coldstart.md).
+The standing gate's configuration, measured on the recorded d1 traces
+(the sweep, the guarded choice rule, and the wiring's two behaviours):
+[`docs/lab/exp-hysteresis-d1.md`](../../docs/lab/exp-hysteresis-d1.md).
 
 ## What is not here yet
 
