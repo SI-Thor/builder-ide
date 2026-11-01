@@ -197,7 +197,48 @@ well and **the gate reads that one**, so τ is read in the calibrated space:
 `raw_floor_for()` turns that into a number an operator can set — the raw
 confidence that has to clear a calibrated τ, for a reference shape.
 
-### 4.4 The drift rule, and why it has no invented threshold
+### 4.4 The paired gate, and which half of it this is
+
+The keep rule is the cascade's, unchanged in shape. There the teacher
+labelled every case once and the student was scored against it — a
+**paired** score — and the harness's rule was *"keep the edit only if the
+paired score improves; otherwise revert"*. Here the pairing is the same
+shape (the outcomes the cell's judgments are scored against are held out
+from the fit) and the score is the proper scoring rule, the Brier score,
+because it is the only one of the two that is a proper scoring rule at
+all.
+
+But the cascade's paired gate has **two halves**, and this is the first:
+
+* the **value half** — a map that says how confident the model should be
+  (the Platt map there, the temperature and the isotonic map here). The
+  isotonic map here is built never to change the answer: the top option's
+  mass becomes the calibrated value and the rest keep their relative
+  shares, because a ranking error is not a calibration error;
+* the **ranking half** — an additive prior on the options, for the cells
+  whose error is a *ranking* error. The cascade found the value map could
+  not help its multiple-choice cells for exactly this reason: "per-question
+  calibration helps the booleans; it cannot help the multiple-choice
+  questions, where the error is a ranking error and needs an additive
+  prior on the options."
+
+**Only the value half is built here**, and the measurement says why the
+other half would be needed. On the clef `tile` cell the confidence orders
+the outcomes weakly (AUC 0.6149) while the model picks the wrong tile
+41.7 % of the time: the recalibration improves that cell's Brier (0.1199
+→ 0.1084) and leaves its **accuracy exactly where it was** (0.5667 →
+0.5667 on the held-out half), because no value map can move a ranking.
+The same is true of the teacher's `beacon_bearing` cell (accuracy 0.8875,
+AUC 0.7480) — the map sharpens the confidence, it does not turn the
+bearing. And the accuracy column does not move **in any of the eleven
+cells**: that is the property that makes this the value half.
+
+So the honest reading of this seat's result is: **the value half is
+measured, and the cells whose error is a ranking error are named by the
+measurement rather than fixed by it.** The ranking half is the next piece
+of work, and it is the cascade's choice prior, not a new invention.
+
+### 4.5 The drift rule, and why it has no invented threshold
 
 The seed's kernel is that the drift thresholds in the sources are
 invented. So the drift here is three **measured** facts, compared against
@@ -241,19 +282,25 @@ An AUC of "—" means the cell has no wrong judgment to order against
 
 ### 5.2 After the recalibration (fitted on the older half, read on the newer)
 
-| cell | scale | kept | held-out Brier | held-out ECE |
-|---|---|---|---|---|
-| d1-2B · liquid trace | isotonic | yes | 0.1588 → **0.1355** | 0.3198 → 0.0364 |
-| d1-3B · liquid trace | isotonic | yes | 0.2018 → **0.1437** | 0.4633 → 0.3332 |
-| tiles rig · judge-only | temperature (T = 0.1723) | yes | 0.0647 → **0.0499** | 0.2535 → 0.0841 |
-| clef teacher · scene.enemy_visible | isotonic | yes | 0.0008 → **0.0000** | 0.0189 → 0.0000 |
-| clef teacher · scene.action | isotonic | yes | 0.0089 → **0.0000** | 0.0747 → 0.0000 |
-| clef teacher · scene.beacon_bearing | isotonic | **no** | 0.0327 → 0.0359 | 0.0639 → 0.0894 |
-| clef teacher · scene.beacon_reachable | isotonic | yes | 0.0022 → **0.0000** | 0.0404 → 0.0000 |
-| clef teacher · defect.defect_class | temperature (T = 0.05) | yes | 0.0241 → **0.0057** | 0.4344 → 0.0309 |
-| clef teacher · tile.tile | isotonic | yes | 0.1199 → **0.1084** | 0.2128 → 0.1026 |
-| clef student · scene.enemy_visible | isotonic | yes | 0.0160 → **0.0000** | 0.0704 → 0.0000 |
-| clef student · scene.beacon_reachable | isotonic | yes | 0.0448 → **0.0000** | 0.2054 → 0.0000 |
+| cell | scale | kept | held-out accuracy | held-out Brier | held-out ECE |
+|---|---|---|---|---|---|
+| d1-2B · liquid trace | isotonic | yes | 0.5583 → 0.5583 | 0.1588 → **0.1355** | 0.3198 → 0.0364 |
+| d1-3B · liquid trace | isotonic | yes | 0.3750 → 0.3750 | 0.2018 → **0.1437** | 0.4633 → 0.3332 |
+| tiles rig · judge-only | temperature (T = 0.1723) | yes | 0.8224 → 0.8224 | 0.0647 → **0.0499** | 0.2535 → 0.0841 |
+| clef teacher · scene.enemy_visible | isotonic | yes | 1.0000 → 1.0000 | 0.0008 → **0.0000** | 0.0189 → 0.0000 |
+| clef teacher · scene.action | isotonic | yes | 1.0000 → 1.0000 | 0.0089 → **0.0000** | 0.0747 → 0.0000 |
+| clef teacher · scene.beacon_bearing | isotonic | **no** | 0.9250 → 0.9250 | 0.0327 → 0.0359 | 0.0639 → 0.0894 |
+| clef teacher · scene.beacon_reachable | isotonic | yes | 1.0000 → 1.0000 | 0.0022 → **0.0000** | 0.0404 → 0.0000 |
+| clef teacher · defect.defect_class | temperature (T = 0.05) | yes | 0.9667 → 0.9667 | 0.0241 → **0.0057** | 0.4344 → 0.0309 |
+| clef teacher · tile.tile | isotonic | yes | 0.5667 → 0.5667 | 0.1199 → **0.1084** | 0.2128 → 0.1026 |
+| clef student · scene.enemy_visible | isotonic | yes | 1.0000 → 1.0000 | 0.0160 → **0.0000** | 0.0704 → 0.0000 |
+| clef student · scene.beacon_reachable | isotonic | yes | 1.0000 → 1.0000 | 0.0448 → **0.0000** | 0.2054 → 0.0000 |
+
+**The accuracy column does not move, in any cell, by any amount.** That
+is the property that makes this the *value* half of the cascade's paired
+gate: a map that never changes the answer can only say how sure to be
+about the answer it already gave. The Brier and the ECE move; the
+accuracy does not.
 
 **Ten of the eleven cells keep a scale; one drops it.** The drop is the
 rule working: the teacher's `beacon_bearing` cell is the one whose
@@ -419,6 +466,11 @@ ECE 0.0704 → 0.0000 and 0.2054 → 0.0000.
   fallback, and the tiles rig already has one (`core/tiles/ope`, and the
   cold-start rig's own numbers: the bandit 0.7867 against the judge-only
   arm's 0.6900).
+* **It does not say the recalibration fixes the models.** It fixes the
+  *scale* of their confidence. The clef `tile` cell's accuracy is 0.5833
+  before the recalibration and 0.5833 after it; what moved is the Brier
+  (0.1199 → 0.1084) and the ECE (0.2128 → 0.1026). A cell whose error is a
+  ranking error needs the cascade's choice prior, not a map (§4.4).
 * **It does not say the clef teacher's booleans are a weak model.** The
   teacher was right 100 % of the time on both; its confidence was simply
   under-confident, and the scale fixes that.
@@ -500,7 +552,10 @@ What the measurement adds, on 1,470 recorded judgments:
    The Brier and the ECE can disagree, and a Brier-optimal scale can be
    degenerate (the teacher's `defect_class` temperature hit the bound of
    its search), so the scale is kept by the rule and read with the ECE
-   beside it.
+   beside it. The **accuracy does not move in any cell** — a map that
+   never changes the answer can only say how sure to be about the answer
+   it already gave, which is the value half of the cascade's paired gate
+   and not the whole of it (§4.4).
 5. **A calibrated τ is read in the calibrated space, and a binary's raw
    floor is never below a half.** The tiles rig's calibrated τ of 0.5
    corresponds to a raw 0.2749; on a binary, τ = 0.5 escalates nothing,

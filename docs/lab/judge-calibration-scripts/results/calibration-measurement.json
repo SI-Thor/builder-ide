@@ -245,6 +245,8 @@
           "task": "scene.beacon_reachable"
         },
         "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.044846,
           "ece_after": 0.0,
@@ -776,6 +778,8 @@
           "task": "scene.enemy_visible"
         },
         "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.015952,
           "ece_after": 0.0,
@@ -1324,6 +1328,8 @@
           "task": "defect.defect_class"
         },
         "held_out": {
+          "accuracy_after": 0.966667,
+          "accuracy_before": 0.966667,
           "brier_after": 0.005724,
           "brier_before": 0.024054,
           "ece_after": 0.030887,
@@ -1734,6 +1740,8 @@
           "task": "scene.action"
         },
         "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.008915,
           "ece_after": 0.0,
@@ -2326,6 +2334,8 @@
           "task": "scene.beacon_bearing"
         },
         "held_out": {
+          "accuracy_after": 0.925,
+          "accuracy_before": 0.925,
           "brier_after": 0.035918,
           "brier_before": 0.03273,
           "ece_after": 0.089368,
@@ -2821,6 +2831,8 @@
           "task": "scene.beacon_reachable"
         },
         "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.002202,
           "ece_after": 0.0,
@@ -3388,6 +3400,8 @@
           "task": "scene.enemy_visible"
         },
         "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.000795,
           "ece_after": 0.0,
@@ -3964,6 +3978,8 @@
           "task": "tile.tile"
         },
         "held_out": {
+          "accuracy_after": 0.566667,
+          "accuracy_before": 0.566667,
           "brier_after": 0.108357,
           "brier_before": 0.119942,
           "ece_after": 0.102581,
@@ -4407,6 +4423,8 @@
           "task": "liquid-trace"
         },
         "held_out": {
+          "accuracy_after": 0.558333,
+          "accuracy_before": 0.558333,
           "brier_after": 0.135481,
           "brier_before": 0.158766,
           "ece_after": 0.036363,
@@ -4837,6 +4855,8 @@
           "task": "liquid-trace"
         },
         "held_out": {
+          "accuracy_after": 0.375,
+          "accuracy_before": 0.375,
           "brier_after": 0.143742,
           "brier_before": 0.201765,
           "ece_after": 0.333207,
@@ -5285,6 +5305,8 @@
           "task": "tiles.shortlist"
         },
         "held_out": {
+          "accuracy_after": 0.82243,
+          "accuracy_before": 0.82243,
           "brier_after": 0.049855,
           "brier_before": 0.064688,
           "ece_after": 0.084138,
@@ -5572,8 +5594,8 @@
   ],
   "experiment": "judge calibration \u2014 one definition of confidence, and the Brier tracked against it",
   "machine": {
-    "at": "2026-11-01T05:21:50Z",
-    "git": "b3bb9e0",
+    "at": "2026-11-01T05:33:13Z",
+    "git": "bb70d27",
     "gpu": "not used \u2014 the vectors are replayed from disk",
     "numpy": "2.5.4",
     "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",

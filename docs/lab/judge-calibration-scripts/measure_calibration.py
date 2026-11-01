@@ -537,6 +537,8 @@ def measure_cell(samples: Sequence[CalibrationSample], bins: int = 10) -> dict[s
         "recalibration": recal.as_dict(),
         "held_out": {
             "n": len(holdout),
+            "accuracy_before": _round(accuracy(holdout)),
+            "accuracy_after": _round(accuracy(recalibrated) if recalibrated else None),
             "brier_before": _round(brier_score(holdout)),
             "brier_after": _round(brier_score(recalibrated) if recalibrated else None),
             "ece_before": _round(expected_calibration_error(holdout, bins=bins)),
