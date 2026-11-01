@@ -51,3 +51,15 @@ The syzygy-keyframes experiment measures:
 - whether an explicit motion channel raises a reader's accuracy on depth order, approaching objects and moving objects, with the camera moving and still.
 
 That turns Casey's observation into a number.
+
+## Temporal stereoscopy: perception as listening (Casey, 2026-10-31)
+
+Casey: low-resolution ASCII looks strongly 3D to a person because the frames over a short span of visual memory act like two eyes separated in time. The characters' flicker where structure moves carries the depth, and "it's like listening: you don't see the 3D space unless you carry it around and you get used to the rhythm of the changes, like finding the sound of a song as a guest soloist." (SuperInstance/chiaroscuro makes those aspects pop for a person on purpose.)
+
+What it implies for any projector that feeds a model rather than a person:
+- **Memory:** the reader must integrate over a window, so a stateful model (Liquid's recurrent and state-space family) or a short frame window is needed. A single frame is the wrong unit.
+- **Events, not frames:** per-cell change events (as an event camera emits) are the sparse, informative part.
+- **Rhythm:** each region's temporal spectrum, so the reader can notice a broken rhythm.
+- **Active parallax:** when unsure, move a little and look again, as a pigeon bobs its head. In builder-ide, a character that is unsure of a spatial judgment can take a small epistemic move before escalating to a bigger model.
+
+These are arms (i) to (l) of the syzygy-keyframes experiment.
