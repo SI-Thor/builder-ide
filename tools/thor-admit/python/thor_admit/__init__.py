@@ -42,6 +42,7 @@ __all__ = [
     "LeaseRejected",
     "default_socket_path",
     "lease",
+    "register_presence",
     "socket_path",
 ]
 
@@ -202,6 +203,7 @@ def lease(
     label: str = "",
     *,
     priority: int = 0,
+    tier: str = "live",
     timeout: float | None = None,
     socket_path_override: Path | None = None,
     start_daemon: bool = True,
@@ -211,6 +213,11 @@ def lease(
     ``peak`` is a size (``"40G"``, ``40 * 1024 ** 3``) or ``"auto"``, which
     asks the daemon for the p95 of this label's own history. ``label`` is
     the name the peak is learned under.
+
+    ``tier`` says what kind of work this is: ``live``, ``preparation``,
+    ``practice`` or ``study``. The tier is the accounting band the ledger
+    books the lease's time to, and only ``live`` work may pre-empt the box's
+    presence queue. The default is ``live``.
 
     The lease covers **this process** (and the children it starts), not the
     whole process group: the watchdog must never stop a seat's other work by
@@ -236,6 +243,7 @@ def lease(
             "label": label,
             "peak": argument,
             "priority": priority,
+            "tier": tier,
             "target": {"process": {"pid": os.getpid()}},
         }
         stream.write((json.dumps(request) + "\n").encode("utf-8"))
@@ -290,8 +298,66 @@ def lease(
             connection.close()
 
 
+def register_presence(
+    label: str,
+    tier: str,
+    peak: Any,
+    command: list[str],
+    *,
+    resumable: bool = False,
+    socket_path_override: Path | None = None,
+    start_daemon: bool = True,
+) -> int:
+    """Register work that runs when the box has room for it.
+
+    The presence queue is the box's own useful work: it runs when live work
+    is not waiting, and it gives way (by stopping, and by starting again
+    later) when live work arrives.
+
+    ``tier`` is ``preparation``, ``practice`` or ``study`` — the three tiers
+    of background work. ``peak`` is the memory the job is expected to take.
+    ``resumable`` says the job may be started again after it was pre-empted.
+
+    Returns the job's id.
+    """
+    path = socket_path_override or socket_path()
+    argument = _peak_argument(peak)
+    try:
+        connection = _connect(path, None)
+    except DaemonNotRunning:
+        if not start_daemon or not _start_daemon(path):
+            raise
+        connection = _connect(path, None)
+    stream = connection.makefile("rwb")
+    try:
+        request = {
+            "op": "presence_add",
+            "label": label,
+            "tier": tier,
+            "peak": argument,
+            "resumable": resumable,
+            "command": list(command),
+        }
+        stream.write((json.dumps(request) + "\n").encode("utf-8"))
+        stream.flush()
+        line = stream.readline()
+        if not line:
+            raise LeaseError("the daemon closed the connection")
+        event = json.loads(line.decode("utf-8"))
+        kind = event.get("event")
+        if kind == "presence_added":
+            return int(event["id"])
+        if kind == "rejected":
+            raise LeaseRejected(str(event.get("reason", "the daemon refused the job")))
+        raise LeaseError(f"unexpected answer from the daemon: {event!r}")
+    finally:
+        with contextlib.suppress(OSError):
+            stream.close()
+        with contextlib.suppress(OSError):
+            connection.close()
+
+
 def _send(stream: Any, request: dict[str, Any]) -> None:
-    """Send one request and read the daemon's answer."""
     stream.write((json.dumps(request) + "\n").encode("utf-8"))
     stream.flush()
     line = stream.readline()
