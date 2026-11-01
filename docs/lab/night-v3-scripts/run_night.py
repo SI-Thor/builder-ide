@@ -52,6 +52,7 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
 
 from core.canon import content_hash, now_utc  # noqa: E402
+from core.engine import EngineFailed  # noqa: E402
 from core.engine.contract import PreviewRequest, StageRequest  # noqa: E402
 from core.engine.registry import open_engine  # noqa: E402
 from core.genbatch.comfy import ComfyClient  # noqa: E402
@@ -482,12 +483,36 @@ class WorldState:
                        label: str, heavy: Heavy) -> dict:
         """The splice, measured at the seam: reexecute (the venv boundary
         refuses it, and the refusal is the record), then the scoped stage
-        (the dirty entries only) against the full stage."""
+        (the dirty entries only) against the full stage.
+
+        The full stage is asked for whole first; when the engine refuses to
+        trace the structure entry — this engine's procfunc raises
+        ``Proxy does not support __iter__`` inside the room's wall splitter
+        under tracing, the crash run D attempt 2 died on — the splice
+        measures the traceable entries and records the exclusion, rather
+        than pretending the room re-ran.
+        """
         row: dict[str, Any] = {"label": label, "dirty": dirty}
         full_started = time.monotonic()
         with heavy.hold(f"full stage trace ({label})"):
-            full = self.engine.generate_stage(StageRequest(
-                recipe=head, version_hash=self._vh(head), stage="objects"))
+            try:
+                full = self.engine.generate_stage(StageRequest(
+                    recipe=head, version_hash=self._vh(head), stage="objects"))
+                row["full_stage_entries"] = "all"
+            except EngineFailed as exc:
+                if "Proxy does not support __iter__" not in str(exc):
+                    raise
+                row["scene_trace_refused"] = str(exc)[-300:]
+                scene = next((p for p, e in base.entries.items()
+                              if e.kind == "structure"), None)
+                traceable = sorted(p for p in base.entries if p != scene)
+                row["full_stage_entries"] = traceable
+                log(f"the engine refuses to trace {scene} (procfunc "
+                    f"proxy iteration under trace); the splice measures "
+                    f"{traceable} and records the exclusion")
+                full = self.engine.generate_stage(StageRequest(
+                    recipe=head, version_hash=self._vh(head), stage="objects",
+                    entries=traceable))
         full_s = time.monotonic() - full_started
         row["full_stage_s"] = round(full_s, 2)
         row["full_stage_bytes"] = len(full.data)
@@ -1052,7 +1077,12 @@ def world_stream(wires: list[dict], heavy: Heavy, out: Path) -> dict:
         return rows
     rows["export"] = {
         "wall_s": round(time.monotonic() - started, 1),
-        "stats": json.loads((export_dir / "source.export_stats.json").read_text()),
+        # the exporter writes export_stats.json (the seam's draft named it
+        # source.export_stats.json); a missing stats file is a recorded gap,
+        # not a crash after the heavy work is spent
+        "stats": (json.loads((export_dir / "export_stats.json").read_text())
+                  if (export_dir / "export_stats.json").exists()
+                  else {"missing": "export_stats.json"}),
     }
 
     build = out / "worldstream" / "build"
@@ -1645,9 +1675,10 @@ def render_morning_text(m: dict) -> str:
     lines.append("the live view:")
     ws = m["live_view"]
     if ws.get("export", {}).get("wall_s"):
+        stats = ws["export"].get("stats", {})
         lines.append(f"  · the scene exported in {ws['export']['wall_s']} s "
-                     f"({ws['export']['stats']['objects']} objects, "
-                     f"{ws['export']['stats']['triangles_approx']:,} triangles)")
+                     f"({stats.get('objects', '?')} objects, "
+                     f"{stats.get('triangles_approx', 0):,} triangles)")
     for delta in ws.get("deltas", []):
         if "error" in delta:
             lines.append(f"  · round {delta.get('round')}: {delta['error']}")
