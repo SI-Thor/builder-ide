@@ -1,0 +1,2325 @@
+{
+  "experiment": "judge-prompt-fix",
+  "measured": "2026-11-01 09:50:49",
+  "arms": [
+    "recorded",
+    "canonical",
+    "balanced"
+  ],
+  "models": {
+    "d1-2B": {
+      "arms": {
+        "recorded": {
+          "n": 240,
+          "correct": 126,
+          "accuracy": 0.525,
+          "wilson": {
+            "low": 0.4619,
+            "high": 0.5873
+          },
+          "by_group": {
+            "truth_first": {
+              "n": 158,
+              "correct": 126,
+              "accuracy": 0.7975,
+              "wilson": {
+                "low": 0.7281,
+                "high": 0.8527
+              }
+            },
+            "decoy_first_noop": {
+              "n": 43,
+              "correct": 0,
+              "accuracy": 0.0,
+              "wilson": {
+                "low": 0.0,
+                "high": 0.082
+              }
+            },
+            "decoy_first_two_cond": {
+              "n": 39,
+              "correct": 0,
+              "accuracy": 0.0,
+              "wilson": {
+                "low": -0.0,
+                "high": 0.0897
+              }
+            },
+            "decoy_first": {
+              "n": 82,
+              "correct": 0,
+              "accuracy": 0.0,
+              "wilson": {
+                "low": -0.0,
+                "high": 0.0448
+              }
+            }
+          },
+          "auc": {
+            "auc": 0.2815,
+            "low": 0.2167,
+            "high": 0.3474,
+            "resamples": 2000
+          },
+          "sweep": [
+            {
+              "tau": 0.1,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.2,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.3,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.4,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.5,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.6,
+              "escalated": 27,
+              "act_rate": 0.1125,
+              "catch": 0.0702,
+              "tax": 0.1508,
+              "caught_all": false
+            },
+            {
+              "tau": 0.7,
+              "escalated": 98,
+              "act_rate": 0.4083,
+              "catch": 0.2105,
+              "tax": 0.5873,
+              "caught_all": false
+            },
+            {
+              "tau": 0.8,
+              "escalated": 168,
+              "act_rate": 0.7,
+              "catch": 0.5175,
+              "tax": 0.8651,
+              "caught_all": false
+            },
+            {
+              "tau": 0.9,
+              "escalated": 179,
+              "act_rate": 0.7458,
+              "catch": 0.5526,
+              "tax": 0.9206,
+              "caught_all": false
+            },
+            {
+              "tau": 0.95,
+              "escalated": 197,
+              "act_rate": 0.8208,
+              "catch": 0.6228,
+              "tax": 1.0,
+              "caught_all": false
+            }
+          ],
+          "sweep_by_group": {
+            "truth_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 19,
+                "catch": 0.0,
+                "tax": 0.1508
+              },
+              {
+                "tau": 0.7,
+                "escalated": 90,
+                "catch": 0.5,
+                "tax": 0.5873
+              },
+              {
+                "tau": 0.8,
+                "escalated": 141,
+                "catch": 1.0,
+                "tax": 0.8651
+              },
+              {
+                "tau": 0.9,
+                "escalated": 148,
+                "catch": 1.0,
+                "tax": 0.9206
+              },
+              {
+                "tau": 0.95,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ],
+            "decoy_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 8,
+                "catch": 0.0976,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.7,
+                "escalated": 8,
+                "catch": 0.0976,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.8,
+                "escalated": 27,
+                "catch": 0.3293,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.9,
+                "escalated": 31,
+                "catch": 0.378,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 39,
+                "catch": 0.4756,
+                "tax": 0.0
+              }
+            ]
+          },
+          "budgets": {
+            "10%": {
+              "tau": 0.52,
+              "escalated": 0,
+              "share": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "next_tau": 0.525,
+              "next_tau_share": 0.1125
+            },
+            "20%": {
+              "tau": 0.625,
+              "escalated": 44,
+              "share": 0.1833,
+              "catch": 0.0702,
+              "tax": 0.2857,
+              "next_tau": 0.63,
+              "next_tau_share": 0.25
+            },
+            "30%": {
+              "tau": 0.645,
+              "escalated": 60,
+              "share": 0.25,
+              "catch": 0.2105,
+              "tax": 0.2857,
+              "next_tau": 0.65,
+              "next_tau_share": 0.3458
+            }
+          },
+          "positional_tally": {
+            "positional": 165,
+            "content": 32,
+            "third": 0,
+            "n": 197
+          },
+          "latency_ms": {
+            "n": 240,
+            "p50": 77.662,
+            "p95": 82.296,
+            "mean": 79.044
+          }
+        },
+        "canonical": {
+          "n": 240,
+          "correct": 89,
+          "accuracy": 0.3708,
+          "wilson": {
+            "low": 0.3122,
+            "high": 0.4335
+          },
+          "by_group": {
+            "truth_first": {
+              "n": 158,
+              "correct": 73,
+              "accuracy": 0.462,
+              "wilson": {
+                "low": 0.3861,
+                "high": 0.5397
+              }
+            },
+            "decoy_first_noop": {
+              "n": 43,
+              "correct": 8,
+              "accuracy": 0.186,
+              "wilson": {
+                "low": 0.0974,
+                "high": 0.3262
+              }
+            },
+            "decoy_first_two_cond": {
+              "n": 39,
+              "correct": 8,
+              "accuracy": 0.2051,
+              "wilson": {
+                "low": 0.1078,
+                "high": 0.3553
+              }
+            },
+            "decoy_first": {
+              "n": 82,
+              "correct": 16,
+              "accuracy": 0.1951,
+              "wilson": {
+                "low": 0.1238,
+                "high": 0.2937
+              }
+            }
+          },
+          "auc": {
+            "auc": 0.5766,
+            "low": 0.505,
+            "high": 0.6457,
+            "resamples": 2000
+          },
+          "sweep": [
+            {
+              "tau": 0.1,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.2,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.3,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.4,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.5,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.6,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.7,
+              "escalated": 138,
+              "act_rate": 0.575,
+              "catch": 0.6556,
+              "tax": 0.4382,
+              "caught_all": false
+            },
+            {
+              "tau": 0.8,
+              "escalated": 197,
+              "act_rate": 0.8208,
+              "catch": 0.7815,
+              "tax": 0.8876,
+              "caught_all": false
+            },
+            {
+              "tau": 0.9,
+              "escalated": 197,
+              "act_rate": 0.8208,
+              "catch": 0.7815,
+              "tax": 0.8876,
+              "caught_all": false
+            },
+            {
+              "tau": 0.95,
+              "escalated": 240,
+              "act_rate": 1.0,
+              "catch": 1.0,
+              "tax": 1.0,
+              "caught_all": true
+            }
+          ],
+          "sweep_by_group": {
+            "truth_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.7,
+                "escalated": 89,
+                "catch": 0.5882,
+                "tax": 0.5342
+              },
+              {
+                "tau": 0.8,
+                "escalated": 132,
+                "catch": 0.8118,
+                "tax": 0.863
+              },
+              {
+                "tau": 0.9,
+                "escalated": 132,
+                "catch": 0.8118,
+                "tax": 0.863
+              },
+              {
+                "tau": 0.95,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ],
+            "decoy_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.7,
+                "escalated": 49,
+                "catch": 0.7424,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.8,
+                "escalated": 65,
+                "catch": 0.7424,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.9,
+                "escalated": 65,
+                "catch": 0.7424,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 82,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ]
+          },
+          "budgets": {
+            "10%": {
+              "tau": 0.6,
+              "escalated": 0,
+              "share": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "next_tau": 0.605,
+              "next_tau_share": 0.2583
+            },
+            "20%": {
+              "tau": 0.6,
+              "escalated": 0,
+              "share": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "next_tau": 0.605,
+              "next_tau_share": 0.2583
+            },
+            "30%": {
+              "tau": 0.625,
+              "escalated": 62,
+              "share": 0.2583,
+              "catch": 0.298,
+              "tax": 0.191,
+              "next_tau": 0.63,
+              "next_tau_share": 0.3958
+            }
+          },
+          "positional_tally": {
+            "positional": 207,
+            "content": 33,
+            "third": 0,
+            "n": 240
+          },
+          "latency_ms": {
+            "n": 240,
+            "p50": 78.33,
+            "p95": 81.307,
+            "mean": 78.494
+          }
+        },
+        "balanced": {
+          "n": 240,
+          "correct": 87,
+          "accuracy": 0.3625,
+          "wilson": {
+            "low": 0.3043,
+            "high": 0.425
+          },
+          "by_group": {
+            "truth_first": {
+              "n": 158,
+              "correct": 67,
+              "accuracy": 0.4241,
+              "wilson": {
+                "low": 0.3497,
+                "high": 0.502
+              }
+            },
+            "decoy_first_noop": {
+              "n": 43,
+              "correct": 8,
+              "accuracy": 0.186,
+              "wilson": {
+                "low": 0.0974,
+                "high": 0.3262
+              }
+            },
+            "decoy_first_two_cond": {
+              "n": 39,
+              "correct": 12,
+              "accuracy": 0.3077,
+              "wilson": {
+                "low": 0.1857,
+                "high": 0.4642
+              }
+            },
+            "decoy_first": {
+              "n": 82,
+              "correct": 20,
+              "accuracy": 0.2439,
+              "wilson": {
+                "low": 0.1638,
+                "high": 0.3469
+              }
+            }
+          },
+          "auc": {
+            "auc": 0.5438,
+            "low": 0.4672,
+            "high": 0.6159,
+            "resamples": 2000
+          },
+          "sweep": [
+            {
+              "tau": 0.1,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.2,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.3,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.4,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.5,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.6,
+              "escalated": 35,
+              "act_rate": 0.1458,
+              "catch": 0.1699,
+              "tax": 0.1034,
+              "caught_all": false
+            },
+            {
+              "tau": 0.7,
+              "escalated": 136,
+              "act_rate": 0.5667,
+              "catch": 0.5817,
+              "tax": 0.5402,
+              "caught_all": false
+            },
+            {
+              "tau": 0.8,
+              "escalated": 202,
+              "act_rate": 0.8417,
+              "catch": 0.7974,
+              "tax": 0.9195,
+              "caught_all": false
+            },
+            {
+              "tau": 0.9,
+              "escalated": 219,
+              "act_rate": 0.9125,
+              "catch": 0.8889,
+              "tax": 0.954,
+              "caught_all": false
+            },
+            {
+              "tau": 0.95,
+              "escalated": 240,
+              "act_rate": 1.0,
+              "catch": 1.0,
+              "tax": 1.0,
+              "caught_all": true
+            }
+          ],
+          "sweep_by_group": {
+            "truth_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 21,
+                "catch": 0.1319,
+                "tax": 0.1343
+              },
+              {
+                "tau": 0.7,
+                "escalated": 88,
+                "catch": 0.5714,
+                "tax": 0.5373
+              },
+              {
+                "tau": 0.8,
+                "escalated": 135,
+                "catch": 0.8242,
+                "tax": 0.8955
+              },
+              {
+                "tau": 0.9,
+                "escalated": 144,
+                "catch": 0.8901,
+                "tax": 0.9403
+              },
+              {
+                "tau": 0.95,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ],
+            "decoy_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 14,
+                "catch": 0.2258,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.7,
+                "escalated": 48,
+                "catch": 0.5968,
+                "tax": 0.55
+              },
+              {
+                "tau": 0.8,
+                "escalated": 67,
+                "catch": 0.7581,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.9,
+                "escalated": 75,
+                "catch": 0.8871,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 82,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ]
+          },
+          "budgets": {
+            "10%": {
+              "tau": 0.52,
+              "escalated": 0,
+              "share": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "next_tau": 0.525,
+              "next_tau_share": 0.1458
+            },
+            "20%": {
+              "tau": 0.6,
+              "escalated": 35,
+              "share": 0.1458,
+              "catch": 0.1699,
+              "tax": 0.1034,
+              "next_tau": 0.605,
+              "next_tau_share": 0.2667
+            },
+            "30%": {
+              "tau": 0.625,
+              "escalated": 64,
+              "share": 0.2667,
+              "catch": 0.3268,
+              "tax": 0.1609,
+              "next_tau": 0.63,
+              "next_tau_share": 0.3333
+            }
+          },
+          "positional_tally": {
+            "positional": 202,
+            "content": 38,
+            "third": 0,
+            "n": 240
+          },
+          "latency_ms": {
+            "n": 240,
+            "p50": 78.7,
+            "p95": 82.591,
+            "mean": 79.402
+          }
+        }
+      },
+      "pass": {
+        "canonical": {
+          "auc_above_half": {
+            "auc": 0.5766,
+            "interval": [
+              0.505,
+              0.6457
+            ],
+            "pass": true
+          },
+          "decoy_first_accuracy_rises": {
+            "before": 0.0,
+            "after": 0.1951,
+            "delta": 0.1951,
+            "pass": true
+          },
+          "truth_first_accuracy_does_not_fall": {
+            "before": 0.7975,
+            "after": 0.462,
+            "delta": -0.3355,
+            "pass": false
+          }
+        },
+        "balanced": {
+          "auc_above_half": {
+            "auc": 0.5438,
+            "interval": [
+              0.4672,
+              0.6159
+            ],
+            "pass": true
+          },
+          "decoy_first_accuracy_rises": {
+            "before": 0.0,
+            "after": 0.2439,
+            "delta": 0.2439,
+            "pass": true
+          },
+          "truth_first_accuracy_does_not_fall": {
+            "before": 0.7975,
+            "after": 0.4241,
+            "delta": -0.3734,
+            "pass": false
+          }
+        }
+      },
+      "box": {
+        "at_start": {
+          "ts": 1793558925.1143496,
+          "load": [
+            6.91,
+            7.5,
+            9.54
+          ],
+          "mem_available_mb": 97125,
+          "gpu_util_pct": "94",
+          "gpu_mem_mb": "[N/A]",
+          "ram_used_mb": 40323,
+          "ram_total_mb": 125749,
+          "gpu_temp_c": 54.812,
+          "vdd_gpu_w": 19.68,
+          "cpu_freq_mhz": [
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972,
+            972,
+            972,
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972
+          ],
+          "cpu_busy_cores": 3
+        },
+        "after_replay": {
+          "ts": 1793558983.2382085,
+          "load": [
+            6.33,
+            7.26,
+            9.33
+          ],
+          "mem_available_mb": 97772,
+          "gpu_util_pct": "88",
+          "gpu_mem_mb": "[N/A]",
+          "ram_used_mb": 39668,
+          "ram_total_mb": 125749,
+          "gpu_temp_c": 55.562,
+          "vdd_gpu_w": 21.245,
+          "cpu_freq_mhz": [
+            2601,
+            2601,
+            972,
+            972,
+            1080,
+            1080,
+            2052,
+            2052,
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972
+          ],
+          "cpu_busy_cores": 2
+        },
+        "at_end": {
+          "ts": 1793558987.1196225,
+          "load": [
+            6.3,
+            7.24,
+            9.31
+          ],
+          "mem_available_mb": 97711,
+          "gpu_util_pct": "98",
+          "gpu_mem_mb": "[N/A]",
+          "ram_used_mb": 39750,
+          "ram_total_mb": 125749,
+          "gpu_temp_c": 55.5,
+          "vdd_gpu_w": 21.639,
+          "cpu_freq_mhz": [
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972,
+            2601,
+            2601,
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972
+          ],
+          "cpu_busy_cores": 3
+        }
+      },
+      "server": {
+        "model_path": "/home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf",
+        "n_ctx": 4096,
+        "n_parallel": null,
+        "build": "b50-2e0d86b",
+        "total_slots": 8
+      },
+      "design": {
+        "steps": 240,
+        "arms": [
+          "recorded",
+          "canonical",
+          "balanced"
+        ],
+        "calls": 720,
+        "arm_rotation": "rotates with the step index",
+        "fixed_pair": "the true condition and the decoy, in a neutral order",
+        "catalog_check": {
+          "sentences_seen": 5,
+          "conditions_missing_from_the_recording": []
+        }
+      },
+      "fidelity": {
+        "compared": 240,
+        "max_abs_diff": 0.0,
+        "mean_abs_diff": 0.0,
+        "argmax_identical": 240,
+        "argmax_identical_share": 1.0,
+        "the_noop_steps": {
+          "compared": 43,
+          "vector_identical": 43
+        }
+      },
+      "determinism": {
+        "steps": 12,
+        "calls": 36,
+        "vector_identical": 36,
+        "per_arm": {
+          "recorded": {
+            "compared": 12,
+            "identical": 12
+          },
+          "canonical": {
+            "compared": 12,
+            "identical": 12
+          },
+          "balanced": {
+            "compared": 12,
+            "identical": 12
+          }
+        }
+      },
+      "latency_per_arm": {
+        "recorded": {
+          "n": 240,
+          "p50": 77.659,
+          "p95": 82.303,
+          "mean": 79.044
+        },
+        "canonical": {
+          "n": 240,
+          "p50": 78.306,
+          "p95": 81.308,
+          "mean": 78.494
+        },
+        "balanced": {
+          "n": 240,
+          "p50": 78.682,
+          "p95": 82.614,
+          "mean": 79.402
+        }
+      }
+    },
+    "d1-3B": {
+      "arms": {
+        "recorded": {
+          "n": 240,
+          "correct": 79,
+          "accuracy": 0.3292,
+          "wilson": {
+            "low": 0.2728,
+            "high": 0.3909
+          },
+          "by_group": {
+            "truth_first": {
+              "n": 158,
+              "correct": 79,
+              "accuracy": 0.5,
+              "wilson": {
+                "low": 0.423,
+                "high": 0.577
+              }
+            },
+            "decoy_first_noop": {
+              "n": 43,
+              "correct": 0,
+              "accuracy": 0.0,
+              "wilson": {
+                "low": 0.0,
+                "high": 0.082
+              }
+            },
+            "decoy_first_two_cond": {
+              "n": 39,
+              "correct": 0,
+              "accuracy": 0.0,
+              "wilson": {
+                "low": -0.0,
+                "high": 0.0897
+              }
+            },
+            "decoy_first": {
+              "n": 82,
+              "correct": 0,
+              "accuracy": 0.0,
+              "wilson": {
+                "low": -0.0,
+                "high": 0.0448
+              }
+            }
+          },
+          "auc": {
+            "auc": 0.3046,
+            "low": 0.2345,
+            "high": 0.3752,
+            "resamples": 2000
+          },
+          "sweep": [
+            {
+              "tau": 0.1,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.2,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.3,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.4,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.5,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.6,
+              "escalated": 39,
+              "act_rate": 0.1625,
+              "catch": 0.0932,
+              "tax": 0.3038,
+              "caught_all": false
+            },
+            {
+              "tau": 0.7,
+              "escalated": 39,
+              "act_rate": 0.1625,
+              "catch": 0.0932,
+              "tax": 0.3038,
+              "caught_all": false
+            },
+            {
+              "tau": 0.8,
+              "escalated": 130,
+              "act_rate": 0.5417,
+              "catch": 0.4596,
+              "tax": 0.7089,
+              "caught_all": false
+            },
+            {
+              "tau": 0.9,
+              "escalated": 197,
+              "act_rate": 0.8208,
+              "catch": 0.7329,
+              "tax": 1.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.95,
+              "escalated": 197,
+              "act_rate": 0.8208,
+              "catch": 0.7329,
+              "tax": 1.0,
+              "caught_all": false
+            }
+          ],
+          "sweep_by_group": {
+            "truth_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 24,
+                "catch": 0.0,
+                "tax": 0.3038
+              },
+              {
+                "tau": 0.7,
+                "escalated": 24,
+                "catch": 0.0,
+                "tax": 0.3038
+              },
+              {
+                "tau": 0.8,
+                "escalated": 107,
+                "catch": 0.6456,
+                "tax": 0.7089
+              },
+              {
+                "tau": 0.9,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ],
+            "decoy_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 15,
+                "catch": 0.1829,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.7,
+                "escalated": 15,
+                "catch": 0.1829,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.8,
+                "escalated": 23,
+                "catch": 0.2805,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.9,
+                "escalated": 39,
+                "catch": 0.4756,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 39,
+                "catch": 0.4756,
+                "tax": 0.0
+              }
+            ]
+          },
+          "budgets": {
+            "10%": {
+              "tau": 0.575,
+              "escalated": 24,
+              "share": 0.1,
+              "catch": 0.0,
+              "tax": 0.3038,
+              "next_tau": 0.58,
+              "next_tau_share": 0.1458
+            },
+            "20%": {
+              "tau": 0.705,
+              "escalated": 39,
+              "share": 0.1625,
+              "catch": 0.0932,
+              "tax": 0.3038,
+              "next_tau": 0.71,
+              "next_tau_share": 0.275
+            },
+            "30%": {
+              "tau": 0.71,
+              "escalated": 66,
+              "share": 0.275,
+              "catch": 0.2609,
+              "tax": 0.3038,
+              "next_tau": 0.715,
+              "next_tau_share": 0.3042
+            }
+          },
+          "positional_tally": {
+            "positional": 98,
+            "content": 99,
+            "third": 0,
+            "n": 197
+          },
+          "latency_ms": {
+            "n": 240,
+            "p50": 47.177,
+            "p95": 120.629,
+            "mean": 58.473
+          }
+        },
+        "canonical": {
+          "n": 240,
+          "correct": 117,
+          "accuracy": 0.4875,
+          "wilson": {
+            "low": 0.425,
+            "high": 0.5504
+          },
+          "by_group": {
+            "truth_first": {
+              "n": 158,
+              "correct": 79,
+              "accuracy": 0.5,
+              "wilson": {
+                "low": 0.423,
+                "high": 0.577
+              }
+            },
+            "decoy_first_noop": {
+              "n": 43,
+              "correct": 19,
+              "accuracy": 0.4419,
+              "wilson": {
+                "low": 0.3043,
+                "high": 0.5889
+              }
+            },
+            "decoy_first_two_cond": {
+              "n": 39,
+              "correct": 19,
+              "accuracy": 0.4872,
+              "wilson": {
+                "low": 0.3387,
+                "high": 0.638
+              }
+            },
+            "decoy_first": {
+              "n": 82,
+              "correct": 38,
+              "accuracy": 0.4634,
+              "wilson": {
+                "low": 0.3596,
+                "high": 0.5706
+              }
+            }
+          },
+          "auc": {
+            "auc": 0.5082,
+            "low": 0.4329,
+            "high": 0.5817,
+            "resamples": 2000
+          },
+          "sweep": [
+            {
+              "tau": 0.1,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.2,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.3,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.4,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.5,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.6,
+              "escalated": 59,
+              "act_rate": 0.2458,
+              "catch": 0.1545,
+              "tax": 0.3419,
+              "caught_all": false
+            },
+            {
+              "tau": 0.7,
+              "escalated": 59,
+              "act_rate": 0.2458,
+              "catch": 0.1545,
+              "tax": 0.3419,
+              "caught_all": false
+            },
+            {
+              "tau": 0.8,
+              "escalated": 178,
+              "act_rate": 0.7417,
+              "catch": 0.8618,
+              "tax": 0.6154,
+              "caught_all": false
+            },
+            {
+              "tau": 0.9,
+              "escalated": 240,
+              "act_rate": 1.0,
+              "catch": 1.0,
+              "tax": 1.0,
+              "caught_all": true
+            },
+            {
+              "tau": 0.95,
+              "escalated": 240,
+              "act_rate": 1.0,
+              "catch": 1.0,
+              "tax": 1.0,
+              "caught_all": true
+            }
+          ],
+          "sweep_by_group": {
+            "truth_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 43,
+                "catch": 0.2405,
+                "tax": 0.3038
+              },
+              {
+                "tau": 0.7,
+                "escalated": 43,
+                "catch": 0.2405,
+                "tax": 0.3038
+              },
+              {
+                "tau": 0.8,
+                "escalated": 118,
+                "catch": 0.7848,
+                "tax": 0.7089
+              },
+              {
+                "tau": 0.9,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ],
+            "decoy_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 16,
+                "catch": 0.0,
+                "tax": 0.4211
+              },
+              {
+                "tau": 0.7,
+                "escalated": 16,
+                "catch": 0.0,
+                "tax": 0.4211
+              },
+              {
+                "tau": 0.8,
+                "escalated": 60,
+                "catch": 1.0,
+                "tax": 0.4211
+              },
+              {
+                "tau": 0.9,
+                "escalated": 82,
+                "catch": 1.0,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 82,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ]
+          },
+          "budgets": {
+            "10%": {
+              "tau": 0.555,
+              "escalated": 0,
+              "share": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "next_tau": 0.56,
+              "next_tau_share": 0.2458
+            },
+            "20%": {
+              "tau": 0.555,
+              "escalated": 0,
+              "share": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "next_tau": 0.56,
+              "next_tau_share": 0.2458
+            },
+            "30%": {
+              "tau": 0.74,
+              "escalated": 59,
+              "share": 0.2458,
+              "catch": 0.1545,
+              "tax": 0.3419,
+              "next_tau": 0.745,
+              "next_tau_share": 0.425
+            }
+          },
+          "positional_tally": {
+            "positional": 145,
+            "content": 95,
+            "third": 0,
+            "n": 240
+          },
+          "latency_ms": {
+            "n": 240,
+            "p50": 47.133,
+            "p95": 119.536,
+            "mean": 58.991
+          }
+        },
+        "balanced": {
+          "n": 240,
+          "correct": 117,
+          "accuracy": 0.4875,
+          "wilson": {
+            "low": 0.425,
+            "high": 0.5504
+          },
+          "by_group": {
+            "truth_first": {
+              "n": 158,
+              "correct": 79,
+              "accuracy": 0.5,
+              "wilson": {
+                "low": 0.423,
+                "high": 0.577
+              }
+            },
+            "decoy_first_noop": {
+              "n": 43,
+              "correct": 19,
+              "accuracy": 0.4419,
+              "wilson": {
+                "low": 0.3043,
+                "high": 0.5889
+              }
+            },
+            "decoy_first_two_cond": {
+              "n": 39,
+              "correct": 19,
+              "accuracy": 0.4872,
+              "wilson": {
+                "low": 0.3387,
+                "high": 0.638
+              }
+            },
+            "decoy_first": {
+              "n": 82,
+              "correct": 38,
+              "accuracy": 0.4634,
+              "wilson": {
+                "low": 0.3596,
+                "high": 0.5706
+              }
+            }
+          },
+          "auc": {
+            "auc": 0.5107,
+            "low": 0.4349,
+            "high": 0.5858,
+            "resamples": 2000
+          },
+          "sweep": [
+            {
+              "tau": 0.1,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.2,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.3,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.4,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.5,
+              "escalated": 0,
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "tax": 0.0,
+              "caught_all": false
+            },
+            {
+              "tau": 0.6,
+              "escalated": 24,
+              "act_rate": 0.1,
+              "catch": 0.0813,
+              "tax": 0.1197,
+              "caught_all": false
+            },
+            {
+              "tau": 0.7,
+              "escalated": 24,
+              "act_rate": 0.1,
+              "catch": 0.0813,
+              "tax": 0.1197,
+              "caught_all": false
+            },
+            {
+              "tau": 0.8,
+              "escalated": 158,
+              "act_rate": 0.6583,
+              "catch": 0.7561,
+              "tax": 0.5556,
+              "caught_all": false
+            },
+            {
+              "tau": 0.9,
+              "escalated": 240,
+              "act_rate": 1.0,
+              "catch": 1.0,
+              "tax": 1.0,
+              "caught_all": true
+            },
+            {
+              "tau": 0.95,
+              "escalated": 240,
+              "act_rate": 1.0,
+              "catch": 1.0,
+              "tax": 1.0,
+              "caught_all": true
+            }
+          ],
+          "sweep_by_group": {
+            "truth_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 22,
+                "catch": 0.1266,
+                "tax": 0.1519
+              },
+              {
+                "tau": 0.7,
+                "escalated": 22,
+                "catch": 0.1266,
+                "tax": 0.1519
+              },
+              {
+                "tau": 0.8,
+                "escalated": 105,
+                "catch": 0.7089,
+                "tax": 0.6203
+              },
+              {
+                "tau": 0.9,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 158,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ],
+            "decoy_first": [
+              {
+                "tau": 0.1,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.2,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.3,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.4,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.5,
+                "escalated": 0,
+                "catch": 0.0,
+                "tax": 0.0
+              },
+              {
+                "tau": 0.6,
+                "escalated": 2,
+                "catch": 0.0,
+                "tax": 0.0526
+              },
+              {
+                "tau": 0.7,
+                "escalated": 2,
+                "catch": 0.0,
+                "tax": 0.0526
+              },
+              {
+                "tau": 0.8,
+                "escalated": 53,
+                "catch": 0.8409,
+                "tax": 0.4211
+              },
+              {
+                "tau": 0.9,
+                "escalated": 82,
+                "catch": 1.0,
+                "tax": 1.0
+              },
+              {
+                "tau": 0.95,
+                "escalated": 82,
+                "catch": 1.0,
+                "tax": 1.0
+              }
+            ]
+          },
+          "budgets": {
+            "10%": {
+              "tau": 0.705,
+              "escalated": 24,
+              "share": 0.1,
+              "catch": 0.0813,
+              "tax": 0.1197,
+              "next_tau": 0.71,
+              "next_tau_share": 0.2458
+            },
+            "20%": {
+              "tau": 0.705,
+              "escalated": 24,
+              "share": 0.1,
+              "catch": 0.0813,
+              "tax": 0.1197,
+              "next_tau": 0.71,
+              "next_tau_share": 0.2458
+            },
+            "30%": {
+              "tau": 0.71,
+              "escalated": 59,
+              "share": 0.2458,
+              "catch": 0.1545,
+              "tax": 0.3419,
+              "next_tau": 0.715,
+              "next_tau_share": 0.3167
+            }
+          },
+          "positional_tally": {
+            "positional": 118,
+            "content": 122,
+            "third": 0,
+            "n": 240
+          },
+          "latency_ms": {
+            "n": 240,
+            "p50": 47.198,
+            "p95": 118.655,
+            "mean": 58.493
+          }
+        }
+      },
+      "pass": {
+        "canonical": {
+          "auc_above_half": {
+            "auc": 0.5082,
+            "interval": [
+              0.4329,
+              0.5817
+            ],
+            "pass": true
+          },
+          "decoy_first_accuracy_rises": {
+            "before": 0.0,
+            "after": 0.4634,
+            "delta": 0.4634,
+            "pass": true
+          },
+          "truth_first_accuracy_does_not_fall": {
+            "before": 0.5,
+            "after": 0.5,
+            "delta": 0.0,
+            "pass": true
+          }
+        },
+        "balanced": {
+          "auc_above_half": {
+            "auc": 0.5107,
+            "interval": [
+              0.4349,
+              0.5858
+            ],
+            "pass": true
+          },
+          "decoy_first_accuracy_rises": {
+            "before": 0.0,
+            "after": 0.4634,
+            "delta": 0.4634,
+            "pass": true
+          },
+          "truth_first_accuracy_does_not_fall": {
+            "before": 0.5,
+            "after": 0.5,
+            "delta": 0.0,
+            "pass": true
+          }
+        }
+      },
+      "box": {
+        "at_start": {
+          "ts": 1793558995.057673,
+          "load": [
+            6.44,
+            7.25,
+            9.3
+          ],
+          "mem_available_mb": 97857,
+          "gpu_util_pct": "98",
+          "gpu_mem_mb": "[N/A]",
+          "ram_used_mb": 39605,
+          "ram_total_mb": 125749,
+          "gpu_temp_c": 54.906,
+          "vdd_gpu_w": 21.648,
+          "cpu_freq_mhz": [
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972,
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972,
+            972,
+            972
+          ],
+          "cpu_busy_cores": 2
+        },
+        "after_replay": {
+          "ts": 1793559038.5589993,
+          "load": [
+            6.98,
+            7.3,
+            9.22
+          ],
+          "mem_available_mb": 98723,
+          "gpu_util_pct": "84",
+          "gpu_mem_mb": "[N/A]",
+          "ram_used_mb": 39899,
+          "ram_total_mb": 125749,
+          "gpu_temp_c": 56.562,
+          "vdd_gpu_w": 10.233,
+          "cpu_freq_mhz": [
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972,
+            2601,
+            2601,
+            972,
+            972,
+            2601,
+            2601,
+            2601,
+            2601
+          ],
+          "cpu_busy_cores": 4
+        },
+        "at_end": {
+          "ts": 1793559041.2791505,
+          "load": [
+            6.98,
+            7.3,
+            9.22
+          ],
+          "mem_available_mb": 98748,
+          "gpu_util_pct": "96",
+          "gpu_mem_mb": "[N/A]",
+          "ram_used_mb": 39866,
+          "ram_total_mb": 125749,
+          "gpu_temp_c": 56.343,
+          "vdd_gpu_w": 10.233,
+          "cpu_freq_mhz": [
+            2601,
+            2601,
+            972,
+            972,
+            972,
+            972,
+            2601,
+            2601,
+            972,
+            972,
+            2601,
+            2601,
+            2601,
+            2601
+          ],
+          "cpu_busy_cores": 4
+        }
+      },
+      "server": {
+        "model_path": "/home/caseydigennaro/models/d1-3B/d1-3B-Q8_0.gguf",
+        "n_ctx": 2048,
+        "n_parallel": null,
+        "build": "b50-2e0d86b",
+        "total_slots": 2
+      },
+      "design": {
+        "steps": 240,
+        "arms": [
+          "recorded",
+          "canonical",
+          "balanced"
+        ],
+        "calls": 720,
+        "arm_rotation": "rotates with the step index",
+        "fixed_pair": "the true condition and the decoy, in a neutral order",
+        "catalog_check": {
+          "sentences_seen": 5,
+          "conditions_missing_from_the_recording": []
+        }
+      },
+      "fidelity": {
+        "compared": 240,
+        "max_abs_diff": 0.016765346869,
+        "mean_abs_diff": 0.001708308802,
+        "argmax_identical": 240,
+        "argmax_identical_share": 1.0,
+        "the_noop_steps": {
+          "compared": 43,
+          "vector_identical": 0
+        }
+      },
+      "determinism": {
+        "steps": 12,
+        "calls": 36,
+        "vector_identical": 36,
+        "per_arm": {
+          "recorded": {
+            "compared": 12,
+            "identical": 12
+          },
+          "canonical": {
+            "compared": 12,
+            "identical": 12
+          },
+          "balanced": {
+            "compared": 12,
+            "identical": 12
+          }
+        }
+      },
+      "latency_per_arm": {
+        "recorded": {
+          "n": 240,
+          "p50": 47.177,
+          "p95": 120.631,
+          "mean": 58.473
+        },
+        "canonical": {
+          "n": 240,
+          "p50": 47.129,
+          "p95": 119.538,
+          "mean": 58.991
+        },
+        "balanced": {
+          "n": 240,
+          "p50": 47.198,
+          "p95": 118.659,
+          "mean": 58.493
+        }
+      }
+    }
+  },
+  "routing": {
+    "canonical": {
+      "d1-2B": {
+        "accuracy": 0.3708,
+        "decoy_first_accuracy": 0.1951,
+        "auc": 0.5766,
+        "gate_at_0_8": {
+          "escalated": 197,
+          "catch": 0.7815,
+          "tax": 0.8876
+        },
+        "latency_p50_ms": 78.306
+      },
+      "d1-3B": {
+        "accuracy": 0.4875,
+        "decoy_first_accuracy": 0.4634,
+        "auc": 0.5082,
+        "gate_at_0_8": {
+          "escalated": 178,
+          "catch": 0.8618,
+          "tax": 0.6154
+        },
+        "latency_p50_ms": 47.129
+      },
+      "steps_where_one_is_right": {
+        "both": 72,
+        "the_2B_only": 17,
+        "the_3B_only": 45,
+        "neither": 106
+      }
+    },
+    "balanced": {
+      "d1-2B": {
+        "accuracy": 0.3625,
+        "decoy_first_accuracy": 0.2439,
+        "auc": 0.5438,
+        "gate_at_0_8": {
+          "escalated": 202,
+          "catch": 0.7974,
+          "tax": 0.9195
+        },
+        "latency_p50_ms": 78.682
+      },
+      "d1-3B": {
+        "accuracy": 0.4875,
+        "decoy_first_accuracy": 0.4634,
+        "auc": 0.5107,
+        "gate_at_0_8": {
+          "escalated": 158,
+          "catch": 0.7561,
+          "tax": 0.5556
+        },
+        "latency_p50_ms": 47.198
+      },
+      "steps_where_one_is_right": {
+        "both": 60,
+        "the_2B_only": 27,
+        "the_3B_only": 57,
+        "neither": 96
+      }
+    }
+  }
+}

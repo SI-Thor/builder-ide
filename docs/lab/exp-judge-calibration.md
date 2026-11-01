@@ -12,7 +12,14 @@ argmax and the full vector of every reply. It measures the both-order
 protocol instead of assuming it, and it **corrects the rows in §6** that the
 assumption produced: the protocol's catch rate is **24.6 %** on the 2B (not
 71.9 %), **2.5 %** on the 3B (not 38.5 %), and averaging the two vectors does
-not cancel the position.
+not cancel the position. **Continued 2026-11-01 (a third time, on the
+Thor):** §8 builds the fix §7 left upstream — the state's named conditions
+in an order the answer cannot be read off, and the named pair the
+recorder's docstring always claimed — and re-measures the same 240 steps
+under it: the AUC un-inverts (**0.2815 → 0.5766 [0.5050, 0.6457]** on the
+2B, the interval wholly above the coin-flip line), the decoy-first steps
+become answerable, **the d1-3B passes every criterion**, and the d1-2B
+stays positional — so the cell routes to the 3B.
 **Verdict: ONE DEFINITION OF CONFIDENCE IS NECESSARY AND NOT SUFFICIENT.
 MEASURED ON 1,470 RECORDED JUDGMENTS, THE CANONICAL DEFINITION (THE TOP
 PROBABILITY) MAKES TWO CELLS' CONFIDENCE **ANTI-CORRELATED** WITH BEING
@@ -560,7 +567,8 @@ same model on the same definition, on a task that does not name a decoy
 taxed 2 % of its traffic. A prompt that names two conditions and asks
 which is shown leaks the answer's *position* to a model that answers
 positionally; the leak has to be removed upstream, by asking a question
-whose answer cannot be read off the order.
+whose answer cannot be read off the order. **§8 builds that fix and
+measures it.**
 
 **The fix, in the judge.** The judge can also refuse to be fooled by the
 position: ask the same question with the two named conditions **in the
@@ -906,13 +914,225 @@ way, so the protocol's second call buys its information at full price.
 5. **The recommendation is unchanged in its direction, and now has its
    numbers.** Do not route on this cell's confidence; the gate's sign is
    wrong and no τ fixes it. The fix is upstream, in the prompt — a question
-   whose answer cannot be read off the order. The both-order protocol stays
+   whose answer cannot be read off the order. §8 builds that fix and
+   measures it; on the fresh recording the recommendation becomes
+   **route this cell to the d1-3B**. The both-order protocol stays
    what §6 called it, a **diagnostic**: it turns "confidently wrong" into
    "undecided" on 57 % of the 2B's steps, at two calls a judgment, and it
    catches 28 of 114 errors. It is not a gate, and on the d1-3B it is not
    even a diagnostic.
 
-## 8. What this does not say
+## 8. The prompt fix
+
+§7 left the fix upstream, in the prompt: *"a question whose answer cannot
+be read off the order."* This section builds it and measures it, on the
+same 240 recorded steps, the same two models, one session, 2026-11-01. The
+scripts are in [`judge-prompt-fix-scripts/`](judge-prompt-fix-scripts/);
+the raw replies are in `…/results/fresh-d1-2B.json` and
+`…/results/fresh-d1-3B.json`, and every number below is in
+`…/results/prompt-fix-measurement.json`.
+
+**Where the leak lived.** The recorder's state builder names two conditions
+— ``The sea is <shown>: …. The sea is <other>: ….`` — with the shown
+condition first. The order was the presentation, and the d1-2B reads the
+presentation as the answer (§7: 85.8 % positional), so the prompt's least
+incidental choice was its most consequential one. The builder's docstring
+says the state *"mentions the true condition plus a decoy, and with
+probability p the decoy is presented as the true one"*; the code does
+something worse than presenting the decoy first on the noise steps — it
+**leaves the truth out of the prompt entirely** (the decoy named twice, or
+the decoy and the truth's neighbour), which is the §7.1 bound no gate could
+lift: 82 of the 2B's 114 errors were unwinnable. A fix that only reordered
+the recorded sentences would have kept that bound — the decoy-first
+accuracy is pinned at 0.0 by arithmetic on any order of a prompt that does
+not name the truth. The fix therefore has the two halves the recorder's own
+docstring intended:
+
+* **the named pair is the true condition and the decoy, on every step** —
+  the docstring's *"mentions the true condition plus a decoy"*; and
+* **the order is not informative**, from `core/judge/ordering.py`: the
+  **canonical** order (sorted by the condition's own name — a key of what
+  the condition is, not of whether it is true) or the **balanced** order
+  (a seeded coin per step, sha256 over the step's ``(trial, t)`` key —
+  half the steps name either condition first, deterministic for replay).
+
+**The arms.** Every step was asked three times: ``recorded`` (the
+recording's own text — the control), ``canonical`` and ``balanced`` (the
+fixed pair in the two neutral orders). The arms rotate with the step index,
+so "which arm went first" is not a variable; 720 calls a model. The
+judgment is the arm's own answer, scored against the ground truth (always
+the true condition); the "before" numbers are the ``recorded`` arm's,
+computed in the same walk.
+
+**The instrument.** The d1-2B was asked on the box's resident thor-admit
+server (port 8094); the d1-3B was served for this run under a lease (port
+8320, 2 × 2048-token slots, the §7 flags), and both replay clients ran
+under thor-admit leases (``judge-prompt-fix.replay-d1-2B``,
+``…replay-d1-3B``). Every live ``recorded`` reply was compared with the
+October recording, vector against vector:
+
+| model | compared | max abs diff | the argmax is the same | the 43 no-op steps' vectors |
+|---|---|---|---|---|
+| d1-2B | 240 of 240 | **0.0** | **240 of 240** | **43 of 43 identical** |
+| d1-3B | 240 of 240 | 0.0168 | **240 of 240** | 0 of 43 (the two-slot server's third decimal, as in §7) |
+
+The ``recorded`` arm's numbers are the published ones, to the fourth
+decimal: the 2B's accuracy 0.5250 and AUC **0.2815 [0.2167, 0.3474]**, the
+3B's 0.3292 and **0.3046 [0.2345, 0.3752]** (§7.3's row) — the instrument
+is the recording's. The determinism control re-asked the first 12 steps in
+all three arms at the end of the run: **36 of 36 vectors identical**, per
+model.
+
+**The box, beside the numbers.** The GPU stood at 94–98 % for both runs
+(other seats' leases held it: a 40 GB generator, a BF16 server, a
+live-view export), 39.6–40.3 GB of RAM used, 54.8–54.9 °C, the load
+6.4–6.9 at the starts. The per-call p50 across arms: the 2B 77.7–78.7 ms,
+the 3B 47.1–47.2 ms — **the 3B was the faster model on this box today**,
+against §7.5's 112.8 ms; the two servers' configurations differ (the
+resident 2B carries an mmproj, 8 slots and a 32 k context; the 3B ran 2
+slots and a 4 k one), so the latencies are this box's and these
+configurations', not the models'.
+
+### 8.1 What the fix did to the cell
+
+| model | arm | accuracy | truth-first (158) | decoy-first (82) | AUC [interval] |
+|---|---|---|---|---|---|
+| d1-2B | recorded (before) | 0.5250 | 0.7975 | 0.0000 | 0.2815 [0.2167, 0.3474] |
+| d1-2B | canonical | 0.3708 | 0.4620 | **0.1951** | **0.5766 [0.5050, 0.6457]** |
+| d1-2B | balanced | 0.3625 | 0.4241 | **0.2439** | 0.5438 [0.4672, 0.6159] |
+| d1-3B | recorded (before) | 0.3292 | 0.5000 | 0.0000 | 0.3046 [0.2345, 0.3752] |
+| d1-3B | canonical | **0.4875** | 0.5000 | **0.4634** | 0.5082 [0.4329, 0.5817] |
+| d1-3B | balanced | **0.4875** | 0.5000 | **0.4634** | 0.5107 [0.4349, 0.5858] |
+
+**The inversion is gone, and on the 2B the interval proves it.** The
+canonical arm's AUC is 0.5766 [0.5050, 0.6457] — wholly above the
+coin-flip line, where 0.2815 [0.2167, 0.3474] was wholly below it. The
+mechanism is visible in the confidences: before, the decoy-first steps
+carried the *higher* mean confidence (0.8735 against the truth-first
+group's 0.6826), because the presentation agreed with itself; after, the
+two groups' confidences are the same number within noise (canonical:
+0.7124 against 0.7082) — the confidence has stopped reading the
+presentation, because the presentation has stopped saying anything.
+
+**The decoy-first steps are answerable now.** They were not answerable
+before — not because the model failed, but because the truth was not in
+the prompt (§7.1). Naming it moves that group off 0.0 on both models: to
+0.1951 (canonical) and 0.2439 (balanced) on the 2B, to 0.4634 on the 3B.
+
+**The two models split, exactly along the line §7 drew.**
+
+* **The d1-3B passes all three of the brief's criteria, on both arms.** Its
+  truth-first accuracy is 0.5000 before and after — and it is the *same*
+  79 steps: the 3B names the truth on the same truth-first steps in all
+  three arms, the §7 order-invariance showing up again as
+  presentation-invariance (its answer is the same in all three arms on 202
+  of its 240 steps). Its decoy-first accuracy rises from 0.0000 to 0.4634;
+  its overall accuracy rises from 0.3292 to 0.4875; its AUC moves above
+  the line (0.5082 canonical, 0.5107 balanced) — though only just, and
+  both intervals straddle 0.5: the inversion is gone, and what remains is
+  a little signal, honestly named a little.
+* **The d1-2B stays positional, and pays for it.** It answers the
+  first-named condition on 207 of its 240 canonical steps (86.3 %; 84.2 %
+  balanced) — the neutral order changed what the first-named condition
+  *is*, not what the model does with it. Its decoy-first accuracy rises
+  (the fix worked on the group the leak had pinned), but its truth-first
+  accuracy falls from 0.7975 to 0.4620, because that number was the leak's
+  own product: the prompt named the truth first 65.8 % of the time, and
+  the model answered the first-named condition. Its overall accuracy
+  falls from 0.5250 to 0.3708. **The brief's pass therefore fails for the
+  2B on its third criterion** — and §8.3 measures the route.
+
+### 8.2 The order mode, chosen by measurement
+
+The brief offered canonical or balanced and asked the measurement to pick.
+
+| | canonical | balanced |
+|---|---|---|
+| d1-2B AUC | **0.5766 [0.5050, 0.6457]** — the only interval wholly above the line | 0.5438 [0.4672, 0.6159] — straddles it |
+| d1-2B decoy-first | 0.1951 | **0.2439** |
+| d1-3B | accuracy 0.4875, AUC 0.5082 | the same accuracy, AUC 0.5107 |
+| the prompt | byte-stable per named pair — no step key to carry | moves with the step key, by design |
+
+**The policy ships canonical** (`core.judge.ordering.neutral_state`, mode
+``canonical``). It is the only arm whose 2B interval clears the coin-flip
+line; it ties balanced everywhere else that matters; and its determinism
+needs no step key, so the same named pair always asks the same prompt —
+the property a replay needs. The balanced order stays in the module for
+the caller whose condition pairs cluster on one side of the canonical key
+(a process whose truths sit at low indices would see the decoy named
+first more often than not; the coin breaks that correlation).
+
+### 8.3 The τ gate after the fix, and the routing
+
+The gate's semantics are the repository's (escalate when the confidence is
+below τ; the canonical confidence is the top probability).
+
+**d1-2B** (151 wrong, 89 right on the canonical arm — against 114 wrong,
+126 right before):
+
+| τ | before: escalated · catch · tax | canonical: escalated · catch · tax |
+|---|---|---|
+| 0.7 | 98 · 0.210 · 0.587 | 138 · 0.656 · 0.438 |
+| 0.8 | 168 · 0.517 · 0.865 | 197 · 0.781 · 0.888 |
+| 0.9 | 179 · 0.553 · 0.921 | 197 · 0.781 · 0.888 |
+
+By group at τ = 0.8, canonical: truth-first escalates 132 (catch 0.812,
+tax 0.863); **decoy-first escalates 65 and catches 0.742 of the group's
+errors** — before, the same τ caught 0.329 of a group whose errors were
+its surest answers. The gate's sign is right for the first time on this
+cell, and the budget table agrees: inside the 30 % budget the canonical
+arm's τ = 0.625 catches **0.298 at a 0.191 tax** (before: 0.211 at
+0.286). Inside 10–20 % the canonical arm still cannot set a useful τ (the
+confidences jump from 0.600, where nothing escalates, to 0.605, where
+25.8 % do — a gap in the distribution, §7.4's shape); the balanced arm
+can, and catches 0.170 at a 0.103 tax inside 20 %.
+
+**d1-3B** (123 wrong, 117 right on the canonical arm — against 161 wrong,
+79 right before):
+
+| τ | before: escalated · catch · tax | canonical: escalated · catch · tax |
+|---|---|---|
+| 0.7 | 39 · 0.093 · 0.304 | 59 · 0.154 · 0.342 |
+| 0.8 | 130 · 0.460 · 0.709 | 178 · 0.862 · 0.615 |
+| 0.9 | 197 · 0.733 · 1.000 | 240 · 1.000 · 1.000 |
+
+At τ = 0.8 the gate catches 0.862 of the errors at a 0.615 tax — more
+catch, less tax than before — and the by-group reading is the fix's
+clearest fingerprint: the decoy-first group's catch rises from 0.281 to
+**1.000** (its errors are no longer the confident ones; τ = 0.8 escalates
+every one of them, taxing 0.421 of the group's right answers), while the
+truth-first group's catch is 0.785 at a 0.709 tax.
+
+**The routing.** The 2B stayed positional under a neutral order — the
+brief's own condition for measuring the route:
+
+| the canonical arm | d1-2B | d1-3B |
+|---|---|---|
+| accuracy | 0.3708 | **0.4875** |
+| decoy-first accuracy | 0.1951 | **0.4634** |
+| AUC | **0.5766** [0.5050, 0.6457] | 0.5082 [0.4329, 0.5817] |
+| the τ gate at 0.8 | catch 0.781 · tax 0.888 | **catch 0.862 · tax 0.615** |
+| latency p50, this box | 78.3 ms | **47.1 ms** |
+| the steps one model is right on | the 2B only: **17** | the 3B only: **45** |
+
+**The recommendation: route this cell — any decision prompt of this
+shape — to the d1-3B.** It is right on 45 steps the 2B gets wrong and
+wrong on 17 the 2B gets right; its gate catches more and taxes less; and
+on this box today it is also the faster model. The 2B keeps the cells
+where its confidence is a real signal (E1's action gate, where it was
+196/196 above τ = 0.5); the sea-state cell was never its cell — the
+prompt named its answer's position, and under a neutral order it has
+nothing else to read.
+
+**What the fix does not do.** It does not make the task easy. The fixed
+state names two conditions and nothing in the text says which holds, so a
+model that reads content lands near the half a symmetrical question
+deserves (the 3B: 0.4875). The fix removes the *wrong* signal; it does
+not add a right one. A cell that needs accuracy above that needs a state
+that carries evidence — which is the caller's perception to provide, not
+the order policy's.
+
+## 9. What this does not say
 
 * **It does not say the d1 models are useless.** It says their confidence
   is not a routing signal *on the sea-state task*, where the prompt
@@ -953,7 +1173,7 @@ way, so the protocol's second call buys its information at full price.
   test, which builds a night whose confidence stops separating and checks
   that the morning carries one line for it.
 
-## 9. Reproducing it
+## 10. Reproducing it
 
 ```bash
 # the suites (no network, no GPU, no LLM)
@@ -1011,12 +1231,37 @@ what they read are in
 [`judge-reversed-scripts/`](judge-reversed-scripts/); the suite for them is
 `tests/judge/test_reversed_replay.py`.
 
+**§8's fresh recording, on the Thor.** §8 asks a model too: the same 240
+steps under the three arms (the recorded text, and the fixed pair in the
+two neutral orders), on the served d1 models.
+
+```bash
+# the fresh recording (needs a served d1; under a lease, on a shared box)
+~/lm-wt/core-judge/.venv/bin/python docs/lab/judge-prompt-fix-scripts/replay_fixed.py \
+  --model d1-2B --port 8094 --out docs/lab/judge-prompt-fix-scripts/results/fresh-d1-2B.json
+~/lm-wt/core-judge/.venv/bin/python docs/lab/judge-prompt-fix-scripts/replay_fixed.py \
+  --model d1-3B --port 8320 --out docs/lab/judge-prompt-fix-scripts/results/fresh-d1-3B.json
+
+# the analysis (CPU, no model; reads the fresh recordings)
+~/lm-wt/core-judge/.venv/bin/python docs/lab/judge-prompt-fix-scripts/measure_fixed.py
+```
+
+The replay reads the same October traces the reversed replay reads and
+writes `docs/lab/judge-prompt-fix-scripts/results/fresh-d1-2B.json`,
+`…/fresh-d1-3B.json` (every reply of every arm, the fidelity check, the
+determinism control, the box state and the per-arm latency) and the
+analysis writes `…/results/prompt-fix-measurement.json` (every number in
+§8). The order policy the arms ask under is `core/judge/ordering.py`; the
+suites are `tests/judge/test_ordering.py` (the policy) and
+`tests/judge/test_prompt_fix.py` (the replay's arms and the analysis's
+semantics).
+
 The whole core, on the ProArt at this commit: **1,669 passed, 13 skipped,
 16 deselected** (the deselected are the opt-in real-engine run). The
 `pxr` collection error in `tests/usd` is pre-existing — the USD extra's
 wheels are not installed here.
 
-## 10. The verdict
+## 11. The verdict
 
 **One definition of confidence is necessary and not sufficient.** The
 mechanism the seed asked for is built and measured: one function computes
@@ -1083,6 +1328,24 @@ What the measurement adds, on 1,470 recorded judgments:
    **2.5 %** of the 3B's (4 of 161), because the 3B's answers do not move
    when the prompt's order does. Inside a 10–30 % escalation budget it is no
    better than the τ gate (§7.4). It stays a **diagnostic**, not a gate.
+8. **The prompt fix was built, and it did what the mechanism said it
+   would.** The fixed state names the true condition and the decoy — the
+   recorder's own docstring, which its code did not carry out — in an
+   order no answer can be read off, and the cell's numbers move the way
+   the leak's removal moves them: the AUC un-inverts (**0.2815 → 0.5766
+   [0.5050, 0.6457]** on the 2B, the interval wholly above the line it
+   was wholly below), the confidence stops reading the presentation
+   (the two groups' mean confidences converge to within noise), the
+   decoy-first steps become answerable (0.0 → 0.4634 on the 3B), and the
+   τ gate's sign comes right (at τ = 0.8 the 3B catches 0.862 at a 0.615
+   tax, against 0.460 at 0.709 before). The split §7 found holds under
+   the fix: **the d1-3B passes every criterion and gains 16 points of
+   accuracy; the d1-2B stays positional (86.3 %) and loses its
+   leak-inflated truth-first score.** The shipped order is canonical,
+   the measurement's choice (§8.2). The recommendation this note leaves
+   the builder is now concrete: **route decision prompts of this shape
+   to the d1-3B** — more right answers, a gate with the right sign, less
+   tax, and (on the box that measured it) less latency (§8.3).
 
 The practical consequence for the builder: **the confidence gate's τ is a
 per-cell parameter with a measured value, not a default.** `core/judge`
@@ -1103,7 +1366,12 @@ own box states are in their own files. The scripts are in
 [`judge-calibration-scripts/`](judge-calibration-scripts/). §7 was recorded
 on the **Thor** on 2026-11-01 (aarch64, CUDA 13.2, 122 GB unified) — the
 replay's own box state is in §7 and in the replies' file; its scripts are in
-[`judge-reversed-scripts/`](judge-reversed-scripts/).*
+[`judge-reversed-scripts/`](judge-reversed-scripts/). §8 was recorded on the
+**Thor** the same day, against the same traces — the fresh recordings' box
+state is in §8 and in the replies' files; its scripts, and the order policy
+they ask under, are in
+[`judge-prompt-fix-scripts/`](judge-prompt-fix-scripts/) and
+`core/judge/ordering.py`.*
 
 ## Limits of the both-order protocol (Hy4 adversarial review, 2026-11-01)
 **Answered by §7** (the replay named in this section's last paragraph was
