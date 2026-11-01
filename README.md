@@ -124,6 +124,7 @@ seat you work from.
 | [idea3](docs/research/idea3.md) | Optimisation ideas checked against our measurements: d1 batching, L2 pinning, static pools (pairs with thor-admit) and Green Contexts are worth testing; DLA offload and on-die NVLink-C2C are false for the Thor |
 | [idea4](docs/research/idea4.md) | Built on our public results; new seeds: an anticipatory pre-generator for the daytime world, CUDA stream priorities for a responsive preview, pinned core affinity, a double-buffered scene state |
 | [idea5](docs/research/idea5.md) | Orchestrating a swarm of models: "never wait" (deadline, fallback, supersede without rewriting history) for the first mile; a central conductor; partitioning by bandwidth sensitivity; and a correction: **our Thor reports MIG as "Disabled", not N/A, on JetPack 7.2.1**, so hardware memory partitioning may be available |
+| [si-constraints](docs/research/si-constraints.md) | The crew's constraint-optimisation repos mapped onto ours: exact lattice snapping for determinism by construction, XOR dual-path checks for new kernels, constraint projection for the night's rails, a Laman-style determinacy check for Infinigen's indoor solver |
 | [ig2-procfunc](docs/research/ig2-procfunc.md) | Infinigen 1.x vs 2.0 and procfunc: the engine decision |
 | [trellis-spike](docs/research/trellis-spike.md) | TRELLIS.2 on the Thor: works, clean licence, BF16 not FP8, CPU-bound mesh tail |
 | [warm-scene](docs/research/warm-scene.md) | The warm scene server spike: the win is builder wait and crash recovery |
