@@ -256,10 +256,11 @@ allocation could get. **`MemAvailable` is the number the rule uses**, because
 it is the conservative one and it is the same number the OOM killer acts on.
 `tegrastats` is kept as a second reading in the status and in the log.
 
-The GPU's per-process figure *is* used: the daemon samples
-`nvidia-smi --query-compute-apps` every 8 ticks (2 s) and attributes the
-bytes to the lease that owns the pid. That is the `peak_gpu_bytes` in the
-history — the only GPU number that can honestly be called a per-lease peak.
+The GPU's per-process figure *is* used: one `nvidia-smi` child keeps
+printing `--query-compute-apps` every 2 s, the daemon reads its lines,
+and it attributes the bytes to the lease that owns the pid. That is the
+`peak_gpu_bytes` in the history — the only GPU number that can honestly
+be called a per-lease peak.
 
 ## 7. The measured numbers
 
