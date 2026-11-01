@@ -644,8 +644,8 @@ between five good models — it is a choice about *when the first sample of
 audio has to exist*.
 
 (Rung 2's figures are with the 8-second agent reference. The cost of that
-reference is measured in §16: a 26-frame reference gets to the first audio
-in 2.6 s instead of 6.8 s.)
+reference is measured in §16, and the reference was re-cut to 5.6–5.8 s in
+§18: 5.7–6.3 s on the same line-length of text.)
 
 **Why the previous path could not do any of this.** The voice lived on the
 Thor, behind a LAN hop, and a reply that has to cross the network cannot be
@@ -743,6 +743,11 @@ synthetic reference: a line spoken by Paradee on this machine
 | Isolde | `bf_isabella` | 7.78 s, synthetic | 1, 2, 3 |
 | Puck | `am_puck` | 8.25 s, synthetic | 1, 2, 3 |
 | Fable | `bm_fable` | 7.45 s, synthetic | 1, 2, 3 |
+
+(These long references are now the **anchors** — the fixed identity every
+clone is measured against. The reference the repository ships is the
+shorter line re-cut in §18, and the shipped clones are verified against
+these files.)
 
 The point of a synthetic reference is not only the privacy rule: because
 rung 1 and rung 3 are cloned from the **same seed**, the agent that speaks at
@@ -866,14 +871,209 @@ touched when a brand-new command shape has to be compiled into a reflex.
 2. **The reflex store still does not persist.** It is in memory, so it is
    empty again after a restart — and the gate's store with it. Both are
    content-addressed and could be written out; nothing does it yet.
-3. **Rung 3 is not in the first mile's routing yet.** It is measured and
+3. **Rung 3 is not in the first mile's routing yet** *(closed in §18)*. It is measured and
    served (`scripts/audio8_gpu_service.py`, port 8815), and it is where the
    coach's cues and the narrated events should come from, but the router
    still sends the routine to rung 1 and the conversation to rung 4.
-4. **Rung 2 needs short references** before it is usable at all (§16), and
+4. **Rung 2 needs short references** *(closed in §18)* before it is usable at all (§16), and
    the agent references are currently 7.5–8.3 s.
 5. **The hard-ask route still has a door but no worker** (§10).
 6. **The decision route still points at a URL that is not running** (§10).
 7. **The Thor comparison is still not run** (§8), and still would not change
    the design: the instant reply has to be local.
 
+
+---
+
+## 18. Round 3: rung 3 into the router, and the reference, re-cut
+
+Measured 2026-11-01, same box as §1. The machine state for every number in
+this section: all six of our services up at once (LFM3-Audio on 8811, the
+reflex layer on 8791, Paradee on 8813, the 0.1B ONNX voice on 8814, the
+0.6B voice on 8815, the first mile on 8790, world-mcp on 8808), the 4050 at
+**5630 MiB of 6141 MiB** with both GPU voices resident, 5.7 GB of RAM
+available. Two items left open in §17 are closed here: rung 3 is in the
+routing (item 3), and the agent references are short (item 4).
+
+### The route table is a parameter
+
+The ladder is now a table the first mile holds, not a rule wired into it:
+
+| kind of utterance | voice | rung |
+|---|---|---|
+| `ack` | the cached bytes | 0 |
+| `routine` | Paradee, the CPU | 1 |
+| `narration` | Audio8 Realistic 0.6B, the 4050 | 3 |
+| `conversation` | LFM3-Audio-2B, the 4050 | 4 |
+
+`--voice-routes '{"narration":"paradee"}'` moves a kind to another rung
+without touching the router; `--routine-voice llm` still puts the routine
+back on the model, which is what round 1 did. A kind whose service is down
+falls to a voice that is up rather than losing the line.
+
+**The routing decision's own cost.** It is a regex and a dictionary lookup,
+and it has to be cheaper than the 51 ms path it sits in front of. Measured
+in isolation over the 15-line scripted session, 200 repetitions each
+(`scripts/bench_router.py`): **0.39 µs median, 0.75 µs at p95**, worst
+sample 59.7 µs (a scheduler hiccup; the next-worst was 2.6 µs). On the live
+WebSocket path the same decision is reported by the server at
+**0.005–0.011 ms per turn**. The router is four orders of magnitude cheaper
+than the fastest voice it can pick.
+
+**The route table in force, checked on the wire.** The scripted session was
+driven down a real WebSocket to the running first mile, and the server's
+own report was read back. Fourteen turns: 4 routine (world commands), 6
+narration (the world narrating what it did, the night log, a briefing), 4
+conversation (decision and free-form questions). Each turn landed on the
+voice the table says.
+
+| kind | voice | first audio, ms after the trigger |
+|---|---|---|
+| routine (4 turns) | paradee | 586–650 (the world-mcp call included; the voice alone 150–197) |
+| conversation (4 turns) | llm | 54–510 |
+| narration (6 turns) | audio8_gpu | 5897–11 839 (see below) |
+
+**The narration number needed a mechanism fix.** The first run of this
+bench had the night-log answers at 19–30 s to the first audio. The reason
+is in the ladder data: rung 3's `/speak` is a **one-shot** service — in
+every ladder row its first-audio time equals its total time — and the 0.6B
+model synthesises *slower* than real time on the 4050 (RTF 1.35 on a short
+line, worse as lines get longer). First audio therefore scaled with the
+length of the whole answer: a 167-character night-log answer was 29.5 s of
+silence. The fix is in the client, not the model: `speak()` now cuts a
+narration into sentences and speaks them one at a time
+(`split_narration`), so the first sentence streams while the rest are still
+being synthesised. The same answers dropped to **5.9–6.3 s**; the worst
+turn (11.8 s) is an answer whose *first sentence* is itself 106
+characters. Rung 3's first audio is now bounded by its first sentence, not
+by its brief. (True token-level streaming is rung-3 model work, and is
+still open.)
+
+**What this makes possible.** The coach's cues, the night's log and a
+presentation are routed to the expressive voice without anyone changing
+code, the routine never leaves the CPU, and the conversation keeps the
+model — while the decision about which is which costs under a microsecond.
+
+### The reference, re-cut
+
+§16's fit says rung 2's first audio is `1929 ms + 28.3 ms per reference
+frame`, so the reference length is the lever. The references the repository
+was carrying (7.45–8.25 s of speech, 161–178 codec frames) cost 7.0–7.8 s
+of prefill. How short can they be?
+
+**The curve** (`scripts/bench_ref_curve.py`): eight candidate lines, four
+agents, each candidate synthesised fresh by Paradee in that agent's voice,
+registered with the 0.1B runtime, spoken, and compared against the agent's
+**anchor** — the long reference the repository carries, which does not move
+during the experiment. The metric is §14's: cosine similarity of WavLM
+x-vectors; the floor is the brief's SIM ≥ 0.95.
+
+| candidate | frames | af_heart | bf_isabella | am_puck | bm_fable | first audio |
+|---|---|---|---|---|---|---|
+| "On it." | 26–33 | 0.920 | 0.868 | 0.908 | 0.824 | 2758–3313 ms |
+| "The north pier." | 32–40 | 0.973 | 0.966 | 0.954 | 0.961 | 3135–3593 ms |
+| "The north pier is sturdier." | 45–56 | 0.933 | 0.972 | 0.939 | 0.965 | 3469–3950 ms |
+| "The harbour wall took the tide." | 46–59 | 0.964 | 0.970 | 0.920 | 0.977 | 3449–3928 ms |
+| "The north pier is sturdier now." | 46–60 | 0.978 | 0.960 | 0.952 | 0.970 | 3224–4440 ms |
+| "The harbour wall took the tide twice last week." | 65–75 | 0.980 | 0.961 | 0.949 | 0.976 | 4002–4218 ms |
+| **the picked line** (see below) | 121–126 | 0.969 | 0.970 | 0.961 | 0.980 | 5335–6156 ms |
+| the old full reference | 161–178 | 0.978 | 0.986 | 0.975 | 0.984 | 7076–7808 ms |
+
+(Single process, two repetitions per cell, medians. Every voice its own
+frame count, because the codec frames track the voice's speaking speed.)
+
+**The curve is not monotonic, and single samples lie.** "The north pier is
+sturdier." (46 frames on the voice that counts) scores *below* the shorter
+"The north pier." (32 frames) in the same run. Worse, the same text does
+not give the same number twice: "The north pier." on af_heart is 0.9726 in
+one process and 0.9496 in another; bf_isabella's "On it." is 0.9721 in one
+process and 0.8682 in another. **The mechanism:** within one Paradee
+instance the whole pipeline is deterministic — four reference samples
+synthesised in one process gave four x-vector similarities identical to
+four decimal places (`--spread-samples 4`, spread 0.0000) — so the
+variance is established when the model instance starts, not when it
+speaks. A reference is therefore **a sample from a per-instance
+distribution**, and a candidate only earns the floor if its worst measured
+sample across processes clears it. That rules out everything above the
+picked line on at least one voice: the 32–60-frame candidates all have a
+sub-0.95 process-sample on af_heart or am_puck, and the 65-frame line
+dips to 0.9494 on am_puck.
+
+**am_puck is the binding voice.** §14 measured its same-speaker ceiling —
+the same voice, a different line — at 0.971, the lowest of the four
+agents. The brief's floor sits only ~0.02 below what a *perfect* clone
+scores for this voice, so the floor is close to the metric's own noise
+band for am_puck, and no reference length fixes that. What the length can
+do is keep the rest of the distribution clear of the floor, which the
+picked line does: across independent processes its worst measured sample
+per agent is **af_heart 0.9686 (3 samples), bf_isabella 0.9695 (2), am_puck
+0.9503 (3), bm_fable 0.9731 (2)**.
+
+**The pick:** "The harbour wall took the tide twice last week, so I would
+not put more weight on the north span." — one line, said four ways. The
+shipped references are 5.60–5.825 s (121–126 frames); the old long
+references are kept beside them as the anchors
+(`models/agent-voices/refs-anchor/`). The shipped references, verified
+against the anchors (`scripts/make_agent_voices.py --verify`):
+
+| agent | frames | SIM vs anchor | rung-2 first audio |
+|---|---|---|---|
+| Ariadne (`af_heart`) | 122 | **0.9748** | 6315 ms |
+| Isolde (`bf_isabella`) | 123 | **0.9749** | 6104 ms |
+| Puck (`am_puck`) | 126 | **0.9515** | 5672 ms |
+| Fable (`bm_fable`) | 121 | **0.9825** | 5690 ms |
+
+Rung 2's first audio is **5.7–6.3 s, down from 7.0–7.8 s** on the same
+line-length of text. Every clip is kept for the ear (`out/verify/`,
+`out/ref_curve_clips/`) — the SIM floor is the gate, not the review.
+
+**About the ≈2.6 s the brief aimed at.** 2.6 s of first audio needs a
+≤26-frame reference, and at 26 frames the clone leaves the floor: 0.82–0.95
+observed across agents and processes. The target and the SIM ≥ 0.95 floor
+are mutually exclusive on this metric, and the measurement says which one
+gives: the floor holds, and the shortest first audio under it is
+**≈5.7 s** with one text shared by all four agents. (A shorter per-agent
+text — the 49-frame line for the three voices that hold it, the picked
+line for am_puck — would put three agents near 3.5 s; it costs one more
+thing to keep identical across seats, and is queued behind it.)
+
+**What this makes possible.** The clone that used to cost 7.5 s of silence
+before its first word costs 5.7 s, and the reason it can't currently go
+lower is not the model's speed but the identity floor — which is a number
+we can now track as the 0.1B runtime improves, rather than a taste
+decision.
+
+### One voice per agent, everywhere
+
+The agents' voices are now defined **once**, in `web/voices.json`: for each
+agent, the Paradee voice, the reference text, the **SHA-256 of the
+reference WAV**, the seconds, the rung-2 and rung-3 voice ids, and the
+licence. The hash is the identity: another seat that synthesises the same
+text in the same Paradee voice and hashes it can check it is speaking the
+same agents, not similar ones. The reference audio itself is not
+published — every seat that wants a clone makes its own from the same
+text, and what travels between seats is a line of text, not a recording.
+
+**No human audio is involved anywhere in this chain.** The reference is a
+model speaking the ship's computer's own line; the clones are models
+cloning that; the test lines are the verify line and the bench line. No
+recording of any person is stored or transmitted, per the standing rule.
+
+The consumer this was built for is the **agent-world seat** on the Thor
+(`http://192.168.0.78:8080/voices`), which speaks the same four characters
+with Kokoro-82M in the browser. The mechanism that lets it swap engines
+without changing its character map: Paradee was distilled from Kokoro-82M
+and **kept Kokoro's voice names**, so `af_heart`, `bf_isabella`, `am_puck`
+and `bm_fable` are the same four ids on both sides.
+`docs/agent-world-patch-note.md` is the instruction set for that seat —
+the files to copy (24.8 MB against Kokoro's 92 MB), the three edits, the
+licence note on the embedded eSpeak phonemiser, and the check to run
+afterwards. Its first-audio numbers in a browser tab were measured here in
+§15 (105–378 ms). Nothing in the Thor's repository was touched.
+
+### Costs
+
+Still $0.00009 of cloud spend in this document: every number in this
+section is local — the curve, the spreads, the verify, the routed session
+and the registry were all produced on the ProArt, and the audio the benches
+generated is model speech, ours to keep or delete.
