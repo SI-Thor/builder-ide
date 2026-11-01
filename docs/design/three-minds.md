@@ -27,3 +27,16 @@ The roles meet at **contracts**, not at an engine:
 - the mediator needs typed edits with evidence.
 
 So the same three minds run in a real game engine (last-mile in Bevy, or Roblox as a proof-of-concept place) or in the real world (a robot whose reflexes read Syzygy text from real sensors, whose canon is a shared map, and whose mediator is a cloud model improving its tiles). You swap the simulation and the projectors, not the minds.
+
+## The reflex layer as a room, not a ring (Casey, 2026-10-31)
+
+"With tensors and multi-threads and warps, we don't have to think about the MIDI as only a ring. It's a neural network. The ring is just the simple, manageable node system for good-enough. But we can think about who is connected to who, and how the reverberation is filtered automatically, like a room."
+
+- **The room as a relevance filter.** Nodes (builders, readers, projectors, decision models) sit in a space, physical or semantic. Edges carry change events with a **delay** that grows with distance and a **gain** that falls with distance and per hop (absorption). Each node hears the superposition: near neighbours early and strong, far ones late and faint, nothing past the walls. Interest management becomes continuous rather than a yes/no need-to-know.
+- **Stability is a spectral property.** One tick of propagation is a sparse matrix P applied to the change vector. Echoes die away if and only if P's spectral radius is below 1: absorption beats gain around every loop. That is a room's reverb time (RT60) in linear-algebra form. The crew's holonomy and cycle-consistency work, the missing cycle check in new2's cell graph, and constraint-crdt's exponential decay are all ways of keeping it below 1.
+- **On the Thor:**
+  - propagation per tick is one batched sparse multiply, on the GPU (which wins from N ≈ 20 with CUDA Graphs, `exp-ct-thor.md`);
+  - inboxes stay resident in unified memory;
+  - connectivity can be **learned** from outcomes (who should hear whom), as attention is a learned room.
+
+*Experiment (queued):* ring vs broadcast vs room propagation on bandwidth per tick, the latency of *relevant* events, the total echo energy over time, and whether the spectral-radius rule predicts the measured decay.
