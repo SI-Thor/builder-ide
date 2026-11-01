@@ -385,4 +385,86 @@ asymmetries are worth naming for whoever prices the FP4 night:
    veto law already agrees with (§6.3). No bridge change; the note
    is so the first FP4 night's replay reads its winners correctly.
 
+### 7.7 The presence round: the daemon grew a time axis (2026-11-01)
+
+Since §7 was written, thor-admit merged to main — not as it was, but
+grown: a **presence queue** (registered work that runs when no live
+request waits, pre-empted by memory `SIGTERM` or GPU `SIGSTOP`),
+**tiers** (live / preparation / practice / study — the accounting bands
+the ledger books seconds to), and a **time ledger** (`ledger.jsonl`,
+one line per hour: tier seconds, the GPU's power and busy share, the
+CPU's per-core shares, and the idle time by cause). §7.1's fourth layer
+reserved *bytes*; it now also books *seconds*. The
+journals have carried a thread since session 3 — when two schedulers
+touch, they get written down against each other before they tangle —
+and the daemon and the auction now share the box's time, so here is
+the mapping, written down before anyone has to reverse-engineer it:
+
+**The two schedulers own different questions.** The auction (this
+study) prices *what the night buys*: it allocates the night's
+gpu-minutes/joules/cents budget across bidders, once per admission,
+and its jurisdiction ends with the night's ledger. The presence
+scheduler prices *what the gaps do*: it fills the hours no live lease
+claims, and gives them back the moment live work needs the memory or
+the GPU. They compose at the lease — §6.2's mapping, now with a tier
+field:
+
+| the ecology's work | the tier it registers as | why |
+|---|---|---|
+| a night's winning bids | **live** | "nights, previews, first-mile requests" — the tier's own description |
+| the replay / shadow scoring of a proposed change | **practice** | "replaying proposed changes" is the tier's own description; the mini-night-2 replay is exactly this |
+| the parity suites, the hardware experiment batches | **study** | "the Infinigen sweep, hardware experiment batches, parity suites" |
+| pre-generating likely-needed assets, keyframe refreshes | **preparation** | the tier's own description; the tiles' pre-generation work is a natural first resident |
+
+**The law the mapping implies:** the auction never becomes a presence
+job's scheduler. A practice-tier replay that wants the GPU mid-night
+queues behind live work by the daemon's rule — the auction has no
+jurisdiction outside its night, and the presence queue has none inside
+it. Two schedulers that both think they own the box's time is how the
+11.76-minute bar happened (§6.1); one axis each, and the recorded
+boundary between them, is how it doesn't happen again.
+
+**The units stay separate, again.** The night's `Rail` books
+gpu-minutes/hosted-cents/wall-minutes (§6.1); the daemon's ledger
+books wall-seconds by tier and samples the GPU's power in mW. They
+meet only at the recorded boundary — the night's runner ledger — and
+the replay is where the two are compared, never the daemon. And the
+joules question §7.4 left in the core stays where it was left: the
+ledger *measures* power (VDD_GPU means and maxima, per hour), the
+cost model *prices* energy (`CostEstimate.joules`), and the one
+conversion between them lives in the core, not in the daemon — the
+same one-place-for-accounting-arithmetic law as the why door's §4.3.
+
+**What this makes cheap (the second recorded night).** The In-flight
+overnight Infinigen sweep will be the first night that runs under the
+presence scheduler, and its hours will land in `ledger.jsonl` with
+causes. That is the second night §3's ladder wants, with one addition
+the first night did not have: the ledger's idle-cause column says
+where the box's unclaimed time went, so the replay can compare the
+auction's shadow allocation not just against what the runner spent
+but against what the box was *actually doing* — `no_work_registered`
+versus `waiting_for_memory` is the difference between "the auction
+under-budgeted" and "the box had room and nobody asked", which are
+two different failures with two different fixes.
+
+**The open question the exp doc asked, answered from our side.**
+exp-thor-admit §17: "What should be in the presence queue… it cannot
+say what *should* have been there. That is a question for the night
+runner and the seats." From the ecology side, three first residents,
+each with a measured peak rather than a guess (the learned-peaks
+pattern, `history.rs`):
+
+1. **the replay scorer** (practice): CPU-bound, read-only over the
+   recorded night ledger; the shadow run §7.1 describes is this job.
+2. **the parity suite** (study): `cargo test -p ecology-cuda` legs,
+   resumable by test binary.
+3. **the calibration re-runs** (practice): the judge's τ rebuilds
+   from the ledger — the standing gate already rebuilds from the
+   ledger after a restart (`judge-fixes`), so the job is a re-run of
+   an existing path, not a new one.
+
+Each registers with `--peak auto` and lets the daemon's own history
+price it — the same discipline the bridge's `lease_for` already
+follows (§6.2).
+
 *— the ecology-thor team*
