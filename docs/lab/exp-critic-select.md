@@ -104,9 +104,20 @@ it was done, with the box's state captured beside it:
 | peak memory used (whole box) | 42 968 MiB |
 | minimum memory available | 82 780 MiB (the rule's floor is 25 000) |
 | whole-box joules | VDD_GPU 16 385 J (mean 33.7 W), VDD_CPU_SOC_MSS 8 533 J (17.6 W), VIN 37 369 J (76.9 W) |
+| the GPU's clock across the window | 1 395 MHz at the start, 1 125 MHz at the end (the ceiling is 1 575 MHz) |
+| the box's load average | 7.14 → 5.46 (other seats' work) |
 
 Those joules are the **box's**, not the critic's. The rails include the seed
 sweep and the other seats, so they are context and not an attribution.
+
+The clock is the other half of that honesty: a cold GPU reads up to 2.6× slow
+on this box, so the clock goes beside the number. It sat at 1 395 MHz at the
+start of the stage and 1 125 MHz at the end — well above the 315 MHz idle
+floor, because the sweep had the GPU warm — so the VLM's per-question times
+are warm-GPU times. They are also shared-GPU times: the sweep was rendering
+into the same device. The absolute per-question figures carry that much, and
+the comparison between candidates is the part that holds, because each
+candidate was measured on the same set with the same counting rule.
 
 ## The results
 
