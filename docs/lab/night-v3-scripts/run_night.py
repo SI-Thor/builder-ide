@@ -1238,7 +1238,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="the whole wiring on the fake engine and the "
                              "fake judge: no services, no props, no live view")
     args = parser.parse_args(argv)
-    out = args.out
+    # Absolute before any child sees it: the engine CLI, the world-stream
+    # exporter and the compiler all run with another cwd, and a relative
+    # --out would be resolved against each of them (the run C lesson: the
+    # render was fine, and written where the seam never looked).
+    out = args.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
     (out / "world").mkdir(exist_ok=True)
     load_secrets()
