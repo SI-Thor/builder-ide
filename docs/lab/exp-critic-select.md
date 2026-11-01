@@ -228,10 +228,11 @@ Jev never sees a picture. It is given a **text description** of the frame
 and the scripted checks' **measurements** — the numbers, without the
 thresholds, so it cannot re-implement the checks. Two question types (a
 **Noul** per class, `jev_verify`; one **Choice** over all the classes plus
-"clean", `jev_classify`) and two inputs (with the measurements, and the
-description alone) give four arms; the description is the local VLM's
-*neutral* description of the frame (what the scene shows and what looks
-wrong, without naming the defect classes).
+"clean", `jev_classify`) and three inputs (the measurements alone, the
+description alone, and the description with the measurements) give **six
+arms**; the description is the local VLM's *neutral* description of the
+frame (what the scene shows and what looks wrong, without naming the defect
+classes).
 
 | arm | TP | FP | FN | TN | FP rate | FN rate | ms/verdict |
 |---|---|---|---|---|---|---|---|
