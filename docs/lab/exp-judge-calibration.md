@@ -2,17 +2,25 @@
 
 **Date:** 2026-10-31 (the judge-calibration seat; **CPU-only, no GPU, no
 server, no cloud key** — every vector below is a *recorded* probability
-vector, replayed from disk)
+vector, replayed from disk). **Continued 2026-11-01:** the bootstrap
+intervals (§5.1, §5.2) and the τ-gate analysis (§6) were added, and every
+number was re-measured on that day — the re-measurement reproduces the
+2026-10-31 numbers exactly, so nothing below moved.
 **Verdict: ONE DEFINITION OF CONFIDENCE IS NECESSARY AND NOT SUFFICIENT.
 MEASURED ON 1,470 RECORDED JUDGMENTS, THE CANONICAL DEFINITION (THE TOP
 PROBABILITY) MAKES TWO CELLS' CONFIDENCE **ANTI-CORRELATED** WITH BEING
-RIGHT (AUC 0.2815 AND 0.2944 — THE MORE SURE THE MODEL IS, THE MORE OFTEN
-IT IS WRONG), MAKES A THIRD CARRY NO SIGNAL AT ALL (AUC 0.5115, AND THE
-ONLY τ THAT CATCHES EVERY ERROR ESCALATES EVERY GOOD ONE), AND MAKES A
-FOURTH SEPARATE CLEANLY (AUC 1.0000). THE RECALIBRATION WORKS WHERE THE
-SIGNAL IS THERE — NINE OF ELEVEN CELLS KEEP A SCALE THAT IMPROVES THE
-HELD-OUT BRIER — BUT A CALIBRATED τ IS STILL READ IN THE CALIBRATED SPACE,
-AND ON A BINARY THE RAW FLOOR IT ASKS FOR IS NEVER BELOW A HALF.**
+RIGHT (AUC 0.2815 [0.2167, 0.3474] AND 0.2944 [0.2255, 0.3652] — BOTH
+INTERVALS BELOW THE COIN-FLIP LINE, SO THE INVERSION IS THE CELL'S AND NOT
+A SMALL SAMPLE'S NOISE — THE MORE SURE THE MODEL IS, THE MORE OFTEN IT IS
+WRONG), MAKES A THIRD CARRY NO SIGNAL AT ALL (AUC 0.5115 [0.4364, 0.5836],
+AND THE ONLY τ THAT CATCHES EVERY ERROR ESCALATES EVERY GOOD ONE), AND MAKES
+A FOURTH SEPARATE CLEANLY (AUC 1.0000). THE RECALIBRATION WORKS WHERE THE
+SIGNAL IS THERE — TEN OF ELEVEN CELLS KEEP A SCALE THAT IMPROVES THE
+HELD-OUT BRIER, AND THE PAIRED BOOTSTRAP SAYS WHICH OF THOSE GAINS ARE
+ESTABLISHED — BUT A CALIBRATED τ IS STILL READ IN THE CALIBRATED SPACE, AND
+ON A BINARY THE RAW FLOOR IT ASKS FOR IS NEVER BELOW A HALF. AND ON THE
+LEAKY SEA-STATE TASK THE τ GATE'S SIGN IS WRONG: ITS ESCALATIONS LAND ON
+THE RIGHT ANSWERS AND ITS ACTS ON THE WRONG ONES (§6).**
 
 ---
 
@@ -99,7 +107,7 @@ surfaced plays were of another tile, and 428 judgments are scored.
 | GPU | RTX 4050 Laptop (6,141 MiB) — **not used**, no model was run |
 | kernel | Linux 6.18.54.1-microsoft-standard-WSL2 (WSL2) |
 | python / numpy | 3.14.4 / 2.5.4 |
-| git | `b3bb9e0` (the branch `judge-calibration`) |
+| git | `b3bb9e0` (the branch `judge-calibration`) — the intervals were added and every number re-measured at `3ed1f6f`, with identical results |
 | GPU-resident | none; the vectors are replayed from disk |
 
 The **recordings** were made elsewhere and their own box state is in their
@@ -186,8 +194,14 @@ fitted per cell:
   ranking error is not a calibration error.
 
 Both are fitted on the **older half** of the cell's outcomes and scored on
-the **newer half** (chronologically — a calibration fitted on the future
-describes nothing about the past). A scale is **kept only if it improves
+the **newer half**, and the split is **time-ordered**: the cell's judgments
+are kept in the order the recording made them and the cut is a prefix/suffix
+cut, so the half that was fitted always *precedes* the half that is scored —
+a calibration fitted on the future describes nothing about the past. (The
+recordings carry no wall-clock timestamps: the order is the recording's own
+— the trace's step order, the rig's play order, the cascade's case order —
+and every number in the tables below is scored on the half that came after
+the half it was fitted on.) A scale is **kept only if it improves
 the held-out Brier score**; otherwise the raw confidence stands and the
 report says so.
 
@@ -280,21 +294,62 @@ refitted on the newest outcomes, and the gate's τ is read from it again.
 An AUC of "—" means the cell has no wrong judgment to order against
 (accuracy 1.0000), so there is nothing for a threshold to catch.
 
-### 5.2 After the recalibration (fitted on the older half, read on the newer)
+**The AUCs carry error bars.** A separability measured on 240 judgments is
+a number with a spread, and the spread is what says whether the number is
+worth reading. The bootstrap resamples the **judgments** (2,000 draws,
+seeded, so the interval repeats): the d1-2B's AUC is 0.2815 with a 95 %
+interval of **[0.2167, 0.3474]** and the d1-3B's is 0.2944 with
+**[0.2255, 0.3652]** — **both intervals lie entirely below a half**, so
+the anti-correlation is a property of these cells and not the noise of a
+small sample. The tiles rig's AUC of 0.5115 has the interval
+**[0.4364, 0.5836]**, which **straddles** the coin-flip line: "no signal
+here" is what the data says, and "a little signal" is what the data does
+not say. The teacher's `beacon_bearing` cell, at 0.7480
+[0.5957, 0.8715], is above the line for the whole interval, and
+`defect_class` is at 1.0000 [1.0000, 1.0000]. The teacher's `tile.tile`
+cell, at 0.6149 [0.4630, 0.7557], straddles it — a weak signal, not a
+measured one.
 
-| cell | scale | kept | held-out accuracy | held-out Brier | held-out ECE |
-|---|---|---|---|---|---|
-| d1-2B · liquid trace | isotonic | yes | 0.5583 → 0.5583 | 0.1588 → **0.1355** | 0.3198 → 0.0364 |
-| d1-3B · liquid trace | isotonic | yes | 0.3750 → 0.3750 | 0.2018 → **0.1437** | 0.4633 → 0.3332 |
-| tiles rig · judge-only | temperature (T = 0.1723) | yes | 0.8224 → 0.8224 | 0.0647 → **0.0499** | 0.2535 → 0.0841 |
-| clef teacher · scene.enemy_visible | isotonic | yes | 1.0000 → 1.0000 | 0.0008 → **0.0000** | 0.0189 → 0.0000 |
-| clef teacher · scene.action | isotonic | yes | 1.0000 → 1.0000 | 0.0089 → **0.0000** | 0.0747 → 0.0000 |
-| clef teacher · scene.beacon_bearing | isotonic | **no** | 0.9250 → 0.9250 | 0.0327 → 0.0359 | 0.0639 → 0.0894 |
-| clef teacher · scene.beacon_reachable | isotonic | yes | 1.0000 → 1.0000 | 0.0022 → **0.0000** | 0.0404 → 0.0000 |
-| clef teacher · defect.defect_class | temperature (T = 0.05) | yes | 0.9667 → 0.9667 | 0.0241 → **0.0057** | 0.4344 → 0.0309 |
-| clef teacher · tile.tile | isotonic | yes | 0.5667 → 0.5667 | 0.1199 → **0.1084** | 0.2128 → 0.1026 |
-| clef student · scene.enemy_visible | isotonic | yes | 1.0000 → 1.0000 | 0.0160 → **0.0000** | 0.0704 → 0.0000 |
-| clef student · scene.beacon_reachable | isotonic | yes | 1.0000 → 1.0000 | 0.0448 → **0.0000** | 0.2054 → 0.0000 |
+### 5.2 Before and after, on the same judgments
+
+The two halves of the measurement on **one basis**: every row below is the
+cell's **held-out half** (the newer half, the one the scale never saw),
+scored twice — once with the raw confidence and once with the scale — so
+the numbers are comparable. The cell-wide numbers of §5.1 are the cells as
+they are; these are the same cells on the half that is scored.
+
+| cell | scale | kept | accuracy | Brier | ECE | the Brier's improvement, 95 % |
+|---|---|---|---|---|---|---|
+| d1-2B · liquid trace | isotonic | yes | 0.5583 → 0.5583 | 0.1588 → **0.1355** | 0.3198 → 0.0364 | **+0.0233** [+0.0086, +0.0387] |
+| d1-3B · liquid trace | isotonic | yes | 0.3750 → 0.3750 | 0.2018 → **0.1437** | 0.4633 → 0.3332 | **+0.0580** [+0.0285, +0.0857] |
+| tiles rig · judge-only | temperature (T = 0.1723) | yes | 0.8224 → 0.8224 | 0.0647 → **0.0499** | 0.2535 → 0.0841 | **+0.0148** [+0.0041, +0.0238] |
+| clef teacher · scene.enemy_visible | isotonic | yes | 1.0000 → 1.0000 | 0.0008 → **0.0000** | 0.0189 → 0.0000 | +0.0008 [+0.0002, +0.0019] |
+| clef teacher · scene.action | isotonic | yes | 1.0000 → 1.0000 | 0.0089 → **0.0000** | 0.0747 → 0.0000 | +0.0089 [+0.0038, +0.0145] |
+| clef teacher · scene.beacon_bearing | isotonic | **no** | 0.9250 → 0.9250 | 0.0327 → 0.0359 | 0.0639 → 0.0894 | −0.0032 [−0.0104, +0.0055] |
+| clef teacher · scene.beacon_reachable | isotonic | yes | 1.0000 → 1.0000 | 0.0022 → **0.0000** | 0.0404 → 0.0000 | +0.0022 [+0.0014, +0.0032] |
+| clef teacher · defect.defect_class | temperature (T = 0.05) | yes | 0.9667 → 0.9667 | 0.0241 → **0.0057** | 0.4344 → 0.0309 | **+0.0183** [+0.0072, +0.0246] |
+| clef teacher · tile.tile | isotonic | yes | 0.5667 → 0.5667 | 0.1199 → **0.1084** | 0.2128 → 0.1026 | +0.0116 [−0.0042, +0.0269] |
+| clef student · scene.enemy_visible | isotonic | yes | 1.0000 → 1.0000 | 0.0160 → **0.0000** | 0.0704 → 0.0000 | +0.0160 [+0.0025, +0.0355] |
+| clef student · scene.beacon_reachable | isotonic | yes | 1.0000 → 1.0000 | 0.0448 → **0.0000** | 0.2054 → 0.0000 | **+0.0448** [+0.0372, +0.0530] |
+
+The last column is the **paired** bootstrap of the improvement: the same
+judgments scored with and without the scale, so every draw is the
+*difference* of two means over one resample of the judgments (2,000
+draws, seeded). Positive means the recalibration helped. An interval in
+**bold** excludes zero.
+
+**Two of the intervals change what the tables can claim.** The teacher's
+`tile.tile` cell keeps its isotonic map by the rule — the held-out Brier
+improved — but the improvement's interval **[−0.0042, +0.0269] straddles
+zero**: on 30 held-out judgments the improvement is *not* established, and
+the table's `0.1199 → 0.1084` is a point estimate with that spread behind
+it. The same is true, more weakly, of the `beacon_bearing` cell that was
+dropped. The other **nine** kept cells' improvements are established: their
+intervals exclude zero, and the two liquid-trace cells and the tiles rig are
+among them (+0.0233 [+0.0086, +0.0387], +0.0580 [+0.0285, +0.0857] and
++0.0148 [+0.0041, +0.0238]). So the keep rule and the interval agree on ten
+of the eleven cells, and the one they disagree on is the cell with the
+fewest held-out judgments.
 
 **The accuracy column does not move, in any cell, by any amount.** That
 is the property that makes this the *value* half of the cascade's paired
@@ -451,7 +506,108 @@ wrongness — it is fixing the *scale* of the confidence, and it does: the
 held-out Brier goes 0.0160 → 0.0000 and 0.0448 → 0.0000, and the held-out
 ECE 0.0704 → 0.0000 and 0.2054 → 0.0000.
 
-## 6. What this does not say
+## 6. What it means for the τ gate
+
+The decoy-first finding is a finding about the **gate**, not only about the
+model. A τ on this cell's confidence is a threshold on *which condition the
+prompt named*, and the prompt names the decoy first in exactly the rows
+where the model is wrong. So the gate's job (escalate the wrong judgments)
+and the gate's cost (tax the right ones) are **both inverted** on this
+cell, and no τ fixes it.
+
+**What the gate does, group by group** (the d1-2B's 240 recorded
+judgments; the two groups are the prompt's order, and every decoy-first
+judgment is wrong):
+
+| τ | truth-first (158): escalated · catch · tax | decoy-first (82): escalated · catch |
+|---|---|---|
+| 0.5 | 0 · 0.000 · 0.000 | 0 · 0.000 |
+| 0.6 | 19 · 0.000 · 0.151 | 8 · 0.098 |
+| 0.7 | 90 · 0.500 · 0.587 | 8 · 0.098 |
+| 0.8 | 141 · **1.000** · 0.865 | 27 · 0.329 |
+| 0.9 | 148 · **1.000** · 0.921 | 31 · 0.378 |
+
+Read the table by group. In the truth-first group the gate works as a gate
+should: at τ = 0.8 it catches **every** wrong judgment (catch 1.000) and
+taxes 86.5 % of the right ones. In the decoy-first group — where the
+confidence is *highest* — the gate catches almost nothing: at τ = 0.9 it
+still misses 62 % of them, because they sit above every threshold the
+confidence can offer. **The gate's escalations land on the right answers and
+its acts land on the wrong ones**, and the AUC's interval says the
+inversion is not noise: 0.2815 **[0.2167, 0.3474]**, the whole interval
+below the coin-flip line (the d1-3B: 0.2944 **[0.2255, 0.3652]**).
+
+**The consequence for the routing.** The seed's kill condition is met on
+this cell, and the τ is not a number to tune: it is a number to stop
+using. The calibration report publishes the AUC and now its interval, so a
+cell whose separability sits below a half is *named* as one that carries no
+routing signal — and the router there has to be driven by something else
+(the tiles rig's own numbers prefer the band's estimate, 0.7867, to the
+judge-only arm's 0.6900). This is the same conclusion the tiles rig's cell
+reaches by a different road (AUC 0.5115, interval **[0.4364, 0.5836]** —
+the interval that says "no signal", not "a little signal").
+
+**The fix, upstream.** The confidence is not broken; the **prompt** is. The
+same model on the same definition, on a task that does not name a decoy
+(E1's action gate), had a confidence that caught 100 % of its errors and
+taxed 2 % of its traffic. A prompt that names two conditions and asks
+which is shown leaks the answer's *position* to a model that answers
+positionally; the leak has to be removed upstream, by asking a question
+whose answer cannot be read off the order.
+
+**The fix, in the judge.** The judge can also refuse to be fooled by the
+position: ask the same question with the two named conditions **in the
+other order** and escalate when the two answers disagree. Measured on the
+recording, for the d1-2B:
+
+| | the τ gate at τ = 0.8 | the both-order protocol |
+|---|---|---|
+| escalations | 168 of 240 | 208 of 240 |
+| the wrong judgments caught | 59 of 114 (51.8 %) | **82 of 114 (71.9 %)** |
+| the right judgments taxed | 109 of 126 (86.5 %) | 126 of 126 (100 %) |
+| calls a judgment | 1 | **2** |
+| added latency, p50 | — | **+32.21 ms** (the 3B: +50.70 ms) |
+
+The protocol catches more of the errors, and it costs everything: it taxes
+every right answer and it doubles the calls. **The recording does not hold
+the reversed replies** — the trace asked each question in one order only —
+so the protocol's row is computed under one stated assumption: that the
+model treats the reversed prompt as the same question with the two named
+conditions **swapped**, so its answer follows the option it chose,
+renamed. Under that assumption the two orders disagree exactly when its
+answer was one of the two named conditions — and the recording shows the
+answer is the **first**-named condition in 208 of its 240 steps (and in
+**82 of 82** of the decoy-first ones) and the second-named one in
+**none** of them, so on this trace the two orders disagree exactly on
+those 208 steps. A recording of the reversed replies would settle it; that
+is a run on the Thor, and it is not run here.
+
+**What the both-order protocol is worth.** Not a better gate — on this
+cell no gate is. It is a **diagnostic**: it turns "confidently wrong" into
+"undecided", so the leak shows up as a disagreement between two runs
+instead of hiding behind a confident answer. And it says plainly what the
+τ gate would have done here: acted on the model's surest mistakes.
+
+**Its yield is a property of the model, not of the protocol.** The 3B
+answers positionally in 141 of its 240 steps against the 2B's 208, so the
+same protocol on the same task catches 62 of its 161 errors (**38.5 %**)
+against the 2B's 82 of 114 (71.9 %). A weaker leak buys a weaker
+diagnostic, and the 3B's τ gate is no better: at τ = 0.9 it catches
+47.6 % of the decoy-first errors against the 2B's 37.8 %. The protocol
+does not manufacture signal; it surfaces the signal that is there.
+
+**Averaging the two confidences does not help, and the reason is the
+mechanism.** The confidence is a property of the *position*, so averaging
+two position-confidences leaves two position-confidences: the average
+would be about as large as either. What cancels the position is averaging
+the two **vectors** — the average of the first-named answer and the
+second-named answer puts the pair near 50/50, and the number the gate reads
+becomes the probability of the *pair*, not of the presentation. That is the
+same object as the τ gate's own finding in §5.3: on a binary, the raw
+floor is never below a half, because one of two options always holds at
+least half the mass. The both-order average on a binary *is* that floor.
+
+## 7. What this does not say
 
 * **It does not say the d1 models are useless.** It says their confidence
   is not a routing signal *on the sea-state task*, where the prompt
@@ -489,13 +645,13 @@ ECE 0.0704 → 0.0000 and 0.2054 → 0.0000.
   test, which builds a night whose confidence stops separating and checks
   that the morning carries one line for it.
 
-## 7. Reproducing it
+## 8. Reproducing it
 
 ```bash
 # the suites (no network, no GPU, no LLM)
-.venv/bin/python -m pytest -q tests/judge/test_calibration.py   # 48 tests
+.venv/bin/python -m pytest -q tests/judge/test_calibration.py   # 54 tests
 .venv/bin/python -m pytest -q tests/judge/test_tracking.py      # 23 tests
-.venv/bin/python -m pytest -q tests/judge                       # 148 tests
+.venv/bin/python -m pytest -q tests/judge                       # 187 tests
 
 # the measurement (replays the recorded vectors; writes the JSON)
 .venv/bin/python docs/lab/judge-calibration-scripts/measure_calibration.py
@@ -515,12 +671,19 @@ The script reads five files and writes one:
 and writes
 `docs/lab/judge-calibration-scripts/results/calibration-measurement.json`
 with every number in this note, the reliability curves, the full sweeps
-under all three definitions, the fitted scales and the machine state.
+under all three definitions, the fitted scales, the bootstrap intervals
+(each AUC's, and each cell's paired Brier improvement) and the machine
+state.
 
 The clef results live on another machine's worktree; copy them in, or
 point the script at that path.
 
-## 8. The verdict
+The whole core, on the ProArt at this commit: **1,669 passed, 13 skipped,
+16 deselected** (the deselected are the opt-in real-engine run). The
+`pxr` collection error in `tests/usd` is pre-existing — the USD extra's
+wheels are not installed here.
+
+## 9. The verdict
 
 **One definition of confidence is necessary and not sufficient.** The
 mechanism the seed asked for is built and measured: one function computes
@@ -540,18 +703,30 @@ What the measurement adds, on 1,470 recorded judgments:
    sea-state task the d1-2B's AUC is 0.2815 and the d1-3B's 0.2944, and
    the most confident bin is right 16 % of the time — because the model is
    confident about which condition the *prompt* named, and the prompt
-   names the decoy first in 35 % of the steps.
+   names the decoy first in 35 % of the steps. The bootstrap intervals
+   (**[0.2167, 0.3474]** and **[0.2255, 0.3652]**) lie entirely below a
+   half, so the inversion is the cell's property, not a small sample's
+   noise.
 3. **A confidence can carry no signal at all.** The tiles rig's AUC is
-   0.5115; the only τ that catches every wrong judgment escalates all
-   428. There the router has to be driven by something else — the
-   band's own estimate, which the rig's own numbers prefer (0.7867
-   against 0.6900).
+   0.5115 with the interval **[0.4364, 0.5836]** — it straddles the
+   coin-flip line, which is the measurement saying "no signal here"
+   rather than "a little signal"; and the only τ that catches every wrong
+   judgment escalates all 428. There the router has to be driven by
+   something else — the band's own estimate, which the rig's own numbers
+   prefer (0.7867 against 0.6900).
 4. **The recalibration works where the signal is there.** Ten of the
    eleven cells keep a scale that improves the held-out Brier, and the
    one that drops it is the one where the fit made the newer half worse.
-   The Brier and the ECE can disagree, and a Brier-optimal scale can be
-   degenerate (the teacher's `defect_class` temperature hit the bound of
-   its search), so the scale is kept by the rule and read with the ECE
+   The **paired** bootstrap says which of those improvements are
+   established: nine of the ten kept cells' intervals exclude zero —
+   among them the two liquid-trace cells (+0.0233 [+0.0086, +0.0387]
+   and +0.0580 [+0.0285, +0.0857]) and the tiles rig (+0.0148 [+0.0041,
+   +0.0238]) — while the teacher's `tile.tile` cell's improvement
+   (+0.0116 [−0.0042, +0.0269]) does not: on 30 held-out judgments that
+   cell's gain is a point estimate with the interval behind
+   it. The Brier and the ECE can disagree, and a Brier-optimal scale can
+   be degenerate (the teacher's `defect_class` temperature hit the bound
+   of its search), so the scale is kept by the rule and read with the ECE
    beside it. The **accuracy does not move in any cell** — a map that
    never changes the answer can only say how sure to be about the answer
    it already gave, which is the value half of the cascade's paired gate
@@ -564,6 +739,16 @@ What the measurement adds, on 1,470 recorded judgments:
    history is the noise floor, and the three drift kinds are the
    separability falling to the coin-flip line, the ECE moving further
    than it ever has, and a fitted scale going stale.
+7. **On a leaky task the gate's sign is wrong, and no τ fixes it.** The
+   sea-state prompt names the decoy first in 35 % of the steps, and the
+   model's certainty is about *which condition the prompt named* — so the
+   gate's escalations land on the right answers and its acts on the wrong
+   ones (§6). The fix is upstream, in the prompt; the judge's own version
+   of it — ask both orders and escalate when they disagree — catches more
+   of the errors (71.9 % against 51.8 % at τ = 0.8) at twice the calls
+   and the full tax of every right answer, and the recording does not hold
+   the reversed replies, so that row is computed under a stated
+   assumption.
 
 The practical consequence for the builder: **the confidence gate's τ is a
 per-cell parameter with a measured value, not a default.** `core/judge`
