@@ -1,0 +1,307 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "post_height",
+    "expression": "1500",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "post_width",
+    "expression": "120",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "post_depth",
+    "expression": "40",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "gate_width",
+    "expression": "780",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "rail_bottom_z",
+    "expression": "150",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "rail_height",
+    "expression": "60",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "slat_count",
+    "expression": "5"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "slat_depth",
+    "expression": "40",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "rail_depth",
+    "expression": "50",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "post_width",
+    "width": "post_depth",
+    "height": "post_height",
+    "corner": [
+     "-post_width/2",
+     "-rail_depth - post_depth",
+     "0"
+    ],
+    "body_name": "posts"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "post_width",
+    "width": "post_depth",
+    "height": "post_height",
+    "corner": [
+     "post_width/2 + gate_width",
+     "-rail_depth - post_depth",
+     "0"
+    ],
+    "body_name": "post_right"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "posts",
+    "tools": [
+     "post_right"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "gate_width",
+    "width": "rail_depth",
+    "height": "rail_height",
+    "corner": [
+     "post_width/2",
+     "-rail_depth/2",
+     "rail_bottom_z"
+    ],
+    "body_name": "leaf"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "gate_width",
+    "width": "rail_depth",
+    "height": "rail_height",
+    "corner": [
+     "post_width/2",
+     "-rail_depth/2",
+     "rail_bottom_z + gate_width + rail_height"
+    ],
+    "body_name": "rail_top"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "gate_width/(2*slat_count)",
+    "width": "slat_depth",
+    "height": "gate_width",
+    "corner": [
+     "post_width/2 + 0*2*gate_width/(2*slat_count)",
+     "-slat_depth/2",
+     "rail_bottom_z + rail_height"
+    ],
+    "body_name": "slat_0"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "gate_width/(2*slat_count)",
+    "width": "slat_depth",
+    "height": "gate_width",
+    "corner": [
+     "post_width/2 + 1*2*gate_width/(2*slat_count)",
+     "-slat_depth/2",
+     "rail_bottom_z + rail_height"
+    ],
+    "body_name": "slat_1"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "gate_width/(2*slat_count)",
+    "width": "slat_depth",
+    "height": "gate_width",
+    "corner": [
+     "post_width/2 + 2*2*gate_width/(2*slat_count)",
+     "-slat_depth/2",
+     "rail_bottom_z + rail_height"
+    ],
+    "body_name": "slat_2"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "gate_width/(2*slat_count)",
+    "width": "slat_depth",
+    "height": "gate_width",
+    "corner": [
+     "post_width/2 + 3*2*gate_width/(2*slat_count)",
+     "-slat_depth/2",
+     "rail_bottom_z + rail_height"
+    ],
+    "body_name": "slat_3"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "gate_width/(2*slat_count)",
+    "width": "slat_depth",
+    "height": "gate_width",
+    "corner": [
+     "post_width/2 + 4*2*gate_width/(2*slat_count)",
+     "-slat_depth/2",
+     "rail_bottom_z + rail_height"
+    ],
+    "body_name": "slat_4"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "leaf",
+    "tools": [
+     "rail_top",
+     "slat_0",
+     "slat_1",
+     "slat_2",
+     "slat_3",
+     "slat_4"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "GateWood",
+    "density_g_cm3": 0.7,
+    "color": "#8b6a43"
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "posts",
+     "leaf"
+    ],
+    "material": "GateWood"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "posts",
+     "leaf"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "revolute",
+    "a": {
+     "occurrence": "posts",
+     "point": [
+      60,
+      -25,
+      0
+     ],
+     "z": [
+      0,
+      0,
+      1
+     ]
+    },
+    "b": {
+     "occurrence": "leaf",
+     "point": [
+      60,
+      -25,
+      0
+     ],
+     "z": [
+      0,
+      0,
+      1
+     ]
+    },
+    "limits": [
+     [
+      0,
+      80
+     ]
+    ],
+    "flip": true,
+    "name": "gate_hinge"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}

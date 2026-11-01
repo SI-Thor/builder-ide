@@ -1,0 +1,135 @@
+You are a mechanical CAD prop designer. You write one script that
+builds one prop: a parametric rigid-body assembly for a physics
+simulation.
+
+=== THE PROP ===
+name: table
+description: A dining table on four legs with aprons and a fixed top, plus a hinged drop-leaf that folds down beside it.
+
+=== PARAMETERS ===
+Every dimension comes from these names. A length is in millimetres.
+  table_height = 740
+  top_length = 840
+  top_width = 640
+  top_thickness = 32
+  leaf_length = 400
+  leg_thickness = 60
+  leg_inset = 20
+  apron_height = 140
+
+=== BODIES ===
+Each body is one rigid part of the assembly. A cell is a closed solid;
+its extent along an axis is the maximum coordinate minus the minimum.
+  body "frame" (static):
+    cell "leg_front_left"     box      x=[-top_length/2 + leg_inset, -top_length/2 + leg_inset + leg_thickness]  y=[-top_width/2 + leg_inset, -top_width/2 + leg_inset + leg_thickness]  z=[0, table_height]
+    cell "leg_front_right"    box      x=[top_length/2 - leg_inset - leg_thickness, top_length/2 - leg_inset]  y=[-top_width/2 + leg_inset, -top_width/2 + leg_inset + leg_thickness]  z=[0, table_height]
+    cell "leg_back_left"      box      x=[-top_length/2 + leg_inset, -top_length/2 + leg_inset + leg_thickness]  y=[top_width/2 - leg_inset - leg_thickness, top_width/2 - leg_inset]  z=[0, table_height]
+    cell "leg_back_right"     box      x=[top_length/2 - leg_inset - leg_thickness, top_length/2 - leg_inset]  y=[top_width/2 - leg_inset - leg_thickness, top_width/2 - leg_inset]  z=[0, table_height]
+    cell "apron_front"        box      x=[-top_length/2 + leg_inset + leg_thickness, top_length/2 - leg_inset - leg_thickness]  y=[-top_width/2 + leg_inset, -top_width/2 + leg_inset + leg_thickness]  z=[table_height - apron_height, table_height]
+    cell "apron_back"         box      x=[-top_length/2 + leg_inset + leg_thickness, top_length/2 - leg_inset - leg_thickness]  y=[top_width/2 - leg_inset - leg_thickness, top_width/2 - leg_inset]  z=[table_height - apron_height, table_height]
+    cell "apron_left"         box      x=[-top_length/2 + leg_inset, -top_length/2 + leg_inset + leg_thickness]  y=[-top_width/2 + leg_inset + leg_thickness, top_width/2 - leg_inset - leg_thickness]  z=[table_height - apron_height, table_height]
+    cell "apron_right"        box      x=[top_length/2 - leg_inset - leg_thickness, top_length/2 - leg_inset]  y=[-top_width/2 + leg_inset + leg_thickness, top_width/2 - leg_inset - leg_thickness]  z=[table_height - apron_height, table_height]
+    cell "top_fixed"          box      x=[-top_length/2, top_length/2]  y=[-top_width/2, top_width/2]  z=[table_height, table_height + top_thickness]
+  body "leaf" (moving):
+    cell "leaf_panel"         box      x=[top_length/2, top_length/2 + leaf_length]  y=[-top_width/2, top_width/2]  z=[table_height, table_height + top_thickness]
+
+=== JOINT ===
+  name                type          parent            child             axis          origin (world)                            limits
+  leaf_hinge        revolute      frame             leaf              [0.0, 1.0, 0.0][top_length/2, 0, table_height]           [0 deg, 90 deg]
+
+=== ACTION ===
+  Drive these joints to these values:
+    leaf_hinge -> 90 rad
+
+=== RULES ===
+1. Answer with the script only. Nothing before it, nothing after it: no
+   explanation, no notes, no markdown fence unless the output format asks for one.
+2. Build exactly the bodies, the cells, the joint and the action the brief
+   lists. Do not add a body, a cell, a joint or a feature.
+3. Every dimension must come from the PARAMETERS block, by name. A literal
+   number is allowed only where the brief itself gives one.
+4. The cells of one body end up in that one body as a single rigid part. The
+   bodies stay separate from each other.
+5. The joint joins the two bodies the JOINT block names, with that type, that
+   axis direction, at that origin point, and inside those limits.
+6. Millimetres for lengths, degrees for angles, unless the output format says
+   otherwise.
+7. The script runs headless, with no input, and asks nothing.
+
+
+=== OUTPUT FORMAT ===
+One Python module, and nothing else. It runs headless and defines two
+module-level names:
+
+  PARAMS   a dict mapping every parameter name to its numeric value in
+           millimetres
+  BODIES   a dict mapping every body name to a build123d Shape (a Part, or a
+           Compound of Parts) holding that body's cells, already placed in
+           world coordinates: Z up, the origin at the centre of the prop's
+           footprint
+
+The module may use the build123d library, which is installed:
+
+  from build123d import *
+  Box(length, width, height, align=(Align.MIN, Align.MIN, Align.MIN))
+      a box; align says which corner sits at the origin, Align.MIN on every
+      axis puts the minimum corner there
+  Cylinder(radius, height, align=(Align.CENTER, Align.CENTER, Align.MIN),
+           rotation=(0, 0, 0))
+      a cylinder along Z by default; rotation=(rx, ry, rz) in degrees turns it,
+      so (0, 90, 0) puts the axis along X; Align.CENTER on every axis centres
+      the cylinder on the origin
+  Pos(x, y, z) * shape
+      moves a shape
+  shape + other       fuse two solids
+  shape - other       cut
+  Part() + shape      a Part holding one or more solids
+  Compound([shape, ...])   an assembly of solids
+  shape.volume, shape.area, shape.center()
+      volume, area and centre of mass
+  export_step(shape, "prop.step")
+      write a STEP file
+
+How the pieces fit:
+  - A cell's extent along an axis is its maximum coordinate minus its minimum
+    coordinate. A box is placed by its minimum corner, a cylinder by the centre
+    of its bottom face.
+  - The cells of one body are fused into one Shape; the bodies stay separate.
+  - A half-cylinder is a cylinder cut by the plane through its axis, keeping
+    the half the brief names.
+  - The module must end by writing the whole prop to a STEP file:
+    export_step(Compound(list(BODIES.values())), "prop.step").
+
+
+=== EXAMPLE ===
+The same kind of brief, answered in this output format. The prop there is not
+the prop above.
+
+Brief: name "sample_box"; parameters w=220, d=160, h=120, t=12; body "base"
+(static) with cell "base" box x=[-w/2, w/2] y=[-d/2, d/2] z=[0, t] and cell
+"wall_back" box x=[-w/2, w/2] y=[d/2 - t, d/2] z=[t, h - t]; body "lid"
+(moving) with cell "lid" box x=[-w/2, w/2] y=[-d/2, d/2] z=[h - t, h]; joint
+"lid_hinge" revolute, parent "base", child "lid", axis [1, 0, 0], origin
+[0, 80, 108], limits [0 deg, 90 deg]; action: lid_hinge -> 90 deg.
+
+Answer:
+
+from build123d import Align, Box, Compound, Part, Pos, export_step
+
+PARAMS = {"w": 220.0, "d": 160.0, "h": 120.0, "t": 12.0}
+
+_w = PARAMS["w"]
+_d = PARAMS["d"]
+_h = PARAMS["h"]
+_t = PARAMS["t"]
+
+_base = Pos(-_w / 2, -_d / 2, 0) * Box(_w, _d, _t, align=(Align.MIN, Align.MIN, Align.MIN))
+_wall = Pos(-_w / 2, _d / 2 - _t, _t) * Box(_w, _t, _h - 2 * _t, align=(Align.MIN, Align.MIN, Align.MIN))
+_lid = Pos(-_w / 2, -_d / 2, _h - _t) * Box(_w, _d, _t, align=(Align.MIN, Align.MIN, Align.MIN))
+
+BODIES = {
+    "base": Part() + _base + _wall,
+    "lid": Part() + _lid,
+}
+
+export_step(Compound(list(BODIES.values())), "prop.step")

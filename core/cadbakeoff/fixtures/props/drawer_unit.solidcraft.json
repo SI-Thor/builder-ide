@@ -1,0 +1,300 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "unit_width",
+    "expression": "600",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "unit_depth",
+    "expression": "500",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "unit_height",
+    "expression": "800",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "wall",
+    "expression": "30",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "drawer_height",
+    "expression": "330",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "drawer_travel",
+    "expression": "300",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "wall",
+    "width": "unit_depth",
+    "height": "unit_height",
+    "corner": [
+     "-unit_width/2",
+     "-unit_depth/2",
+     "0"
+    ],
+    "body_name": "carcass"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "wall",
+    "width": "unit_depth",
+    "height": "unit_height",
+    "corner": [
+     "unit_width/2 - wall",
+     "-unit_depth/2",
+     "0"
+    ],
+    "body_name": "side_right"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "unit_width - 2*wall",
+    "width": "wall",
+    "height": "unit_height",
+    "corner": [
+     "-unit_width/2 + wall",
+     "unit_depth/2 - wall",
+     "0"
+    ],
+    "body_name": "back"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "unit_width - 2*wall",
+    "width": "unit_depth - wall",
+    "height": "wall",
+    "corner": [
+     "-unit_width/2 + wall",
+     "-unit_depth/2",
+     "0"
+    ],
+    "body_name": "bottom"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "unit_width - 2*wall",
+    "width": "unit_depth - wall",
+    "height": "wall",
+    "corner": [
+     "-unit_width/2 + wall",
+     "-unit_depth/2",
+     "(unit_height - wall)/2 - wall"
+    ],
+    "body_name": "shelf"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "unit_width - 2*wall",
+    "width": "unit_depth - wall",
+    "height": "wall",
+    "corner": [
+     "-unit_width/2 + wall",
+     "-unit_depth/2",
+     "unit_height - wall"
+    ],
+    "body_name": "top"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "carcass",
+    "tools": [
+     "side_right",
+     "back",
+     "bottom",
+     "shelf",
+     "top"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "unit_width - 2*wall - 20",
+    "width": "unit_depth - wall - 20",
+    "height": "drawer_height - 10",
+    "corner": [
+     "-unit_width/2 + wall + 10",
+     "-unit_depth/2 + 10",
+     "(unit_height - wall)/2 + 10"
+    ],
+    "body_name": "drawer_upper"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "unit_width - 2*wall - 20",
+    "width": "unit_depth - wall - 20",
+    "height": "drawer_height",
+    "corner": [
+     "-unit_width/2 + wall + 10",
+     "-unit_depth/2 + 10",
+     "wall + 10"
+    ],
+    "body_name": "drawer_lower"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "PropWood",
+    "density_g_cm3": 0.7
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "carcass",
+     "drawer_upper",
+     "drawer_lower"
+    ],
+    "material": "PropWood"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "carcass",
+     "drawer_upper",
+     "drawer_lower"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "slider",
+    "a": {
+     "occurrence": "carcass",
+     "point": [
+      0,
+      -250,
+      560
+     ],
+     "z": [
+      0,
+      1,
+      0
+     ]
+    },
+    "b": {
+     "occurrence": "drawer_upper",
+     "point": [
+      0,
+      -250,
+      560
+     ],
+     "z": [
+      0,
+      1,
+      0
+     ]
+    },
+    "limits": [
+     [
+      0,
+      300
+     ]
+    ],
+    "flip": true,
+    "name": "drawer_upper_slideprismatic"
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "slider",
+    "a": {
+     "occurrence": "carcass",
+     "point": [
+      0,
+      -250,
+      205
+     ],
+     "z": [
+      0,
+      1,
+      0
+     ]
+    },
+    "b": {
+     "occurrence": "drawer_lower",
+     "point": [
+      0,
+      -250,
+      205
+     ],
+     "z": [
+      0,
+      1,
+      0
+     ]
+    },
+    "limits": [
+     [
+      0,
+      300
+     ]
+    ],
+    "flip": true,
+    "name": "drawer_lower_slideprismatic"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}

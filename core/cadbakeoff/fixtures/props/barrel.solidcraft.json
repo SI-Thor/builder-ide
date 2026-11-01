@@ -1,0 +1,201 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "radius",
+    "expression": "220",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "wall",
+    "expression": "20",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "height",
+    "expression": "700",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "lid_thickness",
+    "expression": "20",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "lift",
+    "expression": "150",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "radius",
+    "height": "height - wall",
+    "base": [
+     "0",
+     "0",
+     "wall"
+    ],
+    "axis": "Z",
+    "body_name": "barrel_body"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "radius - wall",
+    "height": "height - wall",
+    "base": [
+     "0",
+     "0",
+     "wall"
+    ],
+    "axis": "Z",
+    "body_name": "staves_bore"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "barrel_body",
+    "tools": [
+     "staves_bore"
+    ],
+    "operation": "cut"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "radius",
+    "height": "wall",
+    "base": [
+     "0",
+     "0",
+     "0"
+    ],
+    "axis": "Z",
+    "body_name": "bottom_head"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "barrel_body",
+    "tools": [
+     "bottom_head"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "radius",
+    "height": "lid_thickness",
+    "base": [
+     "0",
+     "0",
+     "height"
+    ],
+    "axis": "Z",
+    "body_name": "barrel_lid"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "PropWood",
+    "density_g_cm3": 0.7,
+    "color": "#8B5E34"
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "barrel_body",
+     "barrel_lid"
+    ],
+    "material": "PropWood"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "barrel_body",
+     "barrel_lid"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "slider",
+    "a": {
+     "occurrence": "barrel_body",
+     "point": [
+      0,
+      0,
+      700
+     ],
+     "z": [
+      0,
+      0,
+      1
+     ]
+    },
+    "b": {
+     "occurrence": "barrel_lid",
+     "point": [
+      0,
+      0,
+      700
+     ],
+     "z": [
+      0,
+      0,
+      1
+     ]
+    },
+    "limits": [
+     [
+      0,
+      150
+     ]
+    ],
+    "flip": true,
+    "name": "lid_slide"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}

@@ -1,0 +1,199 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "opening_width",
+    "expression": "800",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "jamb_width",
+    "expression": "100",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "door_height",
+    "expression": "2000",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "frame_height",
+    "expression": "2100",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "leaf_thickness",
+    "expression": "40",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "leaf_gap",
+    "expression": "10",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "jamb_width",
+    "width": "leaf_thickness",
+    "height": "frame_height",
+    "corner": [
+     "-opening_width/2 - jamb_width",
+     "-leaf_thickness",
+     "0"
+    ],
+    "body_name": "frame"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "jamb_width",
+    "width": "leaf_thickness",
+    "height": "frame_height",
+    "corner": [
+     "opening_width/2",
+     "-leaf_thickness",
+     "0"
+    ],
+    "body_name": "jamb_right"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "opening_width",
+    "width": "leaf_thickness",
+    "height": "frame_height - door_height",
+    "corner": [
+     "-opening_width/2",
+     "-leaf_thickness",
+     "door_height"
+    ],
+    "body_name": "head"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "frame",
+    "tools": [
+     "jamb_right",
+     "head"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "opening_width - 2*leaf_gap",
+    "width": "leaf_thickness",
+    "height": "door_height",
+    "corner": [
+     "-opening_width/2 + leaf_gap",
+     "-leaf_thickness",
+     "0"
+    ],
+    "body_name": "leaf"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "DoorWood",
+    "density_g_cm3": 0.7
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "frame",
+     "leaf"
+    ],
+    "material": "DoorWood"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "frame",
+     "leaf"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "revolute",
+    "a": {
+     "occurrence": "frame",
+     "point": [
+      -390,
+      0,
+      0
+     ],
+     "z": [
+      0,
+      0,
+      1
+     ]
+    },
+    "b": {
+     "occurrence": "leaf",
+     "point": [
+      -390,
+      0,
+      0
+     ],
+     "z": [
+      0,
+      0,
+      1
+     ]
+    },
+    "limits": [
+     [
+      0,
+      90
+     ]
+    ],
+    "flip": true,
+    "name": "hinge"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}

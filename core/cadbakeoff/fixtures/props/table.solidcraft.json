@@ -1,0 +1,306 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "table_height",
+    "expression": "740",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "top_length",
+    "expression": "840",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "top_width",
+    "expression": "640",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "top_thickness",
+    "expression": "32",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "leaf_length",
+    "expression": "400",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "leg_thickness",
+    "expression": "60",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "leg_inset",
+    "expression": "20",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "apron_height",
+    "expression": "140",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "leg_thickness",
+    "width": "leg_thickness",
+    "height": "table_height",
+    "corner": [
+     "-top_length/2 + leg_inset",
+     "-top_width/2 + leg_inset",
+     "0"
+    ],
+    "body_name": "frame"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "leg_thickness",
+    "width": "leg_thickness",
+    "height": "table_height",
+    "corner": [
+     "top_length/2 - leg_inset - leg_thickness",
+     "-top_width/2 + leg_inset",
+     "0"
+    ],
+    "body_name": "leg_front_right"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "leg_thickness",
+    "width": "leg_thickness",
+    "height": "table_height",
+    "corner": [
+     "-top_length/2 + leg_inset",
+     "top_width/2 - leg_inset - leg_thickness",
+     "0"
+    ],
+    "body_name": "leg_back_left"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "leg_thickness",
+    "width": "leg_thickness",
+    "height": "table_height",
+    "corner": [
+     "top_length/2 - leg_inset - leg_thickness",
+     "top_width/2 - leg_inset - leg_thickness",
+     "0"
+    ],
+    "body_name": "leg_back_right"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "top_length - 2*leg_inset - 2*leg_thickness",
+    "width": "leg_thickness",
+    "height": "apron_height",
+    "corner": [
+     "-top_length/2 + leg_inset + leg_thickness",
+     "-top_width/2 + leg_inset",
+     "table_height - apron_height"
+    ],
+    "body_name": "apron_front"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "top_length - 2*leg_inset - 2*leg_thickness",
+    "width": "leg_thickness",
+    "height": "apron_height",
+    "corner": [
+     "-top_length/2 + leg_inset + leg_thickness",
+     "top_width/2 - leg_inset - leg_thickness",
+     "table_height - apron_height"
+    ],
+    "body_name": "apron_back"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "leg_thickness",
+    "width": "top_width - 2*leg_inset - 2*leg_thickness",
+    "height": "apron_height",
+    "corner": [
+     "-top_length/2 + leg_inset",
+     "-top_width/2 + leg_inset + leg_thickness",
+     "table_height - apron_height"
+    ],
+    "body_name": "apron_left"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "leg_thickness",
+    "width": "top_width - 2*leg_inset - 2*leg_thickness",
+    "height": "apron_height",
+    "corner": [
+     "top_length/2 - leg_inset - leg_thickness",
+     "-top_width/2 + leg_inset + leg_thickness",
+     "table_height - apron_height"
+    ],
+    "body_name": "apron_right"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "top_length",
+    "width": "top_width",
+    "height": "top_thickness",
+    "corner": [
+     "-top_length/2",
+     "-top_width/2",
+     "table_height"
+    ],
+    "body_name": "top_fixed"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "frame",
+    "tools": [
+     "leg_front_right",
+     "leg_back_left",
+     "leg_back_right",
+     "apron_front",
+     "apron_back",
+     "apron_left",
+     "apron_right",
+     "top_fixed"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "leaf_length",
+    "width": "top_width",
+    "height": "top_thickness",
+    "corner": [
+     "top_length/2",
+     "-top_width/2",
+     "table_height"
+    ],
+    "body_name": "leaf"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "PropWood",
+    "density_g_cm3": 0.7,
+    "color": "#8B5A2B"
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "frame",
+     "leaf"
+    ],
+    "material": "PropWood"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "frame",
+     "leaf"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "revolute",
+    "a": {
+     "occurrence": "frame",
+     "point": [
+      420,
+      0,
+      740
+     ],
+     "z": [
+      0,
+      1,
+      0
+     ]
+    },
+    "b": {
+     "occurrence": "leaf",
+     "point": [
+      420,
+      0,
+      740
+     ],
+     "z": [
+      0,
+      1,
+      0
+     ]
+    },
+    "limits": [
+     [
+      0,
+      90
+     ]
+    ],
+    "flip": true,
+    "name": "leaf_hinge"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}
