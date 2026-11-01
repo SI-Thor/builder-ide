@@ -61,7 +61,9 @@ works.
   open-source generators the research picked may be installed and run on the
   Thor, each in its own venv, with its licence checked first: ComfyUI +
   TRELLIS.2 first, then TripoSR, build123d/CadQuery, ACE-Step and MoMask.
-  Infinigen was approved before. Also approved (2026-10-31): our crew's
+  Infinigen was approved before. Also approved (2026-10-31): a LAN-only agent
+  world on the Thor with Minecraft Java (Paper; Casey accepted Mojang's EULA),
+  mineflayer and prismarine-viewer, and Luanti. Also our crew's
   quilt-pincher, KTX-Software (`toktx`), and the open-source builds the seats
   listed in their reports. Any other third-party project from GitHub still
   needs his OK.
