@@ -49,6 +49,10 @@ class Daemon:
 
     def start(self) -> None:
         assert BINARY is not None
+        # The floor is what this box can clear, not what the Thor can: the
+        # tests are about the lease's round trip, not the admission
+        # arithmetic, and they must run the same on a 3 GiB CI box and on
+        # the box itself (the same rule the Rust integration tests follow).
         self.process = subprocess.Popen(
             [
                 str(BINARY),
@@ -57,6 +61,10 @@ class Daemon:
                 str(self.socket),
                 "--state-dir",
                 str(self.state),
+                "--floor",
+                "64M",
+                "--emergency-floor",
+                "512M",
                 "--idle-exit",
                 "120",
             ],
