@@ -122,4 +122,117 @@ The study's hard constraints, checked one by one:
   infinigen-thor branch (fake clock, no GPU) demonstrates
   stall→UNKNOWN→checkpoint→revive end to end.
 
+---
+
+## 6. The rebase addendum (2026-11-01, onto core-judge)
+
+Main moved 14 commits while this branch sat; this section is the
+re-check against what landed, plus two changes the review asked for.
+The branch now sits on `f0d846b` (core-judge merged, 1,494 tests).
+
+### 6.1 The units, corrected
+
+The review was right and this branch was wrong: the mirror originally
+spoke the kernel's own axes (`gpu_seconds/joules/cents`). Bids are now
+priced in **the units `core/night/cost` already uses** — the night's
+`Rail`: `gpu_minutes` / `hosted_cents` / `wall_minutes`, field-for-field
+and method-for-method (`add`/`subtract`/`fits`/`is_zero`), so a cost
+model estimate *is* a bid cost, unconverted. Joules ride the cost side
+(`CostEstimate.joules`, the measured `VIN` column), not the bar. Two of
+the mini-night's own lessons are now first-class in the tests: the
+**wall axis refuses what the GPU axis can afford** (the mesh-tail
+lesson — `test_wall_minutes_is_a_rail_axis`), and hosted cents refuse
+cloud work the rail cannot pay.
+
+### 6.2 The lease mapping: the auction and thor-admit compose
+
+`tools/thor-admit` (the `thor-admit` branch) is the box's memory
+admission daemon, and it is good: kernel-held leases a dead client
+cannot leak, a 250 ms watchdog that stops the largest lease long before
+the kernel OOMs, and learned peaks (the p95 of a label's history) that
+feed the cost model's memory column. The auction does not compete with
+it on its axis and does not duplicate it. They compose **once per
+admission**:
+
+```
+the auction:  is this work worth its gpu-minutes/wall-minutes/cents?
+                    │ (a winning bid)
+                    ▼
+thor-admit:   does the box have room for its peak?  ── no ──▶ the work waits
+                    │ (lease granted, kernel-held)
+                    ▼
+the runner:   spawns the process group; the spend is booked at the actual
+```
+
+`lease_for(admission, label)` in the bridge module produces the
+`acquire` (peak `"auto"` — the daemon's learned p95; on its refusal for
+an unknown label the caller falls back to the cost model's memory
+column, never a guess), and `LEASE_EVENTS_TO_WHY` maps the daemon's
+lifecycle onto the ledger the ecology journals: granted → served
+(`run_under`), watchdog-stop → **harvested to UNKNOWN** (a stopped
+lease is questionable, not gone — SIGSTOP loses nothing), killed → dead
+with reason, client-gone → harvested (the kernel's flock can speak for
+a client that cannot).
+
+The open question the review actually asked — *is the ecology's ledger
+something thor-admit should adopt?* — is being answered by a bake-off,
+same tests for both daemons (three 30 GiB hogs serialised; a runaway
+stopped before MemAvailable hits 2 GiB; daemon overhead), harness in
+the ecology-thor repo. Whatever wins, the fold-in we would claim is the
+chain-hashed decision journal: every admission, stop and kill a WHY
+transition with a chain hash over it, so a 3 a.m. OOM post-mortem reads
+one replayable log instead of correlating daemon logs with dmesg.
+
+### 6.3 Re-checks against what merged
+
+- **core/judge** — the `expected_value` factor now has a typed source:
+  the judge's `choice` probability stands where a hand-set prior stood,
+  exactly as `JudgePriorChooser` already does for the tiles shortlist,
+  one level up. The confidence gate composes with the veto law cleanly:
+  a judgment below τ is *surfaced, not acted on* — so it sets no EV, and
+  a bid that rests on surfaced evidence is a bid that is not placed on
+  that evidence. No new rule needed; the two policies already agree.
+- **core/tiles + OPE** — the auction's admissions are a logging policy,
+  and tiles rule 8 is the lesson: *a play carries the propensity it was
+  drawn with, and a missing propensity is never defaulted to 1.0.* The
+  live bridge must journal **the bid set at each admission, not just the
+  winner** — what else was bidding, at what scores, against what bank
+  balance — or the log cannot answer "would a different pricing policy
+  have earned more" off-policy later. The mini-night-2 replay (below) is
+  exactly that question asked retrospectively; it needed a
+  reconstruction because the runner logs only what ran. The auction
+  should not repeat that mistake.
+- **core-doors (per-agent tokens)** — every bid should carry the `agent`
+  claim the way every audit row does, so the answer to "which agent
+  asked for tonight's GPU-minutes" is a fold, not an investigation. The
+  door this branch proposes for the why stream (`GET /v1/why/summary`,
+  the `/v1/world/scene` precedent — a read door, no new event types) is
+  the read side of the same discipline.
+- **The daytime world, ON by default (B3: yes)** — an always-on daytime
+  lane is a permanent low-priority bidder, and the importance classes
+  are built for exactly that shape: daytime's stand-down-when-night-busy
+  is already an attention decision, currently taken by rule; under the
+  exchange it is taken by price (daytime's tick budget as a Maintenance
+  class refill, yielding to World-class night work by class, not by
+  convention). Nothing about B3 blocks the exchange; B3 makes it more
+  useful.
+
+### 6.4 The evidence that arrived since the original study
+
+The recorded night the review asked for exists:
+`docs/analysis/mini-night-2-replay.md` in the ecology-thor repo
+(`tools/replay_mini_night2.py`, every input cited, `--check` verifies
+the reconstruction against every published aggregate). In one paragraph:
+at the runner's own prices the auction makes the **identical**
+allocation (drop-in parity, 6/6 across alternative reconstructions);
+priced from the box's own night-1 ledger, the veto law refuses the six
+third-seed variants whose expected gain was **exactly zero** by the
+box's own prior — **30.6% less GPU, 31.6% less wall, identical
+winners** — and the learned-peak pricing shows the 11.76-minute GPU bar
+was computed from the wrong band (the same night is a 53.9% night on
+the `prop.night` band the cost model already carried). The runner's own
+`min_gain = 0.02` already believes marginal seeds can be below the bar;
+the tick loop is that belief asked at every admission instead of once
+per three-variant round.
+
 *— the ecology-thor team*
