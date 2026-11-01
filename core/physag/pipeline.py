@@ -384,7 +384,16 @@ def run_prop(
         )
 
     # -- repair, once -----------------------------------------------------
-    if not result.completion.completed and allow_repair and planner is not None:
+    # The repair answers a check that failed, and an unverified mapping is
+    # a failure the planner is exactly the right party to fix: the claim
+    # about where the part is was the planner's, and the render and the
+    # measurements say where the part actually is. A prop that completed
+    # with a verified mapping does not repair.
+    if (
+        (not result.completion.completed or not segmentation.verified)
+        and allow_repair
+        and planner is not None
+    ):
         started = time.perf_counter()
         feedback = RepairFeedback(
             prop=spec.prop,

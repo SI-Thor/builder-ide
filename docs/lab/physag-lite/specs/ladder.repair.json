@@ -1,0 +1,116 @@
+{
+  "prop": "ladder",
+  "kind": "ladder",
+  "image_prompt": "a wooden folding stepladder with two hinged sections and rungs, studio product photograph, neutral grey background, soft even lighting, sharp detail",
+  "parts": [
+    {
+      "name": "lower",
+      "role": "base",
+      "cut": {
+        "kind": "rest",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": null,
+      "density_kg_m3": 600.0
+    },
+    {
+      "name": "upper",
+      "role": "moving",
+      "cut": {
+        "kind": "plane",
+        "axis": "z",
+        "at": 0.48,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": {
+        "min": [
+          0.0,
+          0.0,
+          0.48
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "density_kg_m3": 600.0
+    }
+  ],
+  "joints": [
+    {
+      "name": "fold_hinge",
+      "type": "hinge",
+      "parent": "lower",
+      "child": "upper",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "anchor": [
+        0.5,
+        0.0,
+        0.48
+      ],
+      "low": 0.0,
+      "high": 0.6981317007977318,
+      "damping": 1.0,
+      "armature": 0.02
+    }
+  ],
+  "action": {
+    "kind": "joint",
+    "joint": "fold_hinge",
+    "target": 0.6981317007977318,
+    "axis": null,
+    "duration_s": 5.0,
+    "tolerance_rel": 0.02,
+    "dwell_steps": 40,
+    "drive": null
+  },
+  "priors": {
+    "mass_kg": 9.0,
+    "friction": 0.6,
+    "actuator_force_n": 70.0,
+    "actuator_torque_nm": 60.0,
+    "base_static": false,
+    "size_m": 1.8
+  },
+  "basis": {
+    "mass_kg": "estimated",
+    "friction": "estimated",
+    "actuator_force_n": "estimated",
+    "actuator_torque_nm": "estimated",
+    "base_static": "estimated",
+    "size_m": "estimated"
+  },
+  "planner": {
+    "model": "MiniMax-M3.1-Flash",
+    "mode": "cloud-session-repair",
+    "authored_by": "the physag-lite seat's own session; the inference ran on the provider's servers, not on the Thor",
+    "note": "repair 1: the hinge supplied 5.1 N*m at full error and the upper section never moved \u2014 the load's gravity torque holds the joint at the proportional equilibrium. The torque prior is revised 10 -> 60 N*m. The action and the joint limits are frozen."
+  }
+}
