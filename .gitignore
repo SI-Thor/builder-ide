@@ -55,3 +55,6 @@ tools/thor-admit/target/
 docs/lab/critic-delegate-scripts/results/d1.port
 docs/lab/critic-delegate-scripts/results/d1.pid
 docs/lab/critic-delegate-scripts/results/*-edited.png
+
+# The pose stream crate's build output (tools/posestream is a standalone crate).
+tools/posestream/target/
