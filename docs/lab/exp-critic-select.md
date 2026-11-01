@@ -371,6 +371,14 @@ cannot be *built* falls back at resolve time; a candidate that cannot
 (`core/critic/select.py`'s `FallbackCritic`). Both are covered by tests
 (`tests/critic/test_critic_selection.py`).
 
+Run through the nightly path itself — resolve the configured critic, score
+all 30 members, fold the table — with no server on the box, the hybrid
+answers with **30 verdicts, 8 of them degraded** (the eight it would have
+asked the model about) and the table comes back as the **scripted
+baseline's own numbers, 23 / 0 / 1 / 39, out of band**. That is the
+documented fallback, measured: the checks answer, the table is still
+published, and nothing is mistaken for a model verdict.
+
 ## The wiring
 
 The choice is a **parameter with a default**, and the default is still the
