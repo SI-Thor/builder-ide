@@ -589,16 +589,16 @@ presence work keeps running as long as it can.
 One JSON line per hour, in `<state-dir>/ledger.jsonl`:
 
 ```json
-{"hour":"2026-11-01T05","window_s":51.5,"samples":206,
- "tiers":{"live":{"running_s":44.75,"runs":0,"preemptions":0,"preempted_s":0.0},
-          "study":{"running_s":45.5,"runs":1,"preemptions":0,"preempted_s":0.0}},
- "gpu":{"power_mw_mean":3201.55,"power_mw_max":5116,"power_samples":206,
-        "busy_pct_mean":0.0,"busy_samples":206,"source":"tegrastats"},
- "cpu":{"cores":14,"busy_share_mean":0.667,"per_core_busy_share":[...],"samples":49},
- "idle":{"total_s":6.0,"by_reason":{"no_work_registered":6.0},
-         "unattributed_s":0.0,"no_work_s":6.0},
- "memory":{"available_min":72416206848,"available_max":77713555456,
-           "available_sum":15644676214784,"samples":206}}
+{"hour":"2026-11-01T05","window_s":51.0,"samples":204,
+ "tiers":{"live":{"running_s":44.5,"runs":0,"preemptions":0,"preempted_s":0.0},
+          "study":{"running_s":1.0,"runs":1,"preemptions":1,"preempted_s":44.25}},
+ "gpu":{"power_mw_mean":39388.0,"power_mw_max":47548,"power_samples":204,
+        "busy_pct_mean":90.01,"busy_samples":204,"source":"tegrastats"},
+ "cpu":{"cores":14,"busy_share_mean":0.993,"per_core_busy_share":[...],"samples":49},
+ "idle":{"total_s":5.75,"by_reason":{"no_work_registered":5.75},
+         "unattributed_s":0.0,"no_work_s":5.75},
+ "memory":{"available_min":51245244416,"available_max":51990007808,
+           "available_sum":10520264331264,"samples":204}}
 ```
 
 **The idle time is broken into causes**, because "the box was idle" is not
@@ -620,6 +620,16 @@ The brief's target — the share of time idle **without a reason** — is the
 exactly one cause, and the last case (`unattributed`) is reachable only
 when registered work fits, is not running, and is not stopped.
 
+**A lease is booked from the grant, not from the confirmation.** The daemon
+answers `granted` and the client answers `held` — but the `held` is handled
+in the *next* tick of the inbox, so for a whole sample interval the lease
+is committed while the client has not said "yes" yet. The memory is
+committed at the grant (that is exactly what the admission rule charges),
+so the ledger books it there. Counting only the confirmed leases put those
+seconds in the wrong column, and left the idle classifier with a moment it
+could not name — the one number the brief says should be zero. The
+measurement caught it; see the lab record.
+
 **Where the figures come from.** The GPU's **power** is `tegrastats`' own
 `VDD_GPU` rail — the Tegra's number for the GPU's rail — read by the child
 that was already printing the box's memory view. The GPU's **busy share**
@@ -633,8 +643,8 @@ which tool answered what.
 ### 8.5 What it measured, on this box
 
 **The box, beside the numbers:** `MemTotal: 128 766 532 kB` (122.8 GiB, no
-swap), `MemAvailable` 72.1 GiB, load average 15.87 / 16.05 / 16.40, at
-21:26 AKDT on 2026-10-31 (the box's own clock, UTC-8). The box was busy
+swap), `MemAvailable` 48.5 GiB, load average 16.25 / 16.33 / 16.17, at
+21:43 AKDT on 2026-10-31 (the box's own clock, UTC-8). The box was busy
 with a seat's work; the daemon's own cost was measured in that state, not
 on an idle box.
 
@@ -643,8 +653,8 @@ release build, 30 s windows):
 
 | | idle | one lease and one presence job |
 |---|---|---|
-| Resident memory | **2 304 KiB** (2.25 MiB) | **2 688 KiB** (2.63 MiB) |
-| CPU, its own | **0.17 % of one core** | **0.83 % of one core** |
+| Resident memory | **2 304 KiB** (2.25 MiB) | **2 560 KiB** (2.50 MiB) |
+| CPU, its own | **0.20 % of one core** | **0.80 % of one core** |
 
 The extra work over §7.1 is the ledger: a sample every 250 ms, the CPU's
 counters once a second, and the GPU's children read every tick instead of
@@ -652,40 +662,58 @@ every eighth one (the ledger wants the GPU's power and busy share even
 when the box is doing nothing — "the GPU was idle at 3.2 W" is one of the
 numbers the ledger exists to keep).
 
-**The ledger, one window** (51.5 s, 206 samples, 21:27–21:28 AKDT):
+**The ledger, one window** (51.0 s, 204 samples, 21:44–21:45 AKDT). The
+seat's work was on the GPU that minute, so the GPU pre-emption fired and
+the presence job gave the GPU up:
 
 | | |
 |---|---|
-| live tier | **44.75 s** running |
-| study tier | **45.5 s** running, 1 run |
-| idle | **6.0 s**, all of it `no_work_registered` |
+| live tier | **44.5 s** running |
+| study tier | **1.0 s** running, **44.25 s stopped** by the GPU pre-emption, 1 run, 1 pre-emption |
+| idle | **5.75 s**, all of it `no_work_registered` |
+| **unattributed** | **0.0 s — 0 %** |
+| GPU power | **39 388 mW mean**, 47 548 mW max (`tegrastats`) |
+| GPU busy share | **90.0 %** mean (204 samples) |
+| CPU busy share | **0.993** of the box, 14 cores (per-core shares in the record) |
+| Free memory | 47.7 GiB at the lowest, 48.4 GiB at the highest |
+
+**And the same ledger, twenty minutes earlier**, when the GPU was idle and
+the seat's work was on the CPU side (21:27–21:28 AKDT, 51.5 s, 206
+samples):
+
+| | |
+|---|---|
+| live tier | 44.75 s running |
+| study tier | 45.5 s running, 1 run |
+| idle | 6.0 s — all `no_work_registered` |
 | **unattributed** | **0.0 s — 0 %** |
 | GPU power | **3 201.6 mW mean**, 5 116 mW max (`tegrastats`) |
 | GPU busy share | **0 %** (206 samples) |
-| CPU busy share | **0.667** of the box, 14 cores (per-core shares in the record) |
-| Free memory | 67.4 GiB at the lowest, 72.4 GiB at the highest |
+| CPU busy share | 0.667 of the box, 14 cores |
 
-The GPU was idle at **3.2 W** throughout, with the seats' work on the CPU
-side — the same reading as the 20:38 measurement in the brief (3.1 W), two
-hours and a half later, now in the ledger rather than in a note.
+Two windows, two states of the box, and the ledger reads both: the GPU at
+**3.2 W** and idle while the CPU was busy, and the GPU at **39 W** and 90 %
+busy while the presence work had given its streams up. The 3.2 W is the
+same reading as the 20:38 note in the brief (3.1 W), two hours and a half
+later — now in a record rather than in somebody's memory.
 
-**The memory pre-emption, on the real box** (21:28 AKDT). The presence job
+**The memory pre-emption, on the real box** (21:45 AKDT). The presence job
 was registered with a 4 GiB peak and was holding none of it; the live
-lease asked for 2 GiB; the floor was 62.5 GiB, which is
+lease asked for 2 GiB; the floor was 42.9 GiB, which is
 `available - 4 GiB - 2 GiB + 1 GiB` — the number that makes the presence
 job's reservation exactly what stands between the live lease and the room.
 
 ```
-21:28:11  presence.started    measure.preempt  peak 4 GiB   mem_available 72 417 284 096
-21:28:11  presence.preempted  measure.preempt  live_label measure.live2
-21:28:12  presence.finished   measure.preempt  exit 143 (SIGTERM)  state preempted
-21:28:12  lease.granted       measure.live2    peak 2 GiB
-21:28:17  presence.started    measure.preempt  peak 4 GiB     ← it resumed
+21:45:50  presence.started    measure.preempt  peak 4 GiB   mem_available 51 238 248 448
+21:45:50  presence.preempted  measure.preempt  live_label measure.live2
+21:45:51  presence.finished   measure.preempt  exit 143 (SIGTERM)  state preempted
+21:45:51  lease.granted       measure.live2    peak 2 GiB
+21:45:56  presence.started    measure.preempt  peak 4 GiB     ← it resumed
 ```
 
 | | |
 |---|---|
-| The live lease was admitted after | **0.280 s** (the client's own measurement) |
+| The live lease was admitted after | **0.279 s** (the client's own measurement) |
 | The pre-emption was logged | in the **same second** as the request |
 | The job's exit | **143** — 128 + SIGTERM, the signal the daemon sent |
 | The job's state afterwards | `preempted` — and it was **resumable**, so it was not lost |
@@ -696,14 +724,14 @@ says why. While the live lease was running, the presence job's 4 GiB did
 not fit beside the live lease's 2 GiB promise:
 
 ```
-available          72 415 502 336   (67.44 GiB)
+available          51 238 240 256   (47.73 GiB)
 - live lease owes    2 145 700 000   (2 GiB promised, 1.8 MB used)
 - presence job peak  4 294 967 296   (4 GiB)
-= headroom          65 974 835 040   (61.45 GiB)   <  floor 62.5 GiB  → no
+= headroom          44 797 572 960   (41.73 GiB)   <  floor 42.9 GiB  → no
 ```
 
 When the live lease ended, its 2 GiB came back and the headroom became
-63.47 GiB — above the floor — and the job started again at 21:28:17. That
+43.7 GiB — above the floor — and the job started again at 21:45:56. That
 is the rule working, not the rule being slow: the presence work waits
 until the box really has the room for it.
 

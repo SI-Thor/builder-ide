@@ -398,8 +398,8 @@ back in 0.28 s, and the ledger explains 100 % of the idle time it saw.**
 | | |
 |---|---|
 | Box | Thor, Linux 6.8.12-1021-tegra, aarch64, 122.8 GiB unified, no swap |
-| Load during the run | 15.87 / 16.05 / 16.40 (the box was busy with a seat's work) |
-| `MemAvailable` | 72.1 GiB at 21:26, 67.4 GiB at 21:28 |
+| Load during the run | 16.25 / 16.33 / 16.17 (the box was busy with a seat's work) |
+| `MemAvailable` | 48.5 GiB at 21:43, 47.7 GiB at 21:45 |
 | Build | release (`cargo build --release`) |
 | Memory used by the test | **none**: the presence job was a `sleep`, the leases were `sleep`s |
 
@@ -413,8 +413,8 @@ ledger and prints the daemon's own log.
 
 | | idle | one lease and one presence job |
 |---|---|---|
-| Resident memory | 2 304 KiB (2.25 MiB) | 2 688 KiB (2.63 MiB) |
-| CPU, its own | 0.17 % of one core | 0.83 % of one core |
+| Resident memory | 2 304 KiB (2.25 MiB) | 2 560 KiB (2.50 MiB) |
+| CPU, its own | 0.20 % of one core | 0.80 % of one core |
 
 Round 6 measured 2 MiB and 0.03 % of a core idle on the same box. The
 extra is the ledger: a sample every 250 ms, `/proc/stat` once a second,
@@ -423,9 +423,24 @@ ledger wants the GPU's power and busy share **when the box is doing
 nothing** — "the GPU was idle at 3.2 W" is one of the numbers it exists to
 keep, and it cannot be read after the fact.
 
-## 12. The ledger, one window
+## 12. The ledger, two windows
 
-51.5 s, 206 samples (21:27–21:28 AKDT):
+**21:44–21:45 AKDT** — the seat's work was on the GPU that minute (51.0 s,
+204 samples):
+
+| | |
+|---|---|
+| live tier | 44.5 s running |
+| study tier | 1.0 s running, **44.25 s stopped** by the GPU pre-emption (1 pre-emption) |
+| idle | 5.75 s — all `no_work_registered` |
+| **unattributed** | **0.0 s (0 %)** |
+| GPU power | 39 388 mW mean, 47 548 mW max (`tegrastats`, 204 samples) |
+| GPU busy share | 90.0 % (204 samples, `nvidia-smi`) |
+| CPU busy share | 0.993 of the box; 14 cores |
+| Free memory | 47.7 GiB lowest, 48.4 GiB highest |
+
+**21:27–21:28 AKDT** — the GPU was idle and the seat's work was on the
+CPU side (51.5 s, 206 samples):
 
 | | |
 |---|---|
@@ -436,17 +451,18 @@ keep, and it cannot be read after the fact.
 | GPU power | 3 201.6 mW mean, 5 116 mW max (`tegrastats`, 206 samples) |
 | GPU busy share | 0 % (206 samples, `nvidia-smi`) |
 | CPU busy share | 0.667 of the box; 14 cores |
-| Free memory | 67.4 GiB lowest, 72.4 GiB highest |
 
-Two things worth keeping:
+Three things worth keeping:
 
-* The GPU's **3.2 W** is the same reading as the 20:38 note (3.1 W), two
-  hours and a half later, and now it is in a record rather than in
-  somebody's memory. The GPU was idle while the CPU was busy: the box's
-  work was not GPU work.
-* The idle time was **6.0 s, all of it `no_work_registered`**, and
-  **nothing unattributed**. The first six seconds were the window before
-  the work was registered; after that the box had something to do.
+* The GPU's **3.2 W** in the second window is the same reading as the
+  20:38 note (3.1 W), two hours and a half later, and now it is in a
+  record rather than in somebody's memory. The GPU was idle while the CPU
+  was busy: the box's work was not GPU work.
+* The first window is the **GPU pre-emption** doing its job: the seat's
+  work wanted the GPU, and the presence job gave its streams up for 44
+  seconds and ran again afterwards.
+* Both windows had **nothing unattributed**. The idle time was the few
+  seconds before the work was registered, and the ledger said so.
 
 ## 13. The pre-emption, on the real box
 
@@ -456,16 +472,16 @@ the presence job's reservation exactly what stands between the live lease
 and the room.
 
 ```
-21:28:11  presence.started    measure.preempt  peak 4 GiB   mem_available 72 417 284 096
-21:28:11  presence.preempted  measure.preempt  live_label measure.live2
-21:28:12  presence.finished   measure.preempt  exit 143 (SIGTERM)  state preempted
-21:28:12  lease.granted       measure.live2    peak 2 GiB
-21:28:17  presence.started    measure.preempt  peak 4 GiB      ← it resumed
+21:45:50  presence.started    measure.preempt  peak 4 GiB   mem_available 51 238 248 448
+21:45:50  presence.preempted  measure.preempt  live_label measure.live2
+21:45:51  presence.finished   measure.preempt  exit 143 (SIGTERM)  state preempted
+21:45:51  lease.granted       measure.live2    peak 2 GiB
+21:45:56  presence.started    measure.preempt  peak 4 GiB      ← it resumed
 ```
 
 | | |
 |---|---|
-| The live lease was admitted after | **0.280 s** (the client's own measurement) |
+| The live lease was admitted after | **0.279 s** (the client's own measurement) |
 | The pre-emption was logged | in the same second as the request |
 | The job's exit | 143 — 128 + SIGTERM, the signal the daemon sent |
 | The job's state afterwards | `preempted`, and resumable, so it was not lost |
@@ -476,14 +492,14 @@ the live lease ran, the presence job's 4 GiB did not fit beside the live
 lease's 2 GiB promise:
 
 ```
-available          72 415 502 336   (67.44 GiB)
+available          51 238 240 256   (47.73 GiB)
 - live lease owes    2 145 700 000   (2 GiB promised, 1.8 MB used)
 - presence job peak  4 294 967 296   (4 GiB)
-= headroom          65 974 835 040   (61.45 GiB)   <  floor 62.5 GiB  → no
+= headroom          44 797 572 960   (41.73 GiB)   <  floor 42.9 GiB  → no
 ```
 
 When the live lease ended, its 2 GiB came back, the headroom became
-63.47 GiB, and the job started again. That is the rule working, not the
+43.7 GiB, and the job started again. That is the rule working, not the
 rule being slow.
 
 ## 14. A bug the measurements found
@@ -499,7 +515,47 @@ It is worth recording because the number was *missing*, not *wrong*: a
 ledger that quietly drops a column looks exactly like a ledger whose column
 is zero.
 
-## 15. How to reproduce
+## 15. A second bug: a lease booked from the wrong moment
+
+The integration run for the ledger failed **five times in six** — and it
+passed when it was run on its own, which is what made it interesting.
+
+The failing bucket said:
+
+```
+"idle":{"by_reason":{"no_work_registered":1.0,"unattributed":0.25},"total_s":1.25}
+"tiers":{"live":{"running_s":4.25},"study":{"running_s":0.5,"preempted_s":4.0}}
+```
+
+A quarter of a second of idle time that the ledger could not name. The
+daemon's own log said why:
+
+```
+lease.granted      live.test
+presence.started   presence.test
+presence.gpu_stopped  (the GPU was at 95 % — the seat's work)
+```
+
+**The cause.** The daemon answers `granted`, and the client answers
+`held` — but the `held` is handled in the *next* tick of the inbox, so for
+a whole sample interval the lease was committed while the ledger did not
+count it. In that window the presence queue had not started (the client
+queue was not empty when the tick ran), so the box looked idle, and the
+idle classifier had no cause for it.
+
+The fix is one line and it is the right one: **a lease is booked from the
+grant, not from the confirmation**, because the memory is committed at the
+grant — that is exactly what the admission rule charges.
+
+After the fix: eight runs in eight pass. The test now prints the daemon's
+log when it fails, which is how the window was found in the first place.
+
+It is worth keeping in the record because the number that moved was
+`unattributed` — the one the brief says should be zero — and it moved
+because of a **one-tick** window. A ledger that is wrong by one tick is
+still wrong.
+
+## 16. How to reproduce
 
 ```bash
 cd tools/thor-admit
@@ -510,7 +566,7 @@ python3 measure-presence.py          # about four minutes
 The heavy tests still take the box's own lock; these do not need it,
 because they allocate nothing.
 
-## 16. What this did not settle
+## 17. What this did not settle
 
 * **What should be in the presence queue.** The queue is a file, and the
   file is empty until somebody puts something in it. The ledger can say

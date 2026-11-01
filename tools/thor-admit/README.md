@@ -269,13 +269,13 @@ No model weights, no data licences, nothing installed system-wide.
 
 Measured on this box with the release build, 30 s windows. The box was busy
 with a seat's work when the presence scheduler and the ledger were on
-(`MemAvailable` 72.1 GiB, load 15.87 / 16.05 / 16.40, 21:26 AKDT on
+(`MemAvailable` 48.5 GiB, load 16.25 / 16.33 / 16.17, 21:43 AKDT on
 2026-10-31):
 
 | | idle | one lease and one presence job |
 |---|---|---|
-| Resident memory | **2 304 KiB** (2.25 MiB) | **2 688 KiB** (2.63 MiB) |
-| CPU, its own | **0.17 % of one core** | **0.83 % of one core** |
+| Resident memory | **2 304 KiB** (2.25 MiB) | **2 560 KiB** (2.50 MiB) |
+| CPU, its own | **0.20 % of one core** | **0.80 % of one core** |
 
 Before the presence scheduler and the ledger were added, on the same box
 but earlier in the evening (`MemAvailable` 105.9 GiB, load 6.04 / 6.58 /
