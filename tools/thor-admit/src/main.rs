@@ -42,6 +42,14 @@ extern "C" fn on_signal(signal: libc::c_int) {
 }
 
 fn main() -> ExitCode {
+    // A CLI that is piped into `head` must die quietly when the pipe closes,
+    // not panic on the broken pipe. Rust ignores SIGPIPE by default, so the
+    // write fails with EPIPE and the printing macro panics; the default
+    // disposition of SIGPIPE — die, quietly, like every other tool — is
+    // restored here.
+    unsafe {
+        libc::signal(libc::SIGPIPE, libc::SIG_DFL);
+    }
     let args: Vec<String> = std::env::args().skip(1).collect();
     if args.is_empty() {
         print_help();
