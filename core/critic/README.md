@@ -50,9 +50,14 @@ core/critic/
 
 * the **default** is the scripted critic in this package — no model, no GPU,
   no network;
-* the **fallback** is the same scripted critic: a candidate that cannot be
-  built on this box (no torch, no VLM, no API key) is not a crash; the
-  checks answer and the reason travels with the verdict;
+* the **fallback** is the same scripted critic, in both of the ways a
+  candidate can fail. A candidate that cannot be **built** on this box (no
+  torch, no VLM, no API key) falls back when it is chosen: the checks answer
+  and the reason travels with the verdict. A candidate that is built and then
+  cannot **answer** — the model's server is not resident, the key expired,
+  the weights went missing — falls back at score time, one member at a time:
+  `select.FallbackCritic` puts the checks behind the chosen critic, so the
+  night still gets a table and the verdict says which critic made it;
 * the **registry** is data — `scripted`, `dino-probe`, `vlm`, `jev`,
   `hybrid` — and the name on the verdict always says which one answered.
 
