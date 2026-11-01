@@ -9,6 +9,7 @@ service owns the durable records and every computation over them.
 """
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 
 from ..canon import night_id as make_night_id, now_utc
@@ -159,21 +160,56 @@ class NightsService:
                 report["json_bytes"], "report.json")
             text_artifact = self.core.store.artifacts.put(
                 report["text_bytes"], "report.txt")
+            calibration = self._calibration(night)
+            calibration_artifact = self.core.store.artifacts.put(
+                json.dumps(calibration, indent=2, sort_keys=True).encode("utf-8"),
+                "calibration.json")
             ev = self.store.new_event(
                 "night.stopped", actor, {"entity_kind": "night", "entity_id": night_id},
                 {"stopped_at": now_utc(), "reason": reason, "status": status["status"],
                  "status_reason": status["reason"], "lost_minutes": status.get("lost_minutes", 0),
-                 "report": {"json": report_artifact, "text": text_artifact}},
+                 "report": {"json": report_artifact, "text": text_artifact},
+                 "calibration": {"json": calibration_artifact}},
             )
             _, resp = self.store.append(
                 ev, idem_key=idem_key,
                 response_builder=lambda e: {
                     "night": self.get(night_id).model_dump(mode="json"),
-                    "status": status, "report": report["doc"]})
+                    "status": status, "report": report["doc"],
+                    "calibration": calibration})
         if resp and resp.get("__replay__"):
             return resp["body"]
         return {"night": self.get(night_id).model_dump(mode="json"), "status": status,
-                "report": report["doc"]}
+                "report": report["doc"], "calibration": calibration}
+
+    def _calibration(self, night) -> dict:
+        """The night's calibration report, read out of the night's own log.
+
+        A judgment is only worth scoring once something has answered it, so
+        the fold pairs each judgment with the outcome that speaks about the
+        same scope, after it. The report is the same one the morning
+        carries a line from, so the two cannot disagree.
+        """
+        from core.judge.tracking import calibration_report
+
+        events = [
+            event
+            for event in self.store.events_since(0)
+            if event.at >= night.started_at
+            and (not night.stopped_at or event.at <= night.stopped_at)
+        ]
+        try:
+            return calibration_report(events).as_dict()
+        except Exception:
+            # a broken log must not lose the morning
+            return {
+                "confidence_definition": "top_probability",
+                "n_judgments": 0,
+                "n_scored": 0,
+                "n_unscored": 0,
+                "cells": [],
+                "drift": [],
+            }
 
     # ------------------------------------------------------------- reads
 

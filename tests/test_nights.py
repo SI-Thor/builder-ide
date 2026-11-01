@@ -288,6 +288,100 @@ def test_stopping_a_night_commits_the_branches_and_writes_the_report(core, night
     assert stopped["report"]["night"]["id"] == nid
 
 
+def test_stopping_a_night_writes_the_calibration_report(core, nights):
+    """The nightly job writes the calibration report beside the morning.
+
+    The night's own log is the only input: the confidence's calibration is
+    read out of the judgments the night made and the outcomes that
+    answered them, so the report cannot disagree with the morning.
+    """
+    out = nights.start(owner_actor("casey"))
+    nid = out["night"]["id"]
+    nights.tick(nid, load=0.2)
+    stopped = nights.stop(nid, owner_actor("casey"), reason="done")
+    calibration = stopped["calibration"]
+    assert calibration["confidence_definition"] == "top_probability"
+    assert calibration["n_judgments"] == 0
+    assert calibration["cells"] == []
+    assert calibration["drift"] == []
+
+
+class _StoreLedger:
+    """The judge's ledger port, over the core's own store.
+
+    The judge package writes one audit type; this is the door it goes
+    through when the log of record is the core's store rather than the
+    in-memory ledger its own tests use.
+    """
+
+    def __init__(self, store):
+        self._store = store
+
+    def append(self, *, type, actor, subject, payload, artifact=None, at=None):
+        event = self._store.new_event(type, actor, subject, payload, artifact)
+        if at is not None:
+            event.at = at
+        committed, _ = self._store.append(event)
+        return committed
+
+    def events(self, *, since_seq=None, types=None):
+        return self._store.events_since(
+            since_seq or 0, types=list(types) if types else None
+        )
+
+    def last_seq(self):
+        events = self._store.events_since(0)
+        return events[-1].seq if events else 0
+
+
+def test_the_nights_calibration_report_reads_the_nights_judgments(core, nights):
+    """A judgment the night made, answered by an outcome, is scored."""
+    from core.judge.backends import BackendReply, FakeBackend
+    from core.judge.judge import Judge
+    from core.judge.models import Question
+
+    class Scripted(FakeBackend):
+        def __init__(self):
+            super().__init__()
+            self.name = "d1"
+            self.model = "d1-2B"
+
+        def ask(self, state, questions):
+            distributions = {q.qid: {"true": 0.9, "false": 0.1} for q in questions}
+            confidences = {q.qid: 0.9 for q in questions}
+            return BackendReply(
+                backend=self.name,
+                model=self.model,
+                distributions=distributions,
+                confidences=confidences,
+                input_tokens=1,
+                wall_seconds=0.001,
+            )
+
+    out = nights.start(owner_actor("casey"))
+    nid = out["night"]["id"]
+    judge = Judge(Scripted(), ledger=_StoreLedger(core.store))
+    judge.judge(
+        task="alive",
+        state="s",
+        questions=[Question(qid="alive", kind="noul", instructions="The root is alive.")],
+        scope="art_1",
+    )
+    core.store.append(
+        core.store.new_event(
+            "critic.verdict",
+            core_actor("critic"),
+            {"entity_kind": "artifact", "entity_id": "art_1"},
+            {"verdict": "keep", "scope": "art_1"},
+        )
+    )
+    stopped = nights.stop(nid, owner_actor("casey"), reason="done")
+    calibration = stopped["calibration"]
+    assert calibration["n_judgments"] == 1
+    assert calibration["n_scored"] == 1
+    assert calibration["cells"][0]["cell"]["task"] == "alive"
+
+
 def test_stopping_a_night_twice_is_idempotent(core, nights):
     out = nights.start(owner_actor("casey"))
     nid = out["night"]["id"]

@@ -433,7 +433,9 @@ ECE 0.0704 → 0.0000 and 0.2054 → 0.0000.
   windows of one recording each: the drift rule needs a cell's own
   history (at least three windows of 50), and the recordings are one
   window long. The rule is exercised by the suite, on synthetic windows
-  where each of the three kinds fires.
+  where each of the three kinds fires — and by the morning report's own
+  test, which builds a night whose confidence stops separating and checks
+  that the morning carries one line for it.
 
 ## 7. Reproducing it
 
@@ -511,10 +513,12 @@ What the measurement adds, on 1,470 recorded judgments:
 The practical consequence for the builder: **the confidence gate's τ is a
 per-cell parameter with a measured value, not a default.** `core/judge`
 now computes one definition for every backend and records it, the nightly
-job writes the calibration report per cell, and the morning report carries
-one line per drifting model. Where a cell's AUC says the number carries
-no signal, the cell's τ is not a number to tune — it is a number to stop
-using.
+job writes the calibration report (`NightsService.stop()` folds the night's
+judgments against the outcomes that answered them and puts the report in
+the artifact store beside the morning), and the morning report carries
+**one line per drifting model**. Where a cell's AUC says the number
+carries no signal, the cell's τ is not a number to tune — it is a number
+to stop using.
 
 ---
 

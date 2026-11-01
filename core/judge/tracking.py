@@ -347,6 +347,11 @@ class CalibrationReport:
         """The judgments no outcome answered."""
         return max(0, self.n_judgments - self.n_scored)
 
+    @property
+    def confidence_definition(self) -> str:
+        """The one definition every confidence in this report was computed under."""
+        return CANONICAL_CONFIDENCE
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "generated_at": self.generated_at,

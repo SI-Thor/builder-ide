@@ -240,9 +240,13 @@ speaks), the night executor as a second caller, and the work-order rung
 order belongs to the work-order seat. Each is a small step on a seam
 that already records everything.
 
-On the calibration side: the nightly job (`run_calibration_job`) writes
-the report, but **no night job calls it yet** — the seat that owns the
-night has to wire it, and the morning report's one-line-per-drifting-model
-section has to be given a place in that report. The critic's and the
-owner's outcome sources are contracts the fold asks for; only the tiles'
-source is exercised by real rows today.
+On the calibration side: the nightly job writes the calibration report —
+`NightsService.stop()` folds the night's judgments against the outcomes
+that answered them and puts the report in the artifact store beside the
+morning — and the morning report carries **one line per drifting model**
+(`core/night/report.py`'s `CalibrationCard`). What is not wired yet is a
+judge that writes into the core's own store: the judge package still
+talks to the ledger through its port, and the door from the core's store
+onto that port has to be built by whoever owns the store. The critic's
+and the owner's outcome sources are contracts the fold asks for; only the
+tiles' source is exercised by real rows today.

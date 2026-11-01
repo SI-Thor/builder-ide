@@ -228,6 +228,55 @@ class IterationCard(BaseModel):
     joules: float | None = None
 
 
+class DriftCard(BaseModel):
+    """One drifting model, in one line.
+
+    The morning's carry of ``core.judge``'s calibration tracking: what
+    moved, the numbers behind it, and what is retuned. **One line per
+    drifting model** — a cell that drifted for two reasons says both
+    reasons on its one line.
+    """
+
+    model: str
+    task: str
+    #: The first kind that fired; ``kinds`` has them all.
+    kind: str
+    kinds: list[str] = Field(default_factory=list)
+    detail: str
+    retune: str = ""
+
+
+class CalibrationCellCard(BaseModel):
+    """One (backend, model, task) cell and its calibration."""
+
+    model: str
+    task: str
+    n: int
+    accuracy: float | None = None
+    brier: float | None = None
+    ece: float | None = None
+
+
+class CalibrationCard(BaseModel):
+    """The confidence's calibration, as the morning reads it.
+
+    The number the whole seat turns on: how many judgments the night
+    made, how many of them something answered, and which models drifted.
+    """
+
+    #: The one definition every backend's confidence was computed under.
+    definition: str = "top_probability"
+    n_judgments: int = 0
+    n_scored: int = 0
+    cells: list[CalibrationCellCard] = Field(default_factory=list)
+    drifting: list[DriftCard] = Field(default_factory=list)
+
+    @property
+    def n_unscored(self) -> int:
+        """The judgments no outcome answered — unmeasured, not measured and bad."""
+        return max(0, self.n_judgments - self.n_scored)
+
+
 class NightReport(BaseModel):
     """The whole morning, as data. The HTML and the text are two readings of it."""
 
@@ -250,6 +299,8 @@ class NightReport(BaseModel):
     the_box: list[BoxRow] = Field(default_factory=list)
     iterations: list[IterationCard] = Field(default_factory=list)
     recovery: str | None = None
+    #: The confidence's calibration, and the models that drifted.
+    calibration: CalibrationCard = Field(default_factory=CalibrationCard)
     #: The owner's two lines, as they were written when the night started.
     estimate: dict[str, Any] | None = None
 
@@ -336,7 +387,62 @@ def build_report(events: Sequence[AuditEvent]) -> NightReport:
         the_box=_the_box(projection, events),
         iterations=iterations,
         recovery=_recovery(status, projection),
+        calibration=_calibration(events),
         estimate=projection.estimate,
+    )
+
+
+def _calibration(events: Sequence[AuditEvent]) -> CalibrationCard:
+    """The confidence's calibration, read out of the night's own rows.
+
+    A judgment is only worth scoring once something has answered it, so
+    the fold pairs each judgment with the outcome that speaks about the
+    same scope, after it. The morning carries **one line per drifting
+    model** — what moved, and what is retuned — and the per-cell numbers
+    behind it.
+
+    The import is local so the night does not pay for the judge package
+    unless the night's log actually holds judgments.
+    """
+    from core.judge.tracking import calibration_report  # noqa: PLC0415
+
+    try:
+        report = calibration_report(events)
+    except Exception:  # pragma: no cover - a broken log must not lose the morning
+        return CalibrationCard()
+    cells = [
+        CalibrationCellCard(
+            model=f"{cell.cell.backend}:{cell.cell.model}",
+            task=cell.cell.task,
+            n=cell.cell.n,
+            accuracy=cell.cell.accuracy,
+            brier=cell.cell.brier,
+            ece=cell.cell.ece,
+        )
+        for cell in report.cells
+    ]
+    # One line per drifting model: a cell that drifted for two reasons
+    # says both reasons on its one line.
+    grouped: dict[tuple[str, str], list[Any]] = {}
+    for line in report.drift:
+        grouped.setdefault((f"{line.backend}:{line.model}", line.task), []).append(line)
+    drifting = [
+        DriftCard(
+            model=model,
+            task=task,
+            kind=lines[0].kind,
+            kinds=[line.kind for line in lines],
+            detail="; ".join(line.detail for line in lines),
+            retune="; ".join(line.retune for line in lines if line.retune),
+        )
+        for (model, task), lines in grouped.items()
+    ]
+    return CalibrationCard(
+        definition=report.confidence_definition,
+        n_judgments=report.n_judgments,
+        n_scored=report.n_scored,
+        cells=cells,
+        drifting=drifting,
     )
 
 
@@ -684,6 +790,16 @@ def _escape(text: Any) -> str:
     )
 
 
+def _pct(value: float | None) -> str:
+    """A share, as the page shows it."""
+    return "—" if value is None else f"{value * 100:.1f}%"
+
+
+def _num(value: float | None) -> str:
+    """A score, as the page shows it."""
+    return "—" if value is None else f"{value:.4f}"
+
+
 def _hours(minutes: float) -> str:
     hours = minutes / 60.0
     return f"{int(hours)} h {int(round((hours - int(hours)) * 60)):02d} m"
@@ -923,6 +1039,42 @@ def render_html(report: NightReport) -> str:
         add("</table>")
     add("</section>")
 
+    # The confidence's calibration — one line per drifting model.
+    add('<section id="calibration">')
+    add("<h2>The confidence's calibration</h2>")
+    calibration = report.calibration
+    if not calibration.n_judgments:
+        add('<p class="empty">The judge made no judgments tonight.</p>')
+    else:
+        add(
+            f"<p>{calibration.n_scored} of {calibration.n_judgments} judgments were"
+            f" answered by an outcome ({calibration.n_unscored} were not), under the"
+            f" <code>{_escape(calibration.definition)}</code> definition.</p>"
+        )
+        if calibration.cells:
+            add("<table><tr><th>Model</th><th>Task</th><th>n</th><th>Accuracy</th>"
+                "<th>Brier</th><th>ECE</th></tr>")
+            for cell in calibration.cells:
+                add(
+                    f"<tr><td>{_escape(cell.model)}</td><td>{_escape(cell.task)}</td>"
+                    f"<td>{cell.n}</td><td>{_pct(cell.accuracy)}</td>"
+                    f"<td>{_num(cell.brier)}</td><td>{_num(cell.ece)}</td></tr>"
+                )
+            add("</table>")
+        if calibration.drifting:
+            add("<ul class=\"drift\">")
+            for line in calibration.drifting:
+                add(
+                    f"<li><strong>{_escape(line.model)}</strong> ·"
+                    f" {_escape(line.task)} — <code>{_escape(line.kind)}</code>:"
+                    f" {_escape(line.detail)}"
+                    f" <em>{_escape(line.retune)}</em></li>"
+                )
+            add("</ul>")
+        else:
+            add('<p class="empty">No model drifted.</p>')
+    add("</section>")
+
     # 7 — the three-number line, and its fourth.
     add('<section id="three-numbers">')
     add(f'<p class="three">{_four_numbers(three)}</p>')
@@ -997,6 +1149,31 @@ def render_text(report: NightReport) -> str:
         f"  {numbers.gpu_minutes_spent / 60:.1f} of {numbers.gpu_minutes_budget / 60:.1f} GPU-h"
     )
     add(f"  {_four_numbers(three)}")
+    add("")
+    add("THE CONFIDENCE'S CALIBRATION")
+    calibration = report.calibration
+    if not calibration.n_judgments:
+        add("  The judge made no judgments tonight.")
+    else:
+        add(
+            f"  {calibration.n_scored} of {calibration.n_judgments} judgments were answered"
+            f" by an outcome ({calibration.n_unscored} were not), under the"
+            f" {calibration.definition} definition"
+        )
+        for cell in calibration.cells:
+            add(
+                f"  {cell.model} · {cell.task}: n={cell.n}"
+                f" accuracy={_pct(cell.accuracy)}"
+                f" brier={_num(cell.brier)} ece={_num(cell.ece)}"
+            )
+        if calibration.drifting:
+            for line in calibration.drifting:
+                add(
+                    f"  {line.model} · {line.task} — {line.kind}:"
+                    f" {line.detail} {line.retune}"
+                )
+        else:
+            add("  No model drifted.")
     add("")
     add("WHAT THE NIGHT DID")
     for task in report.tasks:
