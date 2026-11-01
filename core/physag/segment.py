@@ -364,15 +364,22 @@ def _piece_record(
     # instead, and the flag lands on the part that moves — a base that fell
     # into two blobs still supports the prop, but a moving part that fell
     # into two is not the part the spec named.
+    #
+    # The bar for "this is really in pieces" is the same one the ambiguity
+    # rule uses: the largest piece has to hold 90 % of the area. A handful
+    # of stray triangles on the far side of a cut is what a clip leaves
+    # behind — four triangles out of six hundred thousand — and voiding a
+    # mapping over that would make the guard refuse to measure anything.
+    # The number of pieces and their shares are in the record either way.
     if not piece.is_empty:
         _kept, components, share_list = largest_component(piece)
         shares = tuple(share_list)
-        if components > 1:
+        if components > 1 and shares[0] < 0.9:
             notes.append(
                 f"the split fell into {components} pieces; the largest holds "
                 f"{shares[0]:.0%} of the area"
             )
-            if part.role == "moving" and shares[0] < 0.9:
+            if part.role == "moving":
                 notes.append("the part is ambiguous: no piece dominates")
                 ambiguous = True
         if piece.triangle_count == 0:

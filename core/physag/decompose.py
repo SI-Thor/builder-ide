@@ -45,6 +45,7 @@ from core.physag.geometry import (
     distance_to_hull,
     distance_to_union,
     hull_metrics,
+    subsample_points,
 )
 
 __all__ = [
@@ -292,16 +293,8 @@ def _cut_by_plane(part: MeshPart, normal: np.ndarray, offset: float) -> tuple[Me
 
 
 def _subsample(points: np.ndarray, limit: int = 2000) -> np.ndarray:
-    """A spread-out subset of the points, for the cheap evaluations.
-
-    The stride keeps the subset spread over the shape rather than taking a
-    corner of it, and it is deterministic: the same piece always gives the
-    same subset.
-    """
-    if points.shape[0] <= limit:
-        return points
-    stride = max(1, points.shape[0] // limit)
-    return points[::stride]
+    """A spread-out subset of the points, for the cheap evaluations."""
+    return subsample_points(points, limit)
 
 
 def _deviation(vertices: np.ndarray, planes: np.ndarray) -> tuple[float, np.ndarray]:

@@ -50,6 +50,7 @@ __all__ = [
     "prop_frame_transform",
     "scale_mesh",
     "signed_volume",
+    "subsample_points",
     "surface_area",
 ]
 
@@ -290,6 +291,21 @@ def scale_mesh(mesh: MeshPart, size_m: float | None) -> MeshPart:
     if abs(scale - 1.0) < 1e-9:
         return mesh
     return MeshPart(vertices=mesh.vertices * scale, triangles=mesh.triangles)
+
+
+def subsample_points(points: np.ndarray, limit: int = 2000) -> np.ndarray:
+    """A spread-out subset of the points, for the cheap evaluations.
+
+    The stride keeps the subset spread over the shape rather than taking a
+    corner of it, and it is deterministic: the same mesh always gives the
+    same subset. A measurement taken over the subset is an estimate of
+    the same measurement over everything, and where the estimate is used
+    for a bound the record says it was a sample.
+    """
+    if points.shape[0] <= limit:
+        return points
+    stride = max(1, points.shape[0] // limit)
+    return points[::stride]
 
 
 def signed_volume(vertices: np.ndarray, triangles: np.ndarray) -> float:
@@ -540,9 +556,11 @@ def distance_to_union(points: np.ndarray, pieces: list[np.ndarray]) -> np.ndarra
     the nearest piece's surface. The second number is the one that says
     whether the collider misses material.
 
-    The depth of the covered points is the other half of the story: how
-    deep the collider swallows the material it covers. That is the local
-    face of the inflation the volume ratio measures globally.
+    A generated prop has hundreds of thousands of vertices and a
+    decomposition has tens of pieces, so the loop over the pieces is the
+    hot one. It keeps only the points that are still uncovered: a point
+    that one piece stands over is answered, and there is no need to ask
+    the rest.
     """
     if points.shape[0] == 0:
         return np.zeros(0)
@@ -550,21 +568,24 @@ def distance_to_union(points: np.ndarray, pieces: list[np.ndarray]) -> np.ndarra
         return np.full(points.shape[0], np.inf)
 
     covered = np.zeros(points.shape[0], dtype=bool)
-    depth = np.zeros(points.shape[0])
     outside = np.full(points.shape[0], np.inf)
+    active = np.arange(points.shape[0])
 
     for planes in pieces:
-        if planes.shape[0] == 0:
+        if planes.shape[0] == 0 or active.size == 0:
             continue
         normals = planes[:, :3]
         offsets = planes[:, 3]
-        gaps = points @ normals.T + offsets
+        gaps = points[active] @ normals.T + offsets
         worst = gaps.max(axis=1)
         inside = worst <= 0.0
-        covered |= inside
-        # How far inside: the distance to the nearest face.
-        depth = np.where(inside, np.maximum(depth, -gaps.min(axis=1)), depth)
-        outside = np.minimum(outside, np.where(inside, np.inf, worst))
+        if inside.any():
+            covered[active[inside]] = True
+        still = ~inside
+        if still.any():
+            index = active[still]
+            outside[index] = np.minimum(outside[index], worst[still])
+            active = index
 
     return np.where(covered, 0.0, outside)
 

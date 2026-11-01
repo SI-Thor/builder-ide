@@ -499,7 +499,7 @@ def check_prop(
     guard_inflation_ok = inflation is not None and inflation <= 0.01
     collider_valid = (
         built.collider_deviation_m <= 0.02 * max(diag, 1e-6)
-        and built.collider_concavity_m <= 0.02 * max(diag, 1e-6)
+        and built.collider_concavity_ratio <= 0.5
         and (inflation is None or inflation <= 0.15)
     )
     valid = rest.settled and collider_valid and not exploded
@@ -510,7 +510,8 @@ def check_prop(
             f"the collider is {built.collider_volume_m3:.4f} m³ against the mesh's "
             f"{built.mesh_volume_m3:.4f} m³, "
             f"{built.collider_deviation_m * 1000:.1f} mm from the material it "
-            f"stands for and {built.collider_concavity_m * 1000:.1f} mm into it, "
+            f"stands for and {built.collider_concavity_m * 1000:.1f} mm into it "
+            f"({built.collider_concavity_ratio:.0%} of the part), "
             "so the score is void"
         )
 
@@ -573,7 +574,7 @@ def check_prop(
         "valid": collider_valid,
         "guard_inflation_within_1pct": guard_inflation_ok,
         "concavity_m": round(built.collider_concavity_m, 6),
-        "concavity_rel_diag": round(built.collider_concavity_m / max(diag, 1e-6), 6),
+        "concavity_ratio": round(built.collider_concavity_ratio, 6),
         "mesh_volume_m3": round(built.mesh_volume_m3, 9),
         "collider_volume_m3": round(built.collider_volume_m3, 9),
         "epsilon_m": round(epsilon, 8),

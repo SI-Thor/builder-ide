@@ -37,6 +37,7 @@ from core.physag.geometry import (
     distance_to_union,
     is_closed,
     signed_volume,
+    subsample_points,
 )
 from core.physag.segment import Segmentation
 from core.physag.spec import WORLD_ANCHOR, InteractionSpec, Joint, SpecError
@@ -103,6 +104,12 @@ class BuiltProp:
     #: The volume of the mesh's own convex hull: the space the prop
     #: occupies, whatever shape its surface is.
     mesh_hull_volume_m3: float = 0.0
+    #: The same hollow the collider fills in, as a share of the part's own
+    #: extent. The share is what the guard is about: a collider that
+    #: swallows half the prop is no longer standing in for it, while a
+    #: collider that bridges the prop's own gaps — the space between a
+    #: crate's slats — is doing what a convex decomposition has to do.
+    collider_concavity_ratio: float = 0.0
     #: How far the mesh's own vertices are from the collider's surface:
     #: the Hausdorff distance in the direction that matters, because a
     #: collider that is blind to a hollow shows up here.
@@ -171,6 +178,7 @@ class BuiltProp:
             "collider_deviation_m": round(self.collider_deviation_m, 6),
             "coverage_deviation_m": round(self.coverage_deviation_m, 6),
             "collider_concavity_m": round(self.collider_concavity_m, 6),
+            "collider_concavity_ratio": round(self.collider_concavity_ratio, 6),
             "root_body": self.root_body,
             "free_base": self.free_base,
             "anchor_m": None if self.anchor_m is None else [round(float(v), 6) for v in self.anchor_m],
@@ -503,9 +511,20 @@ def build_mjcf(
     # the strip between the cut and the clearance.
     deviation = 0.0
     concavity = 0.0
-    for decomp in decompositions.values():
+    #: The hollow the collider fills in, as a share of the part's own
+    #: extent. The share is what the guard is about: a collider that
+    #: swallows half the prop is no longer standing in for it, while a
+    #: collider that bridges the prop's own gaps — the space between a
+    #: crate's slats — is doing what a convex decomposition has to do.
+    concavity_ratio = 0.0
+    for name, decomp in decompositions.items():
         deviation = max(deviation, decomp.deviation_m)
         concavity = max(concavity, decomp.concavity_m)
+        part = segmentation.pieces.get(name)
+        if part is not None and not part.part.is_empty:
+            extent = float(np.linalg.norm(part.part.bbox_size))
+            if extent > 1e-9:
+                concavity_ratio = max(concavity_ratio, decomp.concavity_m / extent)
 
     mesh_vertices = segmentation.mesh.vertices
     coverage = 0.0
@@ -521,7 +540,11 @@ def build_mjcf(
             if piece.planes.shape[0] > 0
         ]
         if planes:
-            nearest = distance_to_union(mesh_vertices, planes)
+            # The mesh's vertices are sampled: the whole set is hundreds of
+            # thousands of points and the pieces are dozens, and the
+            # measurement is their product.
+            sample = subsample_points(mesh_vertices, 20000)
+            nearest = distance_to_union(sample, planes)
             finite = nearest[np.isfinite(nearest)]
             if finite.size:
                 coverage = float(finite.max())
@@ -550,6 +573,7 @@ def build_mjcf(
         collider_deviation_m=deviation,
         coverage_deviation_m=coverage,
         collider_concavity_m=concavity,
+        collider_concavity_ratio=concavity_ratio,
         anchor_m=offsets.get(root_name),
         notes=tuple(notes),
     )

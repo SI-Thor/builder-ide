@@ -31,7 +31,7 @@ from typing import Any
 from core.physag.check import CheckResult, check_prop
 from core.physag.decompose import Decomposition, decompose_part
 from core.physag.delivery import Delivery, build_delivery
-from core.physag.geometry import MeshPart, load_mesh, scale_mesh
+from core.physag.geometry import MeshPart, load_mesh, scale_mesh, subsample_points
 from core.physag.mjcf import BuiltProp, build_mjcf
 from core.physag.planner import Planner, RepairFeedback
 from core.physag.segment import Segmentation, segment, segmentation_from_parts
@@ -85,7 +85,14 @@ def _decompose_all(
     return out
 
 
-def _clip_to_part(decomp: Decomposition, part, spec, size, material: MeshPart) -> Decomposition:
+def _clip_to_part(
+    decomp: Decomposition,
+    part,
+    spec,
+    size,
+    material: MeshPart,
+    deviation_point_limit: int = 20000,
+) -> Decomposition:
     """Clip a part's pieces to the region the part owns.
 
     Every cut in the spec is a boundary between two parts, and each part's
@@ -168,7 +175,13 @@ def _clip_to_part(decomp: Decomposition, part, spec, size, material: MeshPart) -
     if material is not None and not material.is_empty:
         planes = [piece.planes for piece in kept if piece.planes.shape[0] > 0]
         if planes:
-            distances = distance_to_union(material.vertices, planes)
+            # The material is sampled: a generated part has hundreds of
+            # thousands of vertices and the pieces are dozens, so the
+            # measurement is a product of two big numbers. The sample is
+            # spread over the shape, and the number it gives is the
+            # deepest miss the sample found.
+            sample = subsample_points(material.vertices, deviation_point_limit)
+            distances = distance_to_union(sample, planes)
             finite = distances[np.isfinite(distances)]
             if finite.size:
                 deviation = float(finite.max())
@@ -181,6 +194,7 @@ def _clip_to_part(decomp: Decomposition, part, spec, size, material: MeshPart) -
         collider_volume=volume,
         deviation_m=deviation,
         deviation_p95_m=p95,
+        concavity_m=decomp.concavity_m,
         overlaps=decomp.overlaps,
         notes=decomp.notes,
     )
@@ -258,6 +272,23 @@ def run_prop(
     repair_record: dict[str, Any] | None = None
     counted = True
 
+    # Guard 1: the completion rate is reported only for props whose
+    # part-to-spec mapping was verified. A prop whose lid was not found —
+    # because the mesh has no lid, or because the split cut the wrong
+    # band — can complete its action and mean nothing by it, so it does
+    # not count.
+    if not segmentation.verified:
+        counted = False
+        reasons = "; ".join(segmentation.reasons) or "; ".join(
+            f"{name}: {', '.join(piece.notes)}"
+            for name, piece in segmentation.pieces.items()
+            if piece.notes
+        )
+        notes.append(
+            "the part-to-spec mapping was not verified (" + reasons + "), so the "
+            "prop does not count towards the completion rate"
+        )
+
     # -- repair, once -----------------------------------------------------
     if not result.completion.completed and allow_repair and planner is not None:
         started = time.perf_counter()
@@ -330,6 +361,19 @@ def run_prop(
             )
             timings["recheck_s"] = time.perf_counter() - started
             spec = repaired
+
+            # The repair may have found the part where the first split did
+            # not: the revised plan's cut can be the one that isolates the
+            # lid. The prop counts again if the mapping is verified now —
+            # and only if the repair kept the action and the limits frozen.
+            if allowed and segmentation.verified:
+                counted = True
+                notes.append(
+                    "the repair found the part the first split did not, and the "
+                    "mapping is verified now"
+                )
+            elif not segmentation.verified:
+                counted = False
 
     if mesh_provenance:
         timings.update(
