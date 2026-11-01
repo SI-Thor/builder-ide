@@ -1151,6 +1151,20 @@ def the_band(ledger: SQLiteLedger, slopes: dict[str, float],
 # --------------------------------------------------------------- the night ---
 
 
+def admission_rows(check) -> dict:
+    """The admission half of a payload — fits, and the cut and parked lines
+    as plain JSON. The models are dumped *here*, before the ledger or the
+    morning sees them: a ``CutLine`` is a pydantic model, and canonical JSON
+    refuses it — which is exactly how run B died, three and a half hours
+    into its wait, in its preflight row. One builder, both call sites, so
+    the test drives the code the night really runs."""
+    return {
+        "fits": check.fits,
+        "cut": [c.model_dump() for c in check.cut],
+        "parked": [c.model_dump() for c in check.parked],
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="run_night.py")
     parser.add_argument("--out", type=Path, default=REPO / "artifacts" / NIGHT_ID)
@@ -1296,9 +1310,7 @@ def main(argv: list[str] | None = None) -> int:
                 "services": {"d1": d1_handle.get("port"),
                              "comfy_started": comfy_started},
                 "two_lines": estimate.lines(),
-                "admission": {"fits": check.fits,
-                              "cut": [c.model_dump() for c in check.cut],
-                              "parked": [c.model_dump() for c in check.parked]},
+                "admission": admission_rows(check),
                 "pricing_file": "pricing.json",
             })
         log("the owner's two lines:")
@@ -1456,9 +1468,7 @@ def main(argv: list[str] | None = None) -> int:
             "box_before": state_before,
             "box_after": state_after,
             "two_lines": estimate.lines(),
-            "admission": {"fits": check.fits,
-                          "cut": [c.model_dump() for c in check.cut],
-                          "parked": [c.model_dump() for c in check.parked]},
+            "admission": admission_rows(check),
             "props": props_summary,
             "decisions": decisions_summary,
             "band": chorus_effect,
