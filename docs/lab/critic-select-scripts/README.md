@@ -24,6 +24,7 @@ counting rule, the same timing.
 | `report.py` | print every candidate's table side by side, and write `core/critic/selection.json` |
 | `figures.py` | print each candidate's table, latency spread and model time straight out of the result files — the write-up's numbers come from here, not from memory |
 | `latency_split.py` | split the wall time by layer (the checks' 882 ms image verdict against its 21.8 s mesh verdict) and pull the per-question model time out of the verdicts |
+| `run_dino_graph.py` | the DINOv2 forward, eager against graphed zero-copy, on the set's own 21 pictures — the graph's descriptor must be bit-identical |
 | `start_vlm.sh` | start the local VLM (Muse Glimmer 30B, Apache-2.0, the Thor's own copy) on loopback:8123 |
 | `run_vlm_stage.sh` | the VLM stage **under the box's shared heavy lock**: start the server, score the hybrid, make the captions, stop the server, capture the box's state |
 | `stage_box.py` | the box's state beside the stage: peak memory and the whole-box power rails (context, not an attribution — the box is shared) |

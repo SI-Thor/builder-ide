@@ -37,10 +37,12 @@ counting rule**, by the same harness
 ### The set
 
 30 members over the overnight sweep's real renders: 21 image members (15 with
-a seeded defect, 6 clean controls) and 9 mesh members — **one member per
-base render, 30 distinct bases**, so no two members of the set are the same
-picture. The set is a **recipe**: every member records the base render's
-sha256 and the recipe of its seeded defect.
+a seeded defect, 6 clean controls) and 9 mesh members, over **26 distinct
+bases**. The 21 image members sit on **21 distinct bases**, so no two
+*pictures* in the set are the same picture; the four bases that carry two
+members pair an image member with a mesh member of the same scene, which are
+different artefacts. The set is a **recipe**: every member records the base
+render's sha256 and the recipe of its seeded defect.
 
 **The set re-derives.** `derive_set.py` rebuilt all 21 image members from
 their base renders and their own recipes: **21 of 21 match the manifest's
@@ -284,8 +286,8 @@ cried up. It is the only candidate in the bake-off that is.
 Latency: **696 ms median per verdict** (image 865 ms, mesh 10 ms), against
 the scripted checks' 673 ms. The medians are the same because the model is
 asked about **8 of the 30 members** and nothing else. The *mean* is 3 450 ms
-against the checks' 594 ms, because those eight calls cost 9.3 s each
-(86 s of model time in total).
+against the checks' 594 ms, because those eight calls carry 86 s of model
+time: a median of 9.3 s each, a mean of 10.8 s, and the slowest 17.5 s.
 
 ## The comparison
 
@@ -336,13 +338,23 @@ yes on the clean controls' frame zero times.
 ### What it costs, honestly
 
 The hybrid is only the hybrid while the model is resident. It needs a 30 B
-model on the box (17 GB, GPU), and the delegate answers in ~9.3 s. When
-the model cannot be reached — no server, no weights, no GPU — the scripted
-checks answer and the verdict is marked **degraded**, so a night never
-mistakes a fallback for a model verdict. That is the same rule the whole
-selection is built on: the scripted checks are the default *and* the
-fallback, and the name of the critic that made a verdict is on the
-verdict's face.
+model on the box (17 GB, GPU), and the delegate answers in a median of 9.3 s
+per question (mean 10.8 s). When the model cannot be reached — no server, no
+weights, no GPU — the scripted checks answer and the verdict is marked
+**degraded**, so a night never mistakes a fallback for a model verdict. That is
+the same rule the whole selection is built on: the scripted checks are the
+default *and* the fallback, and the name of the critic that made a verdict is
+on the verdict's face.
+
+**The fallback is a test, not a promise.** Measured on this box with the
+llama.cpp server down, `HybridCritic.score` used to raise the delegate's
+connection error out of the nightly re-score — the documented fallback was not
+there. It is now: the hybrid catches its delegate's failure, the checks'
+answer stands, and the reason is on the check's detail. A candidate that
+cannot be *built* falls back at resolve time; a candidate that cannot
+*answer* falls back at score time, one member at a time
+(`core/critic/select.py`'s `FallbackCritic`). Both are covered by tests
+(`tests/critic/test_critic_selection.py`).
 
 ## The wiring
 
@@ -434,10 +446,10 @@ hold, the model on the one class they do not. It costs **one model call on
 whenever the model cannot be reached.
 
 The next honest thing to measure is the class the set does not cover yet:
-**the set is 30 members over 30 distinct bases** — one member per render, so
-no two pictures in it are the same picture — but the *defect classes* are
-thin: two or three members each for `floating_object`, `holes`,
-`missing_object`, `texture_swap` and `clipped_geometry`, and six clean
-controls in total. The band was held on it, but a table with two
+**the set is 30 members over 26 distinct bases** — the 21 image members on 21
+distinct bases, so no two pictures in it are the same picture — but the
+*defect classes* are thin: two or three members each for `floating_object`,
+`holes`, `missing_object`, `texture_swap` and `clipped_geometry`, and six
+clean controls in total. The band was held on it, but a table with two
 `floating_object` members is a claim about two pictures, not about the
 class. The set has to grow before the band means what it should.
