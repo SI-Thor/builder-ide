@@ -1,0 +1,161 @@
+{
+ "scenes": {
+  "/home/caseydigennaro/lm-critic/scenes/arctic-s1/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/arctic-s1/fine/scene.blend",
+   "base_id": "arctic-s1",
+   "camera_half_width_m": 28.014002776347805,
+   "camera_depth_m": 87.54376220703125,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.058362505784057925
+  },
+  "/home/caseydigennaro/lm-critic/scenes/arctic-s4/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/arctic-s4/fine/scene.blend",
+   "base_id": "arctic-s4",
+   "camera_half_width_m": 20.470122465384367,
+   "camera_depth_m": 63.96913528442383,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.042646088469550765
+  },
+  "/home/caseydigennaro/lm-critic/scenes/arctic-s5/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/arctic-s5/fine/scene.blend",
+   "base_id": "arctic-s5",
+   "camera_half_width_m": 9.572321391258725,
+   "camera_depth_m": 29.91350555419922,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.019942336231789013
+  },
+  "/home/caseydigennaro/lm-critic/scenes/canyon-s6/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/canyon-s6/fine/scene.blend",
+   "base_id": "canyon-s6",
+   "camera_half_width_m": 30.565037829705684,
+   "camera_depth_m": 95.5157470703125,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.06367716214522018
+  },
+  "/home/caseydigennaro/lm-critic/scenes/arctic-s6/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/arctic-s6/fine/scene.blend",
+   "base_id": "arctic-s6",
+   "camera_half_width_m": 16.86561089201686,
+   "camera_depth_m": 52.70503616333008,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.03513668935836846
+  },
+  "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend",
+   "base_id": "coast-s6",
+   "camera_half_width_m": 20.768165666253875,
+   "camera_depth_m": 64.90052032470703,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.043267011804695575
+  },
+  "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/desert-s6/fine/scene.blend",
+   "base_id": "desert-s6",
+   "camera_half_width_m": 9.731864841855032,
+   "camera_depth_m": 30.412078857421875,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.020274718420531315
+  },
+  "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/mountain-s6/fine/scene.blend",
+   "base_id": "mountain-s6",
+   "camera_half_width_m": 17.62477101764729,
+   "camera_depth_m": 55.07741165161133,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.03671827295343186
+  },
+  "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/plain-s5/fine/scene.blend",
+   "base_id": "plain-s5",
+   "camera_half_width_m": 21.614886823508915,
+   "camera_depth_m": 67.54652404785156,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.045031014215643574
+  },
+  "/home/caseydigennaro/lm-critic/scenes/river-s5/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/river-s5/fine/scene.blend",
+   "base_id": "river-s5",
+   "camera_half_width_m": 6.495578961643514,
+   "camera_depth_m": 20.29868507385254,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.013532456170090655
+  },
+  "/home/caseydigennaro/lm-critic/scenes/river-s6/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/river-s6/fine/scene.blend",
+   "base_id": "river-s6",
+   "camera_half_width_m": 5.468160790192238,
+   "camera_depth_m": 17.088003158569336,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.01139200164623383
+  },
+  "/home/caseydigennaro/lm-critic/scenes/coast-s5/fine/scene.blend": {
+   "blend": "/home/caseydigennaro/lm-critic/scenes/coast-s5/fine/scene.blend",
+   "base_id": "coast-s5",
+   "camera_half_width_m": 28.34379768492103,
+   "camera_depth_m": 88.57437133789062,
+   "frame_width_px": 960,
+   "frame_height_px": 540,
+   "metres_per_pixel": 0.059049578510252144
+  }
+ },
+ "continuations": [
+  {
+   "member_id": "mem_718023ba022732d4",
+   "base_id": "canyon-s4",
+   "scene": null,
+   "metres_per_pixel": null,
+   "drop_m": null,
+   "note": "no scene on this box: the edit carries the frame's units"
+  },
+  {
+   "member_id": "mem_d5c1c6cc24413705",
+   "base_id": "coast-s6",
+   "scene": "/home/caseydigennaro/lm-critic/scenes/coast-s6/fine/scene.blend",
+   "metres_per_pixel": 0.043267011804695575,
+   "edit": {
+    "op": "lower_object",
+    "target": "floating_blob",
+    "box": [
+     118,
+     58,
+     168,
+     87
+    ],
+    "support": {
+     "kind": "terrain",
+     "label": "terrain",
+     "row": 316,
+     "source": "frame"
+    },
+    "drop_px": 229,
+    "drop_frame_heights": 0.424074,
+    "drop_m": 9.908145703275286,
+    "evidence": {
+     "relief": 0.112935,
+     "span": 0.505374,
+     "support_row": 316.0,
+     "metres_per_pixel": 0.043267
+    }
+   },
+   "drop_m": 9.908145703275286,
+   "drop_px": 229
+  }
+ ],
+ "box": {
+  "kernel": "6.8.12-1021-tegra",
+  "arch": "aarch64",
+  "mem_available_gib": 78.78,
+  "gpu": "NVIDIA Thor"
+ }
+}
