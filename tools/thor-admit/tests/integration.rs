@@ -10,8 +10,9 @@
 //! the numbers the kernel reported.
 
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use serde_json::Value;
@@ -275,6 +276,33 @@ fn hog_gb() -> u64 {
         .unwrap_or(30)
 }
 
+/// A scripted `/proc/meminfo`.
+///
+/// The daemon reads the kernel's own file in production. A test points it
+/// at a file the test writes, so a memory **curve** can be driven without
+/// taking the real box down to nothing — see
+/// `the_watchdog_stops_a_runaway_before_the_memory_runs_out`.
+fn write_meminfo(path: &Path, total_bytes: u64, available_bytes: u64) {
+    let kb = |bytes: u64| bytes / 1024;
+    let text = format!(
+        "MemTotal:       {total:>12} kB\n\
+         MemFree:        {free:>12} kB\n\
+         MemAvailable:   {available:>12} kB\n\
+         Buffers:              0 kB\n\
+         Cached:         {cached:>12} kB\n\
+         SwapTotal:             0 kB\n\
+         SwapFree:              0 kB\n",
+        total = kb(total_bytes),
+        free = kb(available_bytes),
+        available = kb(available_bytes),
+        cached = kb(total_bytes.saturating_sub(available_bytes)),
+    );
+    // Sideways, so the daemon never reads half a file.
+    let temporary = path.with_extension("tmp");
+    std::fs::write(&temporary, text).unwrap();
+    std::fs::rename(&temporary, path).unwrap();
+}
+
 /// The floor that lets exactly one hog run at a time.
 ///
 /// The box has `available` free; a hog of `hog` GiB must fit while a second
@@ -519,6 +547,212 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
 
     let _ = hog.kill();
     let _ = hog.wait();
+}
+
+/// The brief's line: the watchdog must stop the runaway hog while the box
+/// still has more than 2 GiB free — long before the kernel's OOM killer is
+/// anywhere near.
+///
+/// Driving the **real** box to 2 GiB free would take about 100 GiB of
+/// allocation. The brief caps a test's memory at 60 GiB, and the box is
+/// also running a seat's work, so the memory **curve** is scripted here:
+/// the daemon, the hog, the SIGSTOP, the SIGTERM and the timing are all
+/// real; only the number the daemon reads is written by the test.
+#[test]
+fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
+    let total = 122 * GIB;
+    // The daemon's own default emergency floor: the brief's 8 GiB.
+    let floor = 8 * GIB;
+    let scratch =
+        std::env::temp_dir().join(format!("thor-admit-lowwater-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&scratch);
+    std::fs::create_dir_all(&scratch).unwrap();
+    let meminfo = scratch.join("meminfo");
+    write_meminfo(&meminfo, total, 100 * GIB);
+
+    let daemon = DaemonUnderTest::start(&["--meminfo", meminfo.to_str().unwrap()]);
+    let oom_before = oom_kills();
+
+    // A hog big enough to be a valid victim (the watchdog will not touch a
+    // lease under 2 GiB) and no bigger than it needs to be.
+    let mut hog = leased(&daemon, "runaway", "4G", &[HOG, "--bytes", "4G", "--hold", "120"]);
+
+    // Wait until the hog is really using memory, so the watchdog has
+    // something to find.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut hog_rss = 0u64;
+    while Instant::now() < deadline {
+        let status = daemon.status();
+        if let Some(lease) = status["leases"].as_array().and_then(|leases| leases.first()) {
+            hog_rss = lease["current_rss_bytes"].as_u64().unwrap_or(0);
+            if hog_rss >= 2 * GIB {
+                break;
+            }
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(
+        hog_rss >= 2 * GIB,
+        "the hog never grew to be a victim ({hog_rss} bytes); the status was {}",
+        daemon.status()
+    );
+
+    // The curve. First the box loses a lot of memory at once — the shape of
+    // the 13:22 OOM — and then it keeps sliding down, a quarter of a
+    // gibibyte a step, through the emergency floor and on past the 2 GiB
+    // line the brief names.
+    let steps = Arc::new(Mutex::new(Vec::<(u64, Instant)>::new()));
+    let writer = {
+        let meminfo = meminfo.clone();
+        let steps = Arc::clone(&steps);
+        std::thread::spawn(move || {
+            write_meminfo(&meminfo, total, 12 * GIB);
+            steps.lock().unwrap().push((12 * GIB, Instant::now()));
+            let mut available = 12 * GIB;
+            while available > 0 {
+                std::thread::sleep(Duration::from_millis(50));
+                available = available.saturating_sub(256 * 1024 * 1024);
+                write_meminfo(&meminfo, total, available);
+                steps.lock().unwrap().push((available, Instant::now()));
+            }
+        })
+    };
+
+    // Wait for the watchdog to act.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut stopped_at = None;
+    let mut observed_at = None;
+    while Instant::now() < deadline {
+        for line in daemon.log().lines() {
+            if !line.contains("\"watchdog.stopped\"") {
+                continue;
+            }
+            if let Ok(event) = serde_json::from_str::<Value>(line) {
+                stopped_at = event["mem_available_bytes"].as_u64();
+            }
+            break;
+        }
+        if stopped_at.is_some() {
+            observed_at = Some(Instant::now());
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let Some(available_at_stop) = stopped_at else {
+        let _ = hog.kill();
+        let _ = hog.wait();
+        panic!("the watchdog did not stop the hog; the log was:\n{}", daemon.log());
+    };
+
+    // Let the curve finish: it has to reach the danger zone *after* the
+    // stop, or the test would only prove that the line was never crossed.
+    let _ = writer.join();
+    let curve = steps.lock().unwrap().clone();
+    let lowest = curve.last().map(|(available, _)| *available).unwrap_or(0);
+
+    // The brief's line: the hog was stopped while there was still more than
+    // 2 GiB free.
+    assert!(
+        available_at_stop > 2 * GIB,
+        "the hog was stopped with only {} MiB free, which is inside the OOM zone",
+        available_at_stop / (1024 * 1024)
+    );
+    // It acted because the box was short, and it acted at once: the daemon
+    // samples every 250 ms and the curve moves 256 MiB every 50 ms, so the
+    // number it reads can be up to 1.25 GiB below the floor. It must not be
+    // far below that, or the daemon would be acting late.
+    assert!(
+        available_at_stop <= floor && floor - available_at_stop <= 2 * GIB,
+        "the watchdog acted at {} MiB free, which is not the {} MiB floor",
+        available_at_stop / (1024 * 1024),
+        floor / (1024 * 1024)
+    );
+    // The curve really did go past the 2 GiB line, and it did so after the
+    // stop: the daemon acted before the box was in trouble.
+    assert!(
+        lowest <= 2 * GIB,
+        "the curve only reached {} MiB free, so the danger zone was never reached",
+        lowest / (1024 * 1024)
+    );
+
+    // The hog must actually be stopped, not merely signalled.
+    let deadline = Instant::now() + Duration::from_secs(10);
+    let mut hog_pid = 0i64;
+    let mut saw_stopped = false;
+    while Instant::now() < deadline {
+        let status = daemon.status();
+        if let Some(lease) = status["leases"].as_array().and_then(|leases| leases.first()) {
+            hog_pid = lease["pgid"].as_i64().unwrap_or(0);
+            let state = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")).unwrap_or_default();
+            let code = state
+                .rfind(')')
+                .map(|close| {
+                    state[close + 1..]
+                        .split_whitespace()
+                        .next()
+                        .unwrap_or("")
+                        .to_string()
+                })
+                .unwrap_or_default();
+            if code == "T" || code == "t" {
+                saw_stopped = true;
+                break;
+            }
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert!(
+        saw_stopped,
+        "the runaway was never stopped (pid {hog_pid}); the log was:\n{}",
+        daemon.log()
+    );
+
+    // And then it dies.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut died = false;
+    while Instant::now() < deadline {
+        if hog.try_wait().ok().flatten().is_some() {
+            died = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(died, "the runaway was stopped but never killed");
+    assert!(
+        daemon.log().contains("watchdog.killed"),
+        "the daemon did not log the kill; the log was:\n{}",
+        daemon.log()
+    );
+    assert_eq!(
+        oom_kills(),
+        oom_before,
+        "the kernel's OOM killer fired; the watchdog was too late"
+    );
+
+    // How fast: the curve crossed the floor, and the daemon acted after it.
+    // The number is an upper bound — the log is polled every 20 ms.
+    let crossed = curve
+        .iter()
+        .find(|(available, _)| *available < floor)
+        .map(|(_, at)| *at);
+    let latency = match (crossed, observed_at) {
+        (Some(crossed), Some(observed)) => observed.saturating_duration_since(crossed),
+        _ => Duration::ZERO,
+    };
+    eprintln!(
+        "low water: the hog was stopped with {} MiB free (the floor was {} MiB) and the \
+         curve went on down to {} MiB; the daemon acted within {} ms of the floor being \
+         crossed, and the kernel's OOM killer fired {} times",
+        available_at_stop / (1024 * 1024),
+        floor / (1024 * 1024),
+        lowest / (1024 * 1024),
+        latency.as_millis(),
+        oom_kills() - oom_before,
+    );
+
+    let _ = hog.kill();
+    let _ = hog.wait();
+    let _ = std::fs::remove_dir_all(&scratch);
 }
 
 #[test]

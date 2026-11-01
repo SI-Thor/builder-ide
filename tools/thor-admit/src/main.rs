@@ -86,6 +86,7 @@ Daemon options (all have defaults):
   --socket <path>           the socket to listen on
   --state-dir <path>        where the lease files and the log live
   --history <path>          where the learned peaks are written
+  --meminfo <path>          where the box's memory is read (default /proc/meminfo)
   --gpu-probe <auto|nvidia|tegrastats|off>   the GPU's view (default auto)
   --idle-exit <seconds>     leave after this long with nothing to do (default 900)
   --no-stop-on-client-gone  leave a dead client's command running (default: stop it)
@@ -235,6 +236,9 @@ fn run_daemon(args: &[String]) -> ExitCode {
     }
     if let Some(value) = options.get("history") {
         config.history = PathBuf::from(value);
+    }
+    if let Some(value) = options.get("meminfo") {
+        config.meminfo = PathBuf::from(value);
     }
     match options.number("sample-interval-ms") {
         Ok(Some(value)) => config.sample_interval = Duration::from_millis(value),

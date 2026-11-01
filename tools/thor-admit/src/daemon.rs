@@ -49,6 +49,8 @@ pub const DEFAULT_EMERGENCY_FLOOR: u64 = 8 * 1024 * 1024 * 1024;
 pub const DEFAULT_SAMPLE_INTERVAL: Duration = Duration::from_millis(250);
 /// The default interval for reading the processes' resident sets.
 pub const DEFAULT_SCAN_INTERVAL: Duration = Duration::from_millis(1000);
+/// The default memory accounting file: the kernel's own.
+pub const DEFAULT_MEMINFO: &str = "/proc/meminfo";
 /// The default smallest lease the watchdog will touch.
 pub const DEFAULT_MIN_VICTIM_RSS: u64 = 2 * 1024 * 1024 * 1024;
 /// How long a granted lease may sit unlocked before the daemon gives up on it.
@@ -63,6 +65,15 @@ pub struct Config {
     pub state_dir: PathBuf,
     /// Where the learned peaks are written.
     pub history: PathBuf,
+    /// Where the box's memory accounting is read from.
+    ///
+    /// It is the kernel's own `/proc/meminfo` in production, and it should
+    /// stay that way: point the daemon at anything else and the watchdog is
+    /// watching a number the kernel is not using. The option exists so a
+    /// test can drive a memory **curve** — the real box cannot be taken to
+    /// 2 GiB free for a test, and the watchdog's promise is about the
+    /// curve, not about one snapshot.
+    pub meminfo: PathBuf,
     /// The floor a new lease has to clear.
     pub floor: u64,
     /// Below this much free memory, the watchdog acts.
@@ -98,6 +109,7 @@ impl Default for Config {
             socket: default_socket_path(),
             history: state_dir.join("peaks.jsonl"),
             state_dir,
+            meminfo: PathBuf::from(DEFAULT_MEMINFO),
             floor: DEFAULT_FLOOR,
             emergency_floor: DEFAULT_EMERGENCY_FLOOR,
             sample_interval: DEFAULT_SAMPLE_INTERVAL,
@@ -302,6 +314,7 @@ impl Daemon {
                 "floor_bytes": self.config.floor,
                 "emergency_floor_bytes": self.config.emergency_floor,
                 "sample_interval_ms": self.config.sample_interval.as_millis() as u64,
+                "meminfo": self.config.meminfo.display().to_string(),
                 "gpu_probe": self.config.gpu_probe.as_str(),
                 "mem_total_bytes": mem_total,
                 "history": self.config.history.display().to_string(),
@@ -508,7 +521,7 @@ impl Daemon {
         }
 
         // 2. The box.
-        if let Ok(mem) = MemInfo::read() {
+        if let Ok(mem) = MemInfo::read_from(&self.config.meminfo) {
             state.mem = mem;
         }
         if want_gpu {

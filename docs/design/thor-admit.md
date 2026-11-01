@@ -213,6 +213,7 @@ Every knob is a parameter with a default; nothing is hard-coded.
 | `--socket` | `$XDG_RUNTIME_DIR/thor-admit.sock` | where clients connect |
 | `--state-dir` | `~/.local/state/thor-admit` | the lease files, the log, the history |
 | `--history` | `<state-dir>/peaks.jsonl` | where the learned peaks are written |
+| `--meminfo` | `/proc/meminfo` | where the box's memory accounting is read — **a test seam, not an operating knob** (see §7.3.3) |
 | `--gpu-probe` | `auto` | `auto`, `nvidia`, `tegrastats`, `off` |
 | `--idle-exit` | 900 s | leave after this long with nothing to do (0 = never) |
 | `--no-stop-on-client-gone` | off | leave a dead client's command running |
@@ -319,7 +320,6 @@ not by running out of memory: it was never admitted because the first still
 owed its 12 GiB.
 
 #### 7.3.2 The watchdog (12 GiB runaway, 2026-10-31 22:08)
-
 The emergency floor was `available - 8 GiB` (86 764 MiB):
 
 | | |
@@ -332,6 +332,35 @@ The emergency floor was `available - 8 GiB` (86 764 MiB):
 The daemon reacted within one sample of the floor being crossed, with the
 whole box still free. The kernel's OOM killer fires at zero free; the
 watchdog fired at 80 GiB free.
+
+#### 7.3.3 The low-water mark (the "before 2 GB" line)
+
+The brief asks for the watchdog to stop a runaway hog **before
+`MemAvailable` reaches 2 GB**. On this box that line is about 100 GiB of
+allocation away: the box has 122 GiB and no swap, and the brief caps a
+test's memory at 60 GiB. So the memory **curve** is scripted and
+everything else is real.
+
+The daemon can read its accounting from a file (`--meminfo`, default
+`/proc/meminfo`; it is a test seam, and the daemon logs the path it is
+reading in `daemon.started`, so a stale file cannot hide). The test
+writes that file: first the box loses 88 GiB at once — the shape of the
+13:22 OOM — and then it slides down a quarter of a gibibyte a step,
+through the emergency floor and on past the 2 GiB line.
+
+Measured (`the_watchdog_stops_a_runaway_before_the_memory_runs_out`):
+
+| | |
+|---|---|
+| Stopped with | **7 168 MiB free** — the emergency floor was 8 192 MiB |
+| The curve went on down to | **0 MiB** — the danger zone was reached *after* the stop |
+| The daemon acted | **211 ms** after the floor was crossed (the log is polled every 20 ms, so this is an upper bound) |
+| The kernel's OOM killer | **0 times** |
+| The hog | really stopped (state `T`), then killed after the grace period |
+
+So the ordering the brief asks for is a fact about the rule, not a hope:
+the watchdog acts when the box crosses the emergency floor, and the
+emergency floor is above the 2 GB line.
 
 ### 7.4 The rule, checked
 
