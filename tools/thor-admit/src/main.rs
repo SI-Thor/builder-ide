@@ -43,6 +43,7 @@ fn main() -> ExitCode {
     match command.as_str() {
         "daemon" => run_daemon(&args[1..]),
         "run" => run_command(&args[1..]),
+        "serve" => run_serve(&args[1..]),
         "status" => run_status(&args[1..]),
         "peaks" => run_peaks(&args[1..]),
         "presence" => run_presence(&args[1..]),
@@ -70,6 +71,11 @@ thor-admit — a memory-admission daemon for the Thor
 
   thor-admit run --peak <size|auto> --label <name> [--tier <tier>] -- <command>
         Take a lease, run the command under it, and give the lease back.
+
+  thor-admit serve <model> --port <n> [--peak <size|auto>] [--tier <tier>] -- <command>
+        Run a shared model server under a lease, or return the port of one
+        that is already answering. A model is loaded once per box, not once
+        per seat: the second caller gets the first's port and runs nothing.
 
   thor-admit status [--json]
         Show the leases, the free memory, the queue and the presence work.
@@ -216,11 +222,7 @@ fn ensure_daemon(socket: &PathBuf) -> Result<(), String> {
     // default state directory — the box's real one — and wrote its history,
     // its ledger and its log there, so a test's daemon became part of the
     // box's own record.
-    let beside_the_socket = *socket != thor_admit::daemon::default_socket_path();
-    let state_dir = match (beside_the_socket, socket.parent()) {
-        (true, Some(parent)) => parent.to_path_buf(),
-        _ => thor_admit::daemon::default_state_dir(),
-    };
+    let state_dir = state_dir_for(socket);
     let _ = std::fs::create_dir_all(&state_dir);
     let errors = std::fs::File::create(state_dir.join("daemon.err"))
         .map_err(|e| e.to_string())?;
@@ -232,7 +234,7 @@ fn ensure_daemon(socket: &PathBuf) -> Result<(), String> {
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::from(errors));
-    if beside_the_socket {
+    if *socket != thor_admit::daemon::default_socket_path() {
         command.arg("--state-dir").arg(&state_dir);
     }
     command.spawn().map_err(|e| format!("cannot start the daemon: {e}"))?;
@@ -246,6 +248,17 @@ fn ensure_daemon(socket: &PathBuf) -> Result<(), String> {
         "the daemon did not come up on {}",
         socket.display()
     ))
+}
+
+/// Where a daemon's state lives: beside its socket when that socket is not
+/// the box's own, and in the default place when it is.
+fn state_dir_for(socket: &PathBuf) -> PathBuf {
+    if *socket != thor_admit::daemon::default_socket_path() {
+        if let Some(parent) = socket.parent() {
+            return parent.to_path_buf();
+        }
+    }
+    thor_admit::daemon::default_state_dir()
 }
 
 fn run_daemon(args: &[String]) -> ExitCode {
@@ -519,6 +532,168 @@ fn run_command(args: &[String]) -> ExitCode {
         human(outcome.peak_rss_bytes)
     );
     ExitCode::from((outcome.code & 0xff) as u8)
+}
+
+/// `thor-admit serve <model> --port <n> [--peak S|auto] [--tier T] -- <command>`
+///
+/// The seat's side of the shared-model registry. Three answers, in order:
+///
+/// 1. the model is already answering on a registered port — say the port
+///    and run nothing (this is the point: a model is loaded once per box);
+/// 2. the port is answering but nobody registered it — say so and stop,
+///    because starting a second server on that port cannot work;
+/// 3. nothing — take a live lease (`serve.<model>`) and run the server
+///    under it, recording the port once it answers. `serve` stays in front
+///    of the server for its whole life: the lease, the heartbeat and the
+///    daemon's cleanup all hold through it, and when it is killed the
+///    server goes with it.
+fn run_serve(args: &[String]) -> ExitCode {
+    let options = Options::parse(args);
+    let Some(model) = options.rest.first().cloned() else {
+        eprintln!("thor-admit: serve needs a model name (serve d1-2B ...)");
+        return ExitCode::from(2);
+    };
+    let command = options.rest[1..].to_vec();
+    if command.is_empty() {
+        eprintln!("thor-admit: serve needs a command after --");
+        return ExitCode::from(2);
+    }
+    let Some(port) = options
+        .number("port")
+        .ok()
+        .flatten()
+        .and_then(|value| u16::try_from(value).ok())
+    else {
+        eprintln!("thor-admit: serve needs a --port (a number between 1 and 65535)");
+        return ExitCode::from(2);
+    };
+    let peak = match options.get("peak") {
+        None => PeakArg::Auto,
+        Some(text) if text.eq_ignore_ascii_case("auto") => PeakArg::Auto,
+        Some(text) => match Size::parse(text) {
+            Ok(size) => PeakArg::Bytes(size.bytes),
+            Err(error) => {
+                eprintln!("thor-admit: --peak: {error}");
+                return ExitCode::from(2);
+            }
+        },
+    };
+    let tier = match options.get("tier") {
+        None => Tier::Live,
+        Some(text) => match Tier::parse(text) {
+            Some(tier) => tier,
+            None => {
+                eprintln!(
+                    "thor-admit: --tier: {text:?} is not one of live, preparation, practice, study"
+                );
+                return ExitCode::from(2);
+            }
+        },
+    };
+    let socket = match socket_path(&options) {
+        Ok(socket) => socket,
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    if let Err(error) = ensure_daemon(&socket) {
+        eprintln!("thor-admit: {error}");
+        return ExitCode::from(1);
+    }
+    let registry = thor_admit::serve::Registry::new(&state_dir_for(&socket));
+
+    // 1. Somebody is already serving this model.
+    if let Some(entry) = registry.find(&model) {
+        return report_serve(&model, entry.port, "existing", options.has("json"));
+    }
+    // 2. The port is taken by something the registry does not know.
+    if thor_admit::serve::port_answers(port) {
+        eprintln!(
+            "thor-admit: port {port} is answering but {model:?} is not in the registry; \
+             is the server running outside `thor-admit serve`?"
+        );
+        return ExitCode::from(1);
+    }
+
+    // 3. Ours to start. The watcher records the port the moment the server
+    //    answers it, so a second seat arriving seconds from now finds it.
+    eprintln!("thor-admit: serving {model:?} on port {port} (nothing answered there)");
+    let mut connection = match Client::connect(&socket) {
+        Ok(connection) => connection,
+        Err(error) => {
+            eprintln!("thor-admit: cannot reach the daemon: {error}");
+            return ExitCode::from(1);
+        }
+    };
+    let recorded = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let watcher = {
+        let recorded = std::sync::Arc::clone(&recorded);
+        let registry = thor_admit::serve::Registry::new(&state_dir_for(&socket));
+        let model = model.clone();
+        std::thread::spawn(move || {
+            for _ in 0..480 {
+                if thor_admit::serve::port_answers(port) {
+                    registry.record(thor_admit::serve::entry(&model, port));
+                    recorded.store(true, std::sync::atomic::Ordering::SeqCst);
+                    return;
+                }
+                std::thread::sleep(Duration::from_millis(250));
+            }
+        })
+    };
+    let label = format!("serve.{model}");
+    let outcome = client::run_under_lease(
+        &mut connection,
+        &socket,
+        &label,
+        peak,
+        0,
+        tier,
+        &command,
+    );
+    let _ = watcher.join();
+    let outcome = match outcome {
+        Ok(outcome) => outcome,
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(1);
+        }
+    };
+    // The server is gone; its entry goes with it. An entry that somehow
+    // stays is harmless — `find` probes the port — but the file should not
+    // remember servers that are not there.
+    if recorded.load(std::sync::atomic::Ordering::SeqCst) {
+        registry.remove(&model);
+    }
+    if !recorded.load(std::sync::atomic::Ordering::SeqCst) {
+        eprintln!(
+            "thor-admit: {model:?} never answered on port {port} in two minutes; \
+             nothing was registered"
+        );
+    }
+    eprintln!(
+        "thor-admit: {model:?} on port {port} finished with code {}",
+        outcome.code
+    );
+    ExitCode::from((outcome.code & 0xff) as u8)
+}
+
+/// Say where a model is served.
+fn report_serve(model: &str, port: u16, status: &str, json: bool) -> ExitCode {
+    if json {
+        println!(
+            "{}",
+            client::json_line(&serde_json::json!({
+                "model": model,
+                "port": port,
+                "status": status,
+            }))
+        );
+    } else {
+        println!("thor-admit: {model:?} is served on port {port}");
+    }
+    ExitCode::SUCCESS
 }
 
 fn run_status(args: &[String]) -> ExitCode {

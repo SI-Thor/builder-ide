@@ -1316,6 +1316,108 @@ fn a_heartbeating_client_keeps_its_lease() {
     let _ = holder.wait();
 }
 
+/// A model is loaded once per box, not once per seat (round 8, item 3: the
+/// 22:09 incident had two d1-2B llama-servers running because two seats
+/// each started one). The second seat that asks gets the first's port and
+/// runs nothing; when the first goes away, the server goes with it and the
+/// next ask starts a fresh one.
+#[test]
+fn a_model_is_loaded_once_per_box() {
+    let daemon = DaemonUnderTest::start_named("serve-once", &["--floor", "1G"]);
+    // A port nobody is using.
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    drop(listener);
+
+    let serve_args: Vec<String> = vec![
+        "serve".to_string(),
+        "test-model".to_string(),
+        "--socket".to_string(),
+        daemon.socket.display().to_string(),
+        "--port".to_string(),
+        port.to_string(),
+        "--peak".to_string(),
+        "1G".to_string(),
+        "--".to_string(),
+        "python3".to_string(),
+        "-m".to_string(),
+        "http.server".to_string(),
+        port.to_string(),
+    ];
+
+    // The first seat starts the "model server" and stays in front of it.
+    // The port answering is not enough to proceed on — the registry entry
+    // is what the second seat reads, and the serve watching the port writes
+    // that a moment after it first answers — so this waits for both.
+    let registered = || {
+        thor_admit::serve::port_answers(port)
+            && std::fs::read_to_string(daemon.state_dir.join("servers.json"))
+                .map(|text| text.contains("\"model\":\"test-model\""))
+                .unwrap_or(false)
+    };
+    let mut first = Command::new(BIN)
+        .args(&serve_args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the first serve starts");
+    let came_up = wait_until(20, registered);
+    assert!(
+        came_up,
+        "the model server never answered or was never registered; the log was:\n{}",
+        daemon.log()
+    );
+
+    // The second seat asks for the same model: it gets the port, exits
+    // clean, and starts nothing of its own.
+    let second = Command::new(BIN)
+        .args(&serve_args)
+        .output()
+        .expect("the second serve runs");
+    assert!(
+        second.status.success(),
+        "the second serve failed: {}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let answered = String::from_utf8_lossy(&second.stdout);
+    assert!(
+        answered.contains("is served on port"),
+        "the second serve did not return the port: {answered}"
+    );
+    // One model, one entry, one server.
+    let registry = std::fs::read_to_string(daemon.state_dir.join("servers.json"))
+        .unwrap_or_default();
+    let entries = registry
+        .lines()
+        .filter(|line| line.contains("\"model\":\"test-model\""))
+        .count();
+    assert_eq!(entries, 1, "the registry has {entries} entries:\n{registry}");
+
+    // The first seat goes away: its server goes with it (the lease cleans
+    // up after the client), the port stops answering, and the next ask
+    // starts a fresh one.
+    let _ = first.kill();
+    let _ = first.wait();
+    let went_away = wait_until(15, || !thor_admit::serve::port_answers(port));
+    assert!(
+        went_away,
+        "the server outlived the seat that started it; the log was:\n{}",
+        daemon.log()
+    );
+
+    let mut third = Command::new(BIN)
+        .args(&serve_args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the third serve starts");
+    let back = wait_until(20, || thor_admit::serve::port_answers(port));
+    assert!(back, "a fresh server was never started: {}", daemon.log());
+
+    let _ = third.kill();
+    let _ = third.wait();
+}
+
 #[test]
 fn the_daemon_costs_almost_nothing() {
     let daemon = DaemonUnderTest::start_named("daemon-overhead", &["--floor", "1G"]);
