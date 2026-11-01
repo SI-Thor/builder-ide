@@ -1,0 +1,277 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "width",
+    "expression": "600",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "depth",
+    "expression": "400",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "height",
+    "expression": "400",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "wall",
+    "expression": "20",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "dome_radius",
+    "expression": "200",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "width",
+    "width": "depth",
+    "height": "wall",
+    "corner": [
+     "-width/2",
+     "-depth/2",
+     "0"
+    ],
+    "body_name": "chest_body"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "width",
+    "width": "wall",
+    "height": "height - wall",
+    "corner": [
+     "-width/2",
+     "-depth/2",
+     "wall"
+    ],
+    "body_name": "chest_body_wall_front"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "width",
+    "width": "wall",
+    "height": "height - wall",
+    "corner": [
+     "-width/2",
+     "depth/2 - wall",
+     "wall"
+    ],
+    "body_name": "chest_body_wall_back"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "wall",
+    "width": "depth - 2*wall",
+    "height": "height - wall",
+    "corner": [
+     "-width/2",
+     "-depth/2 + wall",
+     "wall"
+    ],
+    "body_name": "chest_body_wall_left"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "wall",
+    "width": "depth - 2*wall",
+    "height": "height - wall",
+    "corner": [
+     "width/2 - wall",
+     "-depth/2 + wall",
+     "wall"
+    ],
+    "body_name": "chest_body_wall_right"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "chest_body",
+    "tools": [
+     "chest_body_wall_front"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "chest_body",
+    "tools": [
+     "chest_body_wall_back"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "chest_body",
+    "tools": [
+     "chest_body_wall_left"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "chest_body",
+    "tools": [
+     "chest_body_wall_right"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "dome_radius",
+    "height": "width",
+    "base": [
+     "-width/2",
+     "0",
+     "height"
+    ],
+    "axis": [
+     1,
+     0,
+     0
+    ],
+    "body_name": "chest_lid"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "width + 2*dome_radius",
+    "width": "depth + 2*dome_radius",
+    "height": "2*dome_radius",
+    "corner": [
+     "-width/2 - dome_radius",
+     "-depth/2 - dome_radius",
+     "height"
+    ],
+    "body_name": "chest_lid_half_cutter"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "chest_lid",
+    "tools": [
+     "chest_lid_half_cutter"
+    ],
+    "operation": "intersect"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "PropWood",
+    "density_g_cm3": 0.7,
+    "color": "#8b5a2b"
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "chest_body",
+     "chest_lid"
+    ],
+    "material": "PropWood"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "chest_body",
+     "chest_lid"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "revolute",
+    "a": {
+     "occurrence": "chest_body",
+     "point": [
+      0,
+      200,
+      400
+     ],
+     "z": [
+      1,
+      0,
+      0
+     ]
+    },
+    "b": {
+     "occurrence": "chest_lid",
+     "point": [
+      0,
+      200,
+      400
+     ],
+     "z": [
+      1,
+      0,
+      0
+     ]
+    },
+    "limits": [
+     [
+      0,
+      90
+     ]
+    ],
+    "flip": true,
+    "name": "lid_hinge"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}

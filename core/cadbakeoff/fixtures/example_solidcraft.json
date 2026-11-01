@@ -1,0 +1,168 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "w",
+    "expression": "220",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "d",
+    "expression": "160",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "h",
+    "expression": "120",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "t",
+    "expression": "12",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "w",
+    "width": "d",
+    "height": "t",
+    "corner": [
+     "-w/2",
+     "-d/2",
+     "0"
+    ],
+    "body_name": "base"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "w",
+    "width": "t",
+    "height": "h - 2*t",
+    "corner": [
+     "-w/2",
+     "d/2 - t",
+     "t"
+    ],
+    "body_name": "wall_back"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "base",
+    "tools": [
+     "wall_back"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "w",
+    "width": "d",
+    "height": "t",
+    "corner": [
+     "-w/2",
+     "-d/2",
+     "h - t"
+    ],
+    "body_name": "lid"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "PropWood",
+    "density_g_cm3": 0.7
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "base",
+     "lid"
+    ],
+    "material": "PropWood"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "base",
+     "lid"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "revolute",
+    "a": {
+     "occurrence": "base",
+     "point": [
+      0,
+      80,
+      108
+     ],
+     "z": [
+      0,
+      1,
+      0
+     ]
+    },
+    "b": {
+     "occurrence": "lid",
+     "point": [
+      0,
+      80,
+      108
+     ],
+     "z": [
+      0,
+      1,
+      0
+     ]
+    },
+    "limits": [
+     [
+      0,
+      90
+     ]
+    ],
+    "name": "lid_hinge",
+    "flip": true
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}

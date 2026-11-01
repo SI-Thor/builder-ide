@@ -1,0 +1,284 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "bed_length",
+    "expression": "800",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "bed_width",
+    "expression": "400",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "wheel_radius",
+    "expression": "150",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "wheel_width",
+    "expression": "40",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "deck_thickness",
+    "expression": "20",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "wheel_front_axle",
+    "expression": "114.592",
+    "unit": "rad"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "wheel_rear_axle",
+    "expression": "114.592",
+    "unit": "rad"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "bed_length",
+    "width": "bed_width",
+    "height": "deck_thickness",
+    "corner": [
+     "-bed_length/2",
+     "-bed_width/2",
+     "2*wheel_radius + 10"
+    ],
+    "body_name": "deck"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "20",
+    "width": "bed_width",
+    "height": "2*wheel_radius + 110 - (2*wheel_radius + 10 + deck_thickness)",
+    "corner": [
+     "-bed_length/2",
+     "-bed_width/2",
+     "2*wheel_radius + 10 + deck_thickness"
+    ],
+    "body_name": "rail_left"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "20",
+    "width": "bed_width",
+    "height": "2*wheel_radius + 110 - (2*wheel_radius + 10 + deck_thickness)",
+    "corner": [
+     "bed_length/2 - 20",
+     "-bed_width/2",
+     "2*wheel_radius + 10 + deck_thickness"
+    ],
+    "body_name": "rail_right"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "bed",
+    "tools": [
+     "deck",
+     "rail_left",
+     "rail_right"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "wheel_radius",
+    "height": "wheel_width",
+    "base": [
+     "-wheel_width/2",
+     "bed_width/2 - wheel_radius",
+     "wheel_radius"
+    ],
+    "axis": "X",
+    "body_name": "front_wheel"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "wheel_front",
+    "tools": [
+     "front_wheel"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "wheel_radius",
+    "height": "wheel_width",
+    "base": [
+     "-wheel_width/2",
+     "-(bed_width/2 - wheel_radius)",
+     "wheel_radius"
+    ],
+    "axis": "X",
+    "body_name": "rear_wheel"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "wheel_rear",
+    "tools": [
+     "rear_wheel"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "PropWood",
+    "density_g_cm3": 0.7
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "bed",
+     "wheel_front",
+     "wheel_rear"
+    ],
+    "material": "PropWood"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "bed",
+     "wheel_front",
+     "wheel_rear"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "revolute",
+    "a": {
+     "occurrence": "bed",
+     "point": [
+      0,
+      50,
+      150
+     ],
+     "z": [
+      1,
+      0,
+      0
+     ]
+    },
+    "b": {
+     "occurrence": "wheel_front",
+     "point": [
+      0,
+      50,
+      150
+     ],
+     "z": [
+      1,
+      0,
+      0
+     ]
+    },
+    "limits": [
+     [
+      -1145.92,
+      1145.92
+     ]
+    ],
+    "flip": true,
+    "name": "wheel_front_axle"
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "revolute",
+    "a": {
+     "occurrence": "bed",
+     "point": [
+      0,
+      -50,
+      150
+     ],
+     "z": [
+      1,
+      0,
+      0
+     ]
+    },
+    "b": {
+     "occurrence": "wheel_rear",
+     "point": [
+      0,
+      -50,
+      150
+     ],
+     "z": [
+      1,
+      0,
+      0
+     ]
+    },
+    "limits": [
+     [
+      -1145.92,
+      1145.92
+     ]
+    ],
+    "flip": true,
+    "name": "wheel_rear_axle"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}

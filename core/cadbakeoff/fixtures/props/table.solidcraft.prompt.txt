@@ -1,0 +1,127 @@
+You are a mechanical CAD prop designer. You write one script that
+builds one prop: a parametric rigid-body assembly for a physics
+simulation.
+
+=== THE PROP ===
+name: table
+description: A dining table on four legs with aprons and a fixed top, plus a hinged drop-leaf that folds down beside it.
+
+=== PARAMETERS ===
+Every dimension comes from these names. A length is in millimetres.
+  table_height = 740
+  top_length = 840
+  top_width = 640
+  top_thickness = 32
+  leaf_length = 400
+  leg_thickness = 60
+  leg_inset = 20
+  apron_height = 140
+
+=== BODIES ===
+Each body is one rigid part of the assembly. A cell is a closed solid;
+its extent along an axis is the maximum coordinate minus the minimum.
+  body "frame" (static):
+    cell "leg_front_left"     box      x=[-top_length/2 + leg_inset, -top_length/2 + leg_inset + leg_thickness]  y=[-top_width/2 + leg_inset, -top_width/2 + leg_inset + leg_thickness]  z=[0, table_height]
+    cell "leg_front_right"    box      x=[top_length/2 - leg_inset - leg_thickness, top_length/2 - leg_inset]  y=[-top_width/2 + leg_inset, -top_width/2 + leg_inset + leg_thickness]  z=[0, table_height]
+    cell "leg_back_left"      box      x=[-top_length/2 + leg_inset, -top_length/2 + leg_inset + leg_thickness]  y=[top_width/2 - leg_inset - leg_thickness, top_width/2 - leg_inset]  z=[0, table_height]
+    cell "leg_back_right"     box      x=[top_length/2 - leg_inset - leg_thickness, top_length/2 - leg_inset]  y=[top_width/2 - leg_inset - leg_thickness, top_width/2 - leg_inset]  z=[0, table_height]
+    cell "apron_front"        box      x=[-top_length/2 + leg_inset + leg_thickness, top_length/2 - leg_inset - leg_thickness]  y=[-top_width/2 + leg_inset, -top_width/2 + leg_inset + leg_thickness]  z=[table_height - apron_height, table_height]
+    cell "apron_back"         box      x=[-top_length/2 + leg_inset + leg_thickness, top_length/2 - leg_inset - leg_thickness]  y=[top_width/2 - leg_inset - leg_thickness, top_width/2 - leg_inset]  z=[table_height - apron_height, table_height]
+    cell "apron_left"         box      x=[-top_length/2 + leg_inset, -top_length/2 + leg_inset + leg_thickness]  y=[-top_width/2 + leg_inset + leg_thickness, top_width/2 - leg_inset - leg_thickness]  z=[table_height - apron_height, table_height]
+    cell "apron_right"        box      x=[top_length/2 - leg_inset - leg_thickness, top_length/2 - leg_inset]  y=[-top_width/2 + leg_inset + leg_thickness, top_width/2 - leg_inset - leg_thickness]  z=[table_height - apron_height, table_height]
+    cell "top_fixed"          box      x=[-top_length/2, top_length/2]  y=[-top_width/2, top_width/2]  z=[table_height, table_height + top_thickness]
+  body "leaf" (moving):
+    cell "leaf_panel"         box      x=[top_length/2, top_length/2 + leaf_length]  y=[-top_width/2, top_width/2]  z=[table_height, table_height + top_thickness]
+
+=== JOINT ===
+  name                type          parent            child             axis          origin (world)                            limits
+  leaf_hinge        revolute      frame             leaf              [0.0, 1.0, 0.0][top_length/2, 0, table_height]           [0 deg, 90 deg]
+
+=== ACTION ===
+  Drive these joints to these values:
+    leaf_hinge -> 90 rad
+
+=== RULES ===
+1. Answer with the script only. Nothing before it, nothing after it: no
+   explanation, no notes, no markdown fence unless the output format asks for one.
+2. Build exactly the bodies, the cells, the joint and the action the brief
+   lists. Do not add a body, a cell, a joint or a feature.
+3. Every dimension must come from the PARAMETERS block, by name. A literal
+   number is allowed only where the brief itself gives one.
+4. The cells of one body end up in that one body as a single rigid part. The
+   bodies stay separate from each other.
+5. The joint joins the two bodies the JOINT block names, with that type, that
+   axis direction, at that origin point, and inside those limits.
+6. Millimetres for lengths, degrees for angles, unless the output format says
+   otherwise.
+7. The script runs headless, with no input, and asks nothing.
+
+
+=== OUTPUT FORMAT ===
+One JSON object, and nothing else:
+
+  {"commands": [{"command": "<command id>", "params": {<parameters>}}, ...]}
+
+A length in a command may be a number in millimetres or an expression over the
+parameter names, such as "width", "depth/2" or "height - 2*plank". An angle is
+in degrees.
+
+The commands you may use, with their parameters:
+
+  parameters.add       name, expression, unit?: mm|cm|m|in|ft|deg|rad
+  solid.box            length, width, height: expression; corner?: [x,y,z] (the
+                       minimum corner; the box grows towards +x, +y and +z from
+                       it); operation?: new|join|cut|intersect; targets?: [body];
+                       body_name?: the name of the body it makes
+  solid.cylinder       radius | diameter, height: expression; base?: [x,y,z]
+                       (the centre of the bottom face); axis?: X|Y|Z|[x,y,z]
+                       (default Z); operation?; targets?: [body]; body_name?
+  solid.combine        target: body; tools: [body]; operation?: join|cut|intersect
+  material.create      name (not a built-in material's name); density_g_cm3:
+                       (0, 1000]; color?: "#rrggbb"
+  material.assign      bodies: [names]; material: name
+  component.from_bodies  bodies: [names] -> one new component per body, named
+                       after the body
+  joint.create         type: rigid|revolute|slider|cylindrical|pin_slot|planar|ball;
+                       a, b: the joint origins, each
+                       {occurrence: <component name>, point: [x,y,z] in world
+                       millimetres, z?: [x,y,z] the joint's axis direction in world};
+                       limits?: [[min, max]] (degrees for an angle, millimetres for
+                       a distance); flip?: bool; name?
+  file.export          path; format?: stl|obj|step|3mf|urdf|json; for urdf only:
+                       mesh_prefix?, effort?, velocity?
+  assembly.mass_properties   (no parameters; read-only)
+
+How the pieces fit:
+  - A cell's extent along an axis is its maximum coordinate minus its minimum
+    coordinate. A box is placed by its minimum corner, a cylinder by the centre
+    of its bottom face.
+  - Build the cells of one body as separate bodies, then combine them into the
+    body you want with solid.combine.
+  - Give every body a material before you make the components, so the mass
+    follows the density you set.
+  - A joint's origins are plain numbers in world millimetres, not expressions.
+    Give the joint's z the axis direction the brief asks for.
+  - joint.create mates the two parts: by default it turns the child so the two
+    origins meet as two faces meet, and it MOVES the child if it has to. Give
+    both origins the same world point and the same z and x, and pass
+    "flip": true, so the parts stay exactly where the brief puts them.
+  - The script must end by exporting the whole assembly: file.export to
+    "robot.urdf" with format "urdf", and file.export to "prop.step" with format
+    "step".
+
+
+=== EXAMPLE ===
+The same kind of brief, answered in this output format. The prop there is not
+the prop above.
+
+Brief: name "sample_box"; parameters w=220, d=160, h=120, t=12; body "base"
+(static) with cell "base" box x=[-w/2, w/2] y=[-d/2, d/2] z=[0, t] and cell
+"wall_back" box x=[-w/2, w/2] y=[d/2 - t, d/2] z=[t, h - t]; body "lid"
+(moving) with cell "lid" box x=[-w/2, w/2] y=[-d/2, d/2] z=[h - t, h]; joint
+"lid_hinge" revolute, parent "base", child "lid", axis [1, 0, 0], origin
+[0, 80, 108], limits [0 deg, 90 deg]; action: lid_hinge -> 90 deg.
+
+Answer:
+
+{"commands": [{"command": "parameters.add", "params": {"name": "w", "expression": "220", "unit": "mm"}}, {"command": "parameters.add", "params": {"name": "d", "expression": "160", "unit": "mm"}}, {"command": "parameters.add", "params": {"name": "h", "expression": "120", "unit": "mm"}}, {"command": "parameters.add", "params": {"name": "t", "expression": "12", "unit": "mm"}}, {"command": "solid.box", "params": {"length": "w", "width": "d", "height": "t", "corner": ["-w/2", "-d/2", "0"], "body_name": "base"}}, {"command": "solid.box", "params": {"length": "w", "width": "t", "height": "h - 2*t", "corner": ["-w/2", "d/2 - t", "t"], "body_name": "wall_back"}}, {"command": "solid.combine", "params": {"target": "base", "tools": ["wall_back"], "operation": "join"}}, {"command": "solid.box", "params": {"length": "w", "width": "d", "height": "t", "corner": ["-w/2", "-d/2", "h - t"], "body_name": "lid"}}, {"command": "material.create", "params": {"name": "PropWood", "density_g_cm3": 0.7}}, {"command": "material.assign", "params": {"bodies": ["base", "lid"], "material": "PropWood"}}, {"command": "component.from_bodies", "params": {"bodies": ["base", "lid"]}}, {"command": "joint.create", "params": {"type": "revolute", "a": {"occurrence": "base", "point": [0, 80, 108], "z": [1, 0, 0]}, "b": {"occurrence": "lid", "point": [0, 80, 108], "z": [1, 0, 0]}, "limits": [[0, 90]], "flip": true, "name": "lid_hinge"}}, {"command": "file.export", "params": {"path": "robot.urdf", "format": "urdf"}}, {"command": "file.export", "params": {"path": "prop.step", "format": "step"}}]}

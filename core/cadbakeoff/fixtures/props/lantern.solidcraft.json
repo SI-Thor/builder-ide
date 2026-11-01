@@ -1,0 +1,196 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "lantern_radius",
+    "expression": "90",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "lantern_height",
+    "expression": "240",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "base_height",
+    "expression": "30",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "hang_height",
+    "expression": "420",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "hook_size",
+    "expression": "40",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "hook_size",
+    "width": "hook_size",
+    "height": "hook_size",
+    "corner": [
+     "-hook_size/2",
+     "-hook_size/2",
+     "hang_height"
+    ],
+    "body_name": "hook_block"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "lantern_radius",
+    "height": "lantern_height",
+    "base": [
+     "0",
+     "0",
+     "hang_height - lantern_height"
+    ],
+    "axis": "Z",
+    "body_name": "housing"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": "lantern_radius*1.1",
+    "height": "base_height",
+    "base": [
+     "0",
+     "0",
+     "hang_height - lantern_height - base_height"
+    ],
+    "axis": "Z",
+    "body_name": "base"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "hook",
+    "tools": [
+     "hook_block"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "lantern",
+    "tools": [
+     "housing",
+     "base"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "LanternMetal",
+    "density_g_cm3": 7.8,
+    "color": "#8A8D8F"
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "hook",
+     "lantern"
+    ],
+    "material": "LanternMetal"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "hook",
+     "lantern"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "revolute",
+    "a": {
+     "occurrence": "hook",
+     "point": [
+      0,
+      0,
+      420
+     ],
+     "z": [
+      1,
+      0,
+      0
+     ]
+    },
+    "b": {
+     "occurrence": "lantern",
+     "point": [
+      0,
+      0,
+      420
+     ],
+     "z": [
+      1,
+      0,
+      0
+     ]
+    },
+    "limits": [
+     [
+      -30,
+      30
+     ]
+    ],
+    "flip": true,
+    "name": "swing"
+   }
+  },
+  {
+   "command": "joint.drive",
+   "params": {
+    "name": "swing",
+    "value": 30,
+    "unit": "rad"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}

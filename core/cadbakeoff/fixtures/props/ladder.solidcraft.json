@@ -1,0 +1,407 @@
+{
+ "commands": [
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "lower_height",
+    "expression": "1200",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "upper_height",
+    "expression": "1200",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "rail_gap",
+    "expression": "520",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "rail_width",
+    "expression": "40",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "rail_depth",
+    "expression": "50",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "rung_count",
+    "expression": "6",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "rung_height",
+    "expression": "50",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "parameters.add",
+   "params": {
+    "name": "extend",
+    "expression": "600",
+    "unit": "mm"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_width",
+    "width": "rail_depth",
+    "height": "lower_height",
+    "corner": [
+     "-rail_gap/2 - rail_width",
+     "-rail_depth/2",
+     "0"
+    ],
+    "body_name": "lower_rail_left"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_width",
+    "width": "rail_depth",
+    "height": "lower_height",
+    "corner": [
+     "rail_gap/2",
+     "-rail_depth/2",
+     "0"
+    ],
+    "body_name": "lower_rail_right"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "(lower_height - rung_height)/(rung_count + 1)*1"
+    ],
+    "body_name": "lower_rung_0"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "(lower_height - rung_height)/(rung_count + 1)*2"
+    ],
+    "body_name": "lower_rung_1"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "(lower_height - rung_height)/(rung_count + 1)*3"
+    ],
+    "body_name": "lower_rung_2"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "(lower_height - rung_height)/(rung_count + 1)*4"
+    ],
+    "body_name": "lower_rung_3"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "(lower_height - rung_height)/(rung_count + 1)*5"
+    ],
+    "body_name": "lower_rung_4"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "(lower_height - rung_height)/(rung_count + 1)*6"
+    ],
+    "body_name": "lower_rung_5"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "lower_section",
+    "tools": [
+     "lower_rail_left",
+     "lower_rail_right",
+     "lower_rung_0",
+     "lower_rung_1",
+     "lower_rung_2",
+     "lower_rung_3",
+     "lower_rung_4",
+     "lower_rung_5"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_width",
+    "width": "rail_depth",
+    "height": "upper_height",
+    "corner": [
+     "-rail_gap/2 - rail_width",
+     "-rail_depth/2",
+     "lower_height"
+    ],
+    "body_name": "upper_rail_left"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_width",
+    "width": "rail_depth",
+    "height": "upper_height",
+    "corner": [
+     "rail_gap/2",
+     "-rail_depth/2",
+     "lower_height"
+    ],
+    "body_name": "upper_rail_right"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "lower_height + (upper_height - rung_height)/(rung_count + 1)*1"
+    ],
+    "body_name": "upper_rung_0"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "lower_height + (upper_height - rung_height)/(rung_count + 1)*2"
+    ],
+    "body_name": "upper_rung_1"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "lower_height + (upper_height - rung_height)/(rung_count + 1)*3"
+    ],
+    "body_name": "upper_rung_2"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "lower_height + (upper_height - rung_height)/(rung_count + 1)*4"
+    ],
+    "body_name": "upper_rung_3"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "lower_height + (upper_height - rung_height)/(rung_count + 1)*5"
+    ],
+    "body_name": "upper_rung_4"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": "rail_gap",
+    "width": "rail_depth - 10",
+    "height": "rung_height",
+    "corner": [
+     "-rail_gap/2",
+     "-rail_depth/2 + 5",
+     "lower_height + (upper_height - rung_height)/(rung_count + 1)*6"
+    ],
+    "body_name": "upper_rung_5"
+   }
+  },
+  {
+   "command": "solid.combine",
+   "params": {
+    "target": "upper_section",
+    "tools": [
+     "upper_rail_left",
+     "upper_rail_right",
+     "upper_rung_0",
+     "upper_rung_1",
+     "upper_rung_2",
+     "upper_rung_3",
+     "upper_rung_4",
+     "upper_rung_5"
+    ],
+    "operation": "join"
+   }
+  },
+  {
+   "command": "material.create",
+   "params": {
+    "name": "PropAluminium",
+    "density_g_cm3": 2.7,
+    "color": "#b8bcc0"
+   }
+  },
+  {
+   "command": "material.assign",
+   "params": {
+    "bodies": [
+     "lower_section",
+     "upper_section"
+    ],
+    "material": "PropAluminium"
+   }
+  },
+  {
+   "command": "component.from_bodies",
+   "params": {
+    "bodies": [
+     "lower_section",
+     "upper_section"
+    ]
+   }
+  },
+  {
+   "command": "joint.create",
+   "params": {
+    "type": "slider",
+    "a": {
+     "occurrence": "lower_section",
+     "point": [
+      0,
+      0,
+      1200
+     ],
+     "z": [
+      0,
+      0,
+      1
+     ]
+    },
+    "b": {
+     "occurrence": "upper_section",
+     "point": [
+      0,
+      0,
+      1200
+     ],
+     "z": [
+      0,
+      0,
+      1
+     ]
+    },
+    "limits": [
+     [
+      0,
+      600
+     ]
+    ],
+    "flip": true,
+    "name": "extension_slide"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "robot.urdf",
+    "format": "urdf"
+   }
+  },
+  {
+   "command": "file.export",
+   "params": {
+    "path": "prop.step",
+    "format": "step"
+   }
+  }
+ ]
+}
