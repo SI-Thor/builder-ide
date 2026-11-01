@@ -767,3 +767,62 @@ CPU-only; the vectors were recorded on the Thor (the liquid study, the
 tiles rig) and on Cloudflare's Workers AI (the clef cascade), and their
 own box states are in their own files. The scripts are in
 [`judge-calibration-scripts/`](judge-calibration-scripts/).*
+
+## Limits of the both-order protocol (Hy4 adversarial review, 2026-11-01)
+The 71.9% catch rate is not yet a gate:
+- it assumes a purely positional model, and no reversed replies were recorded;
+- the protocol escalates 208 of 240 steps (86.7%) and taxes every right answer;
+- averaging two position-confidences does not cancel position (the AUC would stay inverted); only averaging the **vectors** might, and that is unmeasured.
+
+One replay settles all five points below: the 240 recorded steps with the two named conditions swapped, d1-2B and d1-3B, recording argmax + full vector (minutes on the Thor). It is queued as `judge-reversed-replay`.
+
+ 1 The swap assumption (model is purely positional). Trap: 71.9% assumes the    
+   reversed prompt makes the model answer the other named condition (it always  
+   picks first-named). If the model answers by content/salience, the reversed   
+   answer may equal the original (no disagreement) on decoy-first steps → catch 
+   rate far below 82/114, or it may disagree on truth-first steps too. Cheapest 
+   Thor run: Replay the 240-step sea-state trace with the reversed prompt (swap 
+   the two named conditions) for d1-2B/3B, recording argmax + full vector. Count
+   how often reversed argmax = the other named condition; recompute the actual  
+   disagreement set and catch rate. (240 steps, one run, minutes; no new model.)
+ 2 “Average the confidence” fails by the document’s own mechanism. Trap: The    
+   71.9% is for escalate-on-disagreement, not for averaging confidences. The    
+   document says averaging two position-confidences leaves two                  
+   position-confidences (the average is about as large as either), so a gate on 
+   the averaged confidence still acts on the surest mistakes; AUC stays inverted
+   (~0.28). If the judge implements “average the confidence”, it does not cancel
+   position. Cheapest Thor run: From the recorded original + reversed vectors,  
+   compute the average of the two confidences (not vectors) and measure AUC and 
+   the escalation sweep; confirm no τ catches every wrong judgment and the AUC  
+   is still below 0.5. (CPU replay once reversed vectors exist.)                
+ 3 The averaged-vector gate is unmeasured. Trap: The proposed cancellation is   
+   averaging the two vectors (putting the pair near 50/50), but no reversed     
+   vectors were recorded, so the averaged vector’s confidence, AUC, and sweep   
+   are unknown; it may still carry no signal or be inverted, so no τ catches all
+   wrong. Cheapest Thor run: Using original + reversed vectors, compute the     
+   elementwise average per step, take max prob as confidence; measure AUC and   
+   the escalation sweep (does any τ catch all wrong? tax?). Compare to 71.9% and
+   raw AUC 0.2815. (CPU replay.)                                                
+ 4 Latency/cost are assumed; the protocol escalates nearly everything. Trap:    
+   “+32.21 ms p50” and “2 calls” are computed under the assumption; actual      
+   sequential latency may be higher. The protocol escalates 208/240 (86.7%) and 
+   taxes 100% of right answers, so 71.9% is the max catch of a                  
+   near-total-escalation diagnostic, not a usable gate; at any sane escalation  
+   budget the effective catch is unmeasured. Cheapest Thor run: On the Thor, run
+   both-order live (two prompts per step) for the 240 steps; measure p50/p95    
+   added latency, GPU/CPU state, and confirm escalation/tax counts with real    
+   replies; test whether the two prompts can be batched in one call to halve    
+   latency.                                                                     
+ 5 Decoy-first error may be content/salience, not position. Trap: The 82        
+   decoy-first steps are all wrong and all first-named, but the trace never     
+   reversed the order; if the model prefers the decoy state regardless of       
+   position (content bias), reversing yields the same decoy answer, no          
+   disagreement, and the protocol catches 0 of 82 (71.9% collapses). The finding
+   would be a prompt artifact, not a positional leak. Cheapest Thor run: On the 
+   Thor, run a fresh controlled set (240 steps) where the true/decoy order is   
+   swapped and salience is decorrelated (plus a neutral phrasing that does not  
+   name a shown state first). Measure whether argmax follows position or the    
+   decoy’s content; if content, the both-order protocol fails and the fix is    
+   upstream (prompt), not the judge.                                            
+
+
