@@ -40,3 +40,20 @@ So the same three minds run in a real game engine (last-mile in Bevy, or Roblox 
   - connectivity can be **learned** from outcomes (who should hear whom), as attention is a learned room.
 
 *Experiment (queued):* ring vs broadcast vs room propagation on bandwidth per tick, the latency of *relevant* events, the total echo energy over time, and whether the spectral-radius rule predicts the measured decay.
+
+## Two media: the text world and the neural graph (Casey, 2026-10-31)
+
+"On one side you have a PLATO-like MUD that innately gives every agent their own perspective without much compute, and on the other side you have a close-to-latency-free neural graph."
+
+| | The text world (MUD-like) | The neural graph |
+|---|---|---|
+| Who lives there | The **mediator** (LLMs) and the **canon** (rooms, exits, objects, committed history) | The **reflexes** (d1 decisions, tiles, motion policies) |
+| Medium | Text: a few hundred characters per agent's perspective, projected from shared state; a mostly cached prompt prefix | Tensors: change events through a sparse, learned room matrix, microseconds per tick on the GPU |
+| Strength | Cheap per-agent perspective, native to LLMs, auditable | Latency-free, parallel, time-first |
+
+**The bridge, in both directions:**
+- **Geography → topology:** the MUD's rooms and exits define the graph's edges, walls its absorption, distance its delay. Editing the world (opening a door) rewires the graph.
+- **Activity → narration:** the graph's change events condense into lines in each agent's text view ("something moved quickly to the north"): the time-first signal, made readable.
+- **Projection:** Syzygy (and the emitter's projectors) turn the continuous world into text for any viewpoint, deterministically and cheaply.
+
+Each mind works in the medium it is best at, and neither waits for the other.
