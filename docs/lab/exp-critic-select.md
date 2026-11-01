@@ -207,6 +207,21 @@ of the picture it was scored on.
 The forward pass costs ~0.9 s per picture on the Thor (bf16, CUDA); with the
 features cached the head's verdict is 1–70 ms.
 
+**The graphed path, and where it applies.** The probe is the only candidate
+whose verdict is a neural forward pass, so "graphed zero-copy where it
+applies" applies to it and to nothing else in this bake-off. The box already
+has that path measured (`docs/lab/exp-critic-cuda-graph.md`): on real Cycles
+renders the PNG path costs **61–8,984 ms per verdict** (B = 1…8), the
+zero-copy device-resident path **7.9–106 ms** eager, and **6.1–84.6 ms inside
+a CUDA Graph** — 8.7× at 480p B = 1 — with the graph's verdict
+**bit-identical** to the eager verdict in every configuration. The bake-off's
+probe did not use it: it paid the plain forward once per picture and cached
+the features on disk, which is why the table's per-verdict numbers are
+already the cached path. The graph changes the cost of the *first* pass over
+a new picture — what a night meets when the set grows — and it changes
+nothing about the probe's verdict: a floating object does not move the
+embedding, so the probe misses it however fast the forward is.
+
 ### Jev (the cloud judge)
 
 Jev never sees a picture. It is given a **text description** of the frame
