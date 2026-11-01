@@ -86,3 +86,14 @@ The result: the fiction gets cheaper and sharper at once, with detail flowing to
 - **The drummer's look, in the night.** When the critic sees a builder's work *improving fast*, it cues the scheduler to grant that loop another chorus (more iterations), taken from loops that have gone flat. This is the time-first scheduler.
 - **The audience is the human.** What Casey keeps, undoes or looks at is the dancers' feedback, a nudge on what the band plays next.
 - **The band on the Thor:** a d1 per character, the critic, the generators, the scheduler and the first mile. Many players on one stage, each in its own groove, listening for cues.
+
+## Flow: the mediator observes (Casey, 2026-10-31)
+
+"Humans are attention-first thinking when they are in flow state. A band in the pocket is trying not to think. Thinking is processing at the ego level, when they just want that knower, the superego, to keep giving them the sign (like a JEPA reading, or the intuition that if they asked the decision model whether they were sounding good, it would laugh and say yeah) that they should just keep going. In those moments the musician's pleasure is not needing to use the LLM; it would get in the way. And if they did use it, it would be to be in the moment and to bring others into the moment. When the human dances for real, he puts his processing power into those other two parts and lets the ego be an observer."
+
+- **The knower's sign** is a fast predictive signal: a JEPA-style world model predicting the next moment in latent space (the Thor's rack has I-JEPA and V-JEPA 2) shows **low prediction error**, while the decision models stay **confident and steady**. That is "yeah, keep going".
+- **In flow the mediator observes.** Reflexes play, the knower nods, and the LLM watches: it logs what works and writes its notes for later, with near-zero calls. Intervening would add latency, cost and second-guessing to a groove that is working.
+- **It steps back in** on two triggers only:
+  1. the sign fades (prediction error rises, or confidence slides: the rate gate);
+  2. someone needs bringing into the moment (a new agent, or the human arriving), where its job is to narrate the vibe and draw them in, not to steer.
+- **Measure it:** mediator calls in flow vs out of it, and whether intervening during flow ever improves the outcome. Our expectation is that it rarely does.
