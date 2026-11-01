@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from thor_admit import LeaseRejected, lease, socket_path
+from thor_admit import LeaseRejected, lease, register_presence, socket_path
 
 REPO = Path(__file__).resolve().parents[2]
 CRATE = REPO / "tools" / "thor-admit"
@@ -199,3 +199,44 @@ def test_the_shim_uses_the_environment_socket(daemon: Daemon, monkeypatch):
     assert socket_path() == daemon.socket
     with lease("1G", "shim-env", socket_path_override=socket_path()) as held:
         assert held.lease_id > 0
+
+
+@needs_binary
+def test_a_lease_says_its_tier(daemon: Daemon):
+    with lease("1G", "shim-tier", tier="study", socket_path_override=daemon.socket):
+        leases = daemon.status()["leases"]
+        assert len(leases) == 1
+        assert leases[0]["tier"] == "study"
+
+
+@needs_binary
+def test_a_lease_without_a_tier_is_live(daemon: Daemon):
+    with lease("1G", "shim-unlabelled", socket_path_override=daemon.socket):
+        leases = daemon.status()["leases"]
+        assert len(leases) == 1
+        assert leases[0]["tier"] == "live"
+
+
+@needs_binary
+def test_the_shim_registers_presence_work(daemon: Daemon, tmp_path: Path):
+    marker = tmp_path / "ran"
+    job_id = register_presence(
+        "shim-presence",
+        "study",
+        "1G",
+        ["sh", "-c", f"sleep 1; touch {marker}"],
+        resumable=True,
+        socket_path_override=daemon.socket,
+    )
+    assert job_id >= 0
+
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline and not marker.exists():
+        time.sleep(0.1)
+    assert marker.exists(), "the presence job did not run"
+
+    presence = daemon.status()["presence"]
+    assert len(presence) == 1
+    assert presence[0]["label"] == "shim-presence"
+    assert presence[0]["tier"] == "study"
+    assert presence[0]["resumable"] is True
