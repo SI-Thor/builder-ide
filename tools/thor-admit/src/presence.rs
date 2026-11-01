@@ -138,10 +138,21 @@ impl PresenceJob {
 /// The order is the tier first (the most urgent tier first) and the
 /// registration order inside a tier. So a preparation job runs before a
 /// practice job, and a practice job runs before a study job.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct PresenceQueue {
     jobs: Vec<PresenceJob>,
     next_id: u64,
+}
+
+impl Default for PresenceQueue {
+    fn default() -> PresenceQueue {
+        // The ids start at one, like the lease ids: a job numbered zero
+        // reads like "no job" in a log line.
+        PresenceQueue {
+            jobs: Vec::new(),
+            next_id: 1,
+        }
+    }
 }
 
 impl PresenceQueue {
