@@ -169,6 +169,28 @@ Every finished lease writes one JSON line to the history
  "basis":"measured","source":"thor-admit","peak_source":"rusage"}
 ```
 
+**But not every finished run teaches** (round 9). A record teaches a
+future reservation only if the run **exited 0** — the client reports the
+command's exit status on release — and **lasted at least 5 s**
+(`history::MIN_LEARNED_DURATION_S`). The rule is applied twice, on write
+and on read: a run that fails it is not written (`history.not_learned`
+names it in the log, with the reason), and a record like it in an old file
+is ignored however many there are. The one exception runs the safe way: an
+**over-run** record (§ the over-run watch below) always teaches, because
+it is written only past a gross over-reservation and can only raise a
+reserve.
+
+Why 5 s and exit 0, measured: on 2026-11-01 the history of
+`infinigen.mountain.coarse` held 25 records, every one under 30 ms and
+under 4 MB — wrapper invocations with nothing to do — and the next
+`--peak auto` reserved **3.6 MB** for a job that was using 1.3 GiB at that
+moment (the incident is a test,
+`a_no_op_run_cannot_teach_the_reserve`). A run that dies mid-work has
+half a peak, not the next run's cost; a run that lasts no time did no
+work. A model server that never exits cleanly (a seat stops it with a
+signal) keeps its explicit `--peak` — over-reserving is the safe
+direction — until one of its runs finishes on its own.
+
 `--peak auto` asks the daemon for the **larger of the p95 and the last
 run** of that label's history, in the same percentile convention
 `core/night/cost/model.py` uses (linear interpolation, NumPy's
@@ -181,6 +203,13 @@ A label with **no history is refused** with a clear reason rather than
 guessed at, and so is a label with fewer than **three runs**: a p95 of one
 or two runs is still a guess, and on a box with no swap an under-reserved
 lease arrives at the emergency floor with the watchdog already late.
+
+**The daemon's memory is not the file.** The history is loaded once; an
+edit made by hand — the operator removed the 25 no-op records at 00:50
+while the daemon kept them in memory — reaches a running daemon through
+`thor-admit reload` or `SIGHUP`, both of which re-read the history and the
+presence queue and touch nothing that is running. Before round 9 the only
+way was a restart, and a restart waits for a box with no leases.
 
 **The over-run watch.** While a lease runs, the daemon watches for it
 passing its reservation. The first scan past `reserved + tolerance`
@@ -261,10 +290,11 @@ dependency, and readable with `nc -U`.
 | `{"op":"acquire","label":"trellis","peak":42949672960,"priority":0,"tier":"live","target":{"group":{"pgid":1234}}}` | take a lease (`peak` may be `"auto"`, `tier` may be absent — it is `live`) |
 | `{"op":"held","lease":7}` | the client holds the lock now: the lease is real |
 | `{"op":"heartbeat","lease":7}` | the client is still alive and still holding (`held` counts as the first) |
-| `{"op":"release","lease":7,"peak_rss_bytes":123456}` | the lease is over |
-| `{"op":"presence_add","label":"sweep","tier":"study","peak":8589934592,"resumable":true,"command":["python3","sweep.py"]}` | register work in the presence queue |
+| `{"op":"release","lease":7,"peak_rss_bytes":123456,"exit_code":0}` | the lease is over, and how the run finished (`exit_code` 0 is what lets the peak teach) |
+| `{"op":"presence_add","label":"sweep","tier":"study","peak":8589934592,"resumable":true,"enabled":true,"command":["python3","sweep.py"]}` | register work in the presence queue (`enabled: false` registers it without running it) |
 | `{"op":"presence_remove","id":3}` | take a job out of the presence queue |
 | `{"op":"presence_list"}` | what is registered, and what it is doing |
+| `{"op":"reload"}` | re-read the history and the presence queue (SIGHUP does the same) |
 | `{"op":"ledger"}` | the hours, and the hour being kept now |
 | `{"op":"status"}` / `{"op":"ping"}` | what is going on / is the daemon alive |
 
@@ -317,6 +347,7 @@ Every knob is a parameter with a default; nothing is hard-coded.
 | `--tier` | `live` | the tier of work a lease is (see §8.1) |
 | `--no-presence` | off | do not run the presence queue |
 | `--presence-file` | `<state-dir>/presence.json` | where the presence queue is kept |
+| `--flow-file` | `<state-dir>/flow.json` | where the flow signal is published, if anyone publishes one; the daemon records it and computes nothing |
 | `--ledger` | `<state-dir>/ledger.jsonl` | where the ledger's hours are written |
 | `--ledger-interval-ms` | 1000 | how often the CPU's counters are read |
 | `--gpu-busy-threshold` | 50 | the GPU's busy share (per cent) at which live work takes the GPU from the presence queue |
@@ -681,14 +712,39 @@ One JSON line per hour, in `<state-dir>/ledger.jsonl`:
 {"hour":"2026-11-01T05","window_s":51.0,"samples":204,
  "tiers":{"live":{"running_s":44.5,"runs":0,"preemptions":0,"preempted_s":0.0},
           "study":{"running_s":1.0,"runs":1,"preemptions":1,"preempted_s":44.25}},
+ "by_label":{"d1-critic":{"running_s":44.5,"preempted_s":0.0},
+             "sweep.w7":{"running_s":1.0,"preempted_s":44.25}},
  "gpu":{"power_mw_mean":39388.0,"power_mw_max":47548,"power_samples":204,
         "busy_pct_mean":90.01,"busy_samples":204,"source":"tegrastats"},
  "cpu":{"cores":14,"busy_share_mean":0.993,"per_core_busy_share":[...],"samples":49},
  "idle":{"total_s":5.75,"by_reason":{"no_work_registered":5.75},
          "unattributed_s":0.0,"no_work_s":5.75},
  "memory":{"available_min":51245244416,"available_max":51990007808,
-           "available_sum":10520264331264,"samples":204}}
+           "available_sum":10520264331264,"samples":204},
+ "flow":{"confidence_mean":null,"confidence_min":null,"rate_mean":null,
+         "sign":null,"samples":0}}
 ```
+
+**The by-label bookkeeping** (round 9, from the three-minds gap analysis:
+"a d1 per character, the critic… each in its own groove"). The tiers say
+where the box's time went; `by_label` says what each *player* got — every
+held lease's label and every running presence job's label, with the
+pre-empted seconds beside the running ones. The tier totals and the label
+totals are two views of the same samples, so an hour can be checked
+against itself.
+
+**The flow signal** (round 9): whoever runs the work may publish
+`{"confidence": 0.87, "rate_of_change": 0.02}` to `<state-dir>/flow.json`;
+the daemon reads it when the file changes and keeps it in the hour — the
+confidence's mean and minimum, the rate's mean, the sample count, and the
+sign at the end (`steady` / `faded`, a recording convention, not a
+trigger). The daemon computes none of it and decides nothing from it; an
+hour in which nobody published has `flow.samples: 0`, so "nobody is
+publishing" and "the signal faded" stay two different sentences. This is
+the honest slice of the three-minds "autopilot window": the daemon can
+*record* the window's sign, but whether the window is the moment for a
+keyframe or a mediator call is the mediator's decision, made where the
+confidence came from (§13.2).
 
 **The idle time is broken into causes**, because "the box was idle" is not
 a measurement — it is a shrug:
@@ -923,12 +979,24 @@ under, it needs no root, and it cannot outlive the session.
    file is empty until somebody puts something in it. The ledger can now
    say how much of the box's time went to `no_work_registered` — the
    presence gap — but it cannot say what *should* have been there. That is
-   a question for the night runner and the seats, not for the daemon.
+   a question for the night runner and the seats, not for the daemon
+   (§13.2: the crate ships three disabled *examples*, and that is as far
+   as the daemon's opinion goes).
 7. **Is `SIGSTOP` the right way to give the GPU back?** It stops the
    whole process group, so the job's CPU work stops too. A finer
    mechanism — the CUDA stream priority the driver already exposes — would
    keep the job's CPU work running and only take its GPU streams. It was
    not measured here.
+8. **Should a lease that promises no device memory wait for the GPU's
+   pool?** The `--gpu-floor` rule applies to every lease, so when the
+   box's allocation pool (`lfb`) sits under the floor — other seats'
+   CUDA work, which is not the daemon's to move — even a CPU-only lease
+   with no GPU history waits. That is the conservative reading and it is
+   what ran overnight; the alternative (exempt a lease whose learned GPU
+   promise is zero) would let CPU work through a full pool at the risk
+   that a first run touches CUDA unmeasured. Measured on this box at
+   ~02:00 on 2026-11-01, `lfb` swung between 0.15 GiB and 2 GiB in
+   minutes, so the question is live (§13.4).
 
 ## 12. Round 8 (2026-10-31 23:00 → 11-01): the Hy4 review folded in, the real workload invited in
 
@@ -983,6 +1051,17 @@ any other work, and killing the seat's `serve` takes the server with it.
 The registry is one JSON line per server under the state dir, worth
 exactly as much as the port probe behind it.
 
+Round 8 keyed the registry on the *name* the seat typed, and the box paid
+for it at 01:19 on 2026-11-01: three d1-2B servers ran at once as `d1-2B`,
+`d1-2B-baseline` and `d1-2B-batch`. Round 9 re-keyed it on what actually
+costs the memory and what actually changes the serving: the **model
+file** (its resolved path plus a content hash, computed per ask) and the
+**config tuple** (the command with the model file and the port taken
+out). The same file under the same flags is one server under any name; a
+variant exists only when its flags really differ, and a variant is its
+own server because it is one. Entries written by the round-8 build keep
+their name-derived key until their servers go.
+
 ### 12.2 The tests, made fair to a busy box
 
 The director measured 7 of 14 integration tests failing in parallel at
@@ -1024,3 +1103,103 @@ held until the director says the MIG quiet window is over
 started). No GPU work was started in this round; the tests allocate at
 most a few gibibytes of CPU memory, and the load runs above used
 bounded CPU spinners only.
+
+## 13. Round 9 (2026-11-01): what a run must do to teach, and what the daemon must not own
+
+Round 8 was merged. Overnight the daemon ran for real (tmux
+`last-mile:admitd`, from the binary at `~/lm-tools/thor-admit`), seats
+took leases — and the director's watch caught two failures and three
+design gaps. The fixes, each where it lives:
+
+### 13.1 A no-op run cannot teach (items a and c)
+
+A lease's reserve showed as **3.6 MB** for `infinigen.mountain.coarse`
+while the lease was using **1.3 GiB**. The history held 25 no-op records
+(<5 s, <512 MiB — the wrapper's own invocations), the director removed
+them from `peaks.jsonl` at 00:50, and the running daemon still held them
+in memory. Three changes close all three holes:
+
+* the **learning rule**: a run teaches only if it exited 0 (the client
+  reports its exit status on release) and lasted at least 5 s, applied on
+  write *and* on read (§2.4) — so no-ops already in a file are ignored
+  however many there are;
+* the **reload**: `thor-admit reload` and `SIGHUP` re-read the history
+  and the presence queue without a restart, so an edit by hand reaches a
+  daemon that is mid-flight (§2.4); before this, the only way was a
+  restart, and a restart waits for a box with no leases;
+* the **over-run watch keeps its authority**: an over-running lease is
+  written down while it runs (that is round 8's), and those records
+  always teach — the filter is aimed at no-ops, which can only lower a
+  reserve, never at the records that raise one.
+
+### 13.2 The three-minds gaps (item d, REVIEW-HY4-GAPS.md)
+
+The gap analysis named four; the smallest two are built, the third is
+built as *recording only*, and the fourth is corrected in the design
+rather than built, because the daemon should not own it:
+
+* **A by-label ledger** — built (§8.4): every hour keeps each label's
+  running and pre-empted seconds beside the tier totals. Labels are
+  facts the daemon already holds; booking them is bookkeeping, not
+  judgement.
+* **A default presence queue** — built as *examples*: the crate ships
+  `presence.default.json` with the cheapest three jobs of the
+  PRESENCE-JOBS.md proposal, **disabled**, their commands placeholders.
+  The daemon does not decide what is worth doing; the night runner owns
+  the content, and a disabled example is a starting point that cannot
+  run anything by accident. `presence add --disabled` registers the
+  same shape at runtime, and a job whose command cannot start is marked
+  failed once instead of being retried every tick.
+* **A flow signal** — built as recording only (§8.4): the daemon reads
+  `<state-dir>/flow.json` when it changes and keeps the hour's
+  confidence, rate of change and sign. The autopilot *decision* — "the
+  sign is steady, take the keyframe" — stays with the mediator, who can
+  register preparation work whenever it decides to; the queue's existing
+  rules handle the rest. The daemon records the window; it does not open
+  it.
+* **A `presence_cue` op** — not built, and the design is corrected
+  instead: cues are the room graph's channel, not the admission
+  daemon's. The daemon's queue is not a message bus, and a per-job cue
+  FIFO inside an admission controller would be a second room graph grown
+  by accident. When the room graph exists, a presence job that wants
+  cues should subscribe to it directly; nothing in this crate needs to
+  change for that.
+
+The gap analysis's other items — the glance that gathers the other
+players' state, the "another chorus" reallocation, the human-feedback
+channel, the re-entry triggers — are all the same shape: the daemon can
+provide the *window* (memory, the queue, the ledger's record of it) but
+not the *decision*, and they are left where the decisions live.
+
+### 13.3 `serve`, keyed on the model (item e)
+
+§12.1 above: the registry keys on the model file (path + content hash)
+plus the config tuple, so `d1-2B` and `d1-2B-baseline` with the same
+command are one server, and a variant only when its flags really differ.
+
+### 13.4 Two bugs the round's own tests found
+
+**A daemon that idled out did not exit.** The CLI's signal watcher waited
+for a signal, and only a signal: when the daemon's clock left by idle
+exit, the process stayed alive in `watcher.join()`, holding the socket's
+flock — so every later daemon on that socket was refused with "another
+thor-admit daemon is already running", and a client waiting on a lease
+waited on a socket whose daemon had said goodbye in its log and not in
+its process table. Found because a test daemon idled out under a waiter
+the GPU's floor was holding (below) and hung the suite for half an hour.
+The watcher now takes the daemon's own word (`is_stopped`) as well as the
+signal's, and a non-empty queue counts as activity: a daemon with a
+client waiting for room has something to do.
+
+**The tests read the box's real GPU pool.** With other seats' CUDA work
+holding the allocation pool at ~0.3 GiB of `lfb` — under the 2 GiB
+`--gpu-floor` — every CPU-only test lease waited on a rule that had
+nothing to do with it, because `gpu_admits` applies the pool's floor to
+every lease, including one that promises no device memory at all. That is
+the designed rule (§2.1), and on the live box it did what it is for: the
+01:19 queue of d1-2B variants was waiting for the *pool*, correctly, not
+for memory. But a test's admission decisions must not depend on another
+seat's CUDA allocations, so every test daemon now starts with
+`--gpu-probe off` (the GPU-pool test brings its own scripted view). The
+general question — should a lease with no GPU promise be exempt from the
+pool's floor? — stays open (§11.8).

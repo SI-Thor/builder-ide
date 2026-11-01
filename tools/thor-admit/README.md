@@ -23,14 +23,17 @@ stopgap.
   dies.
 * A **Python shim** (`thor_admit.lease`) for work that is already a Python
   process.
-* A **learned-peak history**: every lease records the peak it reached, so a
-  later `--peak auto` uses the p95 of what that label really costs.
+* A **learned-peak history**: every *clean* lease run records the peak it
+  reached, so a later `--peak auto` uses the p95 of what that label really
+  costs. A no-op run (exit 0 in milliseconds) or a failed run records
+  nothing — see "What it stubs".
 * A **presence queue**: work that is registered and runs when the box has
   room for it, and gives way when live work arrives.
-* A **time ledger**: where the box's time went, by tier, and why it was
-  idle.
+* A **time ledger**: where the box's time went, by tier and by label, what
+  the flow signal said, and why it was idle.
 * A **model-server registry** (`thor-admit serve`): a model loaded once
-  per box, not once per seat.
+  per box, not once per seat — keyed on the model file and the serving
+  flags, not on the name a seat types.
 
 ## Using it
 
@@ -42,14 +45,20 @@ cargo run --release -- daemon
 thor-admit run --peak 40G --label trellis -- python3 my_generator.py
 
 # a shared model server: the first ask starts it under a lease, the second
-# gets the same port back and runs nothing
-thor-admit serve d1-2B --port 8100 -- llama-server -m d1-2B --port 8100 ...
+# gets the same port back and runs nothing. Keyed on the model file
+# (path + hash) and the command's other flags, so the same model under any
+# name is one server, and a variant only when its flags really differ.
+thor-admit serve d1-2B --port 8100 -- llama-server -m /models/d1-2B.gguf --port 8100 ...
 
 # what is running, what is waiting, and how much memory is free
 thor-admit status
 
 # what the daemon has learned about each label
 thor-admit peaks
+
+# make a running daemon re-read its history and its presence queue
+# (after an edit by hand; SIGHUP does the same)
+thor-admit reload
 ```
 
 From Python:
@@ -105,9 +114,21 @@ A presence job is a **command**, a **tier**, an **estimated peak** and a
 A pre-empted job that is marked `--resumable` goes back in the queue and
 runs again when there is room; one that is not stays put.
 
+A job registered with `--disabled` stays in the queue and never runs: the
+shape an example or a held-over job takes (`presence add --disabled`).
+
 The queue is a file (`~/.local/state/thor-admit/presence.json`), so it
 survives the daemon and can be edited by hand. The daemon re-reads it when
-it changes.
+it changes. **The daemon does not decide what is worth doing** — the queue
+is empty until somebody registers work, and `presence.default.json` beside
+this README carries three *examples* (the cheapest three of the
+`PRESENCE-JOBS.md` proposal, disabled, with the command a placeholder): a
+starting point to copy, not a decision the daemon made. The night runner
+owns the content. A job whose command cannot start at all is marked
+`failed`, once, rather than retried every tick.
+
+The queue file's format is one JSON object per line: `cp presence.default.json
+~/.local/state/thor-admit/presence.json` installs the examples.
 
 ## The tiers
 
@@ -133,8 +154,10 @@ thor-admit ledger --json
 ```
 
 One JSON line per hour in `~/.local/state/thor-admit/ledger.jsonl`: the
-seconds each tier ran, the GPU's power and busy share, the CPU's busy share
-per core, and the idle time broken into **causes**:
+seconds each tier ran, the seconds each **label** ran (the players, not
+just the bands — `by_label`), the GPU's power and busy share, the CPU's
+busy share per core, the **flow signal** a publisher wrote (below), and
+the idle time broken into **causes**:
 
 | Cause | What it means |
 |---|---|
@@ -148,6 +171,24 @@ per core, and the idle time broken into **causes**:
 `no_work_registered` is a *cause* but not a good one: it is the presence
 gap. It is reported on its own, so that "the ledger explains everything"
 and "the box had nothing to do" stay two different sentences.
+
+### The flow signal: recorded, never computed
+
+Whoever runs the box's work — the reflex, the mediator, the night runner —
+may publish a small JSON object to `~/.local/state/thor-admit/flow.json`:
+
+```json
+{"confidence": 0.87, "rate_of_change": 0.02}
+```
+
+The daemon reads it when it changes and keeps it in the hour (the `flow`
+section: the confidence's mean and minimum, the rate's mean, the samples,
+and the sign at the end — `steady` or `faded`, a recording convention, not
+a trigger). **The daemon computes none of it and decides nothing from it.**
+An hour in which nobody published has `flow.samples: 0`, so "nobody is
+publishing" and "the signal faded" stay two different sentences. Whether
+the steady window is the moment for a keyframe or a mediator call is the
+mediator's decision, made where the confidence came from.
 
 ## The rules, in one paragraph
 
@@ -167,7 +208,13 @@ queue** runs registered work when no live request is waiting, and gives
 it back the moment live work needs the memory or the GPU. While a client
 holds a lease it heartbeats every 5 s; a client that goes silent past
 `--heartbeat-grace-secs` (default 60 s) is asked to leave, and a lease
-whose lock outlives its client is taken back.
+whose lock outlives its client is taken back. When a lease ends, its peak
+**teaches** the history only if the run exited 0 and lasted at least 5 s —
+a no-op's megabytes never lower a reserve — and an over-running lease is
+written down while it still runs, which can only raise one. The history
+and the presence queue live in files the operator can edit;
+`thor-admit reload` (or `SIGHUP`) makes a running daemon see the edit
+without a restart.
 
 ## Running the tests
 
@@ -189,7 +236,18 @@ cargo test --test integration -- --nocapture \
     a_presence_job_runs_when_the_box_has_room \
     a_live_lease_preempts_a_presence_job \
     the_ledger_books_the_time_by_tier \
+    the_ledger_names_each_label_and_keeps_the_published_flow \
     the_ledger_names_the_idleness
+
+# the learning rule: a no-op cannot teach, and a reload sees an edit
+cargo test --test integration -- --nocapture \
+    a_no_op_run_cannot_teach_the_reserve \
+    a_sighup_reload_drops_what_the_operator_removed
+
+# the shared-model registry, keyed on the model file rather than the name
+cargo test --test integration -- --nocapture \
+    a_model_is_loaded_once_per_box \
+    the_same_model_under_two_names_is_loaded_once
 
 # a smoke test of the CLI, end to end (light: it allocates nothing)
 python3 smoke-cli.py
@@ -259,6 +317,22 @@ number for it: `peak_gpu_bytes: 643825664` (614 MiB).
   emergency floor with the watchdog already late. Give an explicit
   `--peak` until the daemon says otherwise; once the history is there,
   `auto` reserves the larger of the p95 and the last run.
+* **A no-op run cannot teach.** Measured on this box (2026-11-01): 25
+  no-op records — each under 30 ms, under 4 MB — sat in the history of
+  `infinigen.mountain.coarse`, and the next `--peak auto` reserved
+  **3.6 MB** for a job that was using 1.3 GiB. Now a run teaches only if
+  it **exited 0** (the client reports its exit status on release) and
+  **lasted at least 5 s**; the filter applies to what is written *and* to
+  what is read, so records like that in an old file are ignored however
+  many there are. The one exception is the over-run record, which is
+  written while a lease is past its reservation and can only raise a
+  reserve. A model server that never exits cleanly (a seat stops it with
+  a signal) keeps its explicit `--peak` — over-reserving is the safe
+  direction — until one run finishes on its own.
+* **The daemon's memory is not the file.** The history and the presence
+  queue are loaded once; an edit made by hand reaches a running daemon
+  only through `thor-admit reload` or `SIGHUP`. Both re-read the files and
+  touch nothing that is running.
 * **The GPU's view is partial.** The Thor's memory is unified: there is no
   separate VRAM pool. `nvidia-smi`'s per-process accounting works and is
   used for the GPU peak; `nvidia-smi --query-gpu=memory.used` answers
@@ -335,6 +409,7 @@ Samples: 4.00 a second (the daemon's own counters).
 
 The daemon's own state lives in `~/.local/state/thor-admit/` (override with
 `--state-dir`): `peaks.jsonl` (the learned peaks), `daemon.log` (its own
-JSON-lines log), `ledger.jsonl` (the hours, by tier), `presence.json` (the
-registered work), `servers.json` (the shared model servers), and `leases/`
-(the lock files).
+JSON-lines log), `ledger.jsonl` (the hours, by tier and by label),
+`presence.json` (the registered work), `flow.json` (the flow signal, when
+a publisher writes one), `servers.json` (the shared model servers), and
+`leases/` (the lock files).
