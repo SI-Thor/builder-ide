@@ -15,7 +15,9 @@ One ledger, one runner, every layer real:
               so the CPU path runs and is recorded
   props       TRELLIS.2 through core.genbatch: image, mesh, repair,
               measurement, the scripted critic (no VLM delegate: B2)
-  memory      every heavy step takes ~/lm-wt/heavy.lock, with >= 25 GB free
+  memory      every heavy step under a thor-admit lease (night-v3.<phase>,
+              the box's admission daemon; the flock is the fallback), with
+              the >= 25 GB free bar checked after every load
   live view   the night's recipe changes compile to world-stream deltas;
               delta sizes recorded; a Playwright screenshot of the end state
   the band    the chorus: a loop rising fast is granted another round, taken
@@ -91,6 +93,18 @@ LLAMA_SERVER = Path.home() / "llama.cpp-upstream" / "build-up" / "bin" / "llama-
 TRELLIS_ROOT = Path.home() / "lm-wt" / "trellis"
 COMFY_URL = "http://127.0.0.1:8188"
 HEAVY_LOCK = Path.home() / "lm-wt" / "heavy.lock"
+#: The box's admission daemon (MEMORY-RULE): a lease before the spend, the
+#: flock only for when the daemon is gone. The python shim lives in the
+#: thor-admit worktree's crate; the driver adds it to the path, and if the
+#: shim or the daemon is unusable it falls back to the heavy lock *and says
+#: so* — in the log and in every lease row.
+THOR_ADMIT_PKG = (Path.home() / "lm-wt" / "thor-admit" / "tools"
+                  / "thor-admit" / "python")
+#: The heavy phase's declared peak, the honest worst of the phase together:
+#: ComfyUI with SDXL and TRELLIS.2 loaded (the coldshelf paint measurements
+#: saw ~11 GB GPU reserved) beside a v2 render at its worst (~24 GB) and
+#: the mesh repair's working set.
+HEAVY_PEAK = "40G"
 V2_HOME = Path.home() / "lm-wt" / "v2-thor"
 SCRATCH = Path.home() / "lm-wt" / "world-stream-scratch"
 VIEWER = Path.home() / "lm-tools" / "viewer"
@@ -162,7 +176,15 @@ def ram_free_gb() -> float:
 
 
 class Heavy:
-    """The house lease: one heavy step at a time, >= 25 GB free after a load."""
+    """The house lease, admission first (MEMORY-RULE): the box's daemon
+    holds the phase to its declared peak before the work allocates; the
+    25 GB bar is still checked after every load. The flock on the heavy
+    lock is the stopgap, for when the shim or the daemon is gone — and the
+    row says which one held. Reentrant: the heavy phase holds one lease
+    once, and the steps inside it do not queue behind themselves."""
+
+    #: The daemon's label for the phase the hold belongs to.
+    label = f"{NIGHT_ID}.heavy"
 
     def __init__(self, ledger: SQLiteLedger | None = None, *,
                  enabled: bool = True) -> None:
@@ -170,9 +192,21 @@ class Heavy:
         self.enabled = enabled
         self.waits = 0
         self._depth = 0
+        self._admit = None
+        self.kind = "flock"
+        try:
+            sys.path.insert(0, str(THOR_ADMIT_PKG))
+            import thor_admit  # noqa: PLC0415
+
+            self._admit = thor_admit
+            self.kind = "thor-admit"
+        except Exception as exc:
+            log(f"thor_admit unavailable ({exc.__class__.__name__}: {exc}); "
+                f"the night falls back to the heavy lock")
 
     @contextmanager
-    def hold(self, reason: str, *, check_ram: bool = False):
+    def hold(self, reason: str, *, check_ram: bool = False,
+             label: str | None = None):
         if not self.enabled:
             log(f"(dry run: the heavy lease is a no-op — {reason})")
             yield
@@ -182,24 +216,19 @@ class Heavy:
             # heavy phase re-enters rather than queueing behind itself
             yield
             return
-        log(f"queueing for the heavy lock ({reason})")
-        started = time.monotonic()
-        with open(HEAVY_LOCK, "a+") as fh:
-            try:
-                fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except OSError:
-                self.waits += 1
-                log("the lock is held (another seat's heavy step); waiting")
-                fcntl.flock(fh, fcntl.LOCK_EX)
-            waited = time.monotonic() - started
+        with self._acquire(reason, label or self.label) as acquired:
+            waited, kind = acquired
             self._depth = 1
-            log(f"got the heavy lock after {waited:.0f} s ({reason})")
+            log(f"got the {kind} lease after {waited:.0f} s ({reason})")
             if self._ledger is not None:
                 self._ledger.append(
                     type="night.heavy_lease",
                     actor=CORE_ACTOR,
                     subject={"entity_kind": "night", "entity_id": NIGHT_ID},
-                    payload={"reason": reason, "waited_s": round(waited, 1),
+                    payload={"reason": reason, "kind": kind,
+                             "label": label or self.label,
+                             "peak": HEAVY_PEAK,
+                             "waited_s": round(waited, 1),
                              "free_gb": round(ram_free_gb(), 1)},
                 )
             try:
@@ -214,7 +243,42 @@ class Heavy:
                     log(f"free after {reason}: {free:.1f} GB")
             finally:
                 self._depth = 0
-                fcntl.flock(fh, fcntl.LOCK_UN)
+
+    @contextmanager
+    def _acquire(self, reason: str, label: str):
+        """The lease itself: the daemon's first; the flock only when the
+        daemon is gone or refuses, with the fallback named where it happens."""
+        started = time.monotonic()
+        admit_cm = None
+        if self._admit is not None:
+            log(f"queueing for a thor-admit lease ({label}, peak {HEAVY_PEAK}: "
+                f"{reason})")
+            try:
+                admit_cm = self._admit.lease(HEAVY_PEAK, label, tier="live")
+                admit_cm.__enter__()
+            except Exception as exc:
+                log(f"thor-admit did not grant the lease ({exc.__class__.__name__}: "
+                    f"{exc}); falling back to the heavy lock")
+                admit_cm = None
+        if admit_cm is not None:
+            try:
+                yield (time.monotonic() - started, "thor-admit")
+            finally:
+                admit_cm.__exit__(None, None, None)
+            return
+        log(f"queueing for the heavy lock ({reason})")
+        fh = open(HEAVY_LOCK, "a+")
+        try:
+            try:
+                fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                self.waits += 1
+                log("the lock is held (another seat's heavy step); waiting")
+                fcntl.flock(fh, fcntl.LOCK_EX)
+            yield (time.monotonic() - started, "flock")
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+            fh.close()
 
 
 def run_cmd(argv: Sequence[str], *, cwd: Path | None = None,
@@ -883,7 +947,8 @@ def serve_d1(heavy: Heavy, out: Path) -> dict:
     except Exception:
         pass
     logpath = out / "d1-server.log"
-    with heavy.hold("start d1-2B llama-server", check_ram=True):
+    with heavy.hold("start d1-2B llama-server", check_ram=True,
+                    label=f"{NIGHT_ID}.d1"):
         proc = subprocess.Popen(
             [str(LLAMA_SERVER), "-m", str(D1_MODEL),
              "--host", "127.0.0.1", "--port", str(PORT_D1),
