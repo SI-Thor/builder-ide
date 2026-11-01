@@ -482,6 +482,15 @@ cargo test --test integration -- --nocapture \
 THOR_ADMIT_HEAVY_WAIT_SECS=1800 cargo test --release --test integration -- \
     --nocapture three_thirty_gigabyte_hogs_are_serialised \
     the_watchdog_stops_a_runaway_before_the_kernel_oom_does
+
+# the guard: work that is outside any lease (round 12). These take the
+# heavy lock too — a guard's daemon must never touch another seat's work,
+# and the test's daemon points at the real box.
+THOR_ADMIT_HEAVY_WAIT_SECS=1800 cargo test --release --test integration -- \
+    --nocapture the_guard_stops_an_unleased_hog_before_the_box_runs_out \
+    the_guard_stops_a_runaway_while_the_box_is_still_above_the_floor \
+    the_guard_leaves_the_protected_processes_alone \
+    the_exec_refuses_a_framework_that_would_take_the_box
 ```
 
 The Python shim's tests live with the repo's suite:
