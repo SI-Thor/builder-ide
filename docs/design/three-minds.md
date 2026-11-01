@@ -97,3 +97,18 @@ The result: the fiction gets cheaper and sharper at once, with detail flowing to
   1. the sign fades (prediction error rises, or confidence slides: the rate gate);
   2. someone needs bringing into the moment (a new agent, or the human arriving), where its job is to narrate the vibe and draw them in, not to steer.
 - **Measure it:** mediator calls in flow vs out of it, and whether intervening during flow ever improves the outcome. Our expectation is that it rarely does.
+
+## Presence: the Thor's finite resource is time (Casey, 2026-10-31)
+
+"The Thor is always at full presence. Whether it seizes the moment is up to us. Like a human, the main thing it has finite is time."
+
+**Measured at 20:38:** the GPU at idle power (3.1 W), 12 of 14 cores near 0 %, ~80 GB free, while the coding seats waited on cloud LLMs. The box was present and mostly unused.
+
+**The rule: the Thor is never idle without a reason.** A presence scheduler (part of thor-admit) keeps a resident, low-priority queue that soaks every gap, and live work pre-empts it at once (memory leases, stream priorities):
+
+1. **live:** nights, previews, the first mile;
+2. **preparation:** pre-generating likely-needed assets for the human's next visit; refreshing keyframes;
+3. **practice:** learning from recorded nights (retraining choosers, recalibration, FP4-aware training, replaying the mediator's proposed changes);
+4. **study:** the sweep, hardware experiments, parity and benchmark suites.
+
+A time ledger reports how each hour was spent, by tier.
