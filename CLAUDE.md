@@ -124,5 +124,5 @@ works.
   Hello Room / Hello World on the Thor, and a Cycles render on its GPU, timed
   against the ProArt.
 
-- **Seed-OSS-36B-Instruct** (Apache-2.0; Casey 2026-10-31): a scoped exception to no-LLMs-on-the-Thor. Our own NVFP4 conversion (thor-fp4), served only under a thor-admit live lease during development cycles, never resident.
+- **Seed-OSS-36B-Instruct** (Apache-2.0; Casey 2026-10-31): a scoped exception to no-LLMs-on-the-Thor. Our own NVFP4 conversion (thor-fp4), served only under a thor-admit lease, never resident: live during development cycles, and a practice-tier night drain that batches the ideation inbox other systems fill during the day.
 - **NVIDIA SimReady assets** (dataset, CC-BY-4.0): read and sample freely with credit; do not mirror the full 77 GiB.
