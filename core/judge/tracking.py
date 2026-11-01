@@ -292,8 +292,13 @@ def samples_from_events(
 
 
 def _other(answer: str, distribution: Mapping[str, float]) -> str | None:
-    """The other option of a binary distribution — the truth when the answer was wrong."""
-    others = [key for key in distribution if key not in (answer, "true" if answer == "false" else "false")]
+    """The other option of a binary distribution — the truth when the answer was wrong.
+
+    Only the answer itself is excluded: a noul's distribution is over
+    ``true`` and ``false``, so excluding both of them would leave nothing
+    and the truth would be lost on every refuted judgment.
+    """
+    others = [key for key in distribution if key != answer]
     if len(others) == 1:
         return others[0]
     return None
@@ -388,7 +393,7 @@ def calibration_report(
     """
     samples = samples_from_events(events, sources=sources)
     n_judgments = sum(
-        len(entry.get("attempt_judgments", ()) or ())
+        len((getattr(event, "payload", {}) or {}).get("judgments", []) or [])
         for event in events
         if getattr(event, "type", None) == JUDGE_EVENT_TYPE
     )
