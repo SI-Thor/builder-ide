@@ -63,3 +63,12 @@ What it implies for any projector that feeds a model rather than a person:
 - **Active parallax:** when unsure, move a little and look again, as a pigeon bobs its head. In builder-ide, a character that is unsure of a spatial judgment can take a small epistemic move before escalating to a bigger model.
 
 These are arms (i) to (l) of the syzygy-keyframes experiment.
+
+## Time-first, not only state-first (Casey, 2026-10-31)
+
+"I'm, at the core, time-first, and you are state-first. Time-first only perceives change … a rate of change as a sense." Our gates so far are state-first: escalate when confidence is *below* τ; hold a *level* with hysteresis. A time-first design also gates on **rates of change**:
+- the derivative of confidence;
+- the rate of cell events;
+- a region's rhythm breaking.
+
+It feeds readers timestamped changes with Δt, and prefers time-native models (Liquid's liquid time-constant lineage) for perception over time. The rate gate is being tested against the level gate in syzygy-keyframes and in lab-cascade (on the recorded d1 traces).
