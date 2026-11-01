@@ -29,6 +29,8 @@ stopgap.
   room for it, and gives way when live work arrives.
 * A **time ledger**: where the box's time went, by tier, and why it was
   idle.
+* A **model-server registry** (`thor-admit serve`): a model loaded once
+  per box, not once per seat.
 
 ## Using it
 
@@ -38,6 +40,10 @@ cargo run --release -- daemon
 
 # take a lease and run something under it
 thor-admit run --peak 40G --label trellis -- python3 my_generator.py
+
+# a shared model server: the first ask starts it under a lease, the second
+# gets the same port back and runs nothing
+thor-admit serve d1-2B --port 8100 -- llama-server -m d1-2B --port 8100 ...
 
 # what is running, what is waiting, and how much memory is free
 thor-admit status
@@ -136,6 +142,7 @@ per core, and the idle time broken into **causes**:
 | `waiting_for_memory` | work was ready, but the box had no room for it |
 | `waiting_for_gpu` | work was ready, but the GPU was busy with higher-priority work |
 | `preempted_for_live_work` | work was stopped so live work could run |
+| `granted_not_run` | a lease was granted — the memory committed — but the client never held it, so no work ran |
 | `unattributed` | the ledger cannot say — this is the number that should be zero |
 
 `no_work_registered` is a *cause* but not a good one: it is the presence
@@ -148,25 +155,37 @@ A lease **reserves** the peak it was given. The daemon admits a lease only
 if `available - peak >= floor` (the floor is 25 GiB by default), where
 `available` is `MemAvailable` from `/proc/meminfo` *minus* what the running
 leases still owe — a lease that reserved 40 GiB and has used 2 GiB so far
-still owes 38 GiB. The queue is first in, first out, with priorities in
-front. If the box ever falls below the emergency floor (8 GiB), the
-watchdog stops the **largest admitted lease's** process group — never the
-box's own services, and never a lease too small to be the cause. On top of
-that, the **presence queue** runs registered work when no live request is
-waiting, and gives it back the moment live work needs the memory or the
-GPU.
+still owes 38 GiB — and only if the GPU's own allocation pool
+(`tegrastats`' `lfb`) has room above its own floor (2 GiB by default) for
+what this label has historically held on the device. The queue is first
+in, first out, with priorities in front. If the box ever falls below the
+emergency floor (8 GiB), the watchdog **terminates** the largest admitted
+lease's process group — it never merely stops it, because with no swap a
+stopped process keeps every page it took; `SIGKILL` follows a grace
+period if the process somehow survives. On top of that, the **presence
+queue** runs registered work when no live request is waiting, and gives
+it back the moment live work needs the memory or the GPU. While a client
+holds a lease it heartbeats every 5 s; a client that goes silent past
+`--heartbeat-grace-secs` (default 60 s) is asked to leave, and a lease
+whose lock outlives its client is taken back.
 
 ## Running the tests
+
+The integration suite is **serial by default**: every test holds a
+one-at-a-time gate, which is also the fair way to treat a box other seats
+are using (measured: 7 of 14 failed in parallel at load ~38 before round
+8; see `docs/design/thor-admit.md` §12.2). `THOR_ADMIT_PARALLEL_TESTS=1`
+opens the gate for a deliberate parallel run.
 
 ```bash
 # the unit tests (fast, no memory)
 cargo test --lib
 
 # the integration run: synthetic hogs on the CPU only
-cargo test --test integration -- --test-threads=1
+cargo test --test integration
 
 # the presence queue and the ledger
-cargo test --test integration -- --test-threads=1 --nocapture \
+cargo test --test integration -- --nocapture \
     a_presence_job_runs_when_the_box_has_room \
     a_live_lease_preempts_a_presence_job \
     the_ledger_books_the_time_by_tier \
@@ -178,16 +197,16 @@ python3 smoke-cli.py
 # the measurements in the lab record
 python3 measure-presence.py
 
-# the low-water mark: the watchdog stops a hog before the box is in
+# the low-water mark: the watchdog terminates a hog before the box is in
 # trouble (the memory curve is scripted, the watchdog is real)
-cargo test --test integration -- --test-threads=1 --nocapture \
+cargo test --test integration -- --nocapture \
     the_watchdog_stops_a_runaway_before_the_memory_runs_out
 
 # the two heavy tests, which take the box's own heavy lock first.
 # They skip themselves when another seat holds it; set the wait to join
 # the queue instead of skipping.
 THOR_ADMIT_HEAVY_WAIT_SECS=1800 cargo test --release --test integration -- \
-    --test-threads=1 --nocapture three_thirty_gigabyte_hogs_are_serialised \
+    --nocapture three_thirty_gigabyte_hogs_are_serialised \
     the_watchdog_stops_a_runaway_before_the_kernel_oom_does
 ```
 
@@ -228,17 +247,30 @@ number for it: `peak_gpu_bytes: 643825664` (614 MiB).
   daemon logs the path it is reading in `daemon.started`, so a stale file
   cannot hide.
 * **It cannot finish a kill it never started.** If the daemon is killed
-  between the watchdog's `SIGSTOP` and the `SIGTERM` two seconds later,
-  the stopped process stays stopped — a stopped process holds its memory
-  and never sees its `SIGTERM`. The daemon logs every stop and every
-  kill, and `thor-admit status` shows the lease. A lease that ends
-  *normally* while stopped is handled: the release path sends `SIGTERM`
-  and then `SIGCONT`.
+  between the watchdog's `SIGTERM` and the `SIGKILL` escalation, the
+  `SIGTERM` stands: the client reaps its child, releases the lease and
+  exits on its own. What the daemon cannot finish is a client that
+  ignores both signals — that lease waits until the daemon is back. The
+  daemon logs every termination and every kill, and `thor-admit status`
+  shows the lease.
+* **`--peak auto` will not guess.** A label needs three runs of history
+  before `auto` is allowed: a p95 of one or two runs under-reserves a
+  shifted workload, and on a box with no swap that arrives at the
+  emergency floor with the watchdog already late. Give an explicit
+  `--peak` until the daemon says otherwise; once the history is there,
+  `auto` reserves the larger of the p95 and the last run.
 * **The GPU's view is partial.** The Thor's memory is unified: there is no
   separate VRAM pool. `nvidia-smi`'s per-process accounting works and is
-  used for the GPU peak; `nvidia-smi --query-gpu=memory.used` answers `N/A`.
-  `tegrastats` gives the Tegra's own RAM figure and the largest free block.
-  See `docs/design/thor-admit.md` §"What the GPU exposes".
+  used for the GPU peak; `nvidia-smi --query-gpu=memory.used` answers
+  `N/A`, so the device/pinned *split* of the non-swappable pool cannot be
+  seen. `tegrastats` gives the Tegra's own RAM figure and the largest
+  free block — and that `lfb` is what the `--gpu-floor` rule is applied
+  to. See `docs/design/thor-admit.md` §"What the GPU exposes".
+* **The heartbeat is a lease-scope promise, not a health check.** The
+  daemon learns only that the client's process is alive; it cannot tell a
+  client that is computing from one that is spinning. The grace period
+  (`--heartbeat-grace-secs`, default 60 s) is set for a client heartbeat
+  every 5 s on a loaded box, not for a slow application.
 * **The presence queue does not know what a job is.** It runs a command and
   holds a lease to its peak; it does not know whether the command can pick
   up where it left off. That is what the `--resumable` flag is for: it is a
@@ -304,4 +336,5 @@ Samples: 4.00 a second (the daemon's own counters).
 The daemon's own state lives in `~/.local/state/thor-admit/` (override with
 `--state-dir`): `peaks.jsonl` (the learned peaks), `daemon.log` (its own
 JSON-lines log), `ledger.jsonl` (the hours, by tier), `presence.json` (the
-registered work), and `leases/` (the lock files).
+registered work), `servers.json` (the shared model servers), and `leases/`
+(the lock files).

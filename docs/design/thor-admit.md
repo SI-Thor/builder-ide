@@ -88,6 +88,33 @@ forward. The floor is a *reservation* floor, not a "free memory" floor: it
 is what the box keeps for everything that is not a lease (the desktop, the
 seat's own tooling, the kernel's own pages).
 
+**A second budget, with its own floor: the GPU's allocation pool.**
+`MemAvailable` is the kernel's estimate of reclaimable memory, and it
+cannot say how full or fragmented the *non-reclaimable* part is — the
+`cudaMalloc` blocks and pinned host memory that stay put. A lease can fit
+the memory rule and still fail its first `cudaMalloc` while the daemon
+says there was room (Hy4's third failure mode). `tegrastats`' `lfb` — the
+free blocks of the allocation pool, e.g. `lfb 7x4MB` — is the one number
+on this box that can see it, so the rule applies it the same shape as the
+memory rule, one floor deeper:
+
+```
+gpu_free = tegrastats' lfb             (None when nothing can see it)
+admit    ⟺ gpu_free - label_gpu_peak >= gpu_floor      (--gpu-floor, default 2 GiB)
+```
+
+`label_gpu_peak` is the label's own learned device-memory promise (the
+larger of the p95 and the last run of its `peak_gpu_bytes` history; zero
+for a label that has never touched the GPU). With no view of the pool
+there is no GPU rule — the memory rule is all the daemon has, and it stays
+out of the way. The pool is logged beside the memory (`daemon.sample`,
+`status`) and a waiter held by it alone is named once
+(`lease.waiting_for_gpu_memory`) instead of sitting silently in a queue
+that looks like a memory shortage. What the daemon still cannot see is
+the *split* between device and pinned host bytes — `nvidia-smi
+--query-gpu=memory.used` answers `N/A` on this box — so the pool rule
+rides on `lfb` alone.
+
 ### 2.2 The queue
 
 First in, first out; a **higher priority goes in front** of everything
@@ -102,11 +129,21 @@ The daemon samples the box every **250 ms**. If `MemAvailable` falls below
 the **emergency floor** (8 GiB by default), the watchdog acts on the
 **largest admitted lease** — the one using the most memory right now:
 
-1. **SIGSTOP** its process group. The work stops where it is; nothing is
-   lost.
-2. If the box is still short after the grace period (8 samples = 2 s), the
-   watchdog sends **SIGTERM**, and then **SIGCONT** — because a stopped
-   process never sees its SIGTERM until it runs again.
+1. **SIGTERM** its process group. On this box there is no swap, so a
+   `SIGSTOP`ed victim keeps every page it took: `MemAvailable` would not
+   move while it sat stopped, and the emergency would get worse during the
+   very grace period that was supposed to help. Memory comes back only
+   when the process is *gone* — so the stop-then-kill ladder became
+   terminate-then-kill, and the memory is booked back when the client has
+   reaped its child and released the lease, not before (Hy4's first
+   failure mode; folded in on 2026-10-31).
+2. If the box is still short after the grace period
+   (`--stop-grace-samples`, 8 samples = 2 s) and the process is somehow
+   still there, the watchdog escalates to **SIGKILL**.
+
+The events are `watchdog.terminated` and (for the escalation)
+`watchdog.killed`, and the first carries the reservation beside the RSS,
+so an under-reserved victim is visible in the event itself.
 
 **Two guards, both deliberate:**
 
@@ -132,10 +169,27 @@ Every finished lease writes one JSON line to the history
  "basis":"measured","source":"thor-admit","peak_source":"rusage"}
 ```
 
-`--peak auto` asks the daemon for the **p95 of that label's history**, in
-the same percentile convention `core/night/cost/model.py` uses (linear
-interpolation, NumPy's convention). A label with no history is refused with
-a clear reason rather than guessed at.
+`--peak auto` asks the daemon for the **larger of the p95 and the last
+run** of that label's history, in the same percentile convention
+`core/night/cost/model.py` uses (linear interpolation, NumPy's
+convention). The p95 says what the label *usually* costs; the last run
+says what it cost the last time the work looked like this one — and a
+label whose last run overran its history is exactly the label a p95-only
+reservation would under-reserve (Hy4's second failure mode).
+
+A label with **no history is refused** with a clear reason rather than
+guessed at, and so is a label with fewer than **three runs**: a p95 of one
+or two runs is still a guess, and on a box with no swap an under-reserved
+lease arrives at the emergency floor with the watchdog already late.
+
+**The over-run watch.** While a lease runs, the daemon watches for it
+passing its reservation. The first scan past `reserved + tolerance`
+(2 % of the reservation, at least 128 MiB — a lease that reserved exactly
+what it meant still measures a little over, its own runtime, and that is
+not what the watch is about) logs `lease.underreserved` with the reserved
+and the measured numbers, and writes the measured peak to the history *at
+once*, so the next `auto` reserves it even if the run takes the daemon
+with it. Each further 512 MiB of growth writes again.
 
 The peak is the larger of two measurements: the kernel's own `rusage`
 `ru_maxrss` for the command (exact) and the daemon's 250 ms samples (which
@@ -175,6 +229,25 @@ sends `SIGTERM` (then `SIGCONT`) to the lease's target, because an unwatched
 30 GiB hog is exactly the thing this daemon exists to prevent.
 `--no-stop-on-client-gone` turns that off.
 
+**And the stuck client.** The lock says a client is not *dead*; it cannot
+say the client is not *stuck* — a hung client's lock never drops, and its
+reservation would be charged forever (Hy4's fourth failure mode). So the
+lock has a partner: while the lease is held, the client **heartbeats**
+(every 5 s, from its own thread and its own connection — the CLI's `run`
+and the Python shim both do this), and the daemon holds a silent client to
+`--heartbeat-grace-secs` (default 60 s: six missed beats plus slack for a
+loaded box). The client's pid comes from the socket's own credentials
+(`SO_PEERCRED` — the kernel's word, not the client's), which tells the two
+failures apart:
+
+* the client is **gone** but the lock is still held (an inherited
+  descriptor): the lease is taken back at once (`lease.force_released`),
+  and the lock file goes with it;
+* the client is **there but stuck**: it is asked to leave (`SIGTERM`,
+  logged as `lease.stale_client_signalled`), which drops the lock and
+  releases the lease the honest way; if it is still stuck a grace period
+  later, the lease is taken back anyway.
+
 ## 4. The protocol
 
 JSON, one object per line, over a Unix socket (`$XDG_RUNTIME_DIR/thor-admit.sock`,
@@ -187,6 +260,7 @@ dependency, and readable with `nc -U`.
 |---|---|
 | `{"op":"acquire","label":"trellis","peak":42949672960,"priority":0,"tier":"live","target":{"group":{"pgid":1234}}}` | take a lease (`peak` may be `"auto"`, `tier` may be absent — it is `live`) |
 | `{"op":"held","lease":7}` | the client holds the lock now: the lease is real |
+| `{"op":"heartbeat","lease":7}` | the client is still alive and still holding (`held` counts as the first) |
 | `{"op":"release","lease":7,"peak_rss_bytes":123456}` | the lease is over |
 | `{"op":"presence_add","label":"sweep","tier":"study","peak":8589934592,"resumable":true,"command":["python3","sweep.py"]}` | register work in the presence queue |
 | `{"op":"presence_remove","id":3}` | take a job out of the presence queue |
@@ -224,14 +298,18 @@ Every knob is a parameter with a default; nothing is hard-coded.
 |---|---|---|
 | `--floor` | 25 GiB | the floor a lease must clear |
 | `--emergency-floor` | 8 GiB | below this, the watchdog acts |
+| `--gpu-floor` | 2 GiB | the least the GPU's own allocation pool (`lfb`) must keep free; applied only when something can see the pool |
 | `--sample-interval-ms` | 250 | how often the box is sampled |
-| `--stop-grace-samples` | 8 | samples a stopped lease is given before it is killed (2 s) |
+| `--stop-grace-samples` | 8 | samples a watchdog-terminated lease is given before the escalation to `SIGKILL` (2 s) |
+| `--heartbeat-grace-secs` | 60 | how long a silent client keeps its lease (clients heartbeat every 5 s) |
+| `--grant-grace-secs` | 30 | how long a grant waits for its client to take the lock |
 | `--min-victim-rss` | 2 GiB | the smallest lease the watchdog will touch |
 | `--socket` | `$XDG_RUNTIME_DIR/thor-admit.sock` | where clients connect |
 | `--state-dir` | `~/.local/state/thor-admit` | the lease files, the log, the history |
 | `--history` | `<state-dir>/peaks.jsonl` | where the learned peaks are written |
 | `--meminfo` | `/proc/meminfo` | where the box's memory accounting is read — **a test seam, not an operating knob** (see §7.3.3) |
 | `--gpu-probe` | `auto` | `auto`, `nvidia`, `tegrastats`, `off` |
+| `--tegrastats-command` | `tegrastats` | **a test seam**, like `--meminfo`: run this instead, so the GPU pool rule can be driven without touching the GPU |
 | `--idle-exit` | 900 s | leave after this long with nothing to do (0 = never) |
 | `--no-stop-on-client-gone` | off | leave a dead client's command running |
 | `--priority` | 0 | the client's priority in the queue |
@@ -413,6 +491,17 @@ not *refused* (nothing was rejected): the queue is where a request waits
 for room.
 
 #### 7.3.2 The watchdog (12 GiB runaway, 2026-10-31 22:08 UTC — 14:08 on the box)
+
+> Measured on the **stop-then-kill ladder that round 8 replaced** (§2.3).
+> The numbers below are the old build's; they are kept because they are
+> the honest record of that build. On the terminate-then-kill build, the
+> same scripted-curve test (4 GiB hog, floor 8 GiB), measured 2026-11-01
+> 08:34 UTC — 00:34 on the box, load 11.5/13.0/13.0, `MemAvailable`
+> 104.2 GiB of `MemTotal` 125.8 GiB: the hog was **terminated with
+> 7 168 MiB free**, the daemon acted within **172 ms** of the floor being
+> crossed, the curve went on down to 0 MiB, the hog died and its lease
+> was released, and the kernel's OOM killer fired **0 times**.
+
 The daemon's emergency floor is a fixed **8 GiB** (§2.3). The *test*
 lowers it to `available - 8 GiB` (86 764 MiB), because driving the real
 box to 8 GiB free would need 110 GiB of allocation — more than the
@@ -610,6 +699,7 @@ a measurement — it is a shrug:
 | `waiting_for_memory` | work was ready, but the box had no room for it |
 | `waiting_for_gpu` | work was ready, but the GPU was busy with higher-priority work |
 | `preempted_for_live_work` | work was stopped so live work could run |
+| `granted_not_run` | a lease was granted — the memory committed — but the client never held it, so no work ran |
 | `unattributed` | the ledger cannot say — **this is the number that should be zero** |
 
 `no_work_registered` is a cause but not a good one: it is the presence gap
@@ -620,15 +710,16 @@ The brief's target — the share of time idle **without a reason** — is the
 exactly one cause, and the last case (`unattributed`) is reachable only
 when registered work fits, is not running, and is not stopped.
 
-**A lease is booked from the grant, not from the confirmation.** The daemon
-answers `granted` and the client answers `held` — but the `held` is handled
-in the *next* tick of the inbox, so for a whole sample interval the lease
-is committed while the client has not said "yes" yet. The memory is
-committed at the grant (that is exactly what the admission rule charges),
-so the ledger books it there. Counting only the confirmed leases put those
-seconds in the wrong column, and left the idle classifier with a moment it
-could not name — the one number the brief says should be zero. The
-measurement caught it; see the lab record.
+**A lease is booked from the `held`, not from the grant.** The daemon
+answers `granted` and the client answers `held`, and only the `held` means
+work can exist: booking from the grant invented running time for leases
+whose command never started — `live.running_s > 0` with `runs: 0` (Hy4's
+fifth failure mode). But the grant's window is not thrown away, because
+the box was not doing *nothing* in it either — the memory was committed,
+which is exactly why nothing else ran. The window is booked to
+`granted_not_run`, its own attributed cause, and the release path names
+the same fact once in the log (`lease.granted_not_run`): a phantom lease
+is neither work nor a mystery, and `unattributed` stays at zero.
 
 **Where the figures come from.** The GPU's **power** is `tegrastats`' own
 `VDD_GPU` rail — the Tegra's number for the GPU's rail — read by the child
@@ -795,14 +886,18 @@ under, it needs no root, and it cannot outlive the session.
   enforced at lease time. They compose: the night asks the core what fits
   the rails, the core asks the daemon what fits the memory.
 * **It does not survive its own death in the middle of a kill.** If the
-  daemon is killed between the watchdog's `SIGSTOP` and the `SIGTERM`
-  two seconds later, the stopped process stays stopped: a stopped
-  process holds its memory and never sees its `SIGTERM`. The daemon logs
-  every stop and every kill, and `thor-admit status` shows the lease, so
-  the operator can see it and act — but the daemon does not finish the
-  job it cannot see. (A lease that ends *normally* while stopped is
-  handled: the release path sends `SIGTERM` and then `SIGCONT`, so
-  nothing is left frozen.)
+  daemon is killed between the watchdog's `SIGTERM` and the `SIGKILL`
+  escalation, the `SIGTERM` stands on its own: the client reaps its child,
+  releases the lease and exits, so the normal cleanup paths finish the
+  job. What the daemon still cannot finish is the client's side — a client
+  that ignores both signals keeps its lease until the daemon is back. The
+  daemon logs every termination and every kill, and `thor-admit status`
+  shows the lease, so the operator can see it and act.
+* **It cannot see the split of the GPU's non-reclaimable pool.** The
+  `--gpu-floor` rule rides on `tegrastats`' `lfb` alone (§2.1): how much of
+  that pool is device memory and how much is pinned host memory is not
+  answered by anything a user can read on this box (`nvidia-smi
+  --query-gpu=memory.used` says `N/A`).
 
 ## 11. Open questions
 
@@ -834,3 +929,98 @@ under, it needs no root, and it cannot outlive the session.
    mechanism — the CUDA stream priority the driver already exposes — would
    keep the job's CPU work running and only take its GPU streams. It was
    not measured here.
+
+## 12. Round 8 (2026-10-31 23:00 → 11-01): the Hy4 review folded in, the real workload invited in
+
+Round 7 was merged (9e02958). At 22:09 the box fell to 8 GiB available —
+the thing this daemon exists to prevent — under three Infinigen sweep
+workers, Hunyuan3D-2 and two seats' d1-2B llama-servers. The director's
+round 8 asked for the real workload to be put under the daemon, and Hy4's
+adversarial review (REVIEW-HY4.md, 22:45) named five failure modes. All
+five are folded in; each is described where it lives above, and named
+here with what changed:
+
+1. **A stopped process holds its memory.** The watchdog no longer
+   `SIGSTOP`s for memory — it terminates (§2.3), because with no swap a
+   stopped victim's pages stay taken and the emergency deepens through the
+   grace period. The GPU pre-emption still `SIGSTOP`s (that is the point:
+   give up the GPU, keep the memory), and every memory termination of a
+   presence job now `SIGCONT`s first, so a frozen job actually receives
+   its `SIGTERM`.
+2. **A learned peak can be too low.** `--peak auto` reserves
+   max(p95, last run), refuses to guess below three runs, and an
+   over-running lease is logged and written to the history while it is
+   still running (§2.4).
+3. **MemAvailable cannot see the non-swappable pool.** The GPU's own
+   allocation pool (`lfb`) is a second budget with `--gpu-floor`, applied
+   when something can see it, logged beside the memory, and named when it
+   is what a waiter is waiting for (§2.1).
+4. **A hung client's lock never drops.** Clients heartbeat while they
+   hold; the daemon gives silence a grace period, tells a stuck client
+   from a dead one by the socket's credentials, and takes the lease back
+   either way (§3).
+5. **A granted-but-never-held lease was booked as running.** The ledger
+   books from the `held`, and the grant's window has its own attributed
+   cause, `granted_not_run` (§8.4).
+
+Two daemon-identity holes mcode had already found were finished and
+committed first: the daemon holds an exclusive flock on
+`<socket>.lock` for its whole life (the kernel drops it whatever kills
+the daemon, so "one daemon per socket" is a fact, not a hope; the
+acceptor also stops loudly on the first error it cannot survive), and a
+daemon started for a socket that is not the box's own keeps its state
+beside that socket instead of writing into the box's real record.
+
+### 12.1 `serve`: a model loaded once per box
+
+The 22:09 incident was half sweep workers and half *two* d1-2B
+llama-servers, one per seat. `thor-admit serve <model> --port <n> --
+<command>` is the registry (§"serve" in the crate README): the second
+asker gets the first's port and runs nothing; the first runs the server
+under an ordinary live lease (`serve.<model>`), so admission, the
+watchdog and the learned peaks all apply to a model server exactly as to
+any other work, and killing the seat's `serve` takes the server with it.
+The registry is one JSON line per server under the state dir, worth
+exactly as much as the port probe behind it.
+
+### 12.2 The tests, made fair to a busy box
+
+The director measured 7 of 14 integration tests failing in parallel at
+load ~38 (14/14 serial). The suite is now **serial by default** (a
+one-at-a-time gate; `THOR_ADMIT_PARALLEL_TESTS=1` opens it for a
+deliberate parallel run), and the waits no longer assume a quiet box:
+arrivals are waited for, not slept past; the deadlines behind slow
+daemon starts were doubled; and the GPU-pool test waits for its scripted
+pool to be visible before asking for a lease. Measured here, 14 cores,
+load 8-9 from other seats' work before the runs:
+
+| Run | Result | Time | Box state |
+|---|---|---|---|
+| serial (the default) | 26/26 | 79 s | load ~9 |
+| parallel, 6 consecutive runs | 26/26 each | 24 s each | load ~9 |
+| parallel, 2 more | 26/26 | 24 s | 1-min load 27-35 (28 bounded CPU spinners, nice 5) |
+| serial | 26/26 | 79 s | same window |
+
+Before the gate and the fixes, the parallel suite failed roughly one run
+in three on this box. The suite is 26 tests now; the new ones are the
+three lease-holder tests (silent, orphaned, heartbeating), the
+granted-never-run ledger test, the two learned-peak tests, the over-run
+watch test, the GPU-pool test and the serve lifecycle test.
+
+### 12.3 What is staged, and what is held
+
+The round's items 1 and 2 — the sweep worker wrapped in study-tier
+leases (`~/src/infinigen-thor`, branch `thor-sweep-admit`) and the seats'
+memory rule (`~/lm-wt/MEMORY-RULE.md`) — live outside this repository,
+and this round ran under the instruction to modify files only inside it.
+Both are finished, tested and staged in `tools/thor-admit/round8/`,
+with exact apply steps: the patch was verified with `git apply --check`
+against the current `thor/sweep-worker.sh`, and its bootstrap-fallback
+logic was smoke-tested against a scratch daemon on this box.
+
+Item 5 — the one-hour measurement with the sweep under the daemon — is
+held until the director says the MIG quiet window is over
+(`~/lm-ops/QUIET-WINDOW.md`, which did not exist when this round
+started). No GPU work was started in this round; the tests allocate at
+most a few gibibytes of CPU memory, and the load runs above used
+bounded CPU spinners only.

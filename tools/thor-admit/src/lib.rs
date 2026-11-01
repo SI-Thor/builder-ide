@@ -19,6 +19,7 @@
 //! * [`ledger`] — where the box's time went, and why it was idle.
 //! * [`history`] — the learned peaks, as JSON lines.
 //! * [`protocol`] — the socket protocol the CLI and the Python shim speak.
+//! * [`serve`] — the registry that loads a model once per box.
 //! * [`daemon`] — the resident daemon itself.
 //! * [`client`] — the CLI's side of the protocol.
 
@@ -35,5 +36,6 @@ pub mod presence;
 pub mod procscan;
 pub mod protocol;
 pub mod queue;
+pub mod serve;
 pub mod sizes;
 pub mod tier;

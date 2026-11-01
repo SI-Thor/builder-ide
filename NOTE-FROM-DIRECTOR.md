@@ -1,0 +1,1 @@
+- thor-admit integration tests flake when run in parallel at load ~38 (7 failed); serial (--test-threads=1) 14/14. Make them load-robust or serial by default.

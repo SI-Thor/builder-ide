@@ -52,6 +52,12 @@ pub enum IdleReason {
     WaitingForGpu,
     /// Work was stopped so live work could run.
     PreemptedForLiveWork,
+    /// A lease was granted — the memory was committed — but the client
+    /// never held it, so no work ran. Booked as its own cause so a phantom
+    /// lease is neither "running" (it never ran) nor "unattributed" (the
+    /// ledger knows exactly why the box looked empty while its memory was
+    /// spoken for).
+    GrantedNotRun,
     /// The ledger cannot say why.
     Unattributed,
 }
@@ -63,6 +69,7 @@ impl IdleReason {
             IdleReason::WaitingForMemory => "waiting_for_memory",
             IdleReason::WaitingForGpu => "waiting_for_gpu",
             IdleReason::PreemptedForLiveWork => "preempted_for_live_work",
+            IdleReason::GrantedNotRun => "granted_not_run",
             IdleReason::Unattributed => "unattributed",
         }
     }
