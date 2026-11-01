@@ -23,6 +23,8 @@ not depend on the sweep being there.
 
 from __future__ import annotations
 
+import json
+import re
 import sys
 from pathlib import Path
 
@@ -825,3 +827,82 @@ def _task():
 
 def _variant():
     return _Variant()
+
+
+# -- the published table -------------------------------------------------------
+
+
+def _published_selection_rows():
+    """The rows of the published selection table, as the file carries them."""
+    root = Path(__file__).resolve().parents[2]
+    text = (root / "core" / "critic" / "CALIBRATION.md").read_text(encoding="utf-8")
+    assert "## The selection" in text, "the published table carries no selection"
+    section = text.split("## The selection", 1)[1]
+    rows = {}
+    for line in section.splitlines():
+        if not line.strip().startswith("|"):
+            continue
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 8:
+            continue
+        match = re.match(r"`([^`]+)`", cells[0])
+        if not match:
+            continue
+        rows[match.group(1)] = cells
+    return rows
+
+
+def test_the_published_table_carries_the_selection_that_was_measured():
+    """The published file's counts are the selection file's counts.
+
+    The house rule: the table says what was measured. If the selection is
+    re-measured, the table has to be published again — a hand-edit would
+    leave the two disagreeing, and nobody would notice until a reader
+    checked the counts.
+    """
+    root = Path(__file__).resolve().parents[2]
+    selection = json.loads(
+        (root / "core" / "critic" / "selection.json").read_text(encoding="utf-8")
+    )
+    rows = _published_selection_rows()
+
+    for candidate in selection["candidates"]:
+        name = candidate["name"]
+        assert name in rows, f"the published table has no row for {name}"
+        cells = rows[name]
+        assert int(cells[2]) == candidate["tp"], name
+        assert int(cells[3]) == candidate["fp"], name
+        assert int(cells[4]) == candidate["fn"], name
+        assert int(cells[5]) == candidate["tn"], name
+        assert cells[6] == ("yes" if candidate["in_band"] else "no"), name
+        assert cells[7] == f"{candidate['median_ms']:.0f}", name
+
+
+def test_the_published_table_marks_the_chosen_critic():
+    """One chosen critic, and the published file says which one."""
+    root = Path(__file__).resolve().parents[2]
+    selection = json.loads(
+        (root / "core" / "critic" / "selection.json").read_text(encoding="utf-8")
+    )
+    rows = _published_selection_rows()
+    chosen = selection["chosen"]
+    assert chosen in rows
+    assert "**(chosen)**" in rows[chosen][0]
+    others = [n for n in rows if n != chosen]
+    assert others, "the published table lists only the chosen critic"
+    for name in others:
+        assert "**(chosen)**" not in rows[name][0], name
+
+
+def test_the_published_table_has_the_chosen_critics_own_classes():
+    """The chosen critic's per-class table is in the published file too."""
+    root = Path(__file__).resolve().parents[2]
+    selection = json.loads(
+        (root / "core" / "critic" / "selection.json").read_text(encoding="utf-8")
+    )
+    text = (root / "core" / "critic" / "CALIBRATION.md").read_text(encoding="utf-8")
+    chosen = selection["chosen"]
+    candidate = next(c for c in selection["candidates"] if c["name"] == chosen)
+    for row in candidate["rows"]:
+        assert row["defect"] in text, row["defect"]
+        assert row["check"] in text, row["check"]
