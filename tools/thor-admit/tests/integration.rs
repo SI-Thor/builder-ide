@@ -4066,14 +4066,24 @@ fn the_guard_stops_a_runaway_while_the_box_is_still_above_the_floor() {
             "500",
             "--guard-window-secs",
             "6",
+            // The threshold is lowered for the test: the claim is about the
+            // *shape* of the trigger, not about eight gibibytes.
+            "--guard-drop",
+            "2G",
         ],
     );
     let mut protection = Protection::start(&protected);
 
+    // The daemon collects its window **before** the hog starts. The guard
+    // measures the fall over that window, and the hog's growth has to be
+    // inside it: a hog that had already grown before the window opened
+    // would look to the guard like a process that had not moved.
+    std::thread::sleep(Duration::from_secs(2));
+
     // The hog, and no lease: the incident's shape exactly.
     let mut hog = Command::new(HOG)
         .arg("--bytes")
-        .arg("12G")
+        .arg("4G")
         .arg("--hold")
         .arg("180")
         .stdout(Stdio::piped())
@@ -4089,14 +4099,14 @@ fn the_guard_stops_a_runaway_while_the_box_is_still_above_the_floor() {
     let mut hog_rss = 0;
     while Instant::now() < deadline {
         hog_rss = rss_of(hog_pid as u32);
-        if hog_rss >= 12 * GIB {
+        if hog_rss >= 4 * GIB {
             break;
         }
         std::thread::sleep(Duration::from_millis(100));
     }
     assert!(
-        hog_rss >= 12 * GIB,
-        "the hog never grew to 12 GiB ({hog_rss} bytes)"
+        hog_rss >= 4 * GIB,
+        "the hog never grew to 4 GiB ({hog_rss} bytes)"
     );
 
     // And now the box loses memory, with no lease to explain it — but it
@@ -4280,13 +4290,21 @@ fn the_guard_leaves_the_protected_processes_alone() {
         std::thread::sleep(Duration::from_millis(100));
     }
 
-    // The curve, straight past the floor.
+    // The curve: down through the floor in the same steps as the other
+    // test, so the number the daemon reads is near the floor rather than
+    // four gibibytes below it. (The first run jumped straight to 4 GiB, so
+    // the daemon saw a box already deep in the danger zone, and the
+    // assertion — that the guard acts *at* the floor — could not hold.)
     let writer = {
         let meminfo = meminfo.clone();
         std::thread::spawn(move || {
-            write_meminfo(&meminfo, total, 4 * GIB);
-            std::thread::sleep(Duration::from_millis(200));
-            write_meminfo(&meminfo, total, 2 * GIB);
+            write_meminfo(&meminfo, total, 12 * GIB);
+            let mut available = 12 * GIB;
+            while available > 0 {
+                std::thread::sleep(Duration::from_millis(50));
+                available = available.saturating_sub(256 * 1024 * 1024);
+                write_meminfo(&meminfo, total, available);
+            }
         })
     };
 

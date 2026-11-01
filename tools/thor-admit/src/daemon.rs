@@ -3269,15 +3269,32 @@ impl Daemon {
             return;
         }
         state.guard.protected_stamp = stamp;
-        state.guard.protected = guard::read_protected_list(&self.config.guard_protected_file);
-        self.log_event(
-            "guard.protection",
-            json!({
-                "patterns": state.guard.protected.patterns,
-                "pids": state.guard.protected.pids,
-                "file": self.config.guard_protected_file.display().to_string(),
-            }),
-        );
+        let protection = guard::read_protected_list(&self.config.guard_protected_file);
+        // The pid list **churns**: a process starts, a process ends, and the
+        // list changes with it. Writing the whole list each time would put
+        // a thousand pids in the log every time a seat started something,
+        // so the line is written when the operator's own decisions change —
+        // the patterns, and the pids that were **added** — and the rest of
+        // the churn is counted and left alone.
+        let patterns_changed = protection.patterns != state.guard.protected.patterns;
+        let added: Vec<i32> = protection
+            .pids
+            .iter()
+            .filter(|pid| !state.guard.protected.pids.contains(pid))
+            .copied()
+            .collect();
+        state.guard.protected = protection;
+        if patterns_changed || !added.is_empty() {
+            self.log_event(
+                "guard.protection",
+                json!({
+                    "patterns": state.guard.protected.patterns,
+                    "pids_added": added,
+                    "pid_count": state.guard.protected.pids.len(),
+                    "file": self.config.guard_protected_file.display().to_string(),
+                }),
+            );
+        }
     }
 
     /// Give the memory back and write the peak down.
