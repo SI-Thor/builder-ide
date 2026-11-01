@@ -109,9 +109,14 @@ def test_a_torn_line_does_not_take_the_history_with_it(tmp_path: Path) -> None:
     assert records[0].peak_rss_bytes == 10
 
 
-def test_the_column_falls_back_to_the_snapshot() -> None:
+def test_the_column_falls_back_to_the_snapshot(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     # The live history is wherever the daemon writes it; the snapshot is
     # what the repo carries. The default column must have a source either way.
+    # The box's own daemon may be recording, so the live path is pointed at a
+    # file that is not there: the test is of the fallback, not of the box.
+    monkeypatch.setenv("THOR_ADMIT_PEAKS", str(tmp_path / "absent.jsonl"))
     column = default_memory_column()
     assert column.records, "the memory column has no source at all"
     assert "hog.4g" in column.kinds()
@@ -144,3 +149,14 @@ def test_a_record_reads_the_fields_the_daemon_writes() -> None:
     assert record.peak_gpu_bytes is None
     assert record.gpu_visible is True
     assert record.peak_source == "sample"
+
+
+def test_an_empty_live_history_is_no_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # a daemon that has started but not measured yet leaves an empty file;
+    # the snapshot must still stand in
+    empty = tmp_path / "peaks.jsonl"
+    empty.write_text("", encoding="utf-8")
+    monkeypatch.setenv("THOR_ADMIT_PEAKS", str(empty))
+    assert "hog.4g" in default_memory_column().kinds()
