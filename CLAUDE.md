@@ -128,3 +128,4 @@ works.
 - **NVIDIA SimReady assets** (dataset, CC-BY-4.0): read and sample freely with credit; do not mirror the full 77 GiB.
 - **Audio8 TTS** (Edge0-AI, code + Realistic 0.6B + 0.1B ONNX INT8 Apache-2.0; the 0.1B PyTorch checkpoint is under a revenue-capped community licence; Casey 2026-10-31): the ProArt presentation voice. Clone **only from synthetic references** (never human recordings).
 - **SolidCraft** (tangency-labs, MIT OR Apache-2.0; Casey 2026-11-01): build from source on the Thor in its own worktree (CLI only, no services) for `cad-bakeoff` against build123d. Cloud-written designs are JSON command scripts, validated against the registry before running.
+- **Rust rewrites are in scope** (Casey 2026-11-01): "don't be afraid to rewrite programs into rust for custom fit". Rewrite the part we use, with credit and licence respected; keep it if it measures better (memory, latency, determinism) than the original.
