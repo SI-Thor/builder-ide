@@ -379,6 +379,17 @@ pub struct Daemon {
     /// The daemon's own log. It has its own lock so that a log line can be
     /// written while the state lock is held.
     log: Mutex<Option<std::fs::File>>,
+    /// The lock on the socket's lock file.
+    ///
+    /// It is held for as long as the daemon runs, and it is what makes
+    /// "one daemon per socket" a fact rather than a hope: two daemons on one
+    /// socket would be two admission controllers with two views of the box,
+    /// which is the thing this crate exists to prevent. The kernel drops the
+    /// lock when the daemon dies, whatever killed it.
+    ///
+    /// Nothing reads it: the descriptor *is* the lock.
+    #[allow(dead_code)]
+    socket_lock: std::fs::File,
 }
 
 impl Daemon {
@@ -386,6 +397,7 @@ impl Daemon {
     pub fn new(config: Config) -> std::io::Result<Arc<Daemon>> {
         std::fs::create_dir_all(&config.state_dir)?;
         std::fs::create_dir_all(config.state_dir.join("leases"))?;
+        let socket_lock = take_socket_lock(&config.socket)?;
         let history = History::load(&config.history);
         let log = std::fs::OpenOptions::new()
             .create(true)
@@ -424,6 +436,7 @@ impl Daemon {
             listener: Mutex::new(None),
             log: Mutex::new(log),
             gpu_watch: Mutex::new(Vec::new()),
+            socket_lock,
         }))
     }
 
@@ -506,6 +519,17 @@ impl Daemon {
                     "another thor-admit daemon is already running",
                 ));
             }
+            // The socket answers nobody, but the lock on it may still be
+            // held by a daemon whose acceptor has died. The lock is the
+            // truth: it is dropped by the kernel when the daemon dies, and
+            // it is held for as long as the daemon lives.
+            if socket_lock_is_held(&self.config.socket)? {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::AddrInUse,
+                    "another thor-admit daemon is already running: it holds the lock on \
+                     this socket, so it is alive even though the socket answers nobody",
+                ));
+            }
             let _ = std::fs::remove_file(&self.config.socket);
         }
         let listener = UnixListener::bind(&self.config.socket)?;
@@ -542,7 +566,24 @@ impl Daemon {
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                     std::thread::sleep(Duration::from_millis(20));
                 }
-                Err(_) => return,
+                Err(error) => {
+                    // The front door is broken. A daemon that cannot answer
+                    // is worse than one that is not there: it keeps sampling
+                    // the box and looking alive to everything that checks.
+                    // So it says why and stops.
+                    if accept_error_is_fatal(&error) {
+                        self.log_event(
+                            "daemon.acceptor_failed",
+                            json!({
+                                "error": error.to_string(),
+                                "kind": format!("{:?}", error.kind()),
+                            }),
+                        );
+                        self.stop();
+                        return;
+                    }
+                    std::thread::sleep(Duration::from_millis(20));
+                }
             }
         }
     }
@@ -1988,10 +2029,113 @@ fn status_report(state: &State, config: &Config) -> StatusReport {
     }
 }
 
+/// The path of the lock file that goes with a socket.
+///
+/// The daemon's front door is its socket, and two daemons on one socket
+/// would be two admission controllers with two views of the box. The socket
+/// alone cannot say who owns it: a daemon that dies leaves the socket file
+/// behind, and a daemon whose acceptor has died leaves a socket that
+/// answers nobody while the daemon is still running. The lock file can say
+/// it, because the kernel drops the lock when the daemon dies.
+pub fn socket_lock_path(socket: &Path) -> PathBuf {
+    let mut path = socket.as_os_str().to_os_string();
+    path.push(".lock");
+    PathBuf::from(path)
+}
+
+/// Take the exclusive lock on a socket's lock file.
+///
+/// The descriptor is the lock: as long as it is open, the lock is held, and
+/// the kernel releases it whatever kills the daemon.
+fn take_socket_lock(socket: &Path) -> std::io::Result<std::fs::File> {
+    use std::os::unix::io::AsRawFd;
+    let path = socket_lock_path(socket);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&path)?;
+    let rc = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+    if rc != 0 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::AddrInUse,
+            format!(
+                "another thor-admit daemon is already running: it holds the lock on {}",
+                path.display()
+            ),
+        ));
+    }
+    Ok(file)
+}
+
+/// Is somebody holding the lock on this socket's lock file?
+fn socket_lock_is_held(socket: &Path) -> std::io::Result<bool> {
+    use std::os::unix::io::AsRawFd;
+    let path = socket_lock_path(socket);
+    let file = match std::fs::OpenOptions::new().read(true).write(true).open(&path) {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error),
+    };
+    let rc = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+    if rc == 0 {
+        unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_UN) };
+        return Ok(false);
+    }
+    Ok(true)
+}
+
 /// Write one JSON line to a socket.
 fn write_line(stream: &mut UnixStream, response: &Response) -> std::io::Result<()> {
     let mut text = serde_json::to_string(response).unwrap_or_default();
     text.push('\n');
     stream.write_all(text.as_bytes())?;
     stream.flush()
+}
+
+/// Should the accept loop give up on this error?
+///
+/// The listener is non-blocking, so "would block" is the normal "nothing is
+/// waiting yet" and a signal is a signal: neither is a reason to stop. Any
+/// other error means the front door is broken, and a daemon that cannot
+/// answer is worse than a daemon that is not there: it keeps sampling the
+/// box, keeps its log moving, and looks alive to everything that checks. So
+/// the daemon stops instead.
+pub fn accept_error_is_fatal(error: &std::io::Error) -> bool {
+    !matches!(
+        error.kind(),
+        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_transient_accept_error_is_not_fatal() {
+        assert!(!accept_error_is_fatal(&std::io::Error::from(
+            std::io::ErrorKind::WouldBlock
+        )));
+        assert!(!accept_error_is_fatal(&std::io::Error::from(
+            std::io::ErrorKind::Interrupted
+        )));
+    }
+
+    #[test]
+    fn any_other_accept_error_is_fatal() {
+        // The acceptor dying quietly is how a daemon ends up alive, still
+        // sampling the box, and answering nobody. The box would then have an
+        // admission controller that looks fine and is not there.
+        assert!(accept_error_is_fatal(&std::io::Error::from(
+            std::io::ErrorKind::InvalidInput
+        )));
+        assert!(accept_error_is_fatal(&std::io::Error::from(
+            std::io::ErrorKind::ConnectionAborted
+        )));
+    }
 }

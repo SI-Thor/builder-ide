@@ -485,6 +485,190 @@ fn two_daemons_never_share_a_socket_or_a_state_directory() {
     );
 }
 
+/// A daemon started for a socket of its own must keep its state beside that
+/// socket.
+///
+/// The CLI starts a daemon when it cannot reach one. It used to start it
+/// with the socket and nothing else, so the daemon fell back to the
+/// *default* state directory — the box's real one — and wrote its history,
+/// its ledger and its log there. A test's daemon was therefore writing into
+/// the box's own record, and a test's `busy` lease ended up in the learned
+/// peaks that the cost model reads.
+#[test]
+fn a_daemon_started_for_a_socket_keeps_its_state_beside_the_socket() {
+    let dir = std::env::temp_dir().join(format!(
+        "thor-admit-statedir-{}-{}",
+        std::process::id(),
+        DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let socket = dir.join("sock");
+    // The default state directory, moved out of the way so the test can see
+    // whether the daemon falls back to it.
+    let state_home = dir.join("xdg");
+
+    // The client cannot reach a daemon, so it starts one.
+    let output = Command::new(BIN)
+        .env("XDG_STATE_HOME", &state_home)
+        .arg("run")
+        .arg("--socket")
+        .arg(&socket)
+        .arg("--peak")
+        .arg("1G")
+        .arg("--label")
+        .arg("state.dir.probe")
+        .arg("--")
+        .arg("true")
+        .output()
+        .expect("the client runs");
+    assert!(
+        output.status.success(),
+        "the lease failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    // The daemon the client started kept its state beside its socket: the
+    // lease's peak is written there when the lease ends.
+    let history = dir.join("peaks.jsonl");
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while Instant::now() < deadline && !history.exists() {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(
+        history.exists(),
+        "the daemon did not keep its history beside its socket; the directory holds {:?}",
+        std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect::<Vec<_>>()
+    );
+
+    // And it did not touch the default state directory.
+    assert!(
+        !state_home.join("thor-admit").exists(),
+        "the daemon wrote into the default state directory"
+    );
+
+    // Stop the daemon the client started, and take the directory away.
+    let _ = Command::new(BIN)
+        .arg("stop")
+        .arg("--socket")
+        .arg(&socket)
+        .output();
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A second daemon must not take a socket that is already spoken for.
+///
+/// The daemon's front door is its socket, and two daemons on one socket
+/// would be two admission controllers with two views of the box — exactly
+/// the thing this crate exists to prevent. The daemon therefore holds an
+/// exclusive lock on the socket's lock file for as long as it runs, and a
+/// second daemon refuses to start while that lock is held, whether or not
+/// the socket still answers.
+#[test]
+fn a_second_daemon_does_not_take_a_socket_that_is_already_spoken_for() {
+    let dir = std::env::temp_dir().join(format!(
+        "thor-admit-lock-{}-{}",
+        std::process::id(),
+        DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let socket = dir.join("sock");
+
+    // Take the lock the way a live daemon would. The socket itself is left
+    // with nobody listening: this is what a daemon whose acceptor has died
+    // leaves behind, and the second daemon must not take it over.
+    use std::os::unix::io::AsRawFd;
+    let lock = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(dir.join("sock.lock"))
+        .unwrap();
+    let held = unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+    assert_eq!(held, 0, "the test could not take the lock");
+
+    let mut output = Command::new(BIN)
+        .arg("daemon")
+        .arg("--socket")
+        .arg(&socket)
+        .arg("--state-dir")
+        .arg(&dir)
+        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("the daemon starts");
+    // The daemon must *stop*. A daemon that takes the socket and keeps
+    // running would never end this wait, so the wait has its own deadline
+    // and the child is killed if it overruns.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut finished = None;
+    loop {
+        match output.try_wait() {
+            Ok(Some(status)) => {
+                finished = Some(status);
+                break;
+            }
+            Ok(None) => {}
+            Err(_) => break,
+        }
+        if Instant::now() >= deadline {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    let Some(status) = finished else {
+        let _ = output.kill();
+        let _ = output.wait();
+        panic!("the second daemon took a socket that was already spoken for, and did not stop");
+    };
+    let mut errors = String::new();
+    if let Some(mut stderr) = output.stderr.take() {
+        use std::io::Read;
+        let _ = stderr.read_to_string(&mut errors);
+    }
+    assert!(
+        !status.success(),
+        "the second daemon started on a socket that was already spoken for"
+    );
+    assert!(
+        errors.contains("already running") || errors.contains("lock"),
+        "the refusal was not explained: {errors}"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A stale socket — one whose daemon is gone — must not keep the box from
+/// starting a daemon.
+#[test]
+fn a_stale_socket_does_not_keep_a_daemon_from_starting() {
+    let dir = std::env::temp_dir().join(format!(
+        "thor-admit-stale-{}-{}",
+        std::process::id(),
+        DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let socket = dir.join("sock");
+    // A socket with nobody listening: bind it, then let the listener go.
+    {
+        let listener = std::os::unix::net::UnixListener::bind(&socket).unwrap();
+        drop(listener);
+    }
+    assert!(socket.exists(), "the stale socket is there");
+
+    let daemon = DaemonUnderTest::start_named("stale-socket", &[]);
+    assert!(
+        daemon.status()["leases"].is_array(),
+        "the daemon did not come up over the stale socket"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
 #[test]
 fn three_thirty_gigabyte_hogs_are_serialised() {
     // The brief's memory cap is checked first, so an over-large hog is

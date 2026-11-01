@@ -203,7 +203,16 @@ fn ensure_daemon(socket: &PathBuf) -> Result<(), String> {
         return Ok(());
     }
     let program = std::env::current_exe().map_err(|e| e.to_string())?;
-    let state_dir = thor_admit::daemon::default_state_dir();
+    // A daemon started for a socket that is not the box's own keeps its
+    // state beside that socket. Without this the daemon fell back to the
+    // default state directory — the box's real one — and wrote its history,
+    // its ledger and its log there, so a test's daemon became part of the
+    // box's own record.
+    let beside_the_socket = *socket != thor_admit::daemon::default_socket_path();
+    let state_dir = match (beside_the_socket, socket.parent()) {
+        (true, Some(parent)) => parent.to_path_buf(),
+        _ => thor_admit::daemon::default_state_dir(),
+    };
     let _ = std::fs::create_dir_all(&state_dir);
     let errors = std::fs::File::create(state_dir.join("daemon.err"))
         .map_err(|e| e.to_string())?;
@@ -215,6 +224,9 @@ fn ensure_daemon(socket: &PathBuf) -> Result<(), String> {
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::from(errors));
+    if beside_the_socket {
+        command.arg("--state-dir").arg(&state_dir);
+    }
     command.spawn().map_err(|e| format!("cannot start the daemon: {e}"))?;
     for _ in 0..100 {
         std::thread::sleep(Duration::from_millis(100));
