@@ -132,22 +132,22 @@ def test_the_row_type_is_in_the_closed_set(ledger):
 
 
 def test_a_pack_that_cannot_fit_the_payload_cap_is_refused_not_truncated(ledger):
-    """The ledger caps a payload at 4 KiB (§1.8); a pack that cannot fit is refused."""
-    pack = tuple(
-        Question(
-            qid=f"q{index:02d}",
-            kind="choice",
-            instructions="Which tile should the builder play next in this context?",
-            criteria={
-                f"option-{index}-{letter}": f"a long description of option {letter}"
-                for letter in "abcde"
-            },
-        )
-        for index in range(40)
+    """The ledger caps a payload at 4 KiB (§1.8). A *pack* that cannot fit
+    is split and answered (tests/judge/test_pack_split.py); the one honest
+    exception is a single question whose own verdict row cannot fit any
+    cap — that refusal is loud, never a truncated or missing answer."""
+    monster = Question(
+        qid="q" + "x" * 5000,
+        kind="choice",
+        instructions="Which tile should the builder play next in this context?",
+        criteria={
+            f"option-{letter}": f"a long description of option {letter}"
+            for letter in "abcde"
+        },
     )
     judge = Judge(ledger=ledger)
     with pytest.raises(JudgeRefusal) as excinfo:
-        judge.judge("task", "state", pack)
+        judge.judge("task", "state", (monster,))
     assert excinfo.value.code == "payload_too_large"
 
 

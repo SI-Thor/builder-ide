@@ -1,5 +1,8 @@
 # The worktree's own venv — dependencies are installed here, never system-wide.
 .venv/
+# The experiment's own torch venv (the DINOv2 probe needs torch; the core
+# never does).
+.venv-torch/
 
 # Python bytecode
 __pycache__/
@@ -37,3 +40,9 @@ docs/lab/trellis-graph-scripts/comfy-base/models/
 # The critic seat's derived images and probed geometry are caches, not
 # sources: the recipe is the source of truth.
 core/critic/.cache/
+
+# The bake-off's run logs: the noisy tail of a run, not the numbers.
+docs/lab/critic-select-scripts/results/*.log
+
+# The Rust crate's build output (tools/thor-admit is a standalone crate).
+tools/thor-admit/target/

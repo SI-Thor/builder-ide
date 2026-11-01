@@ -15,7 +15,9 @@ night needs before it spends anything:
   this evening, in two lines;
 * a **price** (:func:`~core.night.cost.pricing.price_job`) — what one job
   kind costs as a task carries it: the ask (the p50) and the rail (the p95),
-  with the band's basis and source beside them.
+  with the band's basis and source beside them;
+* a **memory column** (:mod:`core.night.cost.memory`) — how much memory a
+  job kind takes, as the admission daemon measured it.
 
 Everything the model says comes from a measurement with a source beside it
 (:mod:`core.night.cost.records`). The one exception is the owner's attention
@@ -37,6 +39,12 @@ from core.night.cost.admission import (
     plan_from_asks,
 )
 from core.night.cost.estimates import OwnerEstimate, owner_estimate
+from core.night.cost.memory import (
+    MemoryColumn,
+    MemoryPeak,
+    PeakRecord,
+    default_memory_column,
+)
 from core.night.cost.model import CostBand, CostEstimate, CostModel, get_model, percentile
 from core.night.cost.pricing import (
     DEFAULT_KIND,
@@ -60,17 +68,21 @@ __all__ = [
     "CostEstimate",
     "CostModel",
     "CutLine",
+    "MemoryColumn",
+    "MemoryPeak",
     "DATA_DIR",
     "DEFAULT_KIND",
     "JobRecord",
     "NightPlan",
     "OwnerEstimate",
+    "PeakRecord",
     "PlannedJob",
     "PowerRails",
     "PricedAsk",
     "RecordedData",
     "Sample",
     "admission_check",
+    "default_memory_column",
     "get_model",
     "hold_to",
     "known_kinds",

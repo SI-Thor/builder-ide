@@ -1,0 +1,1536 @@
+{
+ "candidate": "dino-probe",
+ "critic": "dino-probe",
+ "layers": [
+  "image"
+ ],
+ "members": [
+  {
+   "member_id": "mem_21488ad67db1666b",
+   "base_id": "arctic-s1",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 20887.345,
+   "cpu_ms": 78272.516,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(black_frame)=1.000 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.002 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0018919543853778927
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0025696643440349114
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0033274614750008415
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0031962945299156406
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.002614954073840651
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f95ee685896a09c0",
+   "base_id": "arctic-s4",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 8855.935,
+   "cpu_ms": 52033.748,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.000 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.00020185481989104618
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.994 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9939821171427111
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.069 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.06886132175406276
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.002798467947763936
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.009 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.009083198330883986
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.002 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0022288024331456294
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9aa7eec1d2c8f19d",
+   "base_id": "arctic-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 7606.838,
+   "cpu_ms": 44535.4,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.001 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0007000211482083162
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.076 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.07636898638003475
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.009 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.009455789027142098
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(holes)=0.616 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.615645163872083
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.004 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.004011749737414217
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.001 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0008287841135823422
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b5828303072b1a3c",
+   "base_id": "arctic-s6",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 10168.528,
+   "cpu_ms": 59115.123,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.003 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0028059201402499336
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.042 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.04159615883319675
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.004 >= 0.5 (1 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.003508147621976948
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(holes)=0.987 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9865649383863124
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.012 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.01180807695489438
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.009 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.00943040061952038
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_307101c469654adf",
+   "base_id": "arctic-s7",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 24222.204,
+   "cpu_ms": 104809.314,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.001 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0006094273033230886
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.002 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0020886773795430313
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.969 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9694334794520821
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.002 >= 0.5 (1 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.001575555337887183
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.000 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.00015310963948686888
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.008 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.008269279273561006
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f2de39875e8a21f9",
+   "base_id": "arctic-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 37702.373,
+   "cpu_ms": 135930.158,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.000 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0004290595903961217
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.999 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9991786582044306
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.001 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0013311475544547475
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.004 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.00440719425563431
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.202 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.202367497900762
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.001 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0012858692470449817
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_adc321874fe5a328",
+   "base_id": "canyon-s1",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 4326.241,
+   "cpu_ms": 25941.58,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.012 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.01216145295109735
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.889 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.8886938656100198
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.031 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.030866027609050738
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(holes)=0.590 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.5896187986867056
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.004 >= 0.5 (1 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.004275432596319307
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.155 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.15490958160970894
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_718023ba022732d4",
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 533.259,
+   "cpu_ms": 4134.542,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.011 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.010872266958452595
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.091 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0908804664414115
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.066 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.06600650226457694
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(holes)=0.807 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.8072181710478291
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.937 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9374488013767068
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.000 >= 0.5 (1 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 2.0513415127949155e-07
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_006310cbdf937f74",
+   "base_id": "canyon-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 767.847,
+   "cpu_ms": 5525.436,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.001 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0011034688771496867
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.001 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.001079247979894021
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.001 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0005389059638137417
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.148 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.14771500144718205
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.808 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.8084428858402999
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.999 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9993190679165469
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_e5097025648d7b9c",
+   "base_id": "canyon-s6",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 575.403,
+   "cpu_ms": 4373.766,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(black_frame)=1.000 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.002 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0018919544362610825
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.002569400329687552
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.003327460944067713
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0031962945201192854
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.00261496457068132
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_966194306043c892",
+   "base_id": "canyon-s7",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 505.139,
+   "cpu_ms": 3945.008,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.001 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0006164586933944735
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.998 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9980753126891315
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.015 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.014993081055449315
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.000 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0001588590685612048
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.957 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9574926868038757
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.020 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.020076630207627382
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9d6d264ba8126d40",
+   "base_id": "canyon-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 885.403,
+   "cpu_ms": 6498.269,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.036 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.03603047470044859
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.990 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9895732195610126
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.725 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.7247520819060117
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.001 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0005153841211054225
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.020 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.020399150050041052
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.939 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9389757247347332
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_65684b3ca047a1ae",
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 808.07,
+   "cpu_ms": 5984.441,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.000 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.000109327100429513
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.029 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.02906649545255011
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.001 >= 0.5 (1 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0009760153051263367
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.004 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0036380892069763342
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.097 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.09720935804490494
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.106 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.10568554298977972
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f718dd9be64c17e4",
+   "base_id": "coast-s2",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 804.073,
+   "cpu_ms": 5227.274,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.117 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.11667909963829486
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.011 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.01075300461163447
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.010 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.00962103574367927
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.000 >= 0.5 (1 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 5.282359505445341e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.973 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.973178974585837
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.969 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9685587659206386
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_5dce9a3310b1eba5",
+   "base_id": "coast-s4",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 1405.867,
+   "cpu_ms": 9226.268,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.021 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.021082950705920284
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.007 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.007417155167584318
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.029 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.029107474699881154
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(holes)=0.996 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9955611341297799
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.017 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.017233202350277095
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.997 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9973605192847576
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "base_id": "coast-s5",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 703.846,
+   "cpu_ms": 5210.629,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.002 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0016791051273218971
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.028 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.028223567631074007
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.043 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0425731310158927
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.000 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.00047960998242205704
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.000 >= 0.5 (1 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.00010811376449750255
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.027 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.027471470814450182
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_d5c1c6cc24413705",
+   "base_id": "coast-s6",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 549.822,
+   "cpu_ms": 4176.409,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.000 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0002775373769080304
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.001 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0010971253173748864
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.048 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.04798995654923123
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.005 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.004790895636942292
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.001 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0014417682804383173
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.000 >= 0.5 (1 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 7.438824247882819e-05
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b521f152359d1cde",
+   "base_id": "coast-s7",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 626.735,
+   "cpu_ms": 4657.75,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.003 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0027470564381871453
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.002 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.001535563032585158
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.675 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.67467085505112
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.005 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.005059279774563661
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.813 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.812791375896366
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.707 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.706771400408825
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_202aa986e4168c4c",
+   "base_id": "coast-s8",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 743.879,
+   "cpu_ms": 5528.298,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(black_frame)=1.000 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.002 >= 0.5 (4 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0018919545581320355
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.002569267993252677
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0033274601709775893
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.003196294565127284
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.002615017652946787
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "base_id": "desert-s1",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 459.498,
+   "cpu_ms": 3616.119,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.002 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0018623301011956017
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=0.725 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.7249356992374442
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.058 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.05833386256918868
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.088 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0883919926332413
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.033 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.03284702034195901
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.001 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0008262859919822073
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f187020297fd5c58",
+   "base_id": "arctic-s2",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@dino-probe",
+   "degraded": "dino-probe",
+   "latency_ms": 469.07,
+   "cpu_ms": 3675.712,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(black_frame)=0.058 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0579045128384557
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "dino-probe(linear, member split): p(noise_fireflies)=1.000 >= 0.5 (3 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.9999935754282763
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(missing_object)=0.000 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.0002908313623377345
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(holes)=0.014 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.014170977977776465
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(texture_swap)=0.003 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.003250238017324326
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "dino-probe(linear, member split): p(floating_object)=0.033 >= 0.5 (2 positive(s) in the training set)",
+     "measured": {
+      "dino_probability": 0.03298893532648932
+     },
+     "applicable": true
+    }
+   ]
+  }
+ ],
+ "table": {
+  "night": null,
+  "label": "verdict@scripted",
+  "in_band": false,
+  "band": {
+   "fp_bound": 0.1
+  },
+  "layers": [
+   "image"
+  ],
+  "totals": {
+   "tp": 7,
+   "fp": 12,
+   "fn": 8,
+   "tn": 24,
+   "fp_rate": 0.3333333333333333,
+   "fn_rate": 0.5333333333333333
+  },
+  "rows": [
+   {
+    "defect": "black_frame",
+    "check": "black_frame",
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 3,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "noise_fireflies",
+    "check": "fireflies",
+    "tp": 4,
+    "fp": 2,
+    "fn": 0,
+    "tn": 4,
+    "fp_rate": 0.3333333333333333,
+    "fn_rate": 0.0,
+    "members": 4,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "missing_object",
+    "check": "flat_patch",
+    "tp": 0,
+    "fp": 2,
+    "fn": 2,
+    "tn": 4,
+    "fp_rate": 0.3333333333333333,
+    "fn_rate": 1.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "holes",
+    "check": "dark_holes",
+    "tp": 0,
+    "fp": 2,
+    "fn": 2,
+    "tn": 4,
+    "fp_rate": 0.3333333333333333,
+    "fn_rate": 1.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "texture_swap",
+    "check": "patch_seam",
+    "tp": 0,
+    "fp": 2,
+    "fn": 2,
+    "tn": 4,
+    "fp_rate": 0.3333333333333333,
+    "fn_rate": 1.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "floating_object",
+    "check": "floating_blob",
+    "tp": 0,
+    "fp": 4,
+    "fn": 2,
+    "tn": 2,
+    "fp_rate": 0.6666666666666666,
+    "fn_rate": 1.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "wrong_scale",
+    "check": "scale_bounds",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "hollow_mesh",
+    "check": "watertight",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "clipped_geometry",
+    "check": "edge_cut",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   }
+  ]
+ },
+ "head": "linear",
+ "split": "member",
+ "feature_seconds_total": 0.006
+}

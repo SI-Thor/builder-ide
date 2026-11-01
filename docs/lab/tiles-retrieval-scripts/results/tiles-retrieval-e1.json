@@ -1,0 +1,1135 @@
+{
+  "against_the_bandit": {
+    "always-matching (reference)": {
+      "ci": [
+        -0.00368,
+        0.083564
+      ],
+      "difference": 0.04,
+      "p_value": 0.072355,
+      "z": 1.7969
+    },
+    "fastpath": {
+      "ci": [
+        -0.03328,
+        0.05657
+      ],
+      "difference": 0.011667,
+      "p_value": 0.61061,
+      "z": 0.5092
+    },
+    "retrieval_bandit": {
+      "ci": [
+        -0.021114,
+        0.0677
+      ],
+      "difference": 0.023333,
+      "p_value": 0.30292,
+      "z": 1.0302
+    },
+    "retrieval_only": {
+      "ci": [
+        -0.001933,
+        0.085148
+      ],
+      "difference": 0.041667,
+      "p_value": 0.060779,
+      "z": 1.8751
+    }
+  },
+  "bandit_seed": 7,
+  "bands": {
+    "calibrated": {
+      "counts": {
+        "compile": 0,
+        "confirm": 400,
+        "execute": 200
+      },
+      "per_context": {
+        "tile_600984a951a8|plain": {
+          "band": "confirm",
+          "score": 0.326572,
+          "style": "plain"
+        },
+        "tile_c10ed2038084|stained": {
+          "band": "confirm",
+          "score": 0.384731,
+          "style": "stained"
+        },
+        "tile_cf0aaf1f088a|weathered": {
+          "band": "execute",
+          "score": 0.426323,
+          "style": "weathered"
+        }
+      },
+      "shares": {
+        "compile": 0.0,
+        "confirm": 0.666667,
+        "execute": 0.333333
+      },
+      "tau_hi": 0.42,
+      "tau_lo": 0.269874
+    },
+    "pincher": {
+      "counts": {
+        "compile": 600,
+        "confirm": 0,
+        "execute": 0
+      },
+      "per_context": {
+        "tile_600984a951a8|plain": {
+          "band": "compile",
+          "score": 0.326572,
+          "style": "plain"
+        },
+        "tile_c10ed2038084|stained": {
+          "band": "compile",
+          "score": 0.384731,
+          "style": "stained"
+        },
+        "tile_cf0aaf1f088a|weathered": {
+          "band": "compile",
+          "score": 0.426323,
+          "style": "weathered"
+        }
+      },
+      "shares": {
+        "compile": 1.0,
+        "confirm": 0.0,
+        "execute": 0.0
+      },
+      "tau_hi": 0.8,
+      "tau_lo": 0.55
+    }
+  },
+  "box": {
+    "cpu": "AMD Ryzen AI 9 HX 370 w/ Radeon 890M",
+    "cpus": 24,
+    "gpu": "NVIDIA GeForce RTX 4050 Laptop GPU, 6141 MiB",
+    "load1": 1.79,
+    "mem_available_gb": 6.5,
+    "model2vec": "0.10.0",
+    "numpy": "2.5.4",
+    "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4",
+    "ts": 1793496383.7915254
+  },
+  "brief": "docs/research/pincher-fit.md \u00a7E1; the seeds' D1",
+  "calibrated": {
+    "rule_hi": "the most selective threshold whose coverage still reaches E1's 30 % bar",
+    "rule_lo": "the median score of a tile that does not match the context: below it the front cannot tell the two apart",
+    "tau_hi": 0.42,
+    "tau_lo": 0.269874
+  },
+  "context_seed": 17,
+  "curve": {
+    "always-matching (reference)": [
+      {
+        "n": 50,
+        "plays": "1-50",
+        "win_rate": 0.84,
+        "wins": 42
+      },
+      {
+        "n": 50,
+        "plays": "51-100",
+        "win_rate": 0.9,
+        "wins": 45
+      },
+      {
+        "n": 50,
+        "plays": "101-150",
+        "win_rate": 0.86,
+        "wins": 43
+      },
+      {
+        "n": 50,
+        "plays": "151-200",
+        "win_rate": 0.92,
+        "wins": 46
+      },
+      {
+        "n": 50,
+        "plays": "201-250",
+        "win_rate": 0.86,
+        "wins": 43
+      },
+      {
+        "n": 50,
+        "plays": "251-300",
+        "win_rate": 0.78,
+        "wins": 39
+      },
+      {
+        "n": 50,
+        "plays": "301-350",
+        "win_rate": 0.76,
+        "wins": 38
+      },
+      {
+        "n": 50,
+        "plays": "351-400",
+        "win_rate": 0.72,
+        "wins": 36
+      },
+      {
+        "n": 50,
+        "plays": "401-450",
+        "win_rate": 0.86,
+        "wins": 43
+      },
+      {
+        "n": 50,
+        "plays": "451-500",
+        "win_rate": 0.78,
+        "wins": 39
+      },
+      {
+        "n": 50,
+        "plays": "501-550",
+        "win_rate": 0.88,
+        "wins": 44
+      },
+      {
+        "n": 50,
+        "plays": "551-600",
+        "win_rate": 0.9,
+        "wins": 45
+      }
+    ],
+    "bandit": [
+      {
+        "n": 50,
+        "plays": "1-50",
+        "win_rate": 0.66,
+        "wins": 33
+      },
+      {
+        "n": 50,
+        "plays": "51-100",
+        "win_rate": 0.78,
+        "wins": 39
+      },
+      {
+        "n": 50,
+        "plays": "101-150",
+        "win_rate": 0.76,
+        "wins": 38
+      },
+      {
+        "n": 50,
+        "plays": "151-200",
+        "win_rate": 0.86,
+        "wins": 43
+      },
+      {
+        "n": 50,
+        "plays": "201-250",
+        "win_rate": 0.76,
+        "wins": 38
+      },
+      {
+        "n": 50,
+        "plays": "251-300",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "301-350",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "351-400",
+        "win_rate": 0.68,
+        "wins": 34
+      },
+      {
+        "n": 50,
+        "plays": "401-450",
+        "win_rate": 0.88,
+        "wins": 44
+      },
+      {
+        "n": 50,
+        "plays": "451-500",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "501-550",
+        "win_rate": 0.78,
+        "wins": 39
+      },
+      {
+        "n": 50,
+        "plays": "551-600",
+        "win_rate": 0.96,
+        "wins": 48
+      }
+    ],
+    "fastpath": [
+      {
+        "n": 50,
+        "plays": "1-50",
+        "win_rate": 0.64,
+        "wins": 32
+      },
+      {
+        "n": 50,
+        "plays": "51-100",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "101-150",
+        "win_rate": 0.78,
+        "wins": 39
+      },
+      {
+        "n": 50,
+        "plays": "151-200",
+        "win_rate": 0.76,
+        "wins": 38
+      },
+      {
+        "n": 50,
+        "plays": "201-250",
+        "win_rate": 0.8,
+        "wins": 40
+      },
+      {
+        "n": 50,
+        "plays": "251-300",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "301-350",
+        "win_rate": 0.86,
+        "wins": 43
+      },
+      {
+        "n": 50,
+        "plays": "351-400",
+        "win_rate": 0.76,
+        "wins": 38
+      },
+      {
+        "n": 50,
+        "plays": "401-450",
+        "win_rate": 0.92,
+        "wins": 46
+      },
+      {
+        "n": 50,
+        "plays": "451-500",
+        "win_rate": 0.84,
+        "wins": 42
+      },
+      {
+        "n": 50,
+        "plays": "501-550",
+        "win_rate": 0.76,
+        "wins": 38
+      },
+      {
+        "n": 50,
+        "plays": "551-600",
+        "win_rate": 0.96,
+        "wins": 48
+      }
+    ],
+    "retrieval_bandit": [
+      {
+        "n": 50,
+        "plays": "1-50",
+        "win_rate": 0.74,
+        "wins": 37
+      },
+      {
+        "n": 50,
+        "plays": "51-100",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "101-150",
+        "win_rate": 0.8,
+        "wins": 40
+      },
+      {
+        "n": 50,
+        "plays": "151-200",
+        "win_rate": 0.86,
+        "wins": 43
+      },
+      {
+        "n": 50,
+        "plays": "201-250",
+        "win_rate": 0.74,
+        "wins": 37
+      },
+      {
+        "n": 50,
+        "plays": "251-300",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "301-350",
+        "win_rate": 0.86,
+        "wins": 43
+      },
+      {
+        "n": 50,
+        "plays": "351-400",
+        "win_rate": 0.74,
+        "wins": 37
+      },
+      {
+        "n": 50,
+        "plays": "401-450",
+        "win_rate": 0.9,
+        "wins": 45
+      },
+      {
+        "n": 50,
+        "plays": "451-500",
+        "win_rate": 0.84,
+        "wins": 42
+      },
+      {
+        "n": 50,
+        "plays": "501-550",
+        "win_rate": 0.78,
+        "wins": 39
+      },
+      {
+        "n": 50,
+        "plays": "551-600",
+        "win_rate": 0.96,
+        "wins": 48
+      }
+    ],
+    "retrieval_only": [
+      {
+        "n": 50,
+        "plays": "1-50",
+        "win_rate": 0.84,
+        "wins": 42
+      },
+      {
+        "n": 50,
+        "plays": "51-100",
+        "win_rate": 0.86,
+        "wins": 43
+      },
+      {
+        "n": 50,
+        "plays": "101-150",
+        "win_rate": 0.8,
+        "wins": 40
+      },
+      {
+        "n": 50,
+        "plays": "151-200",
+        "win_rate": 0.76,
+        "wins": 38
+      },
+      {
+        "n": 50,
+        "plays": "201-250",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "251-300",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "301-350",
+        "win_rate": 0.88,
+        "wins": 44
+      },
+      {
+        "n": 50,
+        "plays": "351-400",
+        "win_rate": 0.82,
+        "wins": 41
+      },
+      {
+        "n": 50,
+        "plays": "401-450",
+        "win_rate": 0.92,
+        "wins": 46
+      },
+      {
+        "n": 50,
+        "plays": "451-500",
+        "win_rate": 0.84,
+        "wins": 42
+      },
+      {
+        "n": 50,
+        "plays": "501-550",
+        "win_rate": 0.76,
+        "wins": 38
+      },
+      {
+        "n": 50,
+        "plays": "551-600",
+        "win_rate": 0.96,
+        "wins": 48
+      }
+    ]
+  },
+  "e1_bars_calibrated": {
+    "coverage": 0.333333,
+    "coverage_bar": 0.3,
+    "coverage_pass": true,
+    "epsilon": 0.02,
+    "latency_pass": true,
+    "p95_bar_ms": 50.0,
+    "p95_ms": 0.0951,
+    "p_value": 0.61061,
+    "reward_gap": 0.011667,
+    "reward_gap_ci": [
+      -0.03328,
+      0.05657
+    ],
+    "reward_pass": true,
+    "tau": 0.42,
+    "win_rate": 0.81,
+    "z": 0.5092
+  },
+  "e1_bars_pincher": {
+    "coverage": 0.0,
+    "coverage_bar": 0.3,
+    "coverage_pass": false,
+    "epsilon": 0.02,
+    "latency_pass": true,
+    "p95_bar_ms": 50.0,
+    "p95_ms": 0.0795,
+    "p_value": 1.0,
+    "reward_gap": 0.0,
+    "reward_gap_ci": [
+      -0.045419,
+      0.045419
+    ],
+    "reward_pass": true,
+    "tau": 0.8,
+    "win_rate": 0.798333,
+    "z": 0.0
+  },
+  "embedder": {
+    "dimensions": 256,
+    "kind": "static",
+    "licence": "MIT",
+    "model": "minishlab/potion-base-8M"
+  },
+  "experiment": "E1 \u2014 the embedding fast path against the bandit",
+  "front_top1_accuracy": {
+    "n": 600,
+    "right": 600,
+    "share": 1.0
+  },
+  "k_shortlist": 3,
+  "latency_ms": {
+    "fastpath": {
+      "max": 0.1697,
+      "p50": 0.041,
+      "p90": 0.059,
+      "p95": 0.0912
+    },
+    "retrieval_bandit": {
+      "max": 0.1965,
+      "p50": 0.061,
+      "p90": 0.1102,
+      "p95": 0.1408
+    },
+    "retrieval_only": {
+      "max": 0.4269,
+      "p50": 0.0528,
+      "p90": 0.1025,
+      "p95": 0.1289
+    }
+  },
+  "n_plays": 600,
+  "ope": {
+    "direct_replay": {
+      "fastpath": 0.84,
+      "retrieval_only": 0.84
+    },
+    "estimates": {
+      "fastpath": {
+        "ips": {
+          "ci_high": 1.0,
+          "ci_low": 0.746587,
+          "coverage": 1.0,
+          "effective_n": 15.28,
+          "max_weight": 210.2894,
+          "n": 600,
+          "n_offered": 600,
+          "stderr": 0.186046,
+          "support": 0.6433,
+          "value": 1.111231,
+          "warnings": [
+            "the estimate 1.1112 is above the reward range: the weights are carrying it past what any play could pay",
+            "the effective sample size is 15.3 of 600 plays: one or two plays are carrying the estimate",
+            "the largest weight is 210.3: one play is carrying the estimate, and a bootstrap interval is the honest one"
+          ]
+        },
+        "snips": {
+          "ci_high": 1.0,
+          "ci_low": 0.390761,
+          "coverage": 1.0,
+          "effective_n": 15.28,
+          "max_weight": 210.2894,
+          "n": 600,
+          "n_offered": 600,
+          "stderr": 0.163643,
+          "support": 0.6433,
+          "value": 0.711495,
+          "warnings": [
+            "the effective sample size is 15.3 of 600 plays: one or two plays are carrying the estimate",
+            "the largest weight is 210.3: one play is carrying the estimate, and a bootstrap interval is the honest one"
+          ]
+        }
+      },
+      "retrieval_only": {
+        "ips": {
+          "ci_high": 1.0,
+          "ci_low": 0.746587,
+          "coverage": 1.0,
+          "effective_n": 15.28,
+          "max_weight": 210.2894,
+          "n": 600,
+          "n_offered": 600,
+          "stderr": 0.186046,
+          "support": 0.6433,
+          "value": 1.111231,
+          "warnings": [
+            "the estimate 1.1112 is above the reward range: the weights are carrying it past what any play could pay",
+            "the effective sample size is 15.3 of 600 plays: one or two plays are carrying the estimate",
+            "the largest weight is 210.3: one play is carrying the estimate, and a bootstrap interval is the honest one"
+          ]
+        },
+        "snips": {
+          "ci_high": 1.0,
+          "ci_low": 0.390761,
+          "coverage": 1.0,
+          "effective_n": 15.28,
+          "max_weight": 210.2894,
+          "n": 600,
+          "n_offered": 600,
+          "stderr": 0.163643,
+          "support": 0.6433,
+          "value": 0.711495,
+          "warnings": [
+            "the effective sample size is 15.3 of 600 plays: one or two plays are carrying the estimate",
+            "the largest weight is 210.3: one play is carrying the estimate, and a bootstrap interval is the honest one"
+          ]
+        }
+      }
+    }
+  },
+  "paraphrase_probe": {
+    "rows": [
+      {
+        "best_matching_score": 0.640578,
+        "best_mismatching_score": 0.550754,
+        "kind": "literal",
+        "margin": 0.089824,
+        "request": "plain crates",
+        "right_style_on_top": true,
+        "style": "plain"
+      },
+      {
+        "best_matching_score": 0.68869,
+        "best_mismatching_score": 0.571687,
+        "kind": "literal",
+        "margin": 0.117003,
+        "request": "weathered crates",
+        "right_style_on_top": true,
+        "style": "weathered"
+      },
+      {
+        "best_matching_score": 0.673965,
+        "best_mismatching_score": 0.606448,
+        "kind": "literal",
+        "margin": 0.067517,
+        "request": "stained crates",
+        "right_style_on_top": true,
+        "style": "stained"
+      },
+      {
+        "best_matching_score": 0.140604,
+        "best_mismatching_score": 0.152686,
+        "kind": "paraphrase",
+        "margin": -0.012082,
+        "request": "unpainted bare timber",
+        "right_style_on_top": false,
+        "style": "plain"
+      },
+      {
+        "best_matching_score": 0.227825,
+        "best_mismatching_score": 0.13162,
+        "kind": "paraphrase",
+        "margin": 0.096205,
+        "request": "worn and aged timber",
+        "right_style_on_top": true,
+        "style": "weathered"
+      },
+      {
+        "best_matching_score": 0.240707,
+        "best_mismatching_score": 0.250801,
+        "kind": "paraphrase",
+        "margin": -0.010094,
+        "request": "darkened with dye",
+        "right_style_on_top": false,
+        "style": "stained"
+      }
+    ],
+    "summary": {
+      "literal": {
+        "mean_margin": 0.091448,
+        "n": 3,
+        "right_style_on_top": 3
+      },
+      "paraphrase": {
+        "mean_margin": 0.024676,
+        "n": 3,
+        "right_style_on_top": 1
+      }
+    }
+  },
+  "propensities": {
+    "bandit": {
+      "max": 0.983333,
+      "min": 0.003333,
+      "n": 600
+    },
+    "retrieval_bandit": {
+      "max": 0.986667,
+      "min": 0.006667,
+      "n": 600
+    }
+  },
+  "rig": "tests/tiles/test_acceptance_learning.py's, verbatim in shape: 6 tiles, 600 plays, p_match=0.85/p_miss=0.15, sha256-seeded draws",
+  "score_calibration": {
+    "matching": {
+      "max": 0.426323,
+      "n": 1200,
+      "p10": 0.323002,
+      "p50": 0.384731,
+      "p90": 0.426323
+    },
+    "mismatching": {
+      "max": 0.332804,
+      "n": 600,
+      "p10": 0.248246,
+      "p50": 0.269874,
+      "p90": 0.332804
+    },
+    "top1": {
+      "max": 0.426323,
+      "n": 600,
+      "p10": 0.326572,
+      "p50": 0.384731,
+      "p90": 0.426323
+    },
+    "top1_matching": {
+      "max": 0.426323,
+      "n": 600,
+      "p10": 0.326572,
+      "p50": 0.384731,
+      "p90": 0.426323
+    },
+    "top1_wrong": {
+      "max": null,
+      "n": 0,
+      "p10": null,
+      "p50": null,
+      "p90": null
+    }
+  },
+  "started": "2026-11-01 01:26:23Z",
+  "tau_hi": 0.8,
+  "tau_lo": 0.55,
+  "tau_sweep": [
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.2,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.21,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.22,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.23,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.24,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.25,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.26,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.27,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.28,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.29,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.3,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.31,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6433,
+      "coverage": 1.0,
+      "n": 600,
+      "tau": 0.32,
+      "win_rate": 0.84,
+      "wins": 504
+    },
+    {
+      "agreement_with_bandit": 0.6717,
+      "coverage": 0.6667,
+      "n": 600,
+      "tau": 0.33,
+      "win_rate": 0.8233,
+      "wins": 494
+    },
+    {
+      "agreement_with_bandit": 0.6717,
+      "coverage": 0.6667,
+      "n": 600,
+      "tau": 0.34,
+      "win_rate": 0.8233,
+      "wins": 494
+    },
+    {
+      "agreement_with_bandit": 0.6717,
+      "coverage": 0.6667,
+      "n": 600,
+      "tau": 0.35,
+      "win_rate": 0.8233,
+      "wins": 494
+    },
+    {
+      "agreement_with_bandit": 0.6717,
+      "coverage": 0.6667,
+      "n": 600,
+      "tau": 0.36,
+      "win_rate": 0.8233,
+      "wins": 494
+    },
+    {
+      "agreement_with_bandit": 0.6717,
+      "coverage": 0.6667,
+      "n": 600,
+      "tau": 0.37,
+      "win_rate": 0.8233,
+      "wins": 494
+    },
+    {
+      "agreement_with_bandit": 0.6717,
+      "coverage": 0.6667,
+      "n": 600,
+      "tau": 0.38,
+      "win_rate": 0.8233,
+      "wins": 494
+    },
+    {
+      "agreement_with_bandit": 0.6883,
+      "coverage": 0.3333,
+      "n": 600,
+      "tau": 0.39,
+      "win_rate": 0.81,
+      "wins": 486
+    },
+    {
+      "agreement_with_bandit": 0.6883,
+      "coverage": 0.3333,
+      "n": 600,
+      "tau": 0.4,
+      "win_rate": 0.81,
+      "wins": 486
+    },
+    {
+      "agreement_with_bandit": 0.6883,
+      "coverage": 0.3333,
+      "n": 600,
+      "tau": 0.41,
+      "win_rate": 0.81,
+      "wins": 486
+    },
+    {
+      "agreement_with_bandit": 0.6883,
+      "coverage": 0.3333,
+      "n": 600,
+      "tau": 0.42,
+      "win_rate": 0.81,
+      "wins": 486
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.43,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.44,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.45,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.46,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.47,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.48,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.49,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.5,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.51,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.52,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.53,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.54,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.55,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.56,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.57,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.58,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.59,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.6,
+      "win_rate": 0.7983,
+      "wins": 479
+    },
+    {
+      "agreement_with_bandit": 1.0,
+      "coverage": 0.0,
+      "n": 600,
+      "tau": 0.8,
+      "win_rate": 0.7983,
+      "wins": 479
+    }
+  ],
+  "win_rates": {
+    "always-matching (reference)": {
+      "n": 600,
+      "win_rate": 0.838333,
+      "wins": 503
+    },
+    "bandit": {
+      "n": 600,
+      "win_rate": 0.798333,
+      "wins": 479
+    },
+    "fastpath": {
+      "n": 600,
+      "win_rate": 0.81,
+      "wins": 486
+    },
+    "retrieval_bandit": {
+      "n": 600,
+      "win_rate": 0.821667,
+      "wins": 493
+    },
+    "retrieval_only": {
+      "n": 600,
+      "win_rate": 0.84,
+      "wins": 504
+    }
+  }
+}

@@ -16,6 +16,9 @@ dependencies = [
     # Python. The USD extra already pulls numpy in; this makes it a
     # dependency in its own right.
     "numpy>=1.26",
+    # The critic's calibration set reads the sweep's renders and writes the
+    # derived images the checks run on, so the image half needs a PNG codec.
+    "pillow>=10",
 ]
 
 [project.optional-dependencies]
@@ -36,6 +39,15 @@ usd = [
     "usd-core==26.11",
     "build123d==0.13.0",
 ]
+# The tiles seat's retrieval front embeds the library with a local static
+# model: model2vec's distilled embeddings are a token table and a tokenizer,
+# so a query costs no forward pass and no GPU. The library (MIT) is the
+# first download; the seat falls back to feature hashing, which needs
+# nothing at all, when this extra is not installed — so it rides as an
+# extra and the core installs without it.
+embed = [
+    "model2vec>=0.10",
+]
 
 [project.scripts]
 builder-usd = "builder_usd.cli:main"
@@ -43,18 +55,20 @@ builder-usd = "builder_usd.cli:main"
 # One package set for the whole core: `core` is the namespace the seats share
 # (core.recipe is the recipe store, core.vocab the vocabulary, core.night the
 # runner, core.coldstart the cold start) and `builder_usd` is the
-# compiled-scene backbone (core/usd/src).
+# compiled-scene backbone (core/usd/src). `thor_admit` is the Python shim for
+# the memory-admission daemon (tools/thor-admit/python).
 [tool.setuptools.packages.find]
-where = [".", "core/usd/src"]
-include = ["core*", "builder_usd*"]
+where = [".", "core/usd/src", "tools/thor-admit/python"]
+include = ["core*", "builder_usd*", "thor_admit*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
 # "." keeps the seat packages importable as `core.*`; "core/usd/src" is the
 # USD backbone's own root, so one pytest run covers every seat without
-# touching any seat's own pyproject.
-pythonpath = [".", "core/usd/src"]
+# touching any seat's own pyproject; "tools/thor-admit/python" is the
+# admission daemon's Python shim.
+pythonpath = [".", "core/usd/src", "tools/thor-admit/python"]
 # The real-engine acceptance run is opt-in: its render steps drive Infinigen
 # 2.0 through the v2 venv (minutes of Cycles on the Thor, and the venv must
 # be on the box). The default run deselects it; `-m engine` selects only it.

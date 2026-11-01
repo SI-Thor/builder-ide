@@ -22,6 +22,14 @@ docstring point back to it.
 from __future__ import annotations
 
 from .author import AuthorRequest, CloudAuthor, ScriptedAuthor, TileAuthorProtocol
+from .bands import (
+    BandConfig,
+    BandDecision,
+    BandGate,
+    DEFAULT_BAND,
+    DEFAULT_TAU_HI,
+    DEFAULT_TAU_LO,
+)
 from .chooser import Choice, ContextualBandit, TileChooser
 from .door import validate_tile
 from .events import TILE_EVENT_TYPES
@@ -39,6 +47,7 @@ from .models import (
     build_play_record,
     build_tile,
 )
+from .nail import NAIL_FORMAT, NailBundle, export_nail, read_nail, write_nail
 from .ope import (
     BanditRewardModel,
     CrossFittedRewardModel,
@@ -54,34 +63,63 @@ from .ope import (
 )
 from .plays import fold_plays, record_play
 from .ports import LedgerPort, VocabularyPort
+from .retrieval import (
+    Embedder,
+    EmbedderUnavailable,
+    HashingEmbedder,
+    RetrievalChooser,
+    RetrievalFront,
+    RetrievalResult,
+    StaticEmbedder,
+    TileIndex,
+    default_embedder,
+    describe_tile,
+    embedder_record,
+)
 from .retrain import RetrainReport, TileScore, retrain
 from .stats import newcombe_difference, two_proportion_z, wilson_interval
 
 __all__ = [
     "AuthorRequest",
+    "BandConfig",
+    "BandDecision",
+    "BandGate",
     "BanditRewardModel",
     "Choice",
     "CrossFittedRewardModel",
+    "DEFAULT_BAND",
+    "DEFAULT_TAU_HI",
+    "DEFAULT_TAU_LO",
     "DeterministicTarget",
     "CloudAuthor",
     "ContextualBandit",
+    "Embedder",
+    "EmbedderUnavailable",
     "FeedbackPacket",
     "FixedTarget",
+    "HashingEmbedder",
     "LedgerPort",
+    "NAIL_FORMAT",
+    "NailBundle",
     "OPEError",
     "OPEEstimate",
     "Outcome",
     "PlayCost",
     "PlayRecord",
     "Precondition",
+    "RetrievalChooser",
+    "RetrievalFront",
+    "RetrievalResult",
     "RetrainReport",
     "ScriptedAuthor",
     "SoftmaxTarget",
+    "StaticEmbedder",
     "TILE_EVENT_TYPES",
     "Tile",
     "TileAuthor",
     "TileAuthorProtocol",
     "TileChooser",
+    "TileIndex",
     "TileLibrary",
     "TileRefusal",
     "TileScore",
@@ -91,14 +129,20 @@ __all__ = [
     "build_play_record",
     "build_tile",
     "corrupt_propensities",
+    "default_embedder",
+    "describe_tile",
+    "embedder_record",
     "evaluate",
+    "export_nail",
     "fold_library",
     "fold_plays",
     "newcombe_difference",
+    "read_nail",
     "record_play",
     "retrain",
     "two_proportion_z",
     "validate_tile",
     "weights_for",
     "wilson_interval",
+    "write_nail",
 ]

@@ -5,18 +5,21 @@ members* — a fixed reference set of ~30 **real renders** with seeded defects,
 run through the scripted checks, publishing false-positive and
 false-negative rates **per defect class**.
 
-The one-paragraph idea. Until a critic *model* is chosen and measured (X R4:
-the critic is "the largest unchosen dependency in the whole stack"), every
-automated verdict is a **scripted check** and wears `verdict@scripted` on
-its face. Those checks have to be measured on something, and the something
-has to be the pictures the critic will really be handed — so the reference
-set is built from the **overnight Infinigen sweep's real renders**, not from
-stand-ins. Each render gets one seeded defect, deterministically; the checks
-run over the whole set; the FP/FN table says, per defect class, what the
-scripted critic catches and what it misses.
+The one-paragraph idea. A critic model **has now been chosen and
+measured** (the bake-off: `docs/lab/exp-critic-select.md`), so a verdict is
+no longer necessarily a scripted check — but every verdict still wears the
+name of the critic that made it (`verdict@scripted`, `verdict@hybrid`), and
+the **scripted checks remain the default and the fallback**. Those checks
+have to be measured on something, and the something has to be the pictures
+the critic will really be handed — so the reference set is built from the
+**overnight Infinigen sweep's real renders**, not from stand-ins. Each
+render gets one seeded defect, deterministically; the checks run over the
+whole set; the FP/FN table says, per defect class, what the scripted
+critic catches and what it misses.
 
 The published table is [`CALIBRATION.md`](CALIBRATION.md). **Its first row is
-the baseline that the critic model choice (week 3 item 18) has to beat.**
+the baseline that the critic model choice (week 3 item 18) has to beat**,
+and the selection that followed is in [`selection.json`](selection.json).
 
 ```
 core/critic/
@@ -28,13 +31,78 @@ core/critic/
   mesh.py          the mesh probe's seam, and the mesh defect plants
   probe_scene.py   the script that measures a scene inside Blender
   set.py           the reference set: the members, their recipes, the manifest
-  critic.py        the critic: score the set, fold the FP/FN table
+  critic.py        the critic seam: score the set, fold the FP/FN table
+  select.py        which critic scores the set — the parameter, the default, the fallback
+  hybrid.py        the scripted checks first, the model only where they are out of band
+  service.py       the chosen critic behind the core's `Critic` seam (the night)
+  candidates/      the model candidates: dino.py, vlm.py, jev.py
   grow.py          the set grows nightly — the function the night runner calls
   publish.py       write the table to CALIBRATION.md
+  selection.json   the measured comparison of the candidates (the bake-off's output)
   rebuild_mesh.sh  rebuild a sweep scene's geometry (the sweep deletes its own)
   measure_*.py     the measurement scripts the thresholds are set against
   exp_*.py         the experiments that decided how the checks are built
 ```
+
+## The critic is a parameter
+
+`core/critic/select.py` is where the choice lives:
+
+* the **default** is the scripted critic in this package — no model, no GPU,
+  no network;
+* the **fallback** is the same scripted critic, in both of the ways a
+  candidate can fail. A candidate that cannot be **built** on this box (no
+  torch, no VLM, no API key) falls back when it is chosen: the checks answer
+  and the reason travels with the verdict. A candidate that is built and then
+  cannot **answer** — the model's server is not resident, the key expired,
+  the weights went missing — falls back at score time, one member at a time:
+  `select.FallbackCritic` puts the checks behind the chosen critic, so the
+  night still gets a table and the verdict says which critic made it;
+* the **registry** is data — `scripted`, `dino-probe`, `vlm`, `jev`,
+  `hybrid` — and the name on the verdict always says which one answered.
+
+```bash
+# score the set with the default (the scripted checks)
+.venv/bin/python -m core.critic --grow --publish
+
+# score it with a named critic
+BUILDER_CRITIC=hybrid .venv/bin/python -m core.critic --grow --publish
+```
+
+**One place says which critic is in service.** `select.configured_name`
+reads the settings (which carry `BUILDER_CRITIC`), then the environment,
+then the default; the command line that grows and re-scores the set and the
+night's `Critic` seam both go through it, so a night cannot score variants
+with one critic and publish the table with another. `service.build_render_critic`
+is the one call that puts the chosen critic behind the core's `Critic` seam,
+and it hands back the reason when the fallback answered.
+
+The **hybrid** is the shape the bake-off chose: the scripted checks answer
+for the classes they hold, and a model answers only for the class they are
+**out of band** on (`floating_object`, the one class the checks miss). The
+verdict says which critic answered each class, so a table row is never the
+work of two critics that cannot be told apart — and a verdict the checks
+made *instead of* the model is marked **degraded**, so a night that could
+not reach its model says so.
+
+A critic that reads pixels cannot judge a defect that lives in the
+geometry, and the reference set never re-renders a mesh defect — so the
+fold measures such a critic on the **image layer only**, and the table
+says which layers it covered. Those members are neither a miss nor a clean
+control: they were never looked at.
+
+## The selection
+
+`selection.json` is the bake-off's own output: every candidate, measured on
+this set with this counting rule, with its counts, its latency and whether
+it held the band, and the name of the one that was chosen. The published
+table carries it, so a reader of [`CALIBRATION.md`](CALIBRATION.md) sees
+what the chosen critic was measured against and not only its own row.
+
+The write-up — the hypothesis, the setup, the tables, the reasoning and the
+reproduce steps — is [`docs/lab/exp-critic-select.md`](../../docs/lab/exp-critic-select.md),
+and the scripts that produced the numbers are in
+[`docs/lab/critic-select-scripts/`](../../docs/lab/critic-select-scripts/).
 
 ## Running it
 
@@ -199,6 +267,11 @@ function the night runner calls, and it does three things in this order:
    never rebuilt and never duplicated.
 3. **Re-score** the whole set and publish the table.
 
+The re-score uses the **chosen critic** — the parameter — so the published
+table is the table of the critic that is actually in service, and the
+scripted checks are the fallback whenever the chosen critic cannot be built
+on this box.
+
 The growth is **sized to the night's unused lane** — the same rule the
 cold-start seat uses: at most a night's cap (8 members), never past the
 target (~30), and never more than the leftover rail affords. The cost per
@@ -214,10 +287,10 @@ and re-publishes the same table.
 
 ## What this seat does not do
 
-* **Choose a critic model.** That is week 3 item 18, and this table is the
-  baseline it has to beat.
 * **Re-render the sweep.** The sweep belongs to another night's work and is
   read-only here; the geometry this seat needs is rebuilt separately, and
   the frames are the sweep's own.
 * **Audit to the ledger.** The critic returns verdicts and a table; the
   night runner is the one that audits them (§1.8's one log).
+* **Judge the taste.** The critic says whether a render is broken; whether
+  it is *good* is the owner's call in the morning (§1.7).

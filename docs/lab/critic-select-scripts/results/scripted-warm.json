@@ -1,0 +1,2142 @@
+{
+ "candidate": "scripted",
+ "critic": "scripted",
+ "layers": [
+  "image",
+  "mesh"
+ ],
+ "members": [
+  {
+   "member_id": "mem_69f02f82cd2f7e59",
+   "base_id": "arctic-s1",
+   "defect": "wrong_scale",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 1.664,
+   "cpu_ms": 1.657,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 44 props (worst inward fraction 0.085)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.0847457627118644
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": true,
+     "detail": "1 prop(s) more than 6.0x their own family's median size: BoulderFactory(399059276@8.0x",
+     "measured": {
+      "scale_offenders": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (44 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_21488ad67db1666b",
+   "base_id": "arctic-s1",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 557.495,
+   "cpu_ms": 550.855,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "mean luminance 0.0000 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "largest single-colour region 518400 px (100.0000% of the frame) at (0, 0, 959, 539); threshold 1.00%",
+     "measured": {
+      "flat_area": 518400.0,
+      "flat_frac": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "no rectangular block in the frame",
+     "measured": {
+      "seam_strength": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 44 props (worst inward fraction 0.085)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.0847457627118644
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (44 props in 1 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (44 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_dcbf6d7d5d9f175d",
+   "base_id": "arctic-s4",
+   "defect": "hollow_mesh",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 1.584,
+   "cpu_ms": 1.585,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": true,
+     "detail": "1 prop(s) have a hollow shell (inward faces): BoulderFactory(1436635051).s",
+     "measured": {
+      "open_shells": 1.0,
+      "worst_inward": 0.9
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (48 props in 1 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (48 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f95ee685896a09c0",
+   "base_id": "arctic-s4",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 646.193,
+   "cpu_ms": 644.411,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.7587 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.7586675882339478
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "320 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 320.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 9 px (0.0017% of the frame) at (733, 182, 735, 184); threshold 1.00%",
+     "measured": {
+      "flat_area": 9.0,
+      "flat_frac": 1.736111111111111e-05
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 160x64 px whose weakest side steps by 0.162",
+     "measured": {
+      "seam_strength": 0.16178246500313467
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 48 props (worst inward fraction 0.086)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.08641975308641975
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (48 props in 1 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (48 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9aa7eec1d2c8f19d",
+   "base_id": "arctic-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 1133.059,
+   "cpu_ms": 1129.513,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.6258 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.6258007884025574
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "2 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 2.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 12 px (0.0023% of the frame) at (767, 451, 769, 454); threshold 1.00%",
+     "measured": {
+      "flat_area": 12.0,
+      "flat_frac": 2.3148148148148147e-05
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 136x68 px whose weakest side steps by 0.231",
+     "measured": {
+      "seam_strength": 0.23061997049615593
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no props to judge",
+     "measured": {},
+     "applicable": false
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "not enough props to judge a scene's scale",
+     "measured": {},
+     "applicable": false
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no camera to judge the frame's edge",
+     "measured": {},
+     "applicable": false
+    }
+   ]
+  },
+  {
+   "member_id": "mem_0ff4313697ac01e2",
+   "base_id": "canyon-s6",
+   "defect": "wrong_scale",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 19.946,
+   "cpu_ms": 19.914,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 666 props (worst inward fraction 0.593)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.5929381985112727
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": true,
+     "detail": "1 prop(s) more than 6.0x their own family's median size: BushFactory(2255680120).@8.0x",
+     "measured": {
+      "scale_offenders": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (666 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b5828303072b1a3c",
+   "base_id": "arctic-s6",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 887.032,
+   "cpu_ms": 883.262,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.7226 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.7225549817085266
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "largest single-colour region 17050 px (3.2890% of the frame) at (613, 151, 767, 260); threshold 1.00%",
+     "measured": {
+      "flat_area": 17050.0,
+      "flat_frac": 0.03288966049382716
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 168x104 px whose weakest side steps by 0.117",
+     "measured": {
+      "seam_strength": 0.11702035283570301
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no props to judge",
+     "measured": {},
+     "applicable": false
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "not enough props to judge a scene's scale",
+     "measured": {},
+     "applicable": false
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no camera to judge the frame's edge",
+     "measured": {},
+     "applicable": false
+    }
+   ]
+  },
+  {
+   "member_id": "mem_2ba7b269c74cf927",
+   "base_id": "coast-s6",
+   "defect": "hollow_mesh",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 10.228,
+   "cpu_ms": 10.214,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": true,
+     "detail": "1 prop(s) have a hollow shell (inward faces): TreeFactory(2508893).spawn_p",
+     "measured": {
+      "open_shells": 1.0,
+      "worst_inward": 0.9
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (360 props in 14 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (360 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_307101c469654adf",
+   "base_id": "arctic-s7",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 776.773,
+   "cpu_ms": 774.075,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.6774 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.6773775219917297
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 10 px (0.0019% of the frame) at (3, 375, 7, 376); threshold 1.00%",
+     "measured": {
+      "flat_area": 10.0,
+      "flat_frac": 1.9290123456790123e-05
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "6 uniform dark blob(s) inside a surface (largest 167 px)",
+     "measured": {
+      "holes": 6.0,
+      "hole_area": 167.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 128x60 px whose weakest side steps by 0.172",
+     "measured": {
+      "seam_strength": 0.17239474637122812
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "an object of 1273 px hangs with 0.13 frame heights of open space under it",
+     "measured": {
+      "floating_area": 1273.0,
+      "gap": 0.1259259259259259
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_a21404915b3a75d9",
+   "base_id": "desert-s6",
+   "defect": "clipped_geometry",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 19.846,
+   "cpu_ms": 19.816,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 689 props (worst inward fraction 0.593)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.5929381985112727
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (689 props in 12 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": true,
+     "detail": "1 prop(s) cut through the middle by the picture's edge: TreeFactory(2508893).spa@0.00",
+     "measured": {
+      "cut_objects": 1.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f2de39875e8a21f9",
+   "base_id": "arctic-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 863.917,
+   "cpu_ms": 862.761,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.6490 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.6489623188972473
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 6 px (0.0012% of the frame) at (334, 80, 334, 85); threshold 1.00%",
+     "measured": {
+      "flat_area": 6.0,
+      "flat_frac": 1.1574074074074073e-05
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 228x72 px whose weakest side steps by 0.111",
+     "measured": {
+      "seam_strength": 0.11113085657723837
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_638b4da28c2244d0",
+   "base_id": "mountain-s6",
+   "defect": "wrong_scale",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 25.455,
+   "cpu_ms": 25.408,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 862 props (worst inward fraction 0.593)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.5929381985112727
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": true,
+     "detail": "1 prop(s) more than 6.0x their own family's median size: BushFactory(2255680120).@8.0x",
+     "measured": {
+      "scale_offenders": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (862 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_adc321874fe5a328",
+   "base_id": "canyon-s1",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 802.668,
+   "cpu_ms": 801.261,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.6331 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.6331493258476257
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 4 px (0.0008% of the frame) at (528, 6, 529, 7); threshold 1.00%",
+     "measured": {
+      "flat_area": 4.0,
+      "flat_frac": 7.71604938271605e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "a block 152x112 px whose weakest side steps by 0.817 (threshold 0.33)",
+     "measured": {
+      "seam_strength": 0.8166665383485036
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_ddf85bcdbb0c8356",
+   "base_id": "plain-s5",
+   "defect": "hollow_mesh",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 16.451,
+   "cpu_ms": 16.434,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": true,
+     "detail": "1 prop(s) have a hollow shell (inward faces): BushFactory(1929960376).spaw",
+     "measured": {
+      "open_shells": 1.0,
+      "worst_inward": 0.9
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (579 props in 13 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (579 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_718023ba022732d4",
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 894.225,
+   "cpu_ms": 892.801,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.6409 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.6409320831298828
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 6 px (0.0012% of the frame) at (293, 161, 294, 163); threshold 1.00%",
+     "measured": {
+      "flat_area": 6.0,
+      "flat_frac": 1.1574074074074073e-05
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 120x140 px whose weakest side steps by 0.123",
+     "measured": {
+      "seam_strength": 0.12346762943320318
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "an object of 6773 px hangs with 0.10 frame heights of open space under it",
+     "measured": {
+      "floating_area": 6773.0,
+      "gap": 0.1037037037037037
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_a2946b36f70d9c7a",
+   "base_id": "river-s5",
+   "defect": "clipped_geometry",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 7.776,
+   "cpu_ms": 7.766,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 249 props (worst inward fraction 0.486)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.486206995330717
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (249 props in 15 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": true,
+     "detail": "1 prop(s) cut through the middle by the picture's edge: BushFactory(1929960376).@0.01",
+     "measured": {
+      "cut_objects": 1.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_006310cbdf937f74",
+   "base_id": "canyon-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 551.812,
+   "cpu_ms": 550.916,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.6953 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.6953346729278564
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 2 px (0.0004% of the frame) at (388, 124, 388, 125); threshold 1.00%",
+     "measured": {
+      "flat_area": 2.0,
+      "flat_frac": 3.858024691358025e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 140x148 px whose weakest side steps by 0.075",
+     "measured": {
+      "seam_strength": 0.07542813995787255
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_42e3d184b92682d1",
+   "base_id": "river-s6",
+   "defect": "wrong_scale",
+   "layer": "mesh",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 5.155,
+   "cpu_ms": 5.149,
+   "checks": [
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 172 props (worst inward fraction 0.593)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.5929381985112727
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": true,
+     "detail": "1 prop(s) more than 6.0x their own family's median size: chopped_tree(889028, 0, @7.7x",
+     "measured": {
+      "scale_offenders": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (172 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_e5097025648d7b9c",
+   "base_id": "canyon-s6",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 539.078,
+   "cpu_ms": 538.25,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "mean luminance 0.0000 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "largest single-colour region 518400 px (100.0000% of the frame) at (0, 0, 959, 539); threshold 1.00%",
+     "measured": {
+      "flat_area": 518400.0,
+      "flat_frac": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "no rectangular block in the frame",
+     "measured": {
+      "seam_strength": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 666 props (worst inward fraction 0.593)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.5929381985112727
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (666 props in 14 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (666 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_966194306043c892",
+   "base_id": "canyon-s7",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 700.577,
+   "cpu_ms": 699.436,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.7133 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.7133382558822632
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "320 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 320.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 4 px (0.0008% of the frame) at (438, 41, 438, 44); threshold 1.00%",
+     "measured": {
+      "flat_area": 4.0,
+      "flat_frac": 7.71604938271605e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 152x140 px whose weakest side steps by 0.054",
+     "measured": {
+      "seam_strength": 0.053840852245203116
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9d6d264ba8126d40",
+   "base_id": "canyon-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 1120.507,
+   "cpu_ms": 1118.983,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.4864 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.4864424467086792
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 3 px (0.0006% of the frame) at (259, 103, 261, 103); threshold 1.00%",
+     "measured": {
+      "flat_area": 3.0,
+      "flat_frac": 5.787037037037037e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 200x120 px whose weakest side steps by 0.128",
+     "measured": {
+      "seam_strength": 0.1279614706834956
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_65684b3ca047a1ae",
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 735.342,
+   "cpu_ms": 734.243,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.4035 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.40346118807792664
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "largest single-colour region 18526 px (3.5737% of the frame) at (619, 214, 775, 331); threshold 1.00%",
+     "measured": {
+      "flat_area": 18526.0,
+      "flat_frac": 0.035736882716049384
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "1 uniform dark blob(s) inside a surface (largest 205 px)",
+     "measured": {
+      "holes": 1.0,
+      "hole_area": 205.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 156x116 px whose weakest side steps by 0.317",
+     "measured": {
+      "seam_strength": 0.31657462904257744
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "an object of 286 px hangs with 0.18 frame heights of open space under it",
+     "measured": {
+      "floating_area": 286.0,
+      "gap": 0.17962962962962964
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f718dd9be64c17e4",
+   "base_id": "coast-s2",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 1081.547,
+   "cpu_ms": 1080.094,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.3889 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.3888668119907379
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "6 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 6.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 361 px (0.0696% of the frame) at (746, 135, 764, 153); threshold 1.00%",
+     "measured": {
+      "flat_area": 361.0,
+      "flat_frac": 0.0006963734567901234
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": true,
+     "detail": "4 uniform dark blob(s) inside a surface (largest 115 px)",
+     "measured": {
+      "holes": 4.0,
+      "hole_area": 115.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 124x68 px whose weakest side steps by 0.256",
+     "measured": {
+      "seam_strength": 0.25605750032217867
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_5dce9a3310b1eba5",
+   "base_id": "coast-s4",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 1120.919,
+   "cpu_ms": 1119.41,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.5760 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.5759868621826172
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "3 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 3.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 16 px (0.0031% of the frame) at (97, 45, 104, 46); threshold 1.00%",
+     "measured": {
+      "flat_area": 16.0,
+      "flat_frac": 3.08641975308642e-05
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 188x92 px whose weakest side steps by 0.240",
+     "measured": {
+      "seam_strength": 0.2395649294854744
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "base_id": "coast-s5",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 1394.251,
+   "cpu_ms": 1392.152,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.3914 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.3914242088794708
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "2 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 2.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 3 px (0.0006% of the frame) at (186, 36, 186, 38); threshold 1.00%",
+     "measured": {
+      "flat_area": 3.0,
+      "flat_frac": 5.787037037037037e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "a block 228x84 px whose weakest side steps by 0.756 (threshold 0.33)",
+     "measured": {
+      "seam_strength": 0.7558819006019211
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "watertight",
+     "fired": true,
+     "detail": "1 prop(s) have a hollow shell (inward faces): LeafFactoryMaple(1490699).sp",
+     "measured": {
+      "open_shells": 1.0,
+      "worst_inward": 0.7175367339624895
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (831 props in 14 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (831 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_d5c1c6cc24413705",
+   "base_id": "coast-s6",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 1011.126,
+   "cpu_ms": 1009.632,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.4235 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.423471063375473
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "22 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 22.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 4 px (0.0008% of the frame) at (400, 481, 401, 482); threshold 1.00%",
+     "measured": {
+      "flat_area": 4.0,
+      "flat_frac": 7.71604938271605e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 120x96 px whose weakest side steps by 0.286",
+     "measured": {
+      "seam_strength": 0.2863899663468568
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "watertight",
+     "fired": false,
+     "detail": "no hollow shell among 360 props (worst inward fraction 0.593)",
+     "measured": {
+      "open_shells": 0.0,
+      "worst_inward": 0.5929381985112727
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (360 props in 14 families)",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (360 props checked)",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b521f152359d1cde",
+   "base_id": "coast-s7",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 853.192,
+   "cpu_ms": 851.906,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.3269 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.3268614113330841
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "3 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 3.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 4 px (0.0008% of the frame) at (44, 43, 44, 46); threshold 1.00%",
+     "measured": {
+      "flat_area": 4.0,
+      "flat_frac": 7.71604938271605e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 156x68 px whose weakest side steps by 0.177",
+     "measured": {
+      "seam_strength": 0.17668525077988814
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_202aa986e4168c4c",
+   "base_id": "coast-s8",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 520.516,
+   "cpu_ms": 519.657,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "mean luminance 0.0000 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "largest single-colour region 518400 px (100.0000% of the frame) at (0, 0, 959, 539); threshold 1.00%",
+     "measured": {
+      "flat_area": 518400.0,
+      "flat_frac": 1.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "no rectangular block in the frame",
+     "measured": {
+      "seam_strength": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "base_id": "desert-s1",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 904.763,
+   "cpu_ms": 903.376,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.4429 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.4429019093513489
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "319 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 319.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 3 px (0.0006% of the frame) at (382, 237, 384, 237); threshold 1.00%",
+     "measured": {
+      "flat_area": 3.0,
+      "flat_frac": 5.787037037037037e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 180x96 px whose weakest side steps by 0.074",
+     "measured": {
+      "seam_strength": 0.07412873632273119
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f187020297fd5c58",
+   "base_id": "arctic-s2",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@scripted",
+   "degraded": "scripted",
+   "latency_ms": 618.876,
+   "cpu_ms": 617.945,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.9227 (threshold 0.02)",
+     "measured": {
+      "mean_luma": 0.9226694107055664
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "320 isolated outliers (threshold 250)",
+     "measured": {
+      "fireflies": 320.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 21 px (0.0041% of the frame) at (220, 371, 226, 373); threshold 1.00%",
+     "measured": {
+      "flat_area": 21.0,
+      "flat_frac": 4.050925925925926e-05
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12)",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 156x64 px whose weakest side steps by 0.052",
+     "measured": {
+      "seam_strength": 0.05209977901543254
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  }
+ ],
+ "table": {
+  "night": null,
+  "label": "verdict@scripted",
+  "in_band": false,
+  "band": {
+   "fp_bound": 0.1
+  },
+  "layers": [
+   "image",
+   "mesh"
+  ],
+  "totals": {
+   "tp": 23,
+   "fp": 0,
+   "fn": 1,
+   "tn": 39,
+   "fp_rate": 0.0,
+   "fn_rate": 0.041666666666666664
+  },
+  "rows": [
+   {
+    "defect": "black_frame",
+    "check": "black_frame",
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 3,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "noise_fireflies",
+    "check": "fireflies",
+    "tp": 4,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 4,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "missing_object",
+    "check": "flat_patch",
+    "tp": 2,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "holes",
+    "check": "dark_holes",
+    "tp": 2,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "texture_swap",
+    "check": "patch_seam",
+    "tp": 2,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "floating_object",
+    "check": "floating_blob",
+    "tp": 1,
+    "fp": 0,
+    "fn": 1,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.5,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "wrong_scale",
+    "check": "scale_bounds",
+    "tp": 4,
+    "fp": 0,
+    "fn": 0,
+    "tn": 1,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 4,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "hollow_mesh",
+    "check": "watertight",
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "tn": 1,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 3,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "clipped_geometry",
+    "check": "edge_cut",
+    "tp": 2,
+    "fp": 0,
+    "fn": 0,
+    "tn": 1,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   }
+  ]
+ },
+ "fallback_reason": null,
+ "kwargs": {}
+}

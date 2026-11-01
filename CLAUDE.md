@@ -61,7 +61,18 @@ works.
   open-source generators the research picked may be installed and run on the
   Thor, each in its own venv, with its licence checked first: ComfyUI +
   TRELLIS.2 first, then TripoSR, build123d/CadQuery, ACE-Step and MoMask.
-  Infinigen was approved before. Also approved (2026-10-31): our crew's
+  Infinigen was approved before. Also approved (2026-10-31): a LAN-only agent
+  world on the Thor with Minecraft Java (Paper; Casey accepted Mojang's EULA),
+  mineflayer and prismarine-viewer, and Luanti; localai-org/motion-bricks.cpp
+  (NVIDIA MotionBricks in GGML, Apache-2.0; weights licence checked first) to
+  evaluate and then rebuild Thor-native under SI-Thor; speridlabs/idol-sdk (image
+  to 3D Gaussians, Apache-2.0 code; gated DINOv3 and FLUX.2-dev weights via
+  Casey's Hugging Face access; outputs marked non-commercial); Tinaliu0123/
+  scenebloom (Apache-2.0 code) with its VLM swapped to a cloud vision model we
+  already use (no OpenRouter), or locally as a scoped B2 exception;
+  KBRASK/UniAction with Wan2.2-I2V-A14B (Apache-2.0), after the current wave.
+  Paradee-8M (Apache-2.0 TTS) for the first mile.
+  Also our crew's
   quilt-pincher, KTX-Software (`toktx`), and the open-source builds the seats
   listed in their reports. Any other third-party project from GitHub still
   needs his OK.
@@ -112,3 +123,6 @@ works.
   feasibility spike: Blender 4.2 on aarch64 (prebuilt or source), Infinigen's
   Hello Room / Hello World on the Thor, and a Cycles render on its GPU, timed
   against the ProArt.
+
+- **Seed-OSS-36B-Instruct** (Apache-2.0; Casey 2026-10-31): a scoped exception to no-LLMs-on-the-Thor. Our own NVFP4 conversion (thor-fp4), served only under a thor-admit lease, never resident: live during development cycles, and a practice-tier night drain that batches the ideation inbox other systems fill during the day.
+- **NVIDIA SimReady assets** (dataset, CC-BY-4.0): read and sample freely with credit; do not mirror the full 77 GiB.

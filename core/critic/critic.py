@@ -33,7 +33,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable, Protocol, Sequence, runtime_checkable
 
 from .checks import DEFAULT_THRESHOLDS, Thresholds, run_image_checks, run_mesh_checks
 from .imaging import load_rgb
@@ -54,6 +54,7 @@ __all__ = [
     "CalibrationTable",
     "Band",
     "CriticRunner",
+    "ReferenceCritic",
     "score_member",
     "calibration_table",
 ]
@@ -173,6 +174,13 @@ class CalibrationTable:
     band: Band = field(default_factory=Band)
     label: str = "verdict@scripted"
     night: str | None = None
+    layers: tuple[str, ...] | None = None
+    """The layers of the reference set the table was measured on.
+
+    ``None`` means the whole set — the scripted critic sees both halves.
+    A critic that reads pixels is measured on the image layer only, and the
+    table says so rather than counting the classes it could not see.
+    """
 
     @property
     def in_band(self) -> bool:
@@ -190,6 +198,7 @@ class CalibrationTable:
             "label": self.label,
             "in_band": self.in_band,
             "band": {"fp_bound": self.band.fp_bound},
+            "layers": list(self.layers) if self.layers is not None else None,
             "totals": self.totals.as_dict(),
             "rows": [row.as_dict() for row in self.rows],
         }
@@ -204,6 +213,8 @@ def score_member(
     bases: Sequence[Any] = (),
     mesh_stats: MeshStats | None = None,
     thresholds: Thresholds | None = None,
+    cache_dir: str | Path | None = None,
+    blender_python: str | None = None,
 ) -> CriticVerdict:
     """The scripted critic's judgement of one member.
 
@@ -214,6 +225,10 @@ def score_member(
 
     The verdict carries every check's outcome, not just the fired ones, so
     the fold can tell a *miss* from a check that never ran.
+
+    ``cache_dir`` is where the mesh probe's numbers are kept between runs:
+    probing a scene means loading its ``.blend`` in Blender, which is slow,
+    and the numbers do not change. The nightly re-score pays it once.
     """
     t = thresholds or DEFAULT_THRESHOLDS
     outcomes: list[CheckOutcome] = []
@@ -223,7 +238,8 @@ def score_member(
         if stats is None and member.mesh_path:
             stats = probe_scene(
                 member.mesh_path,
-                python=_blender_python(),
+                python=blender_python or _blender_python(),
+                cache_dir=cache_dir,
             )
         if stats is None:
             raise ValueError(f"member {member.member_id!r} has no mesh to score")
@@ -239,7 +255,11 @@ def score_member(
         # can say what a mesh-bearing clean control looks like too.
         if member.mesh_path:
             try:
-                stats = probe_scene(member.mesh_path, python=_blender_python())
+                stats = probe_scene(
+                    member.mesh_path,
+                    python=blender_python or _blender_python(),
+                    cache_dir=cache_dir,
+                )
                 outcomes.extend(run_mesh_checks(stats, t))
             except Exception:  # noqa: BLE001 - a missing mesh is not a failure
                 pass
@@ -249,6 +269,7 @@ def score_member(
         base_id=member.base_id,
         defect=member.defect,
         checks=tuple(outcomes),
+        layer=member.layer,
     )
 
 
@@ -268,18 +289,32 @@ def calibration_table(
     *,
     night: str | None = None,
     fp_bound: float = FP_BOUND,
+    layers: Sequence[str] | None = None,
 ) -> CalibrationTable:
     """Fold the verdicts into the FP/FN table — one row per defect class.
 
     A pure fold over the verdicts, so the table rebuilds from the members
     alone after a kill -9, and the same table comes out every time.
+
+    ``layers`` says which layers of the reference set the critic was
+    measured on. A critic that reads pixels cannot judge a defect that lives
+    in the geometry — and the reference set's mesh defects are never
+    re-rendered, so there is no picture of them to look at. Those members
+    are **left out of the fold entirely**: they are neither a miss nor a
+    clean control, and counting them as misses would measure the reference
+    set's design rather than the critic. The rows for the classes the
+    critic could not see come out empty, and the table says which layers it
+    covers.
     """
     verdicts = list(verdicts)
+    wanted_layers = tuple(layers) if layers is not None else None
     counts: dict[str, ConfusionCounts] = {d: ConfusionCounts() for d in DEFECT_KINDS}
     members: dict[str, int] = {d: 0 for d in DEFECT_KINDS}
     clean = 0
 
     for verdict in verdicts:
+        if wanted_layers is not None and verdict.layer not in wanted_layers:
+            continue
         defect = verdict.defect
         if defect is None:
             clean += 1
@@ -327,6 +362,7 @@ def calibration_table(
         totals=totals,
         band=Band(fp_bound=fp_bound),
         night=night,
+        layers=wanted_layers,
     )
 
 
@@ -343,14 +379,77 @@ def _class_targeted_by(check: str) -> str | None:
 # -- the runner ---------------------------------------------------------------
 
 
+@runtime_checkable
+class ReferenceCritic(Protocol):
+    """A critic that judges the reference set's members.
+
+    The **seam** the critic selection sits in. Everything a critic has to be
+    able to do to be measured on the reference set is here and nowhere else:
+
+    * it names itself (``name``) — the name is on the verdict's face, so a
+      verdict says which critic made it (``verdict@scripted``, ``verdict@…``);
+    * it says which **layers** it can see (``layers``) — a critic that reads
+      pixels cannot judge a defect that lives in the geometry, and saying so
+      is how the fold keeps an out-of-domain class out of the table instead
+      of counting it as a miss;
+    * it scores a member (``score``) and returns a verdict carrying one
+      outcome per defect class it judged.
+    """
+
+    name: str
+    layers: tuple[str, ...]
+
+    def score(
+        self,
+        member: MemberRecipe,
+        *,
+        bases: Sequence[Any] = (),
+        thresholds: Thresholds | None = None,
+        cache_dir: str | Path | None = None,
+    ) -> CriticVerdict:
+        """The critic's judgement of one member."""
+
+
+class ScriptedReferenceCritic:
+    """The scripted critic as a candidate: the checks, and nothing else.
+
+    This is the **fallback** — the critic that is always there, needs no
+    model, and is what the nightly re-score falls back to when the chosen
+    critic cannot be built.
+    """
+
+    name = "scripted"
+    layers = ("image", "mesh")
+
+    def score(
+        self,
+        member: MemberRecipe,
+        *,
+        bases: Sequence[Any] = (),
+        thresholds: Thresholds | None = None,
+        cache_dir: str | Path | None = None,
+        blender_python: str | None = None,
+    ) -> CriticVerdict:
+        return score_member(
+            member,
+            bases=bases,
+            thresholds=thresholds,
+            cache_dir=cache_dir,
+            blender_python=blender_python,
+        )
+
+
 class CriticRunner:
-    """Runs the reference set through the scripted checks and keeps the
-    verdicts.
+    """Runs the reference set through a critic and keeps the verdicts.
 
     The runner holds the set's **recipes**, not its pixels: it re-derives a
     member's image from its base render when it needs to score it, which is
     what makes the set a recipe (the house rule) rather than a pile of
     pictures.
+
+    The critic is a **parameter**: the default is the scripted one, and the
+    selected critic is the one the night asks for (see
+    :mod:`core.critic.select`).
     """
 
     def __init__(
@@ -359,18 +458,29 @@ class CriticRunner:
         bases: Sequence[Any] = (),
         thresholds: Thresholds | None = None,
         blender_python: str | None = None,
+        critic: ReferenceCritic | None = None,
+        cache_dir: str | Path | None = None,
     ) -> None:
         self._bases = list(bases)
         self._thresholds = thresholds or DEFAULT_THRESHOLDS
         self._blender_python = blender_python
+        self._critic = critic or ScriptedReferenceCritic()
+        self._cache_dir = cache_dir
         self._verdicts: list[CriticVerdict] = []
+
+    @property
+    def critic(self) -> ReferenceCritic:
+        """The critic this runner scores with."""
+        return self._critic
 
     def score(self, member: MemberRecipe) -> CriticVerdict:
         """Score one member and remember the verdict."""
-        verdict = score_member(
+        verdict = self._critic.score(
             member,
             bases=self._bases,
             thresholds=self._thresholds,
+            cache_dir=self._cache_dir,
+            blender_python=self._blender_python,
         )
         self._verdicts.append(verdict)
         return verdict
@@ -385,5 +495,14 @@ class CriticRunner:
         return list(self._verdicts)
 
     def table(self, *, night: str | None = None) -> CalibrationTable:
-        """Fold the verdicts into the table."""
-        return calibration_table(self._verdicts, night=night)
+        """Fold the verdicts into the table.
+
+        The table is measured on the layers the critic can see, so a critic
+        that reads pixels is not charged with the geometry it never looked
+        at.
+        """
+        return calibration_table(
+            self._verdicts,
+            night=night,
+            layers=self._critic.layers,
+        )

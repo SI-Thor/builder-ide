@@ -49,6 +49,7 @@ __all__ = [
     "state_hash",
     "question_set_hash",
     "judgment_from_distribution",
+    "pack_hash",
 ]
 
 #: The four kinds of typed judgment.
@@ -77,6 +78,19 @@ def question_set_hash(questions: Sequence["Question"]) -> str:
     is another request.
     """
     body = [q.to_wire_record() for q in questions]
+    return content_hash(body)
+
+
+def pack_hash(state: str, questions: Sequence["Question"]) -> str:
+    """``sha256:…`` over the state **and** the questions of one attempt.
+
+    A verdict row cites the attempt it records, and an attempt is a
+    shared state plus the questions asked over it — so a rung that
+    re-asked over a re-read state cites its own pack hash, not the first
+    rung's. A row that cited a pack the state has moved out from under
+    would be a row that lies about what it asked.
+    """
+    body = {"state": state, "questions": [q.to_wire_record() for q in questions]}
     return content_hash(body)
 
 
@@ -200,6 +214,14 @@ class Judgment(BaseModel):
     and records which definition it used in ``confidence_definition``. The
     backend's own number is kept beside it in ``backend_confidence``,
     because the edge between the two is worth having on the log.
+
+    **A backend that reports no confidence of its own still has one.** The
+    distribution gave the judge a number, and that is the number the gate
+    reads; a backend's silence is not the judge guessing. The old rule —
+    a judgment with no confidence at all never passes a gate — still
+    holds for a judgment that has none, which is a row folded from an
+    older log: it was written before the definition was stated, and it
+    carries the number that log meant.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -277,12 +299,23 @@ class Judgment(BaseModel):
 
     @property
     def gated_confidence(self) -> float | None:
-        """The number the gate compares with τ.
+        """The number the gate compares with τ — ``None`` when there is none.
 
         The calibrated confidence where a recalibration is fitted for the
         cell — so τ is read in the calibrated space — and the canonical
         confidence otherwise.
+
+        ``None`` means the judgment carries **no confidence at all**, and
+        the rule is the old one: a judgment with no confidence never
+        passes a gate. A judgment this package makes always has one — the
+        confidence is computed from the vector the backend returned, so it
+        is there even when the backend reported nothing of its own — so
+        the ``None`` case is a row folded from an older log, which was
+        written before the definition was stated and meant its
+        ``confidence`` the way the old code meant it.
         """
+        if self.confidence is None:
+            return None
         if self.calibrated_confidence is not None:
             return self.calibrated_confidence
         return self.confidence

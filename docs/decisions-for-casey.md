@@ -30,7 +30,7 @@ Part B is where the team has a view and your call settles it.
 | B4 | **MIT.** "More important that we allow people to use it and change it and evolve it." | `LICENSE` (MIT) added; the fork stays BSD-3 (upstream's terms). |
 | B5 | **Build the missing half ourselves**, custom-fit to the Thor (Casey, 2026-10-31). No contact needed. | A new repo, `thor-world` (working name): an MCP server over the core, plus a deterministic recipe-to-glTF stream with real LODs, GPU texture compression and deltas, and a live browser viewer. Two zcode seats started on the ProArt. |
 | B6 | Casey plugs it in later today; the Thor must power off and move | Plan for a planned shutdown: drain the seats and the sweep first. |
-| B7 | Casey replugs the drive | After the replug: check what survived before any reformat. |
+| B7 | **Keep NTFS for now** (Casey, 2026-10-31); a new drive will be ordered for upgrades. | The drive is healthy (no I/O errors). The Oct 29–30 wedge was ntfs-3g (FUSE) under heavy writes; reads are fine. It stays mounted **read-only** at `/mnt/toshiba` as an archive (your personal `backup/` is on it, untouched). Our 11 GB of benchmark files were deleted. |
 
 
 ### New: the tiles system's eight open questions (2026-10-31)
