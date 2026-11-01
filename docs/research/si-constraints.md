@@ -52,3 +52,44 @@ Casey pointed us at 20 SuperInstance repos and `beam-quilt`: "optimizations base
 1. Holonomy consensus claims Byzantine tolerance for "any number" of faulty nodes. **What was the test setup, and does it survive one node that lies consistently rather than randomly?**
 2. `jc1-ct-bridge`'s 100 % vs 62 %: **the same data for both, and what is the false-positive rate?**
 3. beam-quilt's fact-check refutes claims (Laman-as-truth, sub-millisecond MIDI, the 6.8M/7 ms ARM figure). **Have the corrections propagated to the papers and syntheses that still state them?**
+
+## The second batch, and what the Thor changes (2026-10-31)
+
+Casey added 21 more crew repos and a lens: some ideas "might be better optimized for the AGX Thor than our hardware at the time". The library mapped them and ranked which ones the hardware held back.
+
+**New ideas from the second batch:**
+- cross-language parity vectors (`constraint-substrate`);
+- constraint satisfaction *as* the physics step, with no integrator (`constraint-physics`), for motion;
+- symplectic, constraint-preserving integration (`constraint-hamiltonian`);
+- time-decay and Bloom-filter CRDTs (`constraint-crdt`, 110 tests);
+- 1024-bit hypervector matching (`flux-hdc`), for embedding-free reflex matching;
+- night rails as a declarative pipeline (`constraint-dsl`).
+
+**Consolidation:**
+- lattice snapping exists in five repos;
+- the Laman checks and the holonomy/consensus code in four each;
+- vectorised checkers in four;
+- "compile constraints to code" pipelines in four.
+
+`constraint-substrate`, with its parity vectors, is the natural canonical home.
+
+**What the Thor changes is throughput, not correctness.** Constraint checking, hypervector matching, CRDT merges and graph operations were limited by:
+- a 6 GB GPU behind PCIe copies (`cuda-constraint-engine` and `flux-gpu` both say "memory-bound");
+- small workloads that a CPU's AVX-512 won because GPU launches cost too much;
+- laptop CPU core counts.
+
+On the Thor:
+- the constraint set stays resident in 122 GB of memory that the CPU and GPU share without copies;
+- CUDA Graphs remove the launch cost that made small GPU batches lose;
+- 14 cores take the CPU-side merges.
+
+These are SIMT-core workloads (integer checks, popcounts), not tensor-core ones; FP4 does not apply to them.
+
+Consensus guarantees, convergence rates and protocol claims are properties of the mathematics, and faster hardware changes none of them.
+
+**The lane `ct-thor`** (zcode, Thor) is re-measuring the top five on the Thor:
+- `cuda-constraint-engine` resident at 20× scale;
+- `flux-gpu` without the copy-back;
+- the GPU-vs-CPU crossover with Graphs;
+- `flux-hdc` on the GPU;
+- the CRDT and `snapkit-v2` judge across 1/4/14 cores.
