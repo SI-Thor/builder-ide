@@ -36,7 +36,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-REPO="$(cd "$HERE/../.." && pwd)"
+REPO="$(cd "$HERE/../../.." && pwd)"
 TRELLIS="${TRELLIS_DIR:-$HOME/lm-wt/trellis}"
 OUT="${PHYSAG_OUT:-$REPO/artifacts/physag-lite}"
 SPECS="$HERE/specs"
@@ -50,10 +50,15 @@ COMFY_LOG="$OUT/generation/comfy_server.log"
 COMFY_IN="$OUT/comfy_in"
 COMFY_OUT="$OUT/comfy_out"
 
+# The workflow graphs are ours: they are written next to the artefacts, not
+# into the TRELLIS tree, so a run of this seat never leaves a file in the
+# tree that another seat's spike would have to recognise and skip.
+WF="$OUT/workflows"
+
 MODE="${PHYSAG_MODE:-512}"
 PROPS="${PHYSAG_PROPS:-crate chest lantern door drawer_unit barrel cart gate ladder table}"
 
-mkdir -p "$OUT/meshes" "$OUT/pictures" "$OUT/generation" "$COMFY_IN" "$COMFY_OUT"
+mkdir -p "$OUT/meshes" "$OUT/pictures" "$OUT/generation" "$COMFY_IN" "$COMFY_OUT" "$WF"
 
 # The log lives with the artefacts, because the request that runs this
 # script may outlive the shell that asked for it: the admission daemon
@@ -151,9 +156,9 @@ EOF
     "$PY" "$TRELLIS/scripts/build_text2image.py" \
         --prompt "$prompt" \
         --prefix "trellis2/physag_${prop}_image" \
-        --out "$TRELLIS/workflows/physag_${prop}_image.api.json" >/dev/null
+        --out "$WF/physag_${prop}_image.api.json" >/dev/null
     "$PY" "$TRELLIS/scripts/run_workflow.py" \
-        --workflow "$TRELLIS/workflows/physag_${prop}_image.api.json" \
+        --workflow "$WF/physag_${prop}_image.api.json" \
         --label "physag_${prop}_image" \
         --server "http://127.0.0.1:${PORT}" \
         --port "$PORT" \
@@ -174,9 +179,9 @@ EOF
         --mode "$MODE" \
         --image "physag_${prop}.png" \
         --prefix "trellis2/physag_${prop}" \
-        --out "$TRELLIS/workflows/physag_${prop}.api.json" >/dev/null
+        --out "$WF/physag_${prop}.api.json" >/dev/null
     "$PY" "$TRELLIS/scripts/run_workflow.py" \
-        --workflow "$TRELLIS/workflows/physag_${prop}.api.json" \
+        --workflow "$WF/physag_${prop}.api.json" \
         --label "physag_${prop}" \
         --server "http://127.0.0.1:${PORT}" \
         --port "$PORT" \
