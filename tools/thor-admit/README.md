@@ -34,6 +34,10 @@ stopgap.
 * A **model-server registry** (`thor-admit serve`): a model loaded once
   per box, not once per seat — keyed on the model file and the serving
   flags, not on the name a seat types.
+* A **guard** for work that took **no lease**: the daemon can stop the
+  biggest unleased process when the box is in trouble, and `thor-admit exec`
+  refuses to start a framework that takes the box's memory by surprise
+  (round 12; see below).
 
 ## Using it
 
@@ -64,6 +68,10 @@ thor-admit reload
 # A shrink is always allowed (never below what the run has touched); a grow
 # is refused if the box has no room for it.
 thor-admit phase trellis --peak 8G
+
+# start something WITHOUT a lease — and refuse to start a framework that
+# takes the box's memory by surprise (JAX/XLA, TensorFlow)
+thor-admit exec -- python3 train_spike.py --backend mjx --nworld 256
 ```
 
 `thor-admit run` puts the lease's id in the command's environment as
@@ -235,7 +243,12 @@ queue** runs registered work when no live request is waiting, and gives
 it back the moment live work needs the memory or the GPU. While a client
 holds a lease it heartbeats every 5 s; a client that goes silent past
 `--heartbeat-grace-secs` (default 60 s) is asked to leave, and a lease
-whose lock outlives its client is taken back. If the daemon goes away
+whose lock outlives its client is taken back. A process that took **no lease** is outside all of that, so the daemon
+keeps a second guard for it: the biggest unleased process is stopped when
+the box falls below the emergency floor, or when the box loses memory faster
+than the leases can explain it (the shape the 2026-11-01 JAX incident had),
+and the guard never touches the desktop, the login, the system's own services
+or the seat agents. If the daemon goes away
 while a client is queued, the client reconnects and asks again rather
 than losing its wait — and auto-starts a daemon if nothing answers; a
 daemon that never begins serving within `--startup-timeout-secs`
@@ -294,6 +307,102 @@ answers, by id:
 ```bash
 thor-admit phase <label-or-id> --peak auto   # settle at the label's learned peak
 ```
+
+## The guard: work that is outside any lease
+
+Every rule above reaches work that **took a lease**. On 2026-11-01 a JAX run
+started outside `thor-admit` took **94.5 GB of this box's unified memory in
+20 seconds** — the desktop died, the Wi-Fi driver died, and the box needed a
+power cycle — and the daemon, running at the time, saw nothing: a process
+with no lease is in no lease table. It is also worth saying *why* the old
+rule could not have helped: the run left **15 GB free**, which is above the
+8 GiB emergency floor, so the floor's rule called the box healthy while the
+desktop was already gone.
+
+Two halves answer that.
+
+### Before it starts: `thor-admit exec`
+
+It reads the command line and refuses to start a framework that takes the
+box's memory by surprise:
+
+```bash
+thor-admit exec -- python3 train_spike.py --backend mjx --nworld 256
+# thor-admit: refusing to start a JAX/XLA process without a safe allocator.
+#   found: the script train_spike.py imports it
+#   why:   on this box the GPU's memory is the system's memory, and this framework
+#          preallocates 75-90% of it before it computes anything. That is what
+#          hung the Thor on 2026-11-01: 94.5 GB in 20 seconds, the desktop died,
+#          the Wi-Fi driver died, and the box needed a power cycle.
+#   make it safe with one of: XLA_PYTHON_CLIENT_PREALLOCATE=false or
+#          XLA_PYTHON_CLIENT_ALLOCATOR=platform or XLA_PYTHON_CLIENT_MEM_FRACTION=0.15
+#     or run it under a lease, which is the rule for heavy work:
+#       thor-admit run --peak 16G --label jax -- python3 train_spike.py ...
+```
+
+JAX/XLA is safe when `XLA_PYTHON_CLIENT_PREALLOCATE=false`, or the platform
+allocator, or a memory fraction of at most 0.15; TensorFlow when
+`TF_FORCE_GPU_ALLOW_GROWTH=true`. The framework is found by the module it
+runs (`python -m jax...`), by the code given to `-c`, or by what the script
+on disk imports — the incident's script was called `train_spike.py` and said
+nothing; its `import jax` said everything. **`jaxlib` is not `jax`**: the
+match is on the import statement, not on the word, and importing the
+compiler library allocates nothing. `--allow-preallocation` overrides the
+refusal and says so loudly.
+
+### After it starts: the guard
+
+The daemon looks at every process on the box every `--guard-interval-ms`
+(2 s) and can stop the biggest one that **no lease owns**:
+
+* a **candidate** is a process that holds at least `--guard-min-rss` (4 GiB)
+  of the box — its resident set *plus* the bytes the driver says it holds on
+  the GPU — that no lease owns, and that is on neither protection list;
+* the **built-in protection list** is by name: the login (`sshd`), the
+  desktop (`gnome-*`, `gdm-*`), the session's services (`dbus-*`, `pipewire`,
+  `ibus-*`), the system's own services (`systemd-*`, `NetworkManager`, …)
+  and the seat agents (`zcode-cli`, `minimax-code`, `MainThread`). An
+  interpreter is deliberately **not** protected: on this box a `python` is
+  the model server, the incident's runaway, a seat's script or a one-liner,
+  and a name cannot tell them apart;
+* the **operator's list** is matched against the **command line**
+  (`--guard-protected-file`, default `<state-dir>/protected.txt`):
+
+```text
+# one pattern per line. A pattern with a * is a glob, without one a substring.
+*glide.server*
+llama-server
+pid 4321
+```
+
+  It is the escape hatch for work that is legitimately big and legitimately
+  outside a lease: the model server is `python -m glide.server`, and every
+  other python on the box is `python` too.
+
+The guard has **two triggers**:
+
+* **the floor** — below the emergency floor (8 GiB) the biggest holder is
+  where the memory is, and if that is an unleased process it is stopped;
+* **the runaway** — the box loses `--guard-drop` (8 GiB) inside
+  `--guard-window-secs` (10 s) and the leases cannot explain it. This is the
+  trigger the incident needed: the JAX run left **15 GB free**, above the
+  floor, with the desktop already dead.
+
+A candidate is stopped with **SIGTERM**, and with **SIGKILL** after the
+grace if it is still there. It is signalled together with the processes it
+started, and its group is signalled only when the group is exactly that
+family — the operator's shell is never taken with it. `SIGCONT` goes with
+the signal: a process the GPU pre-emption froze never sees its `SIGTERM`,
+and the memory never comes back.
+
+Everything the guard does is in the log (`guard.terminated`, `guard.killed`,
+`guard.gone`, `guard.unexplained_drop`) and in the status:
+
+```bash
+thor-admit status --json | jq .guard
+```
+
+`--no-guard` turns the whole thing off.
 
 ## Running the tests
 
@@ -401,6 +510,19 @@ number for it: `peak_gpu_bytes: 643825664` (614 MiB).
   unit for the operator who wants one.
 * **It does not replace the box's services.** `thor-index`, `gpu-queue` and
   the desktop are not leases and are never signalled by the watchdog.
+* **The guard does not stop work under a lease.** A lease is the lease
+  watchdog's business: it knows how to stop that work, how to wait for it and
+  how to give the memory back to the accounting. The guard's business is the
+  work nobody claimed — and it will not touch the desktop, the login, the
+  system's own services, the seat agents, or anything on the operator's
+  list, whatever their size.
+* **The guard is a last resort, and it can be wrong.** It answers a runaway by
+  stopping the biggest process it may touch, and on a busy box that may be a
+  seat's unleased job that was doing the right thing. The operator's list is
+  the answer to that, and `--no-guard` is the other one.
+* **`thor-admit exec` is a refusal, not a sandbox.** It reads the command
+  line; a program that preallocates without naming its framework on the
+  command line still gets through, and the guard is what is left.
 * **It does not reserve memory for the kernel's reclaim.** The floor is a
   number the operator sets; the default (25 GiB) is the stopgap's "keep
   25 GB free", carried forward.

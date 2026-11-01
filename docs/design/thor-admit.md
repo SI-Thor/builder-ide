@@ -1581,3 +1581,141 @@ keeps what it opened. **The swap is the director's**, and this round
 None of it needs a restart to be *safe* — the old daemon keeps the old
 rule and is not wrong, only stuck. Restart it at a moment with no leases
 to lose.
+
+## 16. Round 12 (2026-11-01, ~13:20): the guard for work that is outside any lease
+
+Round 11 was merged and the daemon ran its binary through the day. The
+director's note pointed at the incident of 2026-11-01
+(`docs/lab/incident-2026-11-01-jax-hang.md`) and asked for one thing:
+**the processes outside any lease are invisible to the watchdog.**
+
+### 16.1 The gap, and why the emergency floor was too late for it
+
+The watchdog of §2.3 stops the largest **lease** when the box runs short. A
+process that never took a lease is in no lease table, so it is in no ranking,
+so the rule cannot see it. The incident was that gap exactly: a MJX run
+(`train_spike.py --backend mjx --nworld 256`) was started outside
+`thor-admit`, took **94.5 GB of the box's unified memory in 20 seconds**,
+left **15 GB available**, and the box lost its desktop first and its Wi-Fi
+driver next. The daemon was running through it and saw nothing.
+
+Two facts about this box make the gap larger than it looks.
+
+**The GPU's memory is the system's memory.** There is no separate VRAM pool,
+so a process that takes the "GPU's" memory takes the box's RAM, and the
+kernel's accounting of the two is separate. Measured on this box today
+(13:27, `nvidia-smi --query-compute-apps`): pid 15433 (`llama-server`) held
+**20 834 MiB** of device memory with **653 MiB** of resident set — **32 to
+1**. A ranking by resident set alone calls that process small.
+
+**JAX/XLA preallocates by default.** `XLA_PYTHON_CLIENT_PREALLOCATE` defaults
+to true, and the default fraction is 75–90 %. On a discrete GPU that is a
+private pool on the card and the rest of the machine never notices. Here it
+is most of the machine's RAM, taken before the program computes anything.
+
+And the shape of the incident is the part the old rule could not answer: the
+run left **15 GB free**, which is *above* the 8 GiB emergency floor. The
+floor's rule called the box healthy while the desktop was already gone. So a
+guard that only answers the floor is too late for the incident it was built
+for.
+
+### 16.2 The guard: a candidate, two protection lists, two triggers
+
+The guard is a second watchdog path, beside the lease one, that can act on a
+process no lease owns. Three parts.
+
+**A candidate** is a process that
+
+* holds at least `--guard-min-rss` (default 4 GiB) of the box, measured as
+  its resident set **plus** the bytes the driver says it holds on the GPU —
+  the two together, because §16.1's 32-to-1 process is invisible by RSS;
+* is owned by **no lease** (a lease's processes, and the presence queue's,
+  are the lease watchdog's business: it knows how to stop that work, how to
+  wait for it and how to give the memory back to the accounting);
+* is on **neither** protection list.
+
+**The built-in protection list** is by name, and it is about the box's
+*furniture*: the operator's login (`sshd`, `agetty`), the greeter and the
+desktop (`gdm-*`, `gnome-*`, `Xorg`), the session's own services (`dbus-*`,
+`pipewire`, `ibus-*`, `at-spi*`, `xdg-desktop-portal*`), the system's own
+services (`systemd-*`, `NetworkManager`, `wpa_supplicant`, `polkitd`, …) and
+the seat agents (`zcode-cli`, `minimax-code`, `zcode-node-repl`,
+`MainThread`). An interpreter is deliberately **not** on it: on this box a
+`python` is the model server, the incident's runaway, a seat's script or a
+one-liner, and a name cannot tell them apart. Protecting the name would
+blind the guard to the thing it exists for.
+
+**The operator's list** (`--guard-protected-file`, default
+`<state-dir>/protected.txt`) is matched against the **command line**, not
+the name — the same reason. It is the escape hatch for work that is
+legitimately big and legitimately outside a lease: the model server is
+`python -m glide.server`, and every other python on the box is `python` too.
+A line is a pattern (a glob when it holds a `*`, a substring when it does
+not) or `pid 1234`, which spares one process whatever it is called. The
+daemon re-reads the file when it changes, so the list can be edited while it
+runs.
+
+**The triggers** are the two shapes of trouble:
+
+* **the floor.** Below the emergency floor, the biggest holder is where the
+  memory is. If that is an unleased process, the guard stops it; if it is a
+  lease, the lease watchdog stops it, as before. The unleased one wins only
+  when it is genuinely the bigger holder.
+* **the runaway.** The box loses `--guard-drop` (default 8 GiB) inside
+  `--guard-window-secs` (default 10 s), and the leases cannot explain it
+  (`2 × the leases' growth < the loss`). This is the trigger the incident
+  needed: the box loses a quarter of itself in ten seconds with no lease to
+  say it was that work's fault.
+
+The runaway trigger looks for the unleased process that **grew** the most in
+the window. When the loss is real but no candidate grew — the memory went to
+the page cache, the slab, a process that died — the daemon says so
+(`guard.unexplained_drop`) instead of stopping something for it.
+
+### 16.3 The family, and the group
+
+A runaway does not hold the memory by itself: a job that forks a dataloader
+or a renderer that forks workers holds it in several processes, and stopping
+only the parent leaves the children holding the pages. So the guard signals
+the **family** — the process and everything it started, found from the
+kernel's own parent links.
+
+The **process group** is a different thing and is not the same as the family:
+a group may also hold the operator's shell, and a shell is not the job. So
+the group is signalled **only when the group is exactly the family** — every
+other member of it a descendant of the candidate. Otherwise the family is
+signalled process by process, and the shell is left alone.
+
+`SIGCONT` goes with the signal. A process the GPU's pre-emption froze never
+sees its `SIGTERM`, and the memory never comes back — that was the first of
+Hy4's five failure modes, and the guard inherits the fix.
+
+### 16.4 The client's half: `thor-admit exec`
+
+The guard catches a runaway after it has started. `thor-admit exec` catches it
+before: it reads the command line and refuses to start a framework that
+takes the box's memory by surprise.
+
+* **JAX/XLA** is safe when `XLA_PYTHON_CLIENT_PREALLOCATE=false`, or
+  `XLA_PYTHON_CLIENT_ALLOCATOR=platform` (the platform allocator grows on
+  demand), or `XLA_PYTHON_CLIENT_MEM_FRACTION` of at most **0.15** — 0.15 of
+  122.8 GiB is about 18 GiB.
+* **TensorFlow** is safe with `TF_FORCE_GPU_ALLOW_GROWTH=true`.
+* **PyTorch is not on the list.** Its caching allocator grows on demand and
+  does not take the box by surprise. It is still work that belongs under a
+  lease, which is the memory rule and a different one.
+
+The framework is found three ways: by the program itself (`jax`), by the
+module it runs (`python -m jax.something`), by the code given to `-c`, and
+by what the script on disk imports. The last is the one that matters for
+the incident: the run was `train_spike.py --backend mjx --nworld 256`, and
+the file's name says nothing — its `import jax` says everything. The match
+is on the **import statement**, not on the word: `import jax` and
+`import jax.numpy` are the framework, `import jaxlib` is not, because
+`jaxlib` is the compiler library and importing it allocates nothing.
+
+The work still runs **outside** a lease, which is what makes this the
+guard's counterpart rather than its duplicate: the guard stops a runaway
+after it has started, and this stops it before. `--allow-preallocation`
+overrides the refusal and says so loudly, for the run the operator knows is
+safe.
