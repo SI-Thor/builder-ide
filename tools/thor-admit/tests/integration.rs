@@ -593,11 +593,32 @@ fn the_daemon_costs_almost_nothing() {
         "the daemon used {cpu_percent:.2}% of a core while doing nothing"
     );
     eprintln!(
-        "daemon overhead: {} MiB resident, {cpu_percent:.2}% of one core over {:.0}s",
+        "daemon overhead (idle): {} MiB resident, {cpu_percent:.2}% of one core over {:.0}s",
         rss_after / (1024 * 1024),
         elapsed
     );
     let _ = rss_before;
+
+    // And with a lease running: the daemon walks /proc every sample to find
+    // the lease's resident set, and asks nvidia-smi what the GPU is doing.
+    let mut busy = leased(&daemon, "busy", "1G", &["sleep", "30"]);
+    std::thread::sleep(Duration::from_secs(2));
+    let cpu_before = cpu_seconds(pid);
+    let wall = Instant::now();
+    std::thread::sleep(Duration::from_secs(10));
+    let cpu_after = cpu_seconds(pid);
+    let elapsed = wall.elapsed().as_secs_f64();
+    let cpu_percent = (cpu_after - cpu_before) / elapsed * 100.0;
+    assert!(
+        cpu_percent < 5.0,
+        "the daemon used {cpu_percent:.2}% of a core while watching a lease"
+    );
+    eprintln!(
+        "daemon overhead (one lease running): {cpu_percent:.2}% of one core over {:.0}s",
+        elapsed
+    );
+    let _ = busy.kill();
+    let _ = busy.wait();
 }
 
 #[test]

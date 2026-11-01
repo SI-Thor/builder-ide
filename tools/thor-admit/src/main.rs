@@ -80,6 +80,7 @@ Daemon options (all have defaults):
   --floor <size>            the floor a lease must clear      (default 25G)
   --emergency-floor <size>  below this, the watchdog acts     (default 8G)
   --sample-interval-ms <n>  how often the box is sampled      (default 250)
+  --scan-interval-ms <n>    how often the processes' memory is read (default 1000)
   --stop-grace-samples <n>  samples before a stopped lease is killed (default 8)
   --min-victim-rss <size>   the smallest lease the watchdog will touch (default 2G)
   --socket <path>           the socket to listen on
@@ -237,6 +238,14 @@ fn run_daemon(args: &[String]) -> ExitCode {
     }
     match options.number("sample-interval-ms") {
         Ok(Some(value)) => config.sample_interval = Duration::from_millis(value),
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    match options.number("scan-interval-ms") {
+        Ok(Some(value)) => config.scan_interval = Duration::from_millis(value),
         Ok(None) => {}
         Err(error) => {
             eprintln!("thor-admit: {error}");

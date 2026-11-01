@@ -47,6 +47,8 @@ pub const DEFAULT_FLOOR: u64 = 25 * 1024 * 1024 * 1024;
 pub const DEFAULT_EMERGENCY_FLOOR: u64 = 8 * 1024 * 1024 * 1024;
 /// The default sample interval.
 pub const DEFAULT_SAMPLE_INTERVAL: Duration = Duration::from_millis(250);
+/// The default interval for reading the processes' resident sets.
+pub const DEFAULT_SCAN_INTERVAL: Duration = Duration::from_millis(1000);
 /// The default smallest lease the watchdog will touch.
 pub const DEFAULT_MIN_VICTIM_RSS: u64 = 2 * 1024 * 1024 * 1024;
 /// How long a granted lease may sit unlocked before the daemon gives up on it.
@@ -67,6 +69,11 @@ pub struct Config {
     pub emergency_floor: u64,
     /// How often the box is sampled.
     pub sample_interval: Duration,
+    /// How often the processes' resident sets are read. The scan reads every
+    /// process on the box, so it is the daemon's main cost; it does not
+    /// need to be as fast as the memory sample. When the box falls below
+    /// the emergency floor, the daemon scans anyway.
+    pub scan_interval: Duration,
     /// How many samples the victim is given to come back before it is killed.
     pub stop_grace_samples: u32,
     /// The smallest lease the watchdog will touch. The box's own services are
@@ -94,6 +101,7 @@ impl Default for Config {
             floor: DEFAULT_FLOOR,
             emergency_floor: DEFAULT_EMERGENCY_FLOOR,
             sample_interval: DEFAULT_SAMPLE_INTERVAL,
+            scan_interval: DEFAULT_SCAN_INTERVAL,
             stop_grace_samples: 8,
             min_victim_rss: DEFAULT_MIN_VICTIM_RSS,
             gpu_probe: GpuProbe::Auto,
@@ -198,6 +206,19 @@ struct State {
     history: History,
 }
 
+/// A child process that keeps printing the GPU's view.
+///
+/// Asking `nvidia-smi` afresh every couple of seconds costs the daemon
+/// about 2.5% of a core in `fork`/`exec` alone. A child that keeps
+/// printing costs one fork, ever: the daemon reads its lines and keeps the
+/// last sample.
+struct GpuWatch {
+    sample: Arc<Mutex<GpuSample>>,
+    source: String,
+    /// Kept alive: when it is dropped, the child is killed.
+    _child: Arc<Mutex<std::process::Child>>,
+}
+
 /// The daemon.
 pub struct Daemon {
     config: Config,
@@ -205,6 +226,8 @@ pub struct Daemon {
     wake: Condvar,
     stop: Arc<AtomicBool>,
     listener: Mutex<Option<UnixListener>>,
+    /// The GPU's view, kept fresh by a child that keeps printing it.
+    gpu_watch: Mutex<Option<GpuWatch>>,
     /// The daemon's own log. It has its own lock so that a log line can be
     /// written while the state lock is held.
     log: Mutex<Option<std::fs::File>>,
@@ -244,6 +267,7 @@ impl Daemon {
             stop: Arc::new(AtomicBool::new(false)),
             listener: Mutex::new(None),
             log: Mutex::new(log),
+            gpu_watch: Mutex::new(None),
         }))
     }
 
@@ -266,6 +290,7 @@ impl Daemon {
     /// Run the daemon until it is stopped.
     pub fn run(self: &Arc<Self>) -> std::io::Result<()> {
         self.bind_socket()?;
+        self.start_gpu_watch();
         let mem_total = {
             let state = self.state.lock().unwrap();
             state.mem.mem_total
@@ -414,7 +439,15 @@ impl Daemon {
             if self.stop.load(Ordering::SeqCst) {
                 return;
             }
-            let want_gpu = self.config.gpu_probe != GpuProbe::Off && gpu_counter % 8 == 0;
+            // The GPU's view is only worth asking for when something is
+            // running: nvidia-smi costs about 24 ms of CPU a call, and an
+            // idle daemon should cost nothing.
+            let has_leases = {
+                let state = self.state.lock().unwrap();
+                !state.leases.is_empty()
+            };
+            let want_gpu =
+                self.config.gpu_probe != GpuProbe::Off && has_leases && gpu_counter % 8 == 0;
             self.tick(want_gpu);
             gpu_counter += 1;
 
@@ -479,13 +512,21 @@ impl Daemon {
             state.mem = mem;
         }
         if want_gpu {
-            let (sample, source) = self.sample_gpu();
-            state.gpu = sample;
-            state.gpu_source = source;
+            let watch = self.gpu_watch.lock().unwrap();
+            if let Some(watch) = watch.as_ref() {
+                state.gpu = watch.sample.lock().unwrap().clone();
+                state.gpu_source = watch.source.clone();
+            }
         }
 
-        // 3. What each lease is using.
-        if !state.leases.is_empty() {
+        // 3. What each lease is using. The scan reads every process on the
+        // box, so it runs on its own slower clock — unless the box is short
+        // of memory, when the watchdog needs a fresh ranking now.
+        let scan_every = (self.config.scan_interval.as_millis()
+            / self.config.sample_interval.as_millis().max(1))
+            .max(1) as u64;
+        let urgent = state.mem.mem_available < self.config.emergency_floor;
+        if !state.leases.is_empty() && (state.samples % scan_every == 0 || urgent) {
             let procs = procscan::scan();
             let gpu = state.gpu.clone();
             for lease in state.leases.iter_mut() {
@@ -818,47 +859,102 @@ impl Daemon {
         );
     }
 
-    /// Ask the GPU what it can see.
-    fn sample_gpu(&self) -> (GpuSample, String) {
-        match self.config.gpu_probe {
-            GpuProbe::Off => (GpuSample::default(), "off".to_string()),
-            GpuProbe::Nvidia | GpuProbe::Auto => {
-                if let Some(per_process) = crate::gpu::query_nvidia_processes() {
-                    return (
-                        GpuSample {
-                            per_process,
-                            ..GpuSample::default()
-                        },
-                        "nvidia-smi".to_string(),
-                    );
-                }
-                if self.config.gpu_probe == GpuProbe::Nvidia {
-                    return (GpuSample::default(), "nvidia-smi (unavailable)".to_string());
-                }
-                self.sample_tegrastats()
+    /// Start the child that keeps printing the GPU's view.
+    fn start_gpu_watch(&self) {
+        if self.config.gpu_probe == GpuProbe::Off {
+            return;
+        }
+        let watch = match self.config.gpu_probe {
+            GpuProbe::Nvidia => self.spawn_nvidia_watch(),
+            GpuProbe::Tegrastats => self.spawn_tegrastats_watch(),
+            GpuProbe::Auto => self
+                .spawn_nvidia_watch()
+                .or_else(|| self.spawn_tegrastats_watch()),
+            GpuProbe::Off => None,
+        };
+        match watch {
+            Some(watch) => {
+                self.log_event(
+                    "daemon.gpu_watch",
+                    json!({"source": watch.source}),
+                );
+                *self.gpu_watch.lock().unwrap() = Some(watch);
             }
-            GpuProbe::Tegrastats => self.sample_tegrastats(),
+            None => {
+                self.log_event(
+                    "daemon.gpu_unavailable",
+                    json!({"probe": self.config.gpu_probe.as_str()}),
+                );
+            }
         }
     }
 
-    /// One `tegrastats` line, read as the Tegra's own memory view.
-    fn sample_tegrastats(&self) -> (GpuSample, String) {
-        let output = std::process::Command::new("tegrastats")
-            .arg("--interval")
-            .arg("200")
-            .output();
-        match output {
-            Ok(output) => {
-                let text = String::from_utf8_lossy(&output.stdout);
-                for line in text.lines() {
-                    if let Some(sample) = crate::gpu::parse_tegrastats_line(line) {
-                        return (sample, "tegrastats".to_string());
+    /// `nvidia-smi -l`: one child, printing the driver's per-process view.
+    fn spawn_nvidia_watch(&self) -> Option<GpuWatch> {
+        let mut command = std::process::Command::new("nvidia-smi");
+        command
+            .args([
+                "--query-compute-apps=pid,used_memory",
+                "--format=csv,noheader,nounits",
+                "-l",
+                "2",
+            ])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null());
+        let mut child = command.spawn().ok()?;
+        let stdout = child.stdout.take()?;
+        let sample = Arc::new(Mutex::new(GpuSample::default()));
+        let writer = Arc::clone(&sample);
+        std::thread::Builder::new()
+            .name("thor-admit-gpu".to_string())
+            .spawn(move || {
+                let reader = BufReader::new(stdout);
+                for line in reader.lines().map_while(Result::ok) {
+                    let per_process = crate::gpu::parse_compute_apps(&line);
+                    if !per_process.is_empty() {
+                        let mut guard = writer.lock().unwrap();
+                        guard.per_process = per_process;
                     }
                 }
-                (GpuSample::default(), "tegrastats (no sample)".to_string())
-            }
-            Err(_) => (GpuSample::default(), "tegrastats (unavailable)".to_string()),
-        }
+            })
+            .ok()?;
+        Some(GpuWatch {
+            sample,
+            source: "nvidia-smi".to_string(),
+            _child: Arc::new(Mutex::new(child)),
+        })
+    }
+
+    /// `tegrastats`: one child, printing the Tegra's own memory view.
+    fn spawn_tegrastats_watch(&self) -> Option<GpuWatch> {
+        let mut command = std::process::Command::new("tegrastats");
+        command
+            .args(["--interval", "1000"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null());
+        let mut child = command.spawn().ok()?;
+        let stdout = child.stdout.take()?;
+        let sample = Arc::new(Mutex::new(GpuSample::default()));
+        let writer = Arc::clone(&sample);
+        std::thread::Builder::new()
+            .name("thor-admit-gpu".to_string())
+            .spawn(move || {
+                let reader = BufReader::new(stdout);
+                for line in reader.lines().map_while(Result::ok) {
+                    if let Some(parsed) = crate::gpu::parse_tegrastats_line(&line) {
+                        let mut guard = writer.lock().unwrap();
+                        guard.box_used_bytes = parsed.box_used_bytes;
+                        guard.box_total_bytes = parsed.box_total_bytes;
+                        guard.largest_free_block = parsed.largest_free_block;
+                    }
+                }
+            })
+            .ok()?;
+        Some(GpuWatch {
+            sample,
+            source: "tegrastats".to_string(),
+            _child: Arc::new(Mutex::new(child)),
+        })
     }
 
     /// Write one line to the daemon's log.
