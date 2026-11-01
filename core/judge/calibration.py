@@ -105,6 +105,7 @@ __all__ = [
     "fit_isotonic",
     "Recalibration",
     "recalibrate",
+    "is_identity",
     "DriftLine",
     "drift_of",
     "area_under_curve",
@@ -765,6 +766,24 @@ def fit_isotonic(samples: Sequence[CalibrationSample]) -> IsotonicScale:
     return IsotonicScale(params={"knots": [[x, y] for x, y in deduped]})
 
 
+def is_identity(scale: CalibrationScale | None) -> bool:
+    """Whether a scale changes nothing at all.
+
+    A scale that maps every input to itself was never a recalibration, so
+    nothing fitted with it can go stale. The drift rule needs this: without
+    it, a cell whose confidence is already honest would report "the
+    recalibration went stale" every night, because the identity does not
+    improve the held-out Brier score — it cannot, it is the same number.
+    """
+    if scale is None:
+        return True
+    if isinstance(scale, TemperatureScale):
+        return abs(float(scale.params.get("temperature", 1.0)) - 1.0) < 1e-6
+    if isinstance(scale, IsotonicScale):
+        return all(abs(y - x) < 1e-9 for x, y in scale.knots)
+    return False
+
+
 @dataclass(frozen=True)
 class Recalibration:
     """The outcome of a recalibration attempt, and whether it was kept.
@@ -836,10 +855,15 @@ def recalibrate(
         )
     before_fit = brier_score(fit_samples)
     before_holdout = brier_score(holdout_samples)
-    candidates: list[tuple[str, CalibrationScale]] = [
-        ("temperature", fit_temperature(fit_samples)),
-        ("isotonic", fit_isotonic(fit_samples)),
-    ]
+    candidates: list[tuple[str, CalibrationScale]] = []
+    try:
+        candidates.append(("temperature", fit_temperature(fit_samples)))
+    except ValueError:
+        # a cell whose outcomes never named a truth (a K-way question whose
+        # right option was not recorded) has no Brier score to fit against;
+        # the isotonic map below still has the outcomes to work with
+        pass
+    candidates.append(("isotonic", fit_isotonic(fit_samples)))
     best_kind = "none"
     best_scale: CalibrationScale | None = None
     best_holdout = before_holdout
@@ -932,14 +956,20 @@ def drift_of(
     1. **the confidence stopped separating** — the area under the curve of
        the newest window's confidence against its outcomes has fallen to the
        coin-flip line (0.5), so the number orders right above wrong no
-       better than chance;
+       better than chance. It has to have **fallen**: the previous window
+       has to have been above the line, because a cell whose confidence was
+       never a routing signal (a window of one-sided outcomes, or a
+       constant confidence) has not drifted, it has never separated;
     2. **the calibration moved** — the newest window's ECE is further from
        the previous window's than any window-to-window move this cell has
        made before (the noise floor is the cell's own history, so the first
        window cannot declare drift: it is the baseline);
     3. **the recalibration went stale** — the scale fitted on the previous
        window no longer improves the newest window's Brier score, so the
-       calibration that was fitted has stopped describing the model.
+       calibration that was fitted has stopped describing the model. A
+       scale that changes nothing is not stale: it was never a
+       recalibration, and a cell whose confidence is already honest must not
+       report drift every night.
 
     What is retuned is stated with the line: the cell's recalibration is
     refitted on the newest outcomes, and the gate's τ is read from it again.
@@ -959,7 +989,7 @@ def drift_of(
     reference_auc = area_under_curve(
         [(sample.confidence(CANONICAL_CONFIDENCE), sample.outcome) for sample in reference]
     )
-    if auc is not None and auc <= 0.5:
+    if auc is not None and auc <= 0.5 and reference_auc is not None and reference_auc > 0.5:
         lines.append(
             DriftLine(
                 backend=samples[0].backend,
@@ -1023,7 +1053,7 @@ def drift_of(
 
     # 3 — the recalibration went stale.
     stale = recalibrate(reference, recent)
-    if stale.scale is not None and not stale.kept:
+    if stale.scale is not None and not stale.kept and not is_identity(stale.scale):
         lines.append(
             DriftLine(
                 backend=samples[0].backend,
