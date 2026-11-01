@@ -225,7 +225,7 @@ Branches are pushed as the agents work and reviewed before they merge into
 ### In flight
 
 - **The critic's selection** (week 3, item 18), starting from the calibration table; floating objects are the open class.
-- **thor-fp4:** the FP4 path turned into a library (shape-aware: FP4 where K is large, BF16 elsewhere), with dual-path verification.
+- **thor-fp4 round 2** ([SI-Thor/thor-fp4](https://github.com/SI-Thor/thor-fp4), public): MXFP8 activations × MXFP4 weights as the decision-model default (round 1 found ~90 % of FP4's disagreement comes from activation quantisation), fused activation quantisation, an FP4-weight GEMV for small batches, and retrieval as a large-K FP4 GEMM.
 - **The precision cascade** (`lab-cascade`): Liquid d1 at Q4/Q8/BF16 plus Jev, with decision models cleaning up small and low-precision models, big models calibrating small ones, and a cloud improver on the loop.
 - **thor-world** ([SI-Thor/thor-world](https://github.com/SI-Thor/thor-world)): the MCP server and the Thor-native world stream and viewer.
 - **An overnight Infinigen scene sweep** on the Thor for the scheduler's timings and the calibration set.
