@@ -47,6 +47,7 @@ from core.critic.select import (  # noqa: E402
     CRITIC_DEFAULT,
     SCRIPTED_OUT_OF_BAND,
     CriticUnavailable,
+    FallbackCritic,
     build_critic,
     candidate_names,
     configured_critic,
@@ -197,6 +198,27 @@ class _FakeDelegate:
         )
 
 
+class _UnreachableDelegate:
+    """A model that cannot be reached — no server, no weights, no GPU."""
+
+    name = "unreachable-model"
+    layers = ("image",)
+
+    def __init__(self, error: Exception | None = None) -> None:
+        self.error = error or OSError("connection refused")
+
+    def score(
+        self,
+        member: MemberRecipe,
+        *,
+        bases=(),
+        thresholds=None,
+        cache_dir=None,
+        blender_python=None,
+    ) -> CriticVerdict:
+        raise self.error
+
+
 def _member(
     member_id: str = "m1",
     defect: str | None = "floating_object",
@@ -252,6 +274,29 @@ def test_a_critic_that_cannot_be_built_falls_back(monkeypatch):
     assert critic.name == "scripted"
     assert reason is not None
     assert "vlm" in reason
+
+
+def test_a_critic_that_cannot_answer_falls_back_to_the_checks(frame_path):
+    """The second kind of failure: the candidate is built and then cannot answer.
+
+    A model server that is not resident, a key that has expired, weights
+    that have gone missing — the night still gets a table, and the verdict
+    says which critic actually made it.
+    """
+    fallback = FallbackCritic(_UnreachableDelegate())
+    verdict = fallback.score(
+        _member(defect="black_frame", derived_path=str(frame_path))
+    )
+    assert verdict.degraded == "scripted"
+    assert verdict.label == "verdict@unreachable-model"
+    assert any("could not answer" in c.detail for c in verdict.checks)
+
+
+def test_the_fallback_keeps_the_chosen_critic_s_layers():
+    """The fold measures the chosen critic on the layers it can see."""
+    fallback = FallbackCritic(_UnreachableDelegate())
+    assert fallback.name == "unreachable-model"
+    assert fallback.layers == ("image",)
 
 
 def test_building_an_unknown_critic_raises():
@@ -486,6 +531,25 @@ def test_the_hybrid_s_verdict_is_not_a_fallback_when_the_checks_answer_by_design
     assert verdict.degraded == "hybrid"
 
 
+def test_the_hybrid_falls_back_to_the_checks_when_the_model_cannot_be_reached():
+    """No server, no weights, no GPU: the checks answer, and the verdict says so.
+
+    This is the failure a night actually hits — the model server is not
+    resident — and it must not take the night's table with it.
+    """
+    delegate = _UnreachableDelegate()
+    hybrid = HybridCritic(
+        delegate, escalate=("floating_object",), scripted=_FakeScripted()
+    )
+    verdict = hybrid.score(_member(defect="floating_object"))
+    assert verdict.degraded == "scripted"
+    assert verdict.label == "verdict@hybrid"
+    assert any("could not be reached" in c.detail for c in verdict.checks)
+    # the checks' own answer stands: the scripted outcome is still there
+    by_check = {c.check: c for c in verdict.checks}
+    assert by_check["floating_blob"].fired is False
+
+
 def test_the_hybrid_s_verdict_keeps_the_member_s_layer():
     """A mesh member stays a mesh member: the layer says where the defect lives."""
     delegate = _FakeDelegate()
@@ -608,6 +672,22 @@ def test_the_render_critic_is_degraded_when_the_hybrid_fell_back(frame_path):
     )
     score = critic.score(_task(), _variant())
     assert score.degraded is True
+
+
+def test_the_render_critic_is_degraded_when_the_model_cannot_be_reached(frame_path):
+    """The model server is not resident: the checks answer, and the score says so."""
+    hybrid = HybridCritic(
+        _UnreachableDelegate(),
+        escalate=("floating_object",),
+        scripted=_FakeScripted(),
+    )
+    critic = RenderCritic(
+        hybrid,
+        render_of=lambda task, variant: str(frame_path),
+    )
+    score = critic.score(_task(), _variant())
+    assert score.degraded is True
+    assert "hybrid" in score.reason
 
 
 # -- the re-derivation --------------------------------------------------------

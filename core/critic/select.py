@@ -28,8 +28,8 @@ The candidates that need a model are imported **lazily**, inside their
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
-from typing import Any, Callable, Mapping
+from dataclasses import dataclass, replace
+from typing import Any, Callable, Mapping, Sequence
 
 from .critic import ReferenceCritic, ScriptedReferenceCritic
 
@@ -38,6 +38,7 @@ __all__ = [
     "SCRIPTED_OUT_OF_BAND",
     "CriticSpec",
     "CANDIDATES",
+    "FallbackCritic",
     "candidate_names",
     "build_critic",
     "configured_critic",
@@ -206,14 +207,88 @@ def resolve_critic(
     The fallback rule in one place: the scripted critic answers when the
     chosen one cannot be built, and the second element of the pair says
     why. The nightly re-score prints it; the published table carries it.
+
+    A critic that cannot be **built** is one kind of failure. A critic
+    that cannot **answer** — the VLM's server is down, the cloud critic's
+    key has expired, the probe's weights are gone — is the other kind, and
+    it happens one member at a time, at score time. The chosen critic is
+    therefore wrapped: the checks answer that member and the verdict says
+    which critic actually made it.
     """
     wanted = name or CRITIC_DEFAULT
     if wanted == CRITIC_DEFAULT:
         return ScriptedReferenceCritic(), None
     try:
-        return build_critic(wanted, **kwargs), None
+        return FallbackCritic(build_critic(wanted, **kwargs)), None
     except CriticUnavailable as exc:
         return ScriptedReferenceCritic(), str(exc)
+
+
+class FallbackCritic:
+    """The chosen critic, with the scripted checks behind it.
+
+    The checks are the fallback for **both** ways a candidate can fail: it
+    cannot be built (handled by :func:`resolve_critic`), and it cannot
+    answer (handled here). The second is the one that happens at night: a
+    model server that is not resident, a key that has expired, a set of
+    weights that has gone missing. A night that hits it still gets a table,
+    and the verdict says on its face that the model did not answer.
+    """
+
+    def __init__(self, critic: ReferenceCritic) -> None:
+        self._critic = critic
+        self._scripted = ScriptedReferenceCritic()
+
+    @property
+    def critic(self) -> ReferenceCritic:
+        """The critic that was asked for."""
+        return self._critic
+
+    @property
+    def name(self) -> str:
+        return self._critic.name
+
+    @property
+    def layers(self) -> tuple[str, ...]:
+        return self._critic.layers
+
+    def score(
+        self,
+        member: Any,
+        *,
+        bases: Sequence[Any] = (),
+        thresholds: Any = None,
+        cache_dir: str | None = None,
+        blender_python: str | None = None,
+    ) -> Any:
+        """The chosen critic's verdict, or the checks' when it cannot answer."""
+        try:
+            return self._critic.score(
+                member,
+                bases=bases,
+                thresholds=thresholds,
+                cache_dir=cache_dir,
+            )
+        except Exception as exc:  # noqa: BLE001 - any failure is a fallback
+            verdict = self._scripted.score(
+                member,
+                bases=bases,
+                thresholds=thresholds,
+                cache_dir=cache_dir,
+            )
+            reason = (
+                f"the {self._critic.name} critic could not answer "
+                f"({type(exc).__name__}: {exc}) — the scripted checks answered"
+            )
+            return replace(
+                verdict,
+                checks=tuple(
+                    replace(c, detail=f"{c.detail} — {reason}")
+                    for c in verdict.checks
+                ),
+                label=f"verdict@{self._critic.name}",
+                degraded="scripted",
+            )
 
 
 class CriticUnavailable(RuntimeError):

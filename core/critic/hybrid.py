@@ -141,12 +141,37 @@ class HybridCritic:
             # member. The checks stand in, and that **is** a fallback.
             return self._verdict(scripted, scripted.checks, degraded="scripted")
 
-        delegate = self._delegate.score(
-            member,
-            bases=bases,
-            thresholds=thresholds,
-            cache_dir=cache_dir,
-        )
+        try:
+            delegate = self._delegate.score(
+                member,
+                bases=bases,
+                thresholds=thresholds,
+                cache_dir=cache_dir,
+            )
+        except Exception as exc:  # noqa: BLE001 - any failure is a fallback
+            # The model could not be reached: no server, no weights, no GPU,
+            # no key. That is a **fallback**, not a crash. The checks answer
+            # for the class they can answer, the reason is on the verdict's
+            # face, and the night never mistakes the fallback for a model
+            # verdict.
+            return self._verdict(
+                scripted,
+                [
+                    CheckOutcome(
+                        check=outcome.check,
+                        fired=outcome.fired,
+                        detail=(
+                            f"{outcome.detail} — the delegate "
+                            f"({self._delegate.name}) could not be reached "
+                            f"({type(exc).__name__}: {exc})"
+                        ),
+                        measured=outcome.measured,
+                        applicable=outcome.applicable,
+                    )
+                    for outcome in scripted.checks
+                ],
+                degraded="scripted",
+            )
         merged: list[CheckOutcome] = []
         fell_back = False
         for outcome in scripted.checks:
