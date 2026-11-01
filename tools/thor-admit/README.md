@@ -5,10 +5,11 @@ builder-ide.
 
 The box has **122 GiB of unified memory and no swap**. Several seats can run
 heavy work at once, and until this crate existed nobody but the operator
-knew how much was already committed. At 13:22 on 2026-10-31 the box hit a
-global OOM: TRELLIS at 55–68 GB, FP4 GEMM sweeps, llama-servers, motion
-training and Infinigen sweep workers, all at once. The OOM killer took the
-small services first (`oom_score_adj=200`), not the hogs.
+knew how much was already committed. At 13:22 on 2026-10-31 (the box's
+own clock, AKDT) the box hit a global OOM: TRELLIS at 55–68 GB, FP4 GEMM
+sweeps, llama-servers, motion training and Infinigen sweep workers, all
+at once. The OOM killer took the small services first
+(`oom_score_adj=200`), not the hogs.
 
 This is the admission controller that replaces the `flock ~/lm-wt/heavy.lock`
 stopgap.
