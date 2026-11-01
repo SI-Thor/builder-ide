@@ -15,7 +15,8 @@ charged) is the plain rule plus what the kernel cannot see.
 
 ## 1. The setup
 
-The box, as it stood at 13:36 on 2026-10-31:
+The box, as it stood at 13:36 on 2026-10-31 (the box's own clock, AKDT,
+UTC-8; times that say UTC are UTC):
 
 | | |
 |---|---|
@@ -82,7 +83,8 @@ daemon:
 
 **The box, beside those numbers:** `MemTotal: 128 766 532 kB` (122.8 GiB,
 no swap), `MemAvailable: 111 063 640 kB` (105.9 GiB), load average
-6.04 / 6.58 / 7.67, 16:26 on 2026-10-31.
+6.04 / 6.58 / 7.67, at 16:26 on 2026-10-31 (the box's own clock, AKDT,
+UTC-8).
 
 The integration test's own numbers are higher (0.10% idle, 2.20% with a
 lease) because it measures the **debug** build; the release numbers are
@@ -177,7 +179,7 @@ the lock is held, unless `THOR_ADMIT_HEAVY_WAIT_SECS` says to wait.
 
 <!-- HEAVY RESULTS -->
 
-### 6.1 The mechanism, proved at 12 GiB (2026-10-31 22:08)
+### 6.1 The mechanism, proved at 12 GiB (2026-10-31 22:08 UTC — 14:08 on the box)
 
 The 30 GiB run was still queued behind the other seats, so the two tests were
 run at a smaller scale to prove the mechanism first

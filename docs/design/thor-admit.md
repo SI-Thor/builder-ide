@@ -283,7 +283,8 @@ daemon), 30 s windows, the box busy with a seat's work:
 
 **The box, beside those numbers:** `MemTotal: 128 766 532 kB` (122.8 GiB,
 no swap), `MemAvailable: 111 063 640 kB` (105.9 GiB), load average
-6.04 / 6.58 / 7.67, 16:26 on 2026-10-31.
+6.04 / 6.58 / 7.67, at 16:26 on 2026-10-31 (the box's own clock, AKDT,
+UTC-8).
 
 **What changed, and why it was worth it.** The daemon used to ask
 `nvidia-smi` for the GPU's per-process numbers every two seconds, forking
@@ -370,7 +371,7 @@ lock and the kernel dropping it when a client dies (`lease.rs`), the
 percentiles the learned peaks use (`history.rs`), the meminfo and
 `/proc` parsers, and the protocol's round trip.
 
-#### 7.3.1 The serialisation (12 GiB hogs, 2026-10-31 22:08)
+#### 7.3.1 The serialisation (12 GiB hogs, 2026-10-31 22:08 UTC — 14:08 on the box)
 
 Three hogs, one at a time. The floor was computed from the box's real
 headroom (`available - hog - 8 GiB` = 72.9 GiB), so the test does not depend
@@ -393,7 +394,7 @@ rule charges a running lease's promise against the headroom. They were
 not *refused* (nothing was rejected): the queue is where a request waits
 for room.
 
-#### 7.3.2 The watchdog (12 GiB runaway, 2026-10-31 22:08)
+#### 7.3.2 The watchdog (12 GiB runaway, 2026-10-31 22:08 UTC — 14:08 on the box)
 The emergency floor was `available - 8 GiB` (86 764 MiB):
 
 | | |
@@ -465,7 +466,7 @@ the claim is split in two, and both halves are checked:
 
 **No systemd unit is installed or enabled.** The daemon is a user-level
 process; the crate's README says how to start it. Checked on this box
-(2026-10-31, 16:19):
+(2026-10-31, 16:19 AKDT):
 
 ```
 $ systemctl --user list-unit-files | grep thor-admit
