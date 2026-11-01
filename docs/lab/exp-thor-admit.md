@@ -342,8 +342,10 @@ beside it, an internal inconsistency.
 |---|---|---|---|---|
 | 1 | 10 049 | 3 000 | 7.04 s | $0.00331 |
 | 2 | 10 049 | 2 360 | 5.78 s | $0.00292 |
+| 3 (the documents after the first pass) | 15 455 | 3 384 | 9.38 s | $0.00472 |
+| 4 (the same, asked for a tighter list) | 15 454 | 3 384 | 8.28 s | $0.00435 |
 
-**Total: $0.00623**, against the brief's $2 ceiling.
+**Total: $0.01530**, against the brief's $2 ceiling.
 
 It found ten problems; eight were fixed in the documents above (the
 release-build cost numbers with their box state, the missing GPU-peak
@@ -357,5 +359,16 @@ because they are the kind of thing a reader assumes too: it called the
 different runs of the same rule), and it wanted the heavy tests' lock
 contention recorded, which §6 does.
 
+A second pass over the updated documents found eight more; four were
+real (the emergency floor reading as two different numbers, the
+watchdog's measurement without its box state, the rule's table without
+its arithmetic, and `thor-admit peaks` missing from the protocol
+section) and four were the judge again — it quoted the brief's
+requirement for a 30 GB run as if the documents had claimed it, and
+missed the README's box state, the shim's usage example, and the rule's
+own table. A number was also *removed* rather than kept: a load average
+for the 12 GiB run that nobody had recorded.
+
 The judge's cost is a rounding error next to the box's: one heavy test
-moves 30 GiB of the Thor's memory, and the judge cost half a cent.
+moves 30 GiB of the Thor's memory, and four judge calls cost one and a
+half cents.
