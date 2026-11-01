@@ -106,15 +106,66 @@ struct DaemonUnderTest {
     state_dir: PathBuf,
 }
 
+/// The counter that keeps every daemon under test on its own path.
+///
+/// The state directory used to be named after the process id and the daemon's
+/// arguments alone. The tests run in parallel, so every test that started a
+/// daemon with `--floor 1G` landed on the same socket, the same lease locks,
+/// the same history file and the same ledger. The counter makes each daemon's
+/// directory its own; the name makes it readable when a test leaves one
+/// behind.
+static DAEMON_SERIAL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Turn a test's name into something a path can hold.
+fn slug(name: &str) -> String {
+    name.chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string()
+}
+
+/// A daemon's path, reserved before the daemon starts.
+///
+/// The daemon reads a `/proc/meminfo` the test may write, so the test has to
+/// know where the daemon's state will live before the daemon is started.
+struct Reserved {
+    state_dir: PathBuf,
+    extra: Vec<String>,
+}
+
 impl DaemonUnderTest {
-    fn start(extra: &[&str]) -> DaemonUnderTest {
+    /// Reserve a path for a daemon, with the arguments it will be started
+    /// with.
+    ///
+    /// The directory is made here, not when the daemon starts, because the
+    /// test may have to write a file the daemon reads — its `/proc/meminfo`
+    /// — before the daemon is running.
+    fn reserve(name: &str, extra: &[&str]) -> Reserved {
+        let serial = DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let mut state_dir = std::env::temp_dir();
         state_dir.push(format!(
-            "thor-admit-it-{}-{}",
+            "thor-admit-it-{}-{serial}-{}",
             std::process::id(),
-            extra.join("_").replace(['/', ' '], "-")
+            slug(name)
         ));
         let _ = std::fs::remove_dir_all(&state_dir);
+        std::fs::create_dir_all(&state_dir).unwrap();
+        Reserved {
+            state_dir,
+            extra: extra.iter().map(|argument| argument.to_string()).collect(),
+        }
+    }
+
+    /// Start a daemon on the path that was reserved for it.
+    fn start(reserved: Reserved) -> DaemonUnderTest {
+        let state_dir = reserved.state_dir;
         std::fs::create_dir_all(&state_dir).unwrap();
         let socket = state_dir.join("sock");
         let mut command = Command::new(BIN);
@@ -128,7 +179,7 @@ impl DaemonUnderTest {
             .arg("600")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        for argument in extra {
+        for argument in &reserved.extra {
             command.arg(argument);
         }
         let child = command.spawn().expect("the daemon starts");
@@ -139,6 +190,11 @@ impl DaemonUnderTest {
         };
         daemon.wait_for_socket();
         daemon
+    }
+
+    /// Start a daemon with a name of its own.
+    fn start_named(name: &str, extra: &[&str]) -> DaemonUnderTest {
+        DaemonUnderTest::start(DaemonUnderTest::reserve(name, extra))
     }
 
     fn wait_for_socket(&self) {
@@ -281,19 +337,70 @@ fn output_of(child: &mut Child) -> String {
 /// prevent is one careless test away.
 const TEST_MEMORY_CAP_GIB: u64 = 60;
 
-/// How big a hog the heavy tests use. The brief's scale is 30 GiB; a
-/// smaller one is for a box that is already busy.
+/// How much of the box a test hog may leave to everything else.
+///
+/// The box is not the test's: other seats' work runs on it, and a hog that
+/// took what the box had left would push the *kernel's* OOM killer into the
+/// picture, which is the thing this daemon exists to prevent.
+const HOG_MARGIN_GIB: u64 = 16;
+
+/// How big a hog the heavy tests use.
+///
+/// The brief's scale is 30 GiB. A smaller one is for a box that is already
+/// busy: the hog is the smaller of the brief's scale and the box's real
+/// headroom less the margin, so the test never takes memory the box cannot
+/// spare. `THOR_ADMIT_HOG_GB` overrides it for a deliberate run.
 fn hog_gb() -> u64 {
-    let gigabytes = std::env::var("THOR_ADMIT_HOG_GB")
+    let available = mem_available();
+    let headroom = available.saturating_sub(HOG_MARGIN_GIB * GIB) / GIB;
+    let brief = 30;
+    let chosen = match std::env::var("THOR_ADMIT_HOG_GB")
         .ok()
-        .and_then(|text| text.parse().ok())
-        .unwrap_or(30);
+        .and_then(|text| text.parse::<u64>().ok())
+    {
+        Some(gigabytes) => gigabytes,
+        None => headroom.min(brief),
+    };
     assert!(
-        gigabytes <= TEST_MEMORY_CAP_GIB,
-        "the brief caps a test's memory at {TEST_MEMORY_CAP_GIB} GiB, and {gigabytes} GiB \
+        chosen <= TEST_MEMORY_CAP_GIB,
+        "the brief caps a test's memory at {TEST_MEMORY_CAP_GIB} GiB, and {chosen} GiB \
          was asked for"
     );
-    gigabytes
+    chosen
+}
+
+/// The box's own total memory, in bytes.
+fn mem_total() -> u64 {
+    let text = std::fs::read_to_string("/proc/meminfo").unwrap();
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("MemTotal:") {
+            let kb: u64 = rest.split_whitespace().next().unwrap().parse().unwrap();
+            return kb * 1024;
+        }
+    }
+    0
+}
+
+/// A daemon whose view of the box's memory the test holds still.
+///
+/// The daemon reads the kernel's own file in production, so its view of the
+/// box moves with everything else that is running. That is right in
+/// production and wrong in a test: the answer the test is checking must not
+/// change because another seat's work started or finished. So the daemon is
+/// pointed at a file the test writes, and the number in it is the box's real
+/// free memory at the moment the test froze it.
+fn frozen_memory_daemon(
+    name: &str,
+    extra: &[&str],
+    total_bytes: u64,
+    available_bytes: u64,
+) -> DaemonUnderTest {
+    let mut reserved = DaemonUnderTest::reserve(name, extra);
+    let meminfo = reserved.state_dir.join("meminfo");
+    write_meminfo(&meminfo, total_bytes, available_bytes);
+    reserved.extra.push("--meminfo".to_string());
+    reserved.extra.push(meminfo.display().to_string());
+    DaemonUnderTest::start(reserved)
 }
 
 /// A scripted `/proc/meminfo`.
@@ -325,17 +432,57 @@ fn write_meminfo(path: &Path, total_bytes: u64, available_bytes: u64) {
 
 /// The floor that lets exactly one hog run at a time.
 ///
-/// The box has `available` free; a hog of `hog` GiB must fit while a second
-/// one must not. The floor is set from the box's own headroom with a
-/// margin, so the test does not depend on the exact number of gigabytes
-/// free at that moment.
-fn floor_for_one_hog(hog_bytes: u64) -> u64 {
-    let available = mem_available();
-    let margin = 8 * GIB;
-    available
-        .saturating_sub(hog_bytes)
-        .saturating_sub(margin)
-        .max(GIB)
+/// The box has `available` free and a hog takes `hog`. One hog must fit and
+/// two must not, which puts the floor in a window:
+///
+/// ```text
+/// available - 2*hog  <  floor  <=  available - hog
+/// ```
+///
+/// The floor is set half way up that window. Half way is not a detail: the
+/// daemon charges a running lease the memory it has *promised* but not yet
+/// taken, and a hog that is halfway through faulting its pages in is owed
+/// the whole reservation. The two ends of the window are therefore the two
+/// moments the answer could change, and half way is as far from both as the
+/// window allows.
+fn floor_for_one_hog(available: u64, hog_bytes: u64) -> u64 {
+    let upper = available.saturating_sub(hog_bytes);
+    let lower = available.saturating_sub(2 * hog_bytes);
+    lower + (upper - lower) / 2
+}
+
+/// Two daemons in the same test binary must never share a socket path or a
+/// state directory.
+///
+/// The tests run in parallel, and the state directory used to be named after
+/// the process id and the daemon's arguments alone — so every test that
+/// started a daemon with `--floor 1G` landed on the *same* socket, the same
+/// lease locks, the same history file and the same ledger. One test's daemon
+/// answered another's status request, and one test's `Drop` deleted the
+/// directory another test was still using.
+#[test]
+fn two_daemons_never_share_a_socket_or_a_state_directory() {
+    let first = DaemonUnderTest::start_named("isolation", &["--floor", "1G"]);
+    let second = DaemonUnderTest::start_named("isolation", &["--floor", "1G"]);
+
+    assert_ne!(
+        first.socket, second.socket,
+        "the two daemons were given the same socket path"
+    );
+    assert_ne!(
+        first.state_dir, second.state_dir,
+        "the two daemons were given the same state directory"
+    );
+
+    // And both of them answer, for themselves.
+    assert!(
+        first.status()["leases"].is_array(),
+        "the first daemon does not answer"
+    );
+    assert!(
+        second.status()["leases"].is_array(),
+        "the second daemon does not answer"
+    );
 }
 
 #[test]
@@ -351,11 +498,26 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
         Gate::Run(file) => file,
     };
     let hog_bytes = hog_gb * GIB;
-    // A floor of (available - hog - 8 GiB) means one hog fits and a second
-    // one does not: the daemon charges the running hog's reservation, so
-    // the second hog is refused while the first is still growing.
-    let floor = floor_for_one_hog(hog_bytes);
-    let daemon = DaemonUnderTest::start(&[
+    // The test needs a window wide enough to be a real test: the floor sits
+    // half way between "one hog fits" and "two do not", so the window is
+    // half the hog. Below eight gibibytes the window is too narrow to say
+    // anything, and the box is too busy for the brief's scale anyway.
+    if hog_gb < 8 {
+        eprintln!(
+            "skipping: the box has only {} MiB free, so a {hog_gb} GiB hog would leave a \
+             window too narrow to test; the box is busy",
+            mem_available() / (1024 * 1024)
+        );
+        return;
+    }
+    // The box's own state, measured now, so the numbers in the failure
+    // message say what the box was doing.
+    let available_at_start = mem_available();
+    // A floor half way up the window lets one hog run and refuses the
+    // second: the daemon charges the running hog's reservation, so the
+    // second hog is refused while the first is still growing.
+    let floor = floor_for_one_hog(available_at_start, hog_bytes);
+    let daemon = DaemonUnderTest::start_named("three-thirty-gib-hogs", &[
         "--floor",
         &format!("{}", floor),
     ]);
@@ -402,13 +564,21 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
         "only one {hog_gb} GiB hog may run at a time; the log was:\n{}",
         daemon.log()
     );
-    // One hog at a time: the box never came near empty. (The floor is
-    // charged against the *reservations*, so the second hog is refused
-    // long before the memory is actually gone.)
+    // One hog at a time: the box never came near empty. The measure is
+    // relative — the box's own free memory at the start of the test — so
+    // the answer does not depend on how busy the box was when the test ran.
+    // A hog of its own size may be taken; the margin is everything else
+    // that was running.
+    let allowed = available_at_start
+        .saturating_sub(hog_bytes)
+        .saturating_sub(4 * GIB);
     assert!(
-        min_available > 30 * GIB,
-        "the box fell to {} MiB free",
-        min_available / (1024 * 1024)
+        min_available >= allowed,
+        "the box fell to {} MiB free, which is below the {} MiB it was allowed to fall to \
+         (it started at {} MiB free with a {hog_gb} GiB hog)",
+        min_available / (1024 * 1024),
+        allowed / (1024 * 1024),
+        available_at_start / (1024 * 1024),
     );
     for text in &finished {
         assert!(
@@ -418,8 +588,9 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
     }
     eprintln!(
         "serialisation: {hog_gb} GiB hogs, floor {}, at most {max_active} at a time, \
-         the box never fell below {} MiB free",
+         the box went from {} MiB free to {} MiB free",
         floor,
+        available_at_start / (1024 * 1024),
         min_available / (1024 * 1024)
     );
     for line in daemon.log().lines() {
@@ -441,13 +612,25 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         }
         Gate::Run(file) => file,
     };
-    // The emergency floor is scaled down: the real one is 8 GiB, and driving
-    // the box to 8 GiB free would need 110 GiB of allocation, which is not
+    // The emergency floor is placed relative to the hog, not at a fixed
+    // number of gibibytes. The real floor is 8 GiB, and driving the box to
+    // 8 GiB free would need a hundred gibibytes of allocation, which is not
     // safe on a box that is also running a seat's work. The floor here is
-    // (available - 8 GiB), so the same rule fires after the runaway has
-    // taken 8 GiB — and it fires with the whole box still free.
-    let emergency = mem_available().saturating_sub(8 * GIB).max(GIB);
-    let daemon = DaemonUnderTest::start(&[
+    // (available - hog + 2 GiB), so the same rule fires once the runaway
+    // has taken all but two gibibytes of its memory — and it fires with the
+    // whole box still free, because the hog was sized to leave a margin.
+    //
+    // The two gibibytes of slack matter twice over: the box's other work may
+    // free memory while the hog is growing (which would move the crossing
+    // point), and the daemon reads the hog's resident set only once a
+    // second, so the watchdog has to find it already large.
+    let hog_bytes = hog_gb * GIB;
+    let available_at_start = mem_available();
+    let emergency = available_at_start
+        .saturating_sub(hog_bytes)
+        .saturating_add(2 * GIB)
+        .max(GIB);
+    let daemon = DaemonUnderTest::start_named("watchdog-on-the-real-box", &[
         "--emergency-floor",
         &format!("{emergency}"),
         "--min-victim-rss",
@@ -594,7 +777,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let meminfo = scratch.join("meminfo");
     write_meminfo(&meminfo, total, 100 * GIB);
 
-    let daemon = DaemonUnderTest::start(&["--meminfo", meminfo.to_str().unwrap()]);
+    let daemon = DaemonUnderTest::start_named("watchdog-on-a-scripted-curve", &["--meminfo", meminfo.to_str().unwrap()]);
     let oom_before = oom_kills();
 
     // A hog big enough to be a valid victim (the watchdog will not touch a
@@ -796,7 +979,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
 
 #[test]
 fn a_dead_client_cannot_leak_a_lease() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let daemon = DaemonUnderTest::start_named("dead-client", &["--floor", "1G"]);
 
     let mut client = leased(&daemon, "ghost", "1G", &["sleep", "120"]);
 
@@ -842,7 +1025,7 @@ fn a_dead_client_cannot_leak_a_lease() {
 
 #[test]
 fn the_daemon_costs_almost_nothing() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let daemon = DaemonUnderTest::start_named("daemon-overhead", &["--floor", "1G"]);
     let pid = daemon.child.id();
 
     // Warm up, then measure over ten seconds of doing nothing.
@@ -896,7 +1079,7 @@ fn the_daemon_costs_almost_nothing() {
 
 #[test]
 fn a_learned_peak_is_used_by_the_next_run() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let daemon = DaemonUnderTest::start_named("learned-peak", &["--floor", "1G"]);
 
     // One run with an explicit peak teaches the daemon what the label costs.
     let mut first = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
@@ -930,7 +1113,7 @@ fn a_learned_peak_is_used_by_the_next_run() {
 
 #[test]
 fn the_stop_command_stops_the_daemon() {
-    let mut daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let mut daemon = DaemonUnderTest::start_named("stop-command", &["--floor", "1G"]);
 
     // The daemon is answering.
     assert!(
@@ -965,7 +1148,7 @@ fn the_stop_command_stops_the_daemon() {
 
 #[test]
 fn a_refused_lease_does_not_run_the_command() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let daemon = DaemonUnderTest::start_named("refused-lease", &["--floor", "1G"]);
     let marker = daemon.state_dir.join("ran.txt");
 
     // "--peak auto" for a label with no history is refused.
@@ -990,21 +1173,24 @@ fn a_refused_lease_does_not_run_the_command() {
 
 #[test]
 fn the_queue_is_ordered_by_priority() {
-    // The floor and the reservation are derived from the box's free memory
-    // at this moment, so the test says what it means whatever else is
-    // running. The floor is placed half way between "the first lease fits"
-    // and "no lease fits", so all three requests wait and the queue is
-    // tested on its own — and the box's memory can move by twenty-odd
-    // gibibytes while the test runs without changing the answer.
-    let available = mem_available();
-    let reservation = ((available / 2) / GIB) * GIB;
+    // The floor and the reservation are derived from a **held-still** view
+    // of the box, so the test says what it means whatever else is running.
+    // The box's free memory moves by twenty-odd gibibytes while a sweep
+    // renders, and the queue's order must not depend on that. The frozen
+    // view is a busy box: a hundred gibibytes free of a hundred and
+    // twenty-two.
+    let total = mem_total();
+    let available = 100 * GIB;
+    let reservation = 40 * GIB;
+    // The floor is placed so that a lease of `reservation` does not fit:
+    // 100 - 40 = 60 GiB is left, and the floor is 80 GiB.
     let floor = available - reservation / 2;
-    let daemon = DaemonUnderTest::start(&[
-        "--floor",
-        &floor.to_string(),
-        "--emergency-floor",
-        "1G",
-    ]);
+    let daemon = frozen_memory_daemon(
+        "queue-by-priority",
+        &["--floor", &floor.to_string(), "--emergency-floor", "1G"],
+        total,
+        available,
+    );
     let peak = format!("{}G", reservation / GIB);
 
     let low = leased_with_priority(&daemon, "low", &peak, 0, &["sleep", "6"]);
@@ -1060,7 +1246,7 @@ fn the_queue_is_ordered_by_priority() {
 fn the_watchdog_leaves_small_leases_alone() {
     // The emergency floor is above the box's free memory, so the watchdog is
     // armed from the first sample.
-    let daemon = DaemonUnderTest::start(&[
+    let daemon = DaemonUnderTest::start_named("watchdog-small-leases", &[
         "--floor",
         "1G",
         "--emergency-floor",
@@ -1160,7 +1346,7 @@ fn wait_until(seconds: u64, mut predicate: impl FnMut() -> bool) -> bool {
 /// The registered work runs when the box has room for it.
 #[test]
 fn a_presence_job_runs_when_the_box_has_room() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let daemon = DaemonUnderTest::start_named("presence-runs", &["--floor", "1G"]);
     let marker = daemon.state_dir.join("ran");
     let _ = std::fs::remove_file(&marker);
 
@@ -1192,19 +1378,28 @@ fn a_live_lease_preempts_a_presence_job() {
     // The floor is set so that the presence job's reservation is exactly
     // what stands between the live lease and the box's room: the presence
     // job promised 4 GiB it has not used, and the live lease needs 2 GiB.
-    let available = mem_available();
+    //
+    // The view of the box is held still, so the arithmetic is the same
+    // whatever the box is doing while the test runs.
+    let total = mem_total();
+    let available = 100 * GIB;
     let presence_peak = 4 * GIB;
     let live_peak = 2 * GIB;
     let floor = available
         .saturating_sub(presence_peak)
         .saturating_sub(live_peak)
         .saturating_add(GIB);
-    let daemon = DaemonUnderTest::start(&[
-        "--floor",
-        &floor.to_string(),
-        "--emergency-floor",
-        &available.saturating_sub(GIB).to_string(),
-    ]);
+    let daemon = frozen_memory_daemon(
+        "presence-preempted",
+        &[
+            "--floor",
+            &floor.to_string(),
+            "--emergency-floor",
+            &available.saturating_sub(GIB).to_string(),
+        ],
+        total,
+        available,
+    );
 
     // A presence job that reserves memory it does not use yet.
     let id = presence_add(
@@ -1260,7 +1455,7 @@ fn a_live_lease_preempts_a_presence_job() {
 /// The ledger books the box's time to the tiers, and explains its idleness.
 #[test]
 fn the_ledger_books_the_time_by_tier() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let daemon = DaemonUnderTest::start_named("ledger-by-tier", &["--floor", "1G"]);
 
     // A live lease, and a presence job, running together.
     let mut live = leased(&daemon, "live.test", "1G", &["sleep", "4"]);
@@ -1305,7 +1500,7 @@ fn the_ledger_books_the_time_by_tier() {
 /// With nothing registered, the box's idleness is named.
 #[test]
 fn the_ledger_names_the_idleness() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let daemon = DaemonUnderTest::start_named("ledger-idleness", &["--floor", "1G"]);
     std::thread::sleep(Duration::from_secs(3));
 
     let buckets = ledger(&daemon);
