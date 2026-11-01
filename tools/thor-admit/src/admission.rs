@@ -51,6 +51,14 @@ pub struct Admission {
     /// memory promise: CUDA allocations and pinned host memory are not
     /// reclaimable, so `MemAvailable` can be generous while `cudaMalloc`
     /// fails (Hy4's third failure mode).
+    ///
+    /// The default is **0** on this box: measured on 2026-11-01, `tegrastats`'
+    /// `lfb` is a figure about the allocation pool's *contiguous* free
+    /// blocks, not the GPU's headroom — the Thor's memory is unified, so
+    /// the GPU's real budget is `MemAvailable`, which the memory rule
+    /// already governs — and the old 2 GiB default held 21 requests for
+    /// over an hour while ~100 GiB was available (round 10, item a). An
+    /// operator who wants the pool rule sets `--gpu-floor` explicitly.
     pub gpu_floor: u64,
 }
 
@@ -82,7 +90,21 @@ impl Admission {
     /// free blocks of the allocation pool) does. A lease is therefore
     /// admitted only if `lfb − gpu_peak ≥ gpu_floor` — the same shape as the
     /// memory rule, one floor deeper.
+    ///
+    /// **A lease that promises no device memory (`gpu_peak == 0`) skips the
+    /// rule.** The pool is not its budget: a CPU-only lease takes reclaimable
+    /// pages, which `MemAvailable` already accounts for, and holding it for a
+    /// fragmented pool is what blocked 21 requests for over an hour on
+    /// 2026-11-01 while ~100 GiB was available (round 10, item a; §11.8 of
+    /// the design record, answered). The risk the other reading carried — a
+    /// first run touching CUDA unmeasured, because the GPU promise is
+    /// learned, not asked for — stays: a label with no GPU history starts
+    /// under the memory rule alone, and if it does take device memory, its
+    /// own history makes the next run wait for the pool.
     pub fn gpu_admits(&self, gpu_peak: u64) -> bool {
+        if gpu_peak == 0 {
+            return true;
+        }
         match self.gpu_available {
             Some(free) => free.saturating_sub(gpu_peak) >= self.gpu_floor,
             None => true,
@@ -189,13 +211,24 @@ mod tests {
     }
 
     #[test]
-    fn a_fragmented_gpu_pool_refuses_even_a_cpu_only_lease() {
-        // lfb down to a handful of small blocks: cudaMalloc fails whatever
-        // MemAvailable says, so even a lease that promises no device memory
-        // of its own must wait until the pool has room above the floor.
+    fn a_cpu_only_lease_does_not_wait_for_the_gpus_pool() {
+        // lfb down to a handful of small blocks and a floor of 2 GiB: a lease
+        // that promises no device memory is not waiting for the pool — the
+        // pool is not its budget. This is the 2026-11-01 incident inverted:
+        // the conservative reading held 21 CPU-side requests for over an
+        // hour on a box with ~100 GiB available (round 10, item a).
         let admission = gpu_admission(8 * 1024 * 1024);
-        assert!(!admission.gpu_admits(0));
-        assert!(!admission.admits_lease(&[], 1 * GIB, 0));
+        assert!(admission.gpu_admits(0));
+        assert!(admission.admits_lease(&[], 1 * GIB, 0));
+    }
+
+    #[test]
+    fn a_lease_with_a_gpu_promise_still_waits_for_the_pool() {
+        // The same fragmented pool, a lease whose label has held device
+        // memory before: the pool *is* its budget, and it waits.
+        let admission = gpu_admission(8 * 1024 * 1024);
+        assert!(!admission.gpu_admits(1 * GIB));
+        assert!(!admission.admits_lease(&[], 1 * GIB, 1 * GIB));
     }
 
     #[test]

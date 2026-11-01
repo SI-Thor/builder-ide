@@ -166,14 +166,13 @@ impl DaemonUnderTest {
     /// Start a daemon on the path that was reserved for it.
     ///
     /// The daemon is started with the GPU's view **off**: these tests are
-    /// CPU-only, and their leases promise no device memory, so the box's
-    /// real allocation pool must not be a part of their admission
-    /// decisions. Measured on 2026-11-01 at ~02:00: the box's pool
-    /// (`tegrastats`' `lfb`, other seats' CUDA work) sat at ~0.3 GiB of
-    /// the 2 GiB GPU floor, and every CPU-only lease waited on a rule that
-    /// had nothing to do with it. A test that *is* about the GPU's pool
-    /// passes its own `--gpu-probe` and its own scripted `tegrastats`, and
-    /// that overrides this default.
+    /// CPU-only, and with the GPU's view on, the daemon would run the real
+    /// `nvidia-smi`/`tegrastats` children and put other seats' CUDA work
+    /// into its status. Since round 10 a CPU-only lease (no GPU history)
+    /// skips the pool rule anyway, so the tests' admission decisions no
+    /// longer depend on the box's real pool; a test that *is* about the
+    /// pool passes its own `--gpu-probe` and its own scripted `tegrastats`,
+    /// which overrides this default.
     fn start(reserved: Reserved) -> DaemonUnderTest {
         let state_dir = reserved.state_dir;
         std::fs::create_dir_all(&state_dir).unwrap();
@@ -706,6 +705,157 @@ fn a_stale_socket_does_not_keep_a_daemon_from_starting() {
         daemon.status()["leases"].is_array(),
         "the daemon did not come up over the stale socket"
     );
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// The 04:15 daemon of 2026-11-01, reproduced (round 10, item b).
+///
+/// The director stopped the old daemon; a client auto-started a new one;
+/// it hung on the way up — wedged in `futex_wait_queue` — **holding the
+/// socket's lock and never having bound the socket**, beside the stale
+/// socket file the old daemon had left. Every later client got "connection
+/// refused", and every later daemon was refused with "another thor-admit
+/// daemon is already running", until a human killed the wedged process.
+///
+/// The fix is the order: construct, bind, *then* take the lifetime lock. A
+/// daemon that hangs on the way up now holds nothing — no lock to refuse
+/// the next daemon with, no bound socket to answer nobody — so the next
+/// daemon takes the socket and serves, and the hung one refuses itself
+/// when it wakes. The hang is injected through
+/// `THOR_ADMIT_TEST_CONSTRUCTION_HANG_MS`, a test seam that sleeps before
+/// anything is held or bound.
+#[test]
+fn a_daemon_that_hangs_on_the_way_up_does_not_wedge_the_socket() {
+    let _serial = serial_gate();
+    let reserved = DaemonUnderTest::reserve("wedged-start", &["--floor", "1G"]);
+    let socket = reserved.state_dir.join("sock");
+    // What the box looked like at 04:15: the old daemon gone, its socket
+    // file stale, nobody holding the lock.
+    {
+        let listener = std::os::unix::net::UnixListener::bind(&socket).unwrap();
+        drop(listener);
+    }
+
+    // The wedged daemon: hung before it constructs, binds or locks.
+    let mut wedged = Command::new(BIN)
+        .arg("daemon")
+        .arg("--socket")
+        .arg(&socket)
+        .arg("--state-dir")
+        .arg(&reserved.state_dir)
+        .arg("--gpu-probe")
+        .arg("off")
+        .env("THOR_ADMIT_TEST_CONSTRUCTION_HANG_MS", "8000")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the wedged daemon starts");
+    // It is mid-hang now: the seam sleeps at the very top of the daemon's
+    // construction, and two seconds is a wide margin over a process start.
+    std::thread::sleep(Duration::from_secs(2));
+
+    // The next daemon takes the socket the wedged one never held, and
+    // serves leases as though nothing had happened.
+    let daemon = DaemonUnderTest::start(reserved);
+    let mut run = leased(&daemon, "after.the.wedge", "1G", &["true"]);
+    let status = run.wait().expect("the client finishes");
+    let output = output_of(&mut run);
+    assert!(
+        status.success() && output.contains("admitted after"),
+        "a lease did not run on the recovered daemon:\n{output}"
+    );
+
+    // The wedged daemon wakes, finds the socket taken, and refuses itself.
+    let woken = wait_child_with_deadline(&mut wedged, 20);
+    let mut woken_errors = String::new();
+    if let Some(mut stderr) = wedged.stderr.take() {
+        use std::io::Read;
+        let _ = stderr.read_to_string(&mut woken_errors);
+    }
+    match woken {
+        Some(status) => {
+            assert!(
+                !status.success(),
+                "the wedged daemon started anyway, beside the recovered one"
+            );
+            assert!(
+                woken_errors.contains("already running"),
+                "the wedged daemon's refusal was not explained:\n{woken_errors}"
+            );
+        }
+        None => {
+            let _ = wedged.kill();
+            let _ = wedged.wait();
+            panic!("the wedged daemon never woke to refuse itself");
+        }
+    }
+
+    // And the recovered daemon is still the one answering.
+    assert!(
+        daemon.status()["leases"].is_array(),
+        "the recovered daemon stopped answering"
+    );
+}
+
+/// A daemon that never serves stops itself (round 10, item b's other half).
+///
+/// The bind now comes before the lock, so a daemon wedging on the way up
+/// holds nothing — but a daemon can still wedge *after* the bind, owning a
+/// socket that answers nobody. The startup deadline turns that into a
+/// bounded window: a daemon that has not begun serving within
+/// `--startup-timeout-secs` says why and exits, the kernel drops whatever
+/// it holds, and the next client's auto-start takes the socket back.
+#[test]
+fn a_daemon_that_never_serves_stops_itself() {
+    let _serial = serial_gate();
+    let dir = std::env::temp_dir().join(format!(
+        "thor-admit-startup-{}-{}",
+        std::process::id(),
+        DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let mut daemon = Command::new(BIN)
+        .arg("daemon")
+        .arg("--socket")
+        .arg(dir.join("sock"))
+        .arg("--state-dir")
+        .arg(&dir)
+        .arg("--gpu-probe")
+        .arg("off")
+        .arg("--startup-timeout-secs")
+        .arg("2")
+        .env("THOR_ADMIT_TEST_CONSTRUCTION_HANG_MS", "12000")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the daemon starts");
+
+    // The hang (12 s) outlasts the deadline (2 s): the daemon must stop
+    // itself, not sit on the box.
+    let stopped = wait_child_with_deadline(&mut daemon, 10);
+    let mut errors = String::new();
+    if let Some(mut stderr) = daemon.stderr.take() {
+        use std::io::Read;
+        let _ = stderr.read_to_string(&mut errors);
+    }
+    match stopped {
+        Some(status) => {
+            assert!(
+                !status.success(),
+                "the daemon that never served exited as a success"
+            );
+            assert!(
+                errors.contains("did not begin serving"),
+                "the startup timeout did not explain itself:\n{errors}"
+            );
+        }
+        None => {
+            let _ = daemon.kill();
+            let _ = daemon.wait();
+            panic!("the daemon sat past its startup deadline without stopping");
+        }
+    }
     let _ = std::fs::remove_dir_all(&dir);
 }
 
@@ -2208,9 +2358,15 @@ fn the_queue_is_ordered_by_priority() {
 /// cannot say how full or how fragmented the *non-reclaimable* pool is —
 /// `cudaMalloc` blocks and pinned host memory stay put. `tegrastats`' `lfb`
 /// (the free blocks of the allocation pool) can. When the pool is thin a
-/// lease waits even though MemAvailable is generous: that is Hy4's third
-/// failure mode, a workload OOM-ing on `cudaMalloc` while the daemon said
-/// there was room.
+/// lease **that has held device memory before** waits even though
+/// MemAvailable is generous: that is Hy4's third failure mode, a workload
+/// OOM-ing on `cudaMalloc` while the daemon said there was room.
+///
+/// The GPU promise is learned, not asked for, so the label arrives with a
+/// history that says it holds 2 GiB of device memory (a teaching record:
+/// exit 0, over five seconds). A label with no GPU history would skip the
+/// pool rule entirely — that is the other half of round 10, item a, and it
+/// has its own test below.
 ///
 /// The pool here is driven by a fake `tegrastats` (the
 /// `--tegrastats-command` seam, like `--meminfo`), so the test allocates
@@ -2220,6 +2376,20 @@ fn a_lease_waits_when_the_gpus_own_pool_is_thin() {
     let _serial = serial_gate();
     let reserved = DaemonUnderTest::reserve("gpu-pool", &[]);
     let state_dir = reserved.state_dir.clone();
+    // The history that makes this label the GPU's business: one teaching
+    // run that held 2 GiB of device memory.
+    std::fs::write(
+        state_dir.join("peaks.jsonl"),
+        concat!(
+            r#"{"at":"2026-11-01T04:00:00Z","kind":"gpu.thirsty","label":"gpu.thirsty","#,
+            r#""host":"thor","peak_rss_bytes":2147483648,"peak_gpu_bytes":2147483648,"#,
+            r#""gpu_visible":true,"duration_s":6.0,"mem_total_bytes":131856928768,"#,
+            r#""floor_bytes":1073741824,"basis":"measured","source":"thor-admit","#,
+            r#""peak_source":"sample","exit_code":0}"#,
+            "\n",
+        ),
+    )
+    .unwrap();
     // The pool the fake reports: the number of 4 MiB blocks free.
     let pool = state_dir.join("lfb");
     std::fs::write(&pool, "2\n").unwrap(); // 8 MiB free of the allocation pool
@@ -2277,6 +2447,19 @@ fn a_lease_waits_when_the_gpus_own_pool_is_thin() {
          the log was:\n{}",
         daemon.log()
     );
+    // And it was the label's own 2 GiB device-memory promise that the thin
+    // pool could not fit — the rule rides on the learned promise.
+    let waiting_line = daemon
+        .log()
+        .lines()
+        .find(|line| line.contains("lease.waiting_for_gpu_memory"))
+        .and_then(|line| serde_json::from_str::<Value>(line).ok())
+        .expect("the waiting line is JSON");
+    assert_eq!(
+        waiting_line["label_gpu_peak_bytes"].as_u64(),
+        Some(2 * GIB),
+        "the waiter's GPU promise was not the learned 2 GiB: {waiting_line}"
+    );
     assert_eq!(
         daemon.status()["queue"]
             .as_array()
@@ -2311,6 +2494,195 @@ fn a_lease_waits_when_the_gpus_own_pool_is_thin() {
 
     let _ = waiter.kill();
     let _ = waiter.wait();
+}
+
+/// A lease that promises no device memory is not held by the GPU's pool
+/// (round 10, item a).
+///
+/// Measured on this box overnight (2026-11-01, the director's watch): the
+/// 2 GiB `--gpu-floor` held **21 requests for over an hour** while ~100 GiB
+/// was `MemAvailable` — because `tegrastats`' `lfb` is a contiguous-block
+/// figure, a fragmentation signal of the allocation pool, not the GPU's
+/// headroom; on unified memory the GPU's real budget is `MemAvailable`,
+/// which the memory rule already governs. So the pool rule now applies
+/// only to a lease whose label has held device memory before, and the
+/// default floor is 0. This test is the other half of the one above: the
+/// same thin pool, the same 1 GiB floor — a fresh, CPU-only label walks
+/// through.
+#[test]
+fn a_cpu_only_lease_is_not_held_by_the_gpus_pool() {
+    let _serial = serial_gate();
+    let reserved = DaemonUnderTest::reserve("cpu-vs-pool", &[]);
+    let state_dir = reserved.state_dir.clone();
+    let pool = state_dir.join("lfb");
+    std::fs::write(&pool, "2\n").unwrap(); // 8 MiB free of the allocation pool
+    let script = state_dir.join("fake-tegrastats.sh");
+    std::fs::write(
+        &script,
+        format!(
+            "#!/bin/sh\nwhile :; do\n  n=$(cat {})\n  printf '10-31-2026 23:00:00 RAM \
+             40000/125749MB (lfb %sx4MB) VDD_GPU 3000mW/3000mW/3000mW\\n' \"$n\"\n  \
+             sleep 1\ndone\n",
+            pool.display()
+        ),
+    )
+    .unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    let _ = std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755));
+    let mut extra = vec![
+        "--floor".to_string(),
+        "1G".to_string(),
+        "--gpu-probe".to_string(),
+        "tegrastats".to_string(),
+        "--gpu-floor".to_string(),
+        "1G".to_string(),
+        "--tegrastats-command".to_string(),
+        script.display().to_string(),
+    ];
+    extra.extend(reserved.extra.clone());
+    let daemon = DaemonUnderTest::start(Reserved {
+        state_dir,
+        extra,
+    });
+
+    // The daemon must *see* the thin pool before the lease asks, or the
+    // grant would be ruled by the memory rule alone — this test is about
+    // the pool being visible and declined to hold a CPU-only lease.
+    let pool_seen = wait_until(15, || {
+        daemon.status()["gpu_largest_free_block_bytes"].as_u64() == Some(8 * 1024 * 1024)
+    });
+    assert!(
+        pool_seen,
+        "the daemon never saw the scripted pool; the status was {}",
+        daemon.status()
+    );
+
+    // A label with no GPU history promises no device memory: the pool is
+    // not its budget, and it does not wait for it.
+    let mut waiter = leased(&daemon, "cpu.only", "1G", &["sleep", "60"]);
+    let admitted = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        admitted,
+        "the CPU-only lease waited for the GPU's pool; the log was:\n{}",
+        daemon.log()
+    );
+    assert!(
+        !daemon
+            .log()
+            .lines()
+            .any(|line| line.contains("lease.waiting_for_gpu_memory") && line.contains("cpu.only")),
+        "the daemon said the CPU-only lease was waiting for the GPU's pool"
+    );
+
+    let _ = waiter.kill();
+    let _ = waiter.wait();
+}
+
+/// A client queued when the daemon dies keeps waiting (round 10, item c).
+///
+/// A daemon restart empties its queue and drops its leases — the queue is
+/// memory, and the daemon that held it is gone. The client's wait used to
+/// end with it: the connection closed and the client exited with an error,
+/// so a restart (the director stops and starts the daemon by hand during
+/// the night) took every queued seat's request with it. The client now
+/// reconnects and asks again — the same reconnection the heartbeat already
+/// does — and if nothing answers, its own auto-start brings a daemon up.
+#[test]
+fn a_queued_client_rides_out_a_daemon_restart() {
+    let _serial = serial_gate();
+    // A daemon whose view of the box the test holds at 20 GiB available
+    // against the default 25 GiB floor: nothing is admitted, and the
+    // client queues.
+    let mut daemon = frozen_memory_daemon("restart-ride", &[], 120 * GIB, 20 * GIB);
+    let mut client = leased(&daemon, "restart.ride", "1G", &["true"]);
+    let queued = wait_until(15, || {
+        daemon.status()["queue"]
+            .as_array()
+            .map(|queue| !queue.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        queued,
+        "the client never queued; the status was {}",
+        daemon.status()
+    );
+
+    // The daemon dies the hard way — SIGKILL, no clean shutdown, a stale
+    // socket file left behind — and the client must ride it out: notice,
+    // reconnect, ask again, and run once the revived daemon (which reads
+    // the box's real memory) admits it.
+    let _ = daemon.child.kill();
+    let _ = daemon.child.wait();
+    let finished = wait_child_with_deadline(&mut client, 60);
+    let output = output_of(&mut client);
+    match finished {
+        Some(status) => {
+            assert!(
+                status.success(),
+                "the queued client did not survive the daemon restart:\n{output}"
+            );
+            assert!(
+                output.contains("asking again"),
+                "the client never said it was asking again:\n{output}"
+            );
+            assert!(
+                output.contains("admitted after"),
+                "the client never got its lease on the revived daemon:\n{output}"
+            );
+        }
+        None => {
+            let _ = client.kill();
+            let _ = client.wait();
+            stop_the_daemon_left_on(&daemon.socket, &daemon.state_dir);
+            panic!(
+                "the client is still waiting after the restart; the box's real MemAvailable \
+                 is {} MiB, so the revived daemon's default 25 GiB floor may be holding it",
+                mem_available() / (1024 * 1024)
+            );
+        }
+    }
+
+    // The revived daemon is not this test's child; stop it through its own
+    // pid file so the suite leaves nothing running on the box.
+    stop_the_daemon_left_on(&daemon.socket, &daemon.state_dir);
+    let gone = wait_until(10, || !daemon.socket.exists());
+    assert!(
+        gone,
+        "the revived daemon did not stop; the suite would leak it on the box"
+    );
+}
+
+/// Stop a daemon this test did not start: ask it through `thor-admit stop`,
+/// and if that does not take, read its pid file and kill it.
+///
+/// The auto-started daemons (a client's `ensure_daemon`) are children of
+/// the client, and the client may already be gone; they are reaped by
+/// init, so `kill -9` leaves no zombie. A SIGKILLed daemon cannot clean up
+/// its socket file, so the last resort removes it by hand.
+fn stop_the_daemon_left_on(socket: &Path, state_dir: &Path) {
+    let _ = Command::new(BIN)
+        .arg("stop")
+        .arg("--socket")
+        .arg(socket)
+        .output();
+    if wait_until(10, || !socket.exists()) {
+        return;
+    }
+    let pid_file = socket.with_extension("pid");
+    if let Ok(text) = std::fs::read_to_string(&pid_file) {
+        if let Ok(pid) = text.trim().parse::<i32>() {
+            unsafe {
+                libc::kill(pid, libc::SIGKILL);
+            }
+        }
+    }
+    let _ = std::fs::remove_file(socket);
+    let _ = std::fs::remove_file(state_dir.join("sock.lock"));
 }
 
 /// The daemon must never signal the box's own services.
@@ -2414,6 +2786,28 @@ fn wait_until(seconds: u64, mut predicate: impl FnMut() -> bool) -> bool {
         std::thread::sleep(Duration::from_millis(100));
     }
     predicate()
+}
+
+/// Wait for a child to finish, with a deadline.
+///
+/// A test must fail, not hang, when the thing it waits on never happens —
+/// a wedged daemon, a client that never comes back. `None` means the
+/// deadline passed with the child still running; the caller decides what
+/// that means, and kills what it started.
+fn wait_child_with_deadline(
+    child: &mut Child,
+    seconds: u64,
+) -> Option<std::process::ExitStatus> {
+    let deadline = Instant::now() + Duration::from_secs(seconds);
+    loop {
+        if let Ok(Some(status)) = child.try_wait() {
+            return Some(status);
+        }
+        if Instant::now() >= deadline {
+            return None;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
 }
 
 /// The registered work runs when the box has room for it.

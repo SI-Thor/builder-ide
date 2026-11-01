@@ -18,6 +18,41 @@ use crate::ledger::Bucket;
 use crate::protocol::{PeakArg, PresenceReport, Request, Response, TargetSpec};
 use crate::tier::Tier;
 
+/// Is this error the daemon's connection going away, as opposed to an
+/// answer the daemon gave?
+///
+/// A refusal arrives *as data*: `Rejected` becomes a `PermissionDenied`
+/// error carrying the daemon's own reason, so it is deliberately not in
+/// this set. What is in it is the connection-level truth of a daemon that
+/// died or was restarted mid-request — the closed connection (EOF), the
+/// reset, the refused, the broken pipe.
+pub fn is_connection_gone(error: &std::io::Error) -> bool {
+    matches!(
+        error.kind(),
+        std::io::ErrorKind::UnexpectedEof
+            | std::io::ErrorKind::ConnectionReset
+            | std::io::ErrorKind::ConnectionAborted
+            | std::io::ErrorKind::ConnectionRefused
+            | std::io::ErrorKind::BrokenPipe
+            | std::io::ErrorKind::NotConnected
+    )
+}
+
+/// Does a daemon answer on this socket — not just accept the connection?
+///
+/// A bound socket takes connections into its backlog even when nobody ever
+/// `accept`s them, so "connect succeeded" is not "a daemon is there": a
+/// daemon wedged between its bind and its acceptor owns a socket that
+/// connects fine and answers nothing (round 10, item b). The probe asks it
+/// something and gives it two seconds to answer.
+pub fn daemon_answers(path: &Path) -> bool {
+    let Ok(mut client) = Client::connect(path) else {
+        return false;
+    };
+    let _ = client.writer.set_read_timeout(Some(Duration::from_secs(2)));
+    client.ping().unwrap_or(false)
+}
+
 /// A connection to the daemon.
 pub struct Client {
     writer: UnixStream,
@@ -281,6 +316,13 @@ pub const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// its own connection, once every [`HEARTBEAT_INTERVAL`]: the lock on the
 /// lease file says this client is not dead, and only the heartbeat says it
 /// is not *stuck*.
+///
+/// `revive` is called when the daemon cannot be reached at all — the
+/// client's own auto-start (the same one that brought the daemon up before
+/// the lease was asked for) brings a new one up. A daemon that goes away
+/// while this client is queued or asking does not end the wait: the client
+/// reconnects and asks again (round 10, item c), the way the heartbeat
+/// already reconnects its own connection.
 pub fn run_under_lease(
     client: &mut Client,
     socket: &Path,
@@ -289,6 +331,7 @@ pub fn run_under_lease(
     priority: i32,
     tier: Tier,
     command: &[String],
+    revive: &mut dyn FnMut(),
 ) -> std::io::Result<Outcome> {
     // A pipe the child waits on: the command starts when the lease is real.
     let mut fds = [0 as libc::c_int; 2];
@@ -329,24 +372,47 @@ pub fn run_under_lease(
     let pgid = pid as i32;
     let asked_at = std::time::Instant::now();
     let mut queued_at: Option<(usize, usize)> = None;
-    let grant = match client.acquire(
-        label,
-        peak,
-        priority,
-        tier,
-        TargetSpec::Group { pgid },
-        &mut |position, waiting| {
-            queued_at = Some((position, waiting));
-        },
-    ) {
-        Ok(grant) => grant,
-        Err(error) => {
-            // No lease, so no run: closing the pipe is the refusal, and the
-            // child exits without exec'ing anything.
-            unsafe { libc::close(write_fd) };
-            let mut status = 0;
-            unsafe { libc::waitpid(pid, &mut status, 0) };
-            return Err(error);
+    let grant = loop {
+        match client.acquire(
+            label,
+            peak,
+            priority,
+            tier,
+            TargetSpec::Group { pgid },
+            &mut |position, waiting| {
+                queued_at = Some((position, waiting));
+            },
+        ) {
+            Ok(grant) => break grant,
+            Err(error) if is_connection_gone(&error) => {
+                // The daemon went away while this client was asking or
+                // waiting for room — a restart, a crash, an idle exit. The
+                // queue it knew went with it, and the wait continues on the
+                // next daemon's queue: reconnect, and ask again from the
+                // start. A refusal is data, not a disconnection, and it is
+                // not retried.
+                eprintln!(
+                    "thor-admit: the daemon went away while {label:?} was waiting for \
+                     room; asking again"
+                );
+                loop {
+                    if let Ok(connection) = Client::connect(socket) {
+                        *client = connection;
+                        break;
+                    }
+                    revive();
+                    std::thread::sleep(Duration::from_millis(500));
+                }
+                continue;
+            }
+            Err(error) => {
+                // No lease, so no run: closing the pipe is the refusal, and
+                // the child exits without exec'ing anything.
+                unsafe { libc::close(write_fd) };
+                let mut status = 0;
+                unsafe { libc::waitpid(pid, &mut status, 0) };
+                return Err(error);
+            }
         }
     };
 
@@ -510,4 +576,42 @@ pub fn read_all(mut stream: impl Read) -> std::io::Result<String> {
 /// The JSON the CLI prints when it cannot reach the daemon.
 pub fn unreachable_json(path: &Path, error: &std::io::Error) -> serde_json::Value {
     json!({"error": error.to_string(), "socket": path.display().to_string()})
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_daemons_death_is_a_connection_gone() {
+        // What a client actually sees when the daemon dies mid-request: the
+        // closed connection, or the reset; and what it sees asking a socket
+        // nobody is bound to: refused.
+        assert!(is_connection_gone(&std::io::Error::new(
+            std::io::ErrorKind::UnexpectedEof,
+            "the daemon closed the connection"
+        )));
+        assert!(is_connection_gone(&std::io::Error::from(
+            std::io::ErrorKind::ConnectionReset
+        )));
+        assert!(is_connection_gone(&std::io::Error::from(
+            std::io::ErrorKind::ConnectionRefused
+        )));
+        assert!(is_connection_gone(&std::io::Error::from(
+            std::io::ErrorKind::BrokenPipe
+        )));
+    }
+
+    #[test]
+    fn the_daemons_answer_is_not_a_connection_gone() {
+        // A refusal is data — the daemon's own reason — so it must not be
+        // retried as though the daemon had died.
+        assert!(!is_connection_gone(&std::io::Error::new(
+            std::io::ErrorKind::PermissionDenied,
+            "no history for the label"
+        )));
+        assert!(!is_connection_gone(&std::io::Error::other(
+            "unexpected answer from the daemon"
+        )));
+    }
 }

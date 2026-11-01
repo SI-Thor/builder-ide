@@ -88,32 +88,51 @@ forward. The floor is a *reservation* floor, not a "free memory" floor: it
 is what the box keeps for everything that is not a lease (the desktop, the
 seat's own tooling, the kernel's own pages).
 
-**A second budget, with its own floor: the GPU's allocation pool.**
-`MemAvailable` is the kernel's estimate of reclaimable memory, and it
-cannot say how full or fragmented the *non-reclaimable* part is — the
-`cudaMalloc` blocks and pinned host memory that stay put. A lease can fit
-the memory rule and still fail its first `cudaMalloc` while the daemon
-says there was room (Hy4's third failure mode). `tegrastats`' `lfb` — the
-free blocks of the allocation pool, e.g. `lfb 7x4MB` — is the one number
-on this box that can see it, so the rule applies it the same shape as the
-memory rule, one floor deeper:
+**A second budget, with its own floor: the GPU's allocation pool — now a
+rule that is off by default.** `MemAvailable` is the kernel's estimate of
+reclaimable memory, and it cannot say how full or fragmented the
+*non-reclaimable* part is — the `cudaMalloc` blocks and pinned host memory
+that stay put. A lease can fit the memory rule and still fail its first
+`cudaMalloc` while the daemon says there was room (Hy4's third failure
+mode). `tegrastats`' `lfb` — the free blocks of the allocation pool, e.g.
+`lfb 7x4MB` — is the one number on this box that can see it, so the rule
+applies it the same shape as the memory rule, one floor deeper:
 
 ```
 gpu_free = tegrastats' lfb             (None when nothing can see it)
-admit    ⟺ gpu_free - label_gpu_peak >= gpu_floor      (--gpu-floor, default 2 GiB)
+admit    ⟺ gpu_free - label_gpu_peak >= gpu_floor      (--gpu-floor, default 0)
 ```
 
 `label_gpu_peak` is the label's own learned device-memory promise (the
-larger of the p95 and the last run of its `peak_gpu_bytes` history; zero
-for a label that has never touched the GPU). With no view of the pool
-there is no GPU rule — the memory rule is all the daemon has, and it stays
-out of the way. The pool is logged beside the memory (`daemon.sample`,
-`status`) and a waiter held by it alone is named once
-(`lease.waiting_for_gpu_memory`) instead of sitting silently in a queue
-that looks like a memory shortage. What the daemon still cannot see is
-the *split* between device and pinned host bytes — `nvidia-smi
---query-gpu=memory.used` answers `N/A` on this box — so the pool rule
-rides on `lfb` alone.
+larger of the p95 and the last run of its `peak_gpu_bytes` history).
+
+**Round 10 narrowed this rule twice, on one night's measurement.** With
+the 2 GiB default and the rule applied to *every* lease, the daemon held
+**21 requests for over an hour while ~100 GiB was `MemAvailable`** (the
+director's watch, 2026-11-01 ~03:00). Two changes (§14):
+
+* **the default is 0.** `lfb` is a contiguous-block figure — `7x4MB` is
+  seven free 4 MiB blocks, a fragmentation signal of the pool — not the
+  GPU's headroom. On unified memory the GPU's real budget *is*
+  `MemAvailable`, which the memory rule already governs, so a default
+  floor on `lfb` double-governs the same bytes and pays for it exactly
+  when the pool is fragmented and the box is otherwise empty. An operator
+  who wants the pool rule sets `--gpu-floor` explicitly.
+* **a lease that promises no device memory skips the rule.** The GPU
+  promise is learned, not asked for; a label with no GPU history promises
+  zero, the pool is not its budget, and it does not wait for it. §11.8's
+  open question is answered in this direction: the risk — a first run
+  touching CUDA unmeasured — stays, and if the run does take device
+  memory, its own history makes the next run wait for the pool.
+
+With no view of the pool there is no GPU rule — the memory rule is all
+the daemon has, and it stays out of the way. The pool is logged beside
+the memory (`daemon.sample`, `status`) and a waiter held by it alone is
+named once (`lease.waiting_for_gpu_memory`) instead of sitting silently
+in a queue that looks like a memory shortage. What the daemon still
+cannot see is the *split* between device and pinned host bytes —
+`nvidia-smi --query-gpu=memory.used` answers `N/A` on this box — so the
+pool rule rides on `lfb` alone.
 
 ### 2.2 The queue
 
@@ -328,7 +347,7 @@ Every knob is a parameter with a default; nothing is hard-coded.
 |---|---|---|
 | `--floor` | 25 GiB | the floor a lease must clear |
 | `--emergency-floor` | 8 GiB | below this, the watchdog acts |
-| `--gpu-floor` | 2 GiB | the least the GPU's own allocation pool (`lfb`) must keep free; applied only when something can see the pool |
+| `--gpu-floor` | 0 | the least the GPU's own allocation pool (`lfb`) must keep free; applied only when something can see the pool **and** the lease's label has held device memory. 0 since round 10 — `lfb` is a contiguous-block figure, not GPU headroom (§14) |
 | `--sample-interval-ms` | 250 | how often the box is sampled |
 | `--stop-grace-samples` | 8 | samples a watchdog-terminated lease is given before the escalation to `SIGKILL` (2 s) |
 | `--heartbeat-grace-secs` | 60 | how long a silent client keeps its lease (clients heartbeat every 5 s) |
@@ -341,6 +360,7 @@ Every knob is a parameter with a default; nothing is hard-coded.
 | `--gpu-probe` | `auto` | `auto`, `nvidia`, `tegrastats`, `off` |
 | `--tegrastats-command` | `tegrastats` | **a test seam**, like `--meminfo`: run this instead, so the GPU pool rule can be driven without touching the GPU |
 | `--idle-exit` | 900 s | leave after this long with nothing to do (0 = never) |
+| `--startup-timeout-secs` | 15 s | a daemon that has not begun serving within this stops itself, so its socket is free for the next start (0 = no deadline; round 10, §14) |
 | `--no-stop-on-client-gone` | off | leave a dead client's command running |
 | `--priority` | 0 | the client's priority in the queue |
 | `--peak` | — | a size, or `auto` for the learned p95 |
@@ -950,10 +970,12 @@ under, it needs no root, and it cannot outlive the session.
   daemon logs every termination and every kill, and `thor-admit status`
   shows the lease, so the operator can see it and act.
 * **It cannot see the split of the GPU's non-reclaimable pool.** The
-  `--gpu-floor` rule rides on `tegrastats`' `lfb` alone (§2.1): how much of
-  that pool is device memory and how much is pinned host memory is not
-  answered by anything a user can read on this box (`nvidia-smi
-  --query-gpu=memory.used` says `N/A`).
+   `--gpu-floor` rule rides on `tegrastats`' `lfb` alone (§2.1): how much of
+   that pool is device memory and how much is pinned host memory is not
+   answered by anything a user can read on this box (`nvidia-smi
+   --query-gpu=memory.used` says `N/A`). And `lfb` itself is a
+   contiguous-block figure, not a free-capacity figure (§14), which is why
+   the pool's floor defaults to 0 rather than to a number read as headroom.
 
 ## 11. Open questions
 
@@ -987,16 +1009,17 @@ under, it needs no root, and it cannot outlive the session.
    mechanism — the CUDA stream priority the driver already exposes — would
    keep the job's CPU work running and only take its GPU streams. It was
    not measured here.
-8. **Should a lease that promises no device memory wait for the GPU's
-   pool?** The `--gpu-floor` rule applies to every lease, so when the
-   box's allocation pool (`lfb`) sits under the floor — other seats'
-   CUDA work, which is not the daemon's to move — even a CPU-only lease
-   with no GPU history waits. That is the conservative reading and it is
-   what ran overnight; the alternative (exempt a lease whose learned GPU
-   promise is zero) would let CPU work through a full pool at the risk
-   that a first run touches CUDA unmeasured. Measured on this box at
-   ~02:00 on 2026-11-01, `lfb` swung between 0.15 GiB and 2 GiB in
-   minutes, so the question is live (§13.4).
+8. ~~Should a lease that promises no device memory wait for the GPU's
+   pool?~~ **Answered by round 10 (§14), on the night's measurement: no.**
+   The conservative reading — every lease waits for the pool — ran
+   overnight on 2026-11-01 and held 21 requests for over an hour while
+   ~100 GiB was `MemAvailable` and `lfb` swung between 0.15 GiB and 2 GiB
+   in minutes. A lease whose label has never held device memory now skips
+   the pool rule, and the default floor is 0 (§2.1). The risk the
+   conservative reading was buying — a first run touching CUDA unmeasured,
+   because the GPU promise is learned rather than asked for — is accepted:
+   once the run *has* taken device memory, its own history makes the next
+   run wait for the pool.
 
 ## 12. Round 8 (2026-10-31 23:00 → 11-01): the Hy4 review folded in, the real workload invited in
 
@@ -1196,10 +1219,135 @@ holding the allocation pool at ~0.3 GiB of `lfb` — under the 2 GiB
 `--gpu-floor` — every CPU-only test lease waited on a rule that had
 nothing to do with it, because `gpu_admits` applies the pool's floor to
 every lease, including one that promises no device memory at all. That is
-the designed rule (§2.1), and on the live box it did what it is for: the
-01:19 queue of d1-2B variants was waiting for the *pool*, correctly, not
-for memory. But a test's admission decisions must not depend on another
-seat's CUDA allocations, so every test daemon now starts with
-`--gpu-probe off` (the GPU-pool test brings its own scripted view). The
-general question — should a lease with no GPU promise be exempt from the
-pool's floor? — stays open (§11.8).
+the designed rule (§2.1) as it stood, and on the live box it did what it
+is for: the 01:19 queue of d1-2B variants was waiting for the *pool*,
+correctly, not for memory. But a test's admission decisions must not
+depend on another seat's CUDA allocations, so every test daemon now starts
+with `--gpu-probe off` (the GPU-pool test brings its own scripted view).
+The general question — should a lease with no GPU promise be exempt from
+the pool's floor? — stayed open until the next night answered it (§11.8,
+§14): it should, and it does.
+
+## 14. Round 10 (2026-11-01, ~04:30): the floor that was not headroom, and the daemon that held a socket it never bound
+
+Round 9 was merged (efef41f) and the daemon ran its binary all night
+(`--gpu-floor 0`, tmux `last-mile:admitd`). Three failures came out of
+the night's operation; each fix is where it lives.
+
+### 14.1 The GPU floor, made sane for this box (item a)
+
+With the 2 GiB default and the rule applied to every lease, the daemon
+held **21 requests for over an hour while ~100 GiB was `MemAvailable`**
+(the director's watch, ~03:00). The operator moved to `--gpu-floor 0` by
+hand that night. Two changes put the code where the operator already was:
+
+* **the default is 0** (`DEFAULT_GPU_FLOOR`). The hardware fact under it:
+  `tegrastats`' `lfb` counts *contiguous free blocks* of the allocation
+  pool (`7x4MB` = seven free 4 MiB blocks) — a fragmentation signal. The
+  previous path treated it as the GPU's headroom because it is the one
+  readable number about the non-reclaimable pool; but on unified memory
+  the GPU's real budget is `MemAvailable`, which the memory rule already
+  governs, so a default floor on `lfb` double-governs the same bytes and
+  bites exactly when the pool is fragmented and the box is otherwise
+  empty — which is what the night measured.
+* **a lease that promises no device memory skips the pool rule**
+  (`Admission::gpu_admits(0)`), answering §11.8. The pool is not such a
+  lease's budget; the risk the conservative reading bought — a first run
+  touching CUDA unmeasured, since the GPU promise is learned, not asked
+  for — is accepted, and it self-corrects: once the run takes device
+  memory, its history makes the next run wait for the pool.
+
+The rule itself is unchanged for leases whose labels *have* held device
+memory: `lfb − learned_gpu_peak ≥ --gpu-floor`, logged as
+`lease.waiting_for_gpu_memory` when it is what a waiter waits for. The
+live daemon's `--gpu-floor 0` flag is now redundant with the default but
+harmless.
+
+### 14.2 The wedged startup (item b)
+
+At 04:15, after the director stopped the old daemon, a client's
+auto-start spawned a new one that hung on the way up — parked in
+`futex_wait_queue`, **holding the socket's `flock` and never having bound
+the socket**, beside the stale socket file the old daemon left. Clients
+got "connection refused"; every later daemon was refused with "another
+thor-admit daemon is already running" (the lock's word), so the box
+stayed without an admission controller until a human killed the wedged
+process. The old order made that possible: the lifetime lock was taken
+first, and everything that could hang — history load, log open, meminfo
+read — sat between the lock and the bind.
+
+The new order is **construct, bind, lock** (`Daemon::new`):
+
+* everything that can hang on the way up now happens *before* anything is
+  held, so a hung daemon holds no lock to refuse the next daemon with and
+  no bound socket to answer nobody;
+* the bind and the lock are back to back, nothing between them but the
+  `flock` call, so the window where the socket is bound but not owned is
+  a syscall wide — and the bound socket itself arbitrates racing starters
+  (`bind` on an existing path fails);
+* a **startup deadline** (`--startup-timeout-secs`, default 15 s) bounds
+  what remains: a daemon that has not begun serving says why and exits —
+  the watchdog thread starts *before* the daemon is built, so a wedge in
+  construction is covered too — and the kernel drops whatever it holds;
+* the client's auto-start (`ensure_daemon`) now probes by *asking* the
+  daemon something (`ping`, 2 s read timeout) instead of by connecting,
+  because a bound socket accepts connections into its backlog even when
+  nobody ever `accept`s them: "connect succeeded" was never "a daemon is
+  there".
+
+Reproduced as a test (`a_daemon_that_hangs_on_the_way_up_does_not_wedge_
+the_socket`) through a test seam, `THOR_ADMIT_TEST_CONSTRUCTION_HANG_MS`,
+which sleeps before anything is held or bound — the place the old order
+left the box wedged. The test's daemon hangs; a second daemon takes the
+socket and serves a lease; the hung one wakes, finds the socket taken,
+and refuses itself. The deadline has its own test
+(`a_daemon_that_never_serves_stops_itself`).
+
+### 14.3 The queued client at a restart (item c)
+
+A daemon restart empties its queue — the queue is memory, and the daemon
+that held it is gone — and the client's connection closes. The client used
+to end its wait with that error, so a hand restart during the night took
+every queued seat's request with it. The client now treats a
+connection-level failure while it is asking or waiting as "ask again"
+(`run_under_lease`): it reconnects, re-registers from the start, and if
+nothing answers, its own auto-start brings a daemon up — the same
+reconnection the heartbeat already did. A refusal is data, not a
+disconnection, and is not retried. Test:
+`a_queued_client_rides_out_a_daemon_restart` (SIGKILL mid-queue; the
+client re-asks, is admitted by the revived daemon, and finishes).
+
+### 14.4 The suite, and the box it ran on
+
+34/34, serial (the suite's default), 203 s, load 5.7–7.5 from other
+seats' work (a `serve` d1-2B on 8094, a d1-2B-baseline lease, a
+coldshelf paint chain), 86 GiB `MemAvailable`. The heavy tests ran for
+real: three 30 GiB hogs serialised and both watchdog tests took the box's
+stopgap lock first. Four tests are new this round (§14.1–§14.3), and the
+GPU-pool test now teaches its label a 2 GiB device-memory promise first,
+because a label with no GPU history no longer waits for the pool.
+
+Two stale daemons from the night were found while checking for leaks: one
+at 02:05 from a pre-fix round-9 suite run (a daemon that idled out but
+did not exit — §13.4's very bug, from a binary built before the fix) was
+stopped by hand; one at 02:55 from the round-9 smoke test
+(`--socket sock`, cwd `/tmp/admit-smoke`, the shipped binary) was left
+for the director. This round's own suite left nothing running and no
+directories behind.
+
+### 14.5 The binary, shipped; the swap is the director's
+
+The release binary is at `~/lm-tools/thor-admit` (written to a temp file
+and moved into place, so every running client — and the live daemon,
+tmux `last-mile:admitd`, pid 910451 since 04:12, still on the old inode —
+keeps what it opened). sha256
+`3c97e69c7fe80b012fc4a1c012b371423306a9c7fc75106ef4efedb2ffe8ad7e`.
+Nothing in this round *requires* an immediate swap — the live daemon
+already runs `--gpu-floor 0`, which is now the default — but the startup
+order and the queued-client retry only reach the box when the daemon is
+next restarted, at a moment with no leases to lose. The swap is the
+director's: stop the daemon and start it again from `~/lm-tools/thor-admit`
+(the `--gpu-floor 0` flag can stay or go). One stale daemon was found on
+the box while checking for leaks and left alone: pid 878521, started
+02:55 by the round-9 smoke test (`--socket sock`, cwd `/tmp/admit-smoke`,
+the shipped binary); it holds no live socket and can be stopped whenever.

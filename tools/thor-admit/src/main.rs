@@ -16,7 +16,8 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 use thor_admit::client::{self, Client};
 use thor_admit::daemon::{Config, Daemon, DEFAULT_EMERGENCY_FLOOR, DEFAULT_FLOOR};
@@ -230,7 +231,11 @@ fn socket_path(options: &Options) -> Result<PathBuf, String> {
 
 /// Start the daemon if it is not already running, and wait for its socket.
 fn ensure_daemon(socket: &PathBuf) -> Result<(), String> {
-    if Client::connect(socket).is_ok() {
+    // The probe *asks* the daemon something, it does not just connect: a
+    // bound socket accepts connections into its backlog even when nobody
+    // ever accepts them, so a daemon wedged between its bind and its
+    // acceptor would otherwise count as "up" (round 10, item b).
+    if client::daemon_answers(socket) {
         return Ok(());
     }
     let program = std::env::current_exe().map_err(|e| e.to_string())?;
@@ -257,7 +262,7 @@ fn ensure_daemon(socket: &PathBuf) -> Result<(), String> {
     command.spawn().map_err(|e| format!("cannot start the daemon: {e}"))?;
     for _ in 0..100 {
         std::thread::sleep(Duration::from_millis(100));
-        if Client::connect(socket).is_ok() {
+        if client::daemon_answers(socket) {
             return Ok(());
         }
     }
@@ -307,6 +312,14 @@ fn run_daemon(args: &[String]) -> ExitCode {
     }
     match options.size("gpu-floor") {
         Ok(Some(value)) => config.gpu_floor = value,
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    match options.number("startup-timeout-secs") {
+        Ok(Some(value)) => config.startup_timeout = Duration::from_secs(value),
         Ok(None) => {}
         Err(error) => {
             eprintln!("thor-admit: {error}");
@@ -431,6 +444,44 @@ fn run_daemon(args: &[String]) -> ExitCode {
         libc::signal(libc::SIGPIPE, libc::SIG_IGN);
     }
 
+    // The startup watchdog (round 10, item b). The auto-started daemon of
+    // 04:15 on 2026-11-01 hung on the way up — wedged in `futex_wait_queue`,
+    // holding the socket's lock, never having bound the socket — and sat on
+    // the box until a human killed it. The bind now comes before the lock,
+    // so a daemon wedging on the way up holds nothing; the deadline is the
+    // belt to that: a daemon that has not begun serving in time says why
+    // and exits, the kernel drops whatever it holds, and the next client's
+    // auto-start takes the socket back. It watches from *before* the daemon
+    // is built, because a wedge in the building is the wedge it is for.
+    let startup_timeout = config.startup_timeout;
+    let daemon_seat: Arc<Mutex<Option<Arc<Daemon>>>> = Arc::new(Mutex::new(None));
+    let watched = Arc::clone(&daemon_seat);
+    let _startup_watchdog = std::thread::spawn(move || {
+        if startup_timeout.is_zero() {
+            return;
+        }
+        let deadline = Instant::now() + startup_timeout;
+        while Instant::now() < deadline {
+            let up = {
+                let seat = watched.lock().unwrap();
+                match seat.as_ref() {
+                    Some(daemon) => daemon.is_serving() || daemon.is_stopped(),
+                    None => false,
+                }
+            };
+            if up {
+                return;
+            }
+            std::thread::sleep(Duration::from_millis(250));
+        }
+        eprintln!(
+            "thor-admit: the daemon did not begin serving within {} s; exiting so the \
+             socket is free for the next start",
+            startup_timeout.as_secs()
+        );
+        std::process::exit(1);
+    });
+
     let daemon = match Daemon::new(config) {
         Ok(daemon) => daemon,
         Err(error) => {
@@ -438,6 +489,7 @@ fn run_daemon(args: &[String]) -> ExitCode {
             return ExitCode::from(1);
         }
     };
+    *daemon_seat.lock().unwrap() = Some(Arc::clone(&daemon));
     // The pid file, so `thor-admit stop` can find it.
     let pid_path = daemon.socket_path().with_extension("pid");
     let _ = std::fs::write(&pid_path, std::process::id().to_string());
@@ -542,6 +594,14 @@ fn run_command(args: &[String]) -> ExitCode {
             return ExitCode::from(1);
         }
     };
+    let mut revive = {
+        let socket = socket.clone();
+        move || {
+            if let Err(error) = ensure_daemon(&socket) {
+                eprintln!("thor-admit: {error}");
+            }
+        }
+    };
     let outcome = match client::run_under_lease(
         &mut connection,
         &socket,
@@ -550,6 +610,7 @@ fn run_command(args: &[String]) -> ExitCode {
         priority,
         tier,
         &options.rest,
+        &mut revive,
     ) {
         Ok(outcome) => outcome,
         Err(error) => {
@@ -705,6 +766,14 @@ fn run_serve(args: &[String]) -> ExitCode {
         })
     };
     let label = format!("serve.{model}");
+    let mut revive = {
+        let socket = socket.clone();
+        move || {
+            if let Err(error) = ensure_daemon(&socket) {
+                eprintln!("thor-admit: {error}");
+            }
+        }
+    };
     let outcome = client::run_under_lease(
         &mut connection,
         &socket,
@@ -713,6 +782,7 @@ fn run_serve(args: &[String]) -> ExitCode {
         0,
         tier,
         &command,
+        &mut revive,
     );
     let _ = watcher.join();
     let outcome = match outcome {
