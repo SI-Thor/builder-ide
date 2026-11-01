@@ -1,0 +1,32 @@
+[
+  {
+    "id": "crate",
+    "prompt": "a weathered wooden crate with iron banding, slats slightly greyed and uneven, standing in soft evening light, studio product photo, single object, plain light grey background",
+    "negative": "blurry, low quality, watermark, text, deformed, disfigured, multiple objects, cropped",
+    "seeds": 3,
+    "triangle_budget": 750000,
+    "expected_aspect": [1.0, 1.0, 0.8],
+    "aspect_tolerance": 0.35,
+    "base_seed": 101
+  },
+  {
+    "id": "lantern",
+    "prompt": "a dented brass oil lantern with soot around the burner and a worn carry ring, studio product photo, single object, plain light grey background",
+    "negative": "blurry, low quality, watermark, text, deformed, disfigured, multiple objects, cropped",
+    "seeds": 3,
+    "triangle_budget": 750000,
+    "expected_aspect": [0.65, 1.0, 0.5],
+    "aspect_tolerance": 0.35,
+    "base_seed": 202
+  },
+  {
+    "id": "anvil",
+    "prompt": "a squat iron anvil on a plain surface, hammer marks on the face, light rust in the crevices, studio product photo, single object, plain light grey background",
+    "negative": "blurry, low quality, watermark, text, deformed, disfigured, multiple objects, cropped",
+    "seeds": 3,
+    "triangle_budget": 750000,
+    "expected_aspect": [1.0, 0.5, 0.4],
+    "aspect_tolerance": 0.35,
+    "base_seed": 303
+  }
+]

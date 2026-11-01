@@ -336,6 +336,98 @@ def test_a_failed_render_carries_the_engines_last_words(venv_home):
             subject="harbor.crates", rung=2, seed=42))
 
 
+def test_a_relative_output_dir_is_resolved_before_the_cli_sees_it(
+        venv_home, monkeypatch):
+    """The run C lesson: the CLI runs with the clone as its cwd, so a
+    relative scratch path is resolved twice — the render lands where the
+    seam never looks, and the seam calls a healthy render a silent no-op
+    (run C's "missing" PNG sat in the clone all along). The scratch is
+    resolved once, at the door, for render and trace both."""
+    runner = CliDouble()
+    monkeypatch.chdir(venv_home)
+    rt = Venv2Runtime(
+        python=venv_home / ".venv" / "bin" / "python",
+        generators=GENERATORS,
+        output_dir="engine/scratch",  # the run C shape: relative
+        repo=venv_home / "src" / "infinigen-upstream",
+        repo_name="princeton-vl/infinigen",
+        runner=runner,
+    )
+    engine = Infinigen2Engine(pin=rt.engine_pin(), runtime=rt)
+    engine.render_preview(PreviewRequest(
+        recipe=fjellvik(engine.describe().pin),
+        version_hash="sha256:" + "a" * 64,
+        subject="harbor.crates", rung=2, seed=42))
+    out_arg = Path(runner.argvs[-1][runner.argvs[-1].index("--output") + 1])
+    assert out_arg.is_absolute()
+    assert out_arg == (venv_home / "engine" / "scratch" / "render" /
+                       "harbor_crates-42-960x540-16spp")
+    engine.generate_stage(StageRequest(
+        recipe=fjellvik(engine.describe().pin),
+        version_hash="sha256:" + "a" * 64, stage="objects"))
+    for argv in (a for a in runner.argvs if "--trace" in a):
+        assert Path(argv[argv.index("--output") + 1]).is_absolute()
+
+
+class SilentCli(CliDouble):
+    """A CLI that exits 0 and writes nothing — the run C shape, whatever
+    its trigger was that morning: a manifest that no longer resolves the
+    trailing render word, a skipped pass, a teardown that swallowed the
+    work. The seam must turn that silence into a loud, diagnosable
+    failure, not a missing-file guess."""
+
+    def run(self, argv, *, cwd=None) -> CommandResult:
+        argv = [str(a) for a in argv]
+        self.argvs.append(argv)
+        if argv[0] == "git":
+            return CommandResult(argv=argv, returncode=0, stdout=COMMIT + "\n")
+        if len(argv) > 1 and argv[1] == "-c":
+            return CommandResult(argv=argv, returncode=0,
+                                 stdout=json.dumps(REPORT) + "\n")
+        return CommandResult(argv=argv, returncode=0,
+                             stdout="infinigen: nothing to do\n")
+
+
+def test_a_missing_render_subcommand_is_a_loud_failure(venv_home):
+    """The CLI exits 0 having ignored the render word (a manifest that
+    dropped it, the way PR #1's merge dropped a fallback in the fork): the
+    render is refused loudly, with the exit, the argv and the CLI's own
+    last words in the failure — never a silent None and never a bare
+    'no PNG' without the engine's side of the story."""
+    cli = SilentCli()
+    rt = _runtime(venv_home, cli)
+    engine = Infinigen2Engine(pin=rt.engine_pin(), runtime=rt)
+    from core.engine import EngineFailed
+    with pytest.raises(EngineFailed) as caught:
+        engine.render_preview(PreviewRequest(
+            recipe=fjellvik(engine.describe().pin),
+            version_hash="sha256:" + "a" * 64,
+            subject="harbor.crates", rung=2, seed=42))
+    assert caught.value.detail["returncode"] == 0
+    assert caught.value.detail["missing"].endswith(
+        "render/harbor_crates-42-960x540-16spp")
+    assert "no PNG" in caught.value.message
+    assert "last words" in caught.value.message
+    assert "nothing to do" in caught.value.message
+
+
+def test_a_silent_no_op_trace_is_a_loud_failure(venv_home):
+    """Same silence on the trace path: exit 0, no graph.json — refused with
+    the CLI's last words, because a stage built from nothing must never
+    enter the cache as if it were a stage."""
+    cli = SilentCli()
+    rt = _runtime(venv_home, cli)
+    engine = Infinigen2Engine(pin=rt.engine_pin(), runtime=rt)
+    from core.engine import EngineFailed
+    with pytest.raises(EngineFailed) as caught:
+        engine.generate_stage(StageRequest(
+            recipe=fjellvik(engine.describe().pin),
+            version_hash="sha256:" + "a" * 64, stage="objects"))
+    assert caught.value.detail["returncode"] == 0
+    assert "no graph.json" in caught.value.message
+    assert "nothing to do" in caught.value.message
+
+
 # ------------------------------------------------------------------ registry
 
 

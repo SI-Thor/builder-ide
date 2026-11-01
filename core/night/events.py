@@ -17,6 +17,7 @@ __all__ = [
     "DAYTIME_EVENT_TYPES",
     "TILE_EVENT_TYPES",
     "JUDGE_EVENT_TYPES",
+    "NIGHT_V3_EVENT_TYPES",
 ]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
@@ -121,6 +122,14 @@ TILE_EVENT_TYPES = frozenset(
 #: reader of the log agrees on the closed set (§1.8).
 JUDGE_EVENT_TYPES = frozenset({"judge.verdict"})
 
+#: The night-v3 integration seat's types: the band's cue and effect rows,
+#: the mediator's calls counted in and out of flow, the heavy-step leases,
+#: the live view's compile, and the box's state at the night's edges.
+NIGHT_V3_EVENT_TYPES = frozenset(
+    {"band.cue", "band.effect", "night.mediator_call", "night.heavy_lease",
+     "night.live_view", "night.box_state"}
+)
+
 EVENT_TYPES = (
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -139,6 +148,7 @@ EVENT_TYPES = (
     | SYSTEM_EVENT_TYPES
     | TILE_EVENT_TYPES
     | JUDGE_EVENT_TYPES
+    | NIGHT_V3_EVENT_TYPES
 )
 
 #: The types this seat (the night runner) writes. Everything else in the log
