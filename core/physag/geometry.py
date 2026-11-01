@@ -42,6 +42,7 @@ __all__ = [
     "GeometryError",
     "MeshPart",
     "apply_transform",
+    "mesh_components",
     "convex_hull",
     "distance_to_surface",
     "hull_volume",
@@ -309,106 +310,237 @@ def subsample_points(points: np.ndarray, limit: int = 2000) -> np.ndarray:
     return points[::stride]
 
 
-def distance_to_surface(points: np.ndarray, mesh: MeshPart, neighbours: int = 8) -> np.ndarray:
-    """How far each point is from the mesh's surface.
+class SurfaceDistance:
+    """The distance from points to a mesh's surface.
+
+    The trees are built once and reused: the decomposition asks the same
+    question hundreds of times, and rebuilding the trees each time is the
+    difference between a minute and an hour.
 
     The distance to the nearest *vertex* is not the distance to the
     surface: the middle of a large flat panel is far from the panel's
     corners and a few millimetres from the panel itself. So the nearest
-    triangles are found through a tree over their centres, and the exact
-    point-to-triangle distance is computed for those.
+    triangles are found through the trees and the exact point-to-triangle
+    distance is computed for those.
 
-    The tree is over the triangles' centres, so the search is approximate
-    in *which* triangles are considered and exact in how far away they
-    are. With a handful of neighbours the error is far below the
-    millimetre the guards are measured in.
+    Two trees are used, because one is not enough. The tree over the
+    triangles' **centres** finds the triangle whose middle is near, and the
+    tree over the **vertices** finds the triangle whose corner is near. A
+    big triangle can be right next to the point and have its centre far
+    away — the centre of a long plank is half a plank away from its end —
+    and a search over centres alone would then miss it and report the
+    distance to the plank's *other* side instead. Both searches are made,
+    and the smaller of the two distances is the answer.
     """
-    if points.shape[0] == 0:
-        return np.zeros(0)
-    if mesh.triangles.shape[0] == 0:
-        return np.full(points.shape[0], np.inf)
 
-    from scipy.spatial import cKDTree
+    #: How many vertices to look at when a point is close to a corner.
+    vertex_neighbours = 4
+    #: The most triangles one vertex may be part of. A vertex of a closed
+    #: mesh has six; a vertex where the mesh was cut may have more.
+    max_incident = 8
 
-    vertices = mesh.vertices
-    triangles = mesh.triangles
-    a = vertices[triangles[:, 0]]
-    b = vertices[triangles[:, 1]]
-    c = vertices[triangles[:, 2]]
-    centres = (a + b + c) / 3.0
-    tree = cKDTree(centres)
+    def __init__(self, mesh: MeshPart, neighbours: int = 8) -> None:
+        from scipy.spatial import cKDTree
 
-    k = min(int(neighbours), centres.shape[0])
-    _distances, indices = tree.query(points, k=k)
+        self.neighbours = int(neighbours)
+        self.vertices = mesh.vertices
+        self.triangles = mesh.triangles
+        self.empty = mesh.triangles.shape[0] == 0
+        if self.empty:
+            self.tree = None
+            self.vertex_tree = None
+            self.centres = np.zeros((0, 3))
+            self.vertex_triangles = np.zeros((0, self.max_incident), dtype=np.int64)
+            return
+        a = self.vertices[self.triangles[:, 0]]
+        b = self.vertices[self.triangles[:, 1]]
+        c = self.vertices[self.triangles[:, 2]]
+        self.centres = (a + b + c) / 3.0
+        self.tree = cKDTree(self.centres)
+        self.vertex_tree = cKDTree(self.vertices)
 
-    if k == 1:
-        indices = indices.reshape(-1, 1)
+        # The triangles' outward normals, and whether the mesh is a closed
+        # solid. A closed mesh knows which side of its surface is inside,
+        # and the distance to it can be signed: a point inside the material
+        # is *inside* it, and a point in the air is outside. That is the
+        # difference between a collider's face that lies within the
+        # material and one that lies across a hollow, and the two look the
+        # same to an unsigned distance.
+        raw = np.cross(b - a, c - a)
+        lengths = np.linalg.norm(raw, axis=1)
+        lengths[lengths == 0.0] = 1.0
+        self.normals = raw / lengths[:, None]
+        self.closed = is_closed(mesh)
+        if self.closed:
+            volume = signed_volume(self.vertices, self.triangles)
+            if volume < 0.0:
+                # The mesh is wound the other way round: turn the normals
+                # so that they point out of the material.
+                self.normals = -self.normals
 
-    p = points[:, None, :]
-    ta = a[indices]
-    tb = b[indices]
-    tc = c[indices]
+        # The triangles each vertex is part of, padded to a fixed width so
+        # that the candidates can be gathered in one array.
+        counts = np.zeros(self.vertices.shape[0], dtype=np.int64)
+        np.add.at(counts, self.triangles.ravel(), 1)
+        width = max(int(counts.max()) if counts.size else 0, 1)
+        self.vertex_triangles = np.full(
+            (self.vertices.shape[0], width), -1, dtype=np.int64
+        )
+        filled = np.zeros(self.vertices.shape[0], dtype=np.int64)
+        for t_index in range(self.triangles.shape[0]):
+            for vertex in self.triangles[t_index]:
+                slot = filled[int(vertex)]
+                if slot < width:
+                    self.vertex_triangles[int(vertex), slot] = t_index
+                    filled[int(vertex)] = slot + 1
 
-    ab = tb - ta
-    ac = tc - ta
-    ap = p - ta
 
-    d1 = np.einsum("pkc,pkc->pk", ab, ap)
-    d2 = np.einsum("pkc,pkc->pk", ac, ap)
-    bp = p - tb
-    d3 = np.einsum("pkc,pkc->pk", ab, bp)
-    d4 = np.einsum("pkc,pkc->pk", ac, bp)
-    cp = p - tc
-    d5 = np.einsum("pkc,pkc->pk", ab, cp)
-    d6 = np.einsum("pkc,pkc->pk", ac, cp)
+    def __call__(self, points: np.ndarray) -> np.ndarray:
+        """How far each point is from the surface."""
+        points = np.asarray(points, dtype=np.float64)
+        if points.shape[0] == 0:
+            return np.zeros(0)
+        if self.empty or self.tree is None:
+            return np.full(points.shape[0], np.inf)
 
-    va = d3 * d6 - d5 * d4
-    vb = d5 * d2 - d1 * d6
-    vc = d1 * d4 - d3 * d2
+        k = min(self.neighbours, self.centres.shape[0])
+        _distances, centres = self.tree.query(points, k=k)
+        if k == 1:
+            centres = centres.reshape(-1, 1)
 
-    closest = np.empty((points.shape[0], k, 3), dtype=points.dtype)
-    done = np.zeros((points.shape[0], k), dtype=bool)
+        # The triangles around the nearest vertices: the ones a search over
+        # centres can miss.
+        kv = min(self.vertex_neighbours, self.vertices.shape[0])
+        _vd, vertex_ids = self.vertex_tree.query(points, k=kv)
+        if kv == 1:
+            vertex_ids = vertex_ids.reshape(-1, 1)
+        near = self.vertex_triangles[vertex_ids].reshape(points.shape[0], -1)
 
-    # The vertex regions.
-    region_a = (d1 <= 0) & (d2 <= 0)
-    region_b = (d3 >= 0) & (d4 <= d3)
-    region_c = (d6 >= 0) & (d5 <= d6)
-    # The edge regions.
-    edge_ab = (vc <= 0) & (d1 >= 0) & (d3 <= 0)
-    edge_ac = (vb <= 0) & (d2 >= 0) & (d6 <= 0)
-    edge_bc = (va <= 0) & ((d4 - d3) >= 0) & ((d5 - d6) >= 0)
+        candidates = np.concatenate([centres, near], axis=1)
+        valid = candidates >= 0
+        safe = np.where(valid, candidates, 0)
 
-    with np.errstate(divide="ignore", invalid="ignore"):
-        t_ab = np.where(d1 - d3 != 0, d1 / (d1 - d3), 0.0)
-        t_ac = np.where(d2 - d6 != 0, d2 / (d2 - d6), 0.0)
-        denom = (d4 - d3) + (d5 - d6)
-        t_bc = np.where(denom != 0, (d4 - d3) / np.where(denom != 0, denom, 1.0), 0.0)
+        a = self.vertices[self.triangles[:, 0]][safe]
+        b = self.vertices[self.triangles[:, 1]][safe]
+        c = self.vertices[self.triangles[:, 2]][safe]
 
-    candidates = {
-        "a": (region_a, ta),
-        "b": (region_b, tb),
-        "c": (region_c, tc),
-        "ab": (edge_ab, ta + t_ab[:, :, None] * ab),
-        "ac": (edge_ac, ta + t_ac[:, :, None] * ac),
-        "bc": (edge_bc, tb + t_bc[:, :, None] * (tc - tb)),
-    }
+        p = points[:, None, :]
+        ab = b - a
+        ac = c - a
+        ap = p - a
 
-    for mask, value in candidates.values():
-        take = mask & ~done
-        if take.any():
-            closest[take] = value[take]
-            done |= take
+        d1 = np.einsum("pkc,pkc->pk", ab, ap)
+        d2 = np.einsum("pkc,pkc->pk", ac, ap)
+        bp = p - b
+        d3 = np.einsum("pkc,pkc->pk", ab, bp)
+        d4 = np.einsum("pkc,pkc->pk", ac, bp)
+        cp = p - c
+        d5 = np.einsum("pkc,pkc->pk", ab, cp)
+        d6 = np.einsum("pkc,pkc->pk", ac, cp)
 
-    # The interior of the triangle.
-    interior = ~done
-    if interior.any():
-        total = va + vb + vc
-        safe = np.where(total != 0, total, 1.0)
-        v = np.where(total != 0, vb / safe, 0.0)
-        w = np.where(total != 0, vc / safe, 0.0)
-        closest[interior] = (ta + v[:, :, None] * ab + w[:, :, None] * ac)[interior]
+        va = d3 * d6 - d5 * d4
+        vb = d5 * d2 - d1 * d6
+        vc = d1 * d4 - d3 * d2
 
-    return np.linalg.norm(p - closest, axis=2).min(axis=1)
+        closest = np.empty((points.shape[0], candidates.shape[1], 3), dtype=points.dtype)
+        done = np.zeros((points.shape[0], candidates.shape[1]), dtype=bool)
+
+        region_a = (d1 <= 0) & (d2 <= 0)
+        region_b = (d3 >= 0) & (d4 <= d3)
+        region_c = (d6 >= 0) & (d5 <= d6)
+        edge_ab = (vc <= 0) & (d1 >= 0) & (d3 <= 0)
+        edge_ac = (vb <= 0) & (d2 >= 0) & (d6 <= 0)
+        edge_bc = (va <= 0) & ((d4 - d3) >= 0) & ((d5 - d6) >= 0)
+
+        with np.errstate(divide="ignore", invalid="ignore"):
+            t_ab = np.where(d1 - d3 != 0, d1 / (d1 - d3), 0.0)
+            t_ac = np.where(d2 - d6 != 0, d2 / (d2 - d6), 0.0)
+            denom = (d4 - d3) + (d5 - d6)
+            t_bc = np.where(denom != 0, (d4 - d3) / np.where(denom != 0, denom, 1.0), 0.0)
+
+        choices = (
+            (region_a, a),
+            (region_b, b),
+            (region_c, c),
+            (edge_ab, a + t_ab[:, :, None] * ab),
+            (edge_ac, a + t_ac[:, :, None] * ac),
+            (edge_bc, b + t_bc[:, :, None] * (c - b)),
+        )
+
+        for mask, value in choices:
+            take = mask & ~done & valid
+            if take.any():
+                closest[take] = value[take]
+                done |= take
+
+        interior = ~done & valid
+        if interior.any():
+            total = va + vb + vc
+            safe_total = np.where(total != 0, total, 1.0)
+            v = np.where(total != 0, vb / safe_total, 0.0)
+            w = np.where(total != 0, vc / safe_total, 0.0)
+            closest[interior] = (a + v[:, :, None] * ab + w[:, :, None] * ac)[interior]
+
+        distances = np.linalg.norm(p - closest, axis=2)
+        distances = np.where(valid, distances, np.inf)
+        nearest = distances.min(axis=1)
+        if not self.closed:
+            return nearest
+        # Which side of the surface each point is on. The triangle that
+        # gave the smallest distance says which way "out" is.
+        best = np.argmin(np.where(valid, distances, np.inf), axis=1)
+        rows = np.arange(points.shape[0])
+        normals = self.normals[safe[rows, best]]
+        corners = self.vertices[self.triangles[:, 0]][safe[rows, best]]
+        side = np.sign(np.einsum("nc,nc->n", points - corners, normals))
+        side[side == 0.0] = 1.0
+        return nearest * side
+
+
+def distance_to_surface(points: np.ndarray, mesh: MeshPart, neighbours: int = 8) -> np.ndarray:
+    """How far each point is from the mesh's surface."""
+    return SurfaceDistance(mesh, neighbours)(points)
+
+
+def winding_numbers(points: np.ndarray, mesh: MeshPart) -> np.ndarray:
+    """How many times each point is wound around by the mesh's surface.
+
+    The winding number is the signed sum of the solid angles the mesh's
+    triangles subtend at the point: it is zero for a point outside a
+    closed mesh and one for a point inside it. It is the honest way to
+    ask "is this point in the material", because the answer does not
+    depend on how close the point is to the surface — the test of "which
+    side of the nearest triangle's plane" does, and gets it wrong for a
+    point in the middle of a solid.
+
+    It costs a pass over every triangle for every point, so it is for the
+    questions that are asked a few hundred times, not for the ones that
+    are asked a hundred thousand times.
+    """
+    points = np.asarray(points, dtype=np.float64)
+    if points.shape[0] == 0 or mesh.triangles.shape[0] == 0:
+        return np.zeros(points.shape[0])
+    a = mesh.vertices[mesh.triangles[:, 0]][None, :, :] - points[:, None, :]
+    b = mesh.vertices[mesh.triangles[:, 1]][None, :, :] - points[:, None, :]
+    c = mesh.vertices[mesh.triangles[:, 2]][None, :, :] - points[:, None, :]
+    la = np.linalg.norm(a, axis=2)
+    lb = np.linalg.norm(b, axis=2)
+    lc = np.linalg.norm(c, axis=2)
+    numerator = np.einsum("ntc,ntc->nt", a, np.cross(b, c))
+    denominator = la * lb * lc
+    angles = np.arctan2(numerator, denominator)
+    return angles.sum(axis=1) / (2.0 * np.pi)
+
+
+def inside_mesh(points: np.ndarray, mesh: MeshPart) -> np.ndarray:
+    """Whether each point is inside a closed mesh.
+
+    A point is inside when the mesh's surface winds around it once. The
+    sign of the winding number says which way the surface is wound, so
+    the test is the size of it and not its sign: a mesh wound the other
+    way round is still a mesh that has the point inside.
+    """
+    return np.abs(winding_numbers(points, mesh)) > 0.5
 
 
 def signed_volume(vertices: np.ndarray, triangles: np.ndarray) -> float:
@@ -485,8 +617,66 @@ def largest_component(part: MeshPart) -> tuple[MeshPart, int, list[float]]:
     return part.subset(keep), count, shares
 
 
-def convex_hull(points: np.ndarray) -> ConvexPiece:
-    """The convex hull of a point set, as a piece ready for MuJoCo."""
+def mesh_components(part: MeshPart) -> list[MeshPart]:
+    """Every connected component of a part, biggest first.
+
+    A part that is really several things — the floor of a crate and its
+    four walls — is one piece of geometry but not one convex shape, and a
+    single hull of it swallows the space in the middle. Splitting the
+    material into the pieces it is really made of is the first cut, and
+    it is free: the components are already there.
+    """
+    if part.is_empty:
+        return []
+    labels, count = triangle_components(part)
+    if count <= 1:
+        return [part]
+    areas = part.triangle_areas()
+    totals = np.zeros(count)
+    np.add.at(totals, labels, areas)
+    order = np.argsort(-totals)
+    out: list[MeshPart] = []
+    for index in order:
+        component = part.subset(labels == index)
+        if not component.is_empty:
+            out.append(component)
+    return out
+
+
+def _thicken(points: np.ndarray, thickness_m: float) -> np.ndarray | None:
+    """Thicken a flat point set into a slab, or ``None`` if it is not flat.
+
+    The plane is the one the points lie in, found from the smallest
+    singular value of the centred points, and the slab is the set plus
+    its mirror image across that plane.
+    """
+    if points.shape[0] < 3 or thickness_m <= 0.0:
+        return None
+    centre = points.mean(axis=0)
+    centred = points - centre
+    try:
+        _u, _s, vt = np.linalg.svd(centred, full_matrices=False)
+    except np.linalg.LinAlgError:  # pragma: no cover - a singular matrix
+        return None
+    if _s.size < 3 or _s[2] > 1e-6 * max(float(_s[0]), 1e-12):
+        # Not flat: the third direction has real extent.
+        return None
+    normal = vt[2]
+    half = 0.5 * thickness_m
+    return np.concatenate([points, points + normal * thickness_m], axis=0)
+
+
+def convex_hull(points: np.ndarray, thickness_m: float = 0.002) -> ConvexPiece:
+    """The convex hull of a point set, as a piece ready for MuJoCo.
+
+    A flat point set has no hull in the strict sense — its volume is zero
+    and qhull refuses it — and a flat point set is what a **panel** is: a
+    door, a lid, a board. So a set that is flat to within a hair is
+    thickened by a hair along its own plane's normal, and the piece is a
+    thin slab. The slab is thicker than the panel by ``thickness_m``,
+    which is the same order as the clearance the split opens at a cut, and
+    the record says the piece was thickened.
+    """
     if points.shape[0] < 4:
         return ConvexPiece(
             vertices=np.zeros((0, 3)),
@@ -496,8 +686,17 @@ def convex_hull(points: np.ndarray) -> ConvexPiece:
         )
     try:
         hull = ConvexHull(points)
-    except Exception as exc:  # pragma: no cover - qhull's own error text
-        raise GeometryError(f"the convex hull failed: {exc}") from exc
+        if float(hull.volume) <= 1e-12:
+            # A flat point set has a hull with no volume: a door, a lid,
+            # a board. The piece has to be a slab for the simulation to
+            # have anything to stand on, so it is given a thickness.
+            raise ValueError("the hull has no volume")
+    except Exception:
+        thickened = _thicken(points, thickness_m)
+        if thickened is None:
+            raise GeometryError("the convex hull failed: the points are flat")
+        points = thickened
+        hull = ConvexHull(points)
     # scipy's simplices index the points that were handed in, not the
     # hull's own vertex list, so the indices have to be remapped before
     # the two can be used together.
@@ -558,12 +757,17 @@ def distance_to_hull(points: np.ndarray, planes: np.ndarray) -> np.ndarray:
 def clip_mesh_at_plane(part: MeshPart, normal: np.ndarray, offset: float) -> MeshPart:
     """The part of a mesh on one side of a plane.
 
-    The triangles that straddle the plane are cut, not assigned: the part
-    that crosses the cut is flattened onto the plane, so the two sides of
-    the cut share a surface exactly and the pieces tile the mesh instead
-    of overlapping it. A cut that assigns whole triangles by their
-    centroids leaves the material near the plane in the wrong piece, and
-    the clearance the builder opens at the cut then has nothing to open.
+    The cut is a real cut: a triangle that crosses the plane is cut in
+    two, and the piece of it that is on this side is kept. A cut that
+    assigns whole triangles by their centroids leaves the material near
+    the plane in the wrong piece, and the clearance the builder opens at
+    the cut then has nothing to open.
+
+    The triangles that do not cross the plane are kept whole and their
+    vertices are carried over unchanged; only the crossing triangles are
+    dealt with one at a time. A generated prop has hundreds of thousands
+    of triangles and only a few of them cross any one plane, so the split
+    between the two is what keeps this cheap.
     """
     if part.is_empty:
         return part
@@ -576,34 +780,69 @@ def clip_mesh_at_plane(part: MeshPart, normal: np.ndarray, offset: float) -> Mes
 
     vertices = part.vertices
     signed = vertices @ normal + offset
+    triangles = part.triangles
 
-    new_vertices: list[np.ndarray] = []
-    new_faces: list[tuple[int, int, int]] = []
+    triangle_signed = signed[triangles]
+    wholly_inside = np.all(triangle_signed <= 0.0, axis=1)
+    partly_inside = np.any(triangle_signed <= 0.0, axis=1)
+    crossing = np.nonzero(partly_inside & ~wholly_inside)[0]
+
+    kept = triangles[wholly_inside]
+    used = np.unique(kept) if kept.shape[0] else np.zeros(0, dtype=np.int64)
+    remap = np.full(vertices.shape[0], -1, dtype=np.int64)
+    remap[used] = np.arange(used.shape[0], dtype=np.int64)
+
+    # The vertices that are carried over unchanged come first, so that the
+    # faces of the triangles that did not cross the plane can be renumbered
+    # with a plain lookup. The points the cut makes are appended after
+    # them, and the index of a point is its place in that list.
+    carried = vertices[used] if used.size else np.zeros((0, 3), dtype=np.float64)
+    new_points: list[np.ndarray] = []
+    out_faces: list[tuple[int, int, int]] = []
+    if kept.shape[0]:
+        for row in remap[kept]:
+            out_faces.append((int(row[0]), int(row[1]), int(row[2])))
+
     # A hash of the rounded coordinates, so a point that has been seen is
     # found in constant time: a linear scan makes this quadratic, and a
     # generated mesh has hundreds of thousands of vertices.
     index_of: dict[tuple[int, int, int], int] = {}
 
-    def _index(point: np.ndarray) -> int:
-        key = (
+    def _key(point: np.ndarray) -> tuple[int, int, int]:
+        return (
             int(round(float(point[0]) * 1e7)),
             int(round(float(point[1]) * 1e7)),
             int(round(float(point[2]) * 1e7)),
         )
+
+    # A point the cut makes can land exactly on a vertex the mesh
+    # already had. It is the same point, so it is the same vertex: two
+    # vertices in one place would cut the mesh in two, and the piece would
+    # fall apart into pieces that do not touch.
+    carried_index: dict[tuple[int, int, int], int] = {}
+    for position, vertex in enumerate(vertices[used]):
+        carried_index.setdefault(_key(vertex), int(position))
+
+    def _index(point: np.ndarray) -> int:
+        key = _key(point)
         found = index_of.get(key)
         if found is not None:
             return found
-        index_of[key] = len(new_vertices)
-        new_vertices.append(point)
-        return len(new_vertices) - 1
+        found = carried_index.get(key)
+        if found is not None:
+            index_of[key] = found
+            return found
+        index_of[key] = carried.shape[0] + len(new_points)
+        new_points.append(point)
+        return index_of[key]
 
-    for tri in part.triangles:
-        polygon = [(vertices[c], signed[c]) for c in tri]
+    for index in crossing:
+        triangle = triangles[index]
+        polygon = [(vertices[c], signed[c]) for c in triangle]
         clipped: list[np.ndarray] = []
-        count = len(polygon)
-        for i in range(count):
+        for i in range(3):
             point, s = polygon[i]
-            nxt_point, nxt_s = polygon[(i + 1) % count]
+            nxt_point, nxt_s = polygon[(i + 1) % 3]
             if s <= 0.0:
                 clipped.append(point)
             if (s < 0.0 < nxt_s) or (nxt_s < 0.0 < s):
@@ -613,18 +852,21 @@ def clip_mesh_at_plane(part: MeshPart, normal: np.ndarray, offset: float) -> Mes
             continue
         ids = [_index(p) for p in clipped]
         for i in range(1, len(ids) - 1):
-            tri_ids = (ids[0], ids[i], ids[i + 1])
-            if len(set(tri_ids)) == 3:
-                new_faces.append(tri_ids)
+            tri = (ids[0], ids[i], ids[i + 1])
+            if len(set(tri)) == 3:
+                out_faces.append(tri)
 
-    if not new_faces:
+    if not out_faces:
         return MeshPart(vertices=np.zeros((0, 3)), triangles=np.zeros((0, 3), dtype=np.int64))
-    out_vertices = np.asarray(new_vertices, dtype=np.float64)
-    out_faces = np.asarray(new_faces, dtype=np.int64)
-    used = np.unique(out_faces)
-    remap = np.full(out_vertices.shape[0], -1, dtype=np.int64)
-    remap[used] = np.arange(used.shape[0], dtype=np.int64)
-    return MeshPart(vertices=out_vertices[used], triangles=remap[out_faces])
+    stacked = (
+        np.concatenate(
+            [np.atleast_2d(carried)] + [np.atleast_2d(pt) for pt in new_points], axis=0
+        )
+        if new_points
+        else carried
+    )
+    faces = np.asarray(out_faces, dtype=np.int64)
+    return MeshPart(vertices=stacked, triangles=faces)
 
 
 def hull_metrics(points: np.ndarray, planes: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

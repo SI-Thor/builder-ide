@@ -127,9 +127,11 @@ def test_a_closed_solid_is_compared_by_its_volume(tmp_path):
 
 
 def test_the_cavity_a_collider_fills_in_is_measured():
-    # A shell: four walls and a floor, with air in the middle. A collider
-    # that swallowed the air has filled in a cavity as deep as the shell
-    # is deep.
+    # A shell: four walls and a floor, with air in the middle. The pieces
+    # have to be the walls and the floor, not one hull that swallows the
+    # air: a collider that filled the cavity would be a box where the
+    # crate is, and "nothing penetrated past epsilon" would then be a
+    # sentence about the box.
     wall = 0.02
     size = 0.4
     pieces = []
@@ -149,12 +151,46 @@ def test_the_cavity_a_collider_fills_in_is_measured():
 
     shell = MeshPart(vertices=vertices, triangles=triangles)
     decomposition = decompose_part(shell, "shell", 0.004, 24)
-    # The deepest cavity the pieces fill in is of the order of the shell's
-    # own depth.
-    # The cavity is as deep as the shell is wide: the middle of the shell
-    # is a third of a metre from the material.
-    assert decomposition.concavity_m > 0.05
-    assert decomposition.concavity_m < 0.3
+
+    # The pieces cover the shell: every bit of the material is under a
+    # piece, and the pieces do not reach into the cavity.
+    assert decomposition.deviation_m < 0.005
+    # The hollow the pieces fill in is of the order of the shell's own
+    # wall — the inside of a wall is a wall's thickness away from the
+    # material's surface — and not of the order of the cavity.
+    assert decomposition.concavity_m < 0.03
+
+
+def test_a_hollow_that_a_single_hull_would_fill_in_is_caught():
+    # The hollow measure has to be able to see the bad case as well as
+    # the good one: one hull of the shell above fills the cavity, and the
+    # depth of that hollow is the depth of the cavity.
+    from core.physag.decompose import measure_pieces
+    from core.physag.geometry import MeshPart, convex_hull
+
+    wall = 0.02
+    size = 0.4
+    boxes = []
+    for center in (
+        (size / 2 - wall / 2, size / 2, size / 2),
+        (size / 2 - wall / 2, wall / 2, size / 2),
+        (wall / 2, size / 2, size / 2),
+        (size / 2, size / 2, wall / 2),
+    ):
+        boxes.append(box_mesh((wall, size, size), center))
+    vertices = np.concatenate([b[0] for b in boxes])
+    triangles = np.concatenate(
+        [b[1] + sum(q[0].shape[0] for q in boxes[:i]) for i, b in enumerate(boxes)]
+    )
+    shell = MeshPart(vertices=vertices, triangles=triangles)
+
+    from core.physag.decompose import Collider
+
+    one = Collider.from_piece(convex_hull(vertices))
+    measured = measure_pieces([one], shell)
+    # One hull of the shell is a box: it fills the cavity, and the cavity
+    # is as deep as the shell is wide.
+    assert measured["concavity_m"] > 0.05
 
 
 def test_a_surface_mesh_is_told_from_a_solid_one(tmp_path):

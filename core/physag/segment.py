@@ -130,6 +130,12 @@ class Segmentation:
     mesh_area: float = 0.0
     parts_area: float = 0.0
     reasons: tuple[str, ...] = ()
+    #: Whether the parts were known already — because the kernel that
+    #: built the prop made them, one body each — rather than cut out of
+    #: the mesh. The cut is not used to clip the colliders when they are
+    #: known: the two bodies do not share space, because the kernel put
+    #: them where it wanted them.
+    from_known_parts: bool = False
 
     @property
     def coverage(self) -> float:
@@ -332,6 +338,7 @@ def segment(
         mesh_area=mesh_area,
         parts_area=parts_area,
         reasons=tuple(reasons),
+        from_known_parts=True,
     )
 
 
@@ -481,6 +488,7 @@ def segmentation_from_parts(
         mesh_area=mesh_area,
         parts_area=parts_area,
         reasons=tuple(reasons),
+        from_known_parts=True,
     )
 
 

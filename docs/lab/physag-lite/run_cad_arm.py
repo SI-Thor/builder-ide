@@ -294,12 +294,15 @@ def _mesh_parts(
     merged_prop = apply_transform(matrix, merged)
 
     parts: dict[str, MeshPart] = {}
+    merged_faces: list[np.ndarray] = []
     offset = 0
     for name in raw:
         vertices = apply_transform(matrix, raw[name])
-        triangles = faces[name] + offset
+        # The part's own triangles index its own vertices; the merged
+        # mesh's index the merged ones.
+        parts[name] = MeshPart(vertices=vertices, triangles=faces[name])
+        merged_faces.append(faces[name] + offset)
         offset += vertices.shape[0]
-        parts[name] = MeshPart(vertices=vertices, triangles=triangles)
 
     # The joint's anchor and axis, in the prop frame.
     joint = None
@@ -323,22 +326,20 @@ def _mesh_parts(
     anchor_norm = (apply_transform(matrix, anchor_world[None, :])[0] - origin) / np.maximum(size, 1e-9)
 
     return (
-        MeshPart(vertices=merged_prop, triangles=_merged_faces(faces)),
+        MeshPart(
+            vertices=merged_prop,
+            triangles=(
+                np.concatenate(merged_faces, axis=0)
+                if merged_faces
+                else np.zeros((0, 3), dtype=np.int64)
+            ),
+        ),
         parts,
         anchor_norm,
         axis_world,
         joint.low,
         joint.high,
     )
-
-
-def _merged_faces(faces: dict[str, np.ndarray]) -> np.ndarray:
-    offset = 0
-    out: list[np.ndarray] = []
-    for name in faces:
-        out.append(faces[name] + offset)
-        offset += int(faces[name].max()) + 1 if faces[name].size else 0
-    return np.concatenate(out, axis=0) if out else np.zeros((0, 3), dtype=np.int64)
 
 
 def build_cad_prop(urdf_path: Path, base_part: str, moving_part: str) -> CadProp:
@@ -404,11 +405,16 @@ def cad_spec(
     parts = []
     for part in plan.parts:
         name = base_part if part.role == "base" else moving_part
+        # The base is what no other part claimed; the moving part keeps
+        # the plan's cut, which is the planner's claim about where it is.
+        # The cut does not clip anything in this arm — the geometry is
+        # exact — but the spec still has to say where the planner thought
+        # the part was, and that is what the claim is measured against.
         parts.append(
             Part(
                 name=name,
                 role=part.role,
-                cut=Cut(kind="rest"),
+                cut=Cut(kind="rest") if part.role == "base" else part.cut,
                 expect=part.expect,
                 density_kg_m3=part.density_kg_m3,
             )

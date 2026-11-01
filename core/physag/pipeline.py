@@ -31,7 +31,7 @@ from typing import Any
 from core.physag.check import CheckResult, check_prop
 from core.physag.decompose import Decomposition, decompose_part
 from core.physag.delivery import Delivery, build_delivery
-from core.physag.geometry import MeshPart, load_mesh, scale_mesh, subsample_points
+from core.physag.geometry import MeshPart, load_mesh, scale_mesh
 from core.physag.mjcf import BuiltProp, build_mjcf
 from core.physag.planner import Planner, RepairFeedback
 from core.physag.segment import Segmentation, segment, segmentation_from_parts
@@ -69,8 +69,15 @@ def _decompose_all(
     spec: InteractionSpec,
     tolerance_m: float,
     max_pieces: int,
+    clip: bool = True,
 ) -> dict[str, Decomposition]:
-    """Every part's convex pieces, clipped to the part's own half-space."""
+    """Every part's convex pieces, clipped to the part's own half-space.
+
+    The clipping is skipped when the parts were known already — when the
+    kernel that built the prop made them, one body each. The two bodies
+    do not share space, because the kernel put them where it wanted them,
+    and clipping them to the spec's cut would cut a lid off a door.
+    """
     out: dict[str, Decomposition] = {}
     size = segmentation.mesh.bbox_size
     for part in spec.parts:
@@ -81,7 +88,9 @@ def _decompose_all(
             tol_m=tolerance_m,
             max_pieces=max_pieces,
         )
-        out[part.name] = _clip_to_part(decomp, part, spec, size, piece.part)
+        if clip:
+            decomp = _clip_to_part(decomp, part, spec, size, piece.part)
+        out[part.name] = decomp
     return out
 
 
@@ -106,8 +115,7 @@ def _clip_to_part(
     """
     import numpy as np
 
-    from core.physag.decompose import clip_convex
-    from core.physag.geometry import distance_to_union
+    from core.physag.decompose import clip_convex, measure_pieces
 
     clipped = []
     for piece in decomp.colliders:
@@ -161,42 +169,27 @@ def _clip_to_part(
         return decomp
     volume = float(sum(c.volume for c in kept))
 
-    # The deviation is measured after the clip, against the material the
-    # collider stands for: the clearance at the cut is part of it, and the
-    # clearance is a known, recorded number.
+    # The measures are taken again after the clip: the clip moves the
+    # pieces' own surfaces, and a number measured before the clip would be
+    # a number about a collider that is no longer the one in the model.
     #
     # The distance is to the **union** of the pieces, not to each piece: a
     # vertex that one piece covers is covered, however far it is from the
     # *other* pieces' surfaces. Measuring to each piece and taking the worst
     # would report a vertex as far from the collider when the collider is
     # standing right there.
-    deviation = 0.0
-    p95 = 0.0
-    if material is not None and not material.is_empty:
-        planes = [piece.planes for piece in kept if piece.planes.shape[0] > 0]
-        if planes:
-            # The material is sampled: a generated part has hundreds of
-            # thousands of vertices and the pieces are dozens, so the
-            # measurement is a product of two big numbers. The sample is
-            # spread over the shape, and the number it gives is the
-            # deepest miss the sample found.
-            sample = subsample_points(material.vertices, deviation_point_limit)
-            distances = distance_to_union(sample, planes)
-            finite = distances[np.isfinite(distances)]
-            if finite.size:
-                deviation = float(finite.max())
-                p95 = float(np.percentile(finite, 95))
+    measured = measure_pieces(kept, material, deviation_point_limit)
 
     return Decomposition(
         part_name=decomp.part_name,
         colliders=tuple(kept),
         hull_volume=decomp.hull_volume,
         collider_volume=volume,
-        deviation_m=deviation,
-        deviation_p95_m=p95,
-        concavity_m=decomp.concavity_m,
-        stray_m=decomp.stray_m,
-        stray_p95_m=decomp.stray_p95_m,
+        deviation_m=measured["deviation_m"],
+        deviation_p95_m=measured["deviation_p95_m"],
+        concavity_m=measured["concavity_m"],
+        stray_m=measured["stray_m"],
+        stray_p95_m=measured["stray_p95_m"],
         overlaps=decomp.overlaps,
         notes=decomp.notes,
     )
@@ -252,7 +245,13 @@ def run_prop(
     timings["segment_s"] = time.perf_counter() - started
 
     started = time.perf_counter()
-    decompositions = _decompose_all(segmentation, spec, decomposition_tolerance_m, max_pieces)
+    decompositions = _decompose_all(
+        segmentation,
+        spec,
+        decomposition_tolerance_m,
+        max_pieces,
+        clip=not segmentation.from_known_parts,
+    )
     timings["decompose_s"] = time.perf_counter() - started
 
     started = time.perf_counter()
@@ -347,7 +346,11 @@ def run_prop(
             else:
                 segmentation = segmentation_from_parts(mesh, parts, repaired)
             decompositions = _decompose_all(
-                segmentation, repaired, decomposition_tolerance_m, max_pieces
+                segmentation,
+                repaired,
+                decomposition_tolerance_m,
+                max_pieces,
+                clip=not segmentation.from_known_parts,
             )
             built = build_mjcf(repaired, segmentation, decompositions)
             timings["rebuild_s"] = time.perf_counter() - started

@@ -55,6 +55,13 @@ PROPS="${PHYSAG_PROPS:-crate chest lantern door drawer_unit barrel cart gate lad
 
 mkdir -p "$OUT/meshes" "$OUT/pictures" "$OUT/generation" "$COMFY_IN" "$COMFY_OUT"
 
+# The log lives with the artefacts, because the request that runs this
+# script may outlive the shell that asked for it: the admission daemon
+# holds the request in its queue and runs the command when the box has
+# room, so the run's output has to be somewhere the next reader looks.
+exec > >(tee -a "$OUT/generation/generate.log") 2>&1
+echo "== $(date -Is) the ten props, generated on the Thor"
+
 is_up() {
     curl -s --max-time 3 "http://127.0.0.1:${PORT}/system_stats" >/dev/null 2>&1
 }
