@@ -1,0 +1,114 @@
+{
+  "prop": "drawer_unit",
+  "kind": "drawer_unit",
+  "image_prompt": "a small wooden chest of drawers with two pull-out drawers and round brass knobs, studio product photograph, neutral grey background, soft even lighting, sharp detail",
+  "parts": [
+    {
+      "name": "carcass",
+      "role": "base",
+      "cut": {
+        "kind": "rest",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": null,
+      "density_kg_m3": 620.0
+    },
+    {
+      "name": "drawer",
+      "role": "moving",
+      "cut": {
+        "kind": "box",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.06,
+          0.12,
+          0.28
+        ],
+        "max": [
+          0.94,
+          0.88,
+          0.62
+        ]
+      },
+      "expect": {
+        "min": [
+          0.06,
+          0.12,
+          0.28
+        ],
+        "max": [
+          0.94,
+          0.88,
+          0.62
+        ]
+      },
+      "density_kg_m3": 620.0
+    }
+  ],
+  "joints": [
+    {
+      "name": "drawer_slide",
+      "type": "slide",
+      "parent": "carcass",
+      "child": "drawer",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "anchor": [
+        0.5,
+        0.5,
+        0.45
+      ],
+      "low": 0.0,
+      "high": 0.32,
+      "damping": 6.0,
+      "armature": 0.02
+    }
+  ],
+  "action": {
+    "kind": "joint",
+    "joint": "drawer_slide",
+    "target": 0.3,
+    "axis": null,
+    "duration_s": 5.0,
+    "tolerance_rel": 0.02,
+    "dwell_steps": 40,
+    "drive": null
+  },
+  "priors": {
+    "mass_kg": 18.0,
+    "friction": 0.45,
+    "actuator_force_n": 90.0,
+    "actuator_torque_nm": 10.0,
+    "base_static": false
+  },
+  "basis": {
+    "mass_kg": "estimated",
+    "friction": "estimated",
+    "actuator_force_n": "estimated",
+    "actuator_torque_nm": "estimated",
+    "base_static": "estimated"
+  },
+  "planner": {
+    "model": "MiniMax-M3.1-Flash",
+    "mode": "cloud-session",
+    "authored_by": "the physag-lite seat's own session; the inference ran on the provider's servers, not on the Thor",
+    "note": "the configured provider credential store is not readable from this session, so the plans were authored here and committed as data rather than fetched through a scripted API call"
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "prop": "gate",
+  "kind": "gate",
+  "image_prompt": "a rustic wooden farm gate with diagonal bracing hanging on an iron post, studio product photograph, neutral grey background, soft even lighting, sharp detail",
+  "parts": [
+    {
+      "name": "post",
+      "role": "base",
+      "cut": {
+        "kind": "rest",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": null,
+      "density_kg_m3": 680.0
+    },
+    {
+      "name": "leaf",
+      "role": "moving",
+      "cut": {
+        "kind": "box",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.12,
+          0.04,
+          0.1
+        ],
+        "max": [
+          0.95,
+          0.55,
+          0.92
+        ]
+      },
+      "expect": {
+        "min": [
+          0.12,
+          0.04,
+          0.1
+        ],
+        "max": [
+          0.95,
+          0.55,
+          0.92
+        ]
+      },
+      "density_kg_m3": 680.0
+    }
+  ],
+  "joints": [
+    {
+      "name": "gate_hinge",
+      "type": "hinge",
+      "parent": "post",
+      "child": "leaf",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "anchor": [
+        0.12,
+        0.3,
+        0.5
+      ],
+      "low": 0.0,
+      "high": 1.5707963267948966,
+      "damping": 1.2,
+      "armature": 0.02
+    }
+  ],
+  "action": {
+    "kind": "joint",
+    "joint": "gate_hinge",
+    "target": 1.5707963267948966,
+    "axis": null,
+    "duration_s": 6.0,
+    "tolerance_rel": 0.02,
+    "dwell_steps": 40,
+    "drive": null
+  },
+  "priors": {
+    "mass_kg": 16.0,
+    "friction": 0.55,
+    "actuator_force_n": 100.0,
+    "actuator_torque_nm": 22.0,
+    "base_static": false
+  },
+  "basis": {
+    "mass_kg": "estimated",
+    "friction": "estimated",
+    "actuator_force_n": "estimated",
+    "actuator_torque_nm": "estimated",
+    "base_static": "estimated"
+  },
+  "planner": {
+    "model": "MiniMax-M3.1-Flash",
+    "mode": "cloud-session",
+    "authored_by": "the physag-lite seat's own session; the inference ran on the provider's servers, not on the Thor",
+    "note": "the configured provider credential store is not readable from this session, so the plans were authored here and committed as data rather than fetched through a scripted API call"
+  }
+}

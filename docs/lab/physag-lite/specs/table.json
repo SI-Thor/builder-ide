@@ -1,0 +1,114 @@
+{
+  "prop": "table",
+  "kind": "table",
+  "image_prompt": "a wooden work table with a drop-leaf top hinged at the back edge and thick square legs, studio product photograph, neutral grey background, soft even lighting, sharp detail",
+  "parts": [
+    {
+      "name": "frame",
+      "role": "base",
+      "cut": {
+        "kind": "rest",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": null,
+      "density_kg_m3": 640.0
+    },
+    {
+      "name": "top",
+      "role": "moving",
+      "cut": {
+        "kind": "plane",
+        "axis": "z",
+        "at": 0.88,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": {
+        "min": [
+          0.0,
+          0.0,
+          0.88
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "density_kg_m3": 640.0
+    }
+  ],
+  "joints": [
+    {
+      "name": "leaf_hinge",
+      "type": "hinge",
+      "parent": "frame",
+      "child": "top",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "anchor": [
+        0.5,
+        0.0,
+        0.88
+      ],
+      "low": 0.0,
+      "high": 0.7853981633974483,
+      "damping": 1.4,
+      "armature": 0.03
+    }
+  ],
+  "action": {
+    "kind": "joint",
+    "joint": "leaf_hinge",
+    "target": 0.7853981633974483,
+    "axis": null,
+    "duration_s": 5.0,
+    "tolerance_rel": 0.02,
+    "dwell_steps": 40,
+    "drive": null
+  },
+  "priors": {
+    "mass_kg": 35.0,
+    "friction": 0.55,
+    "actuator_force_n": 130.0,
+    "actuator_torque_nm": 20.0,
+    "base_static": false
+  },
+  "basis": {
+    "mass_kg": "estimated",
+    "friction": "estimated",
+    "actuator_force_n": "estimated",
+    "actuator_torque_nm": "estimated",
+    "base_static": "estimated"
+  },
+  "planner": {
+    "model": "MiniMax-M3.1-Flash",
+    "mode": "cloud-session",
+    "authored_by": "the physag-lite seat's own session; the inference ran on the provider's servers, not on the Thor",
+    "note": "the configured provider credential store is not readable from this session, so the plans were authored here and committed as data rather than fetched through a scripted API call"
+  }
+}

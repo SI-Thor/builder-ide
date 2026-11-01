@@ -1,0 +1,118 @@
+{
+  "prop": "cart",
+  "kind": "cart",
+  "image_prompt": "a wooden hand cart with two spoked wheels and a flat bed, studio product photograph, neutral grey background, soft even lighting, sharp detail",
+  "parts": [
+    {
+      "name": "chassis",
+      "role": "base",
+      "cut": {
+        "kind": "rest",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": null,
+      "density_kg_m3": 600.0
+    },
+    {
+      "name": "wheels",
+      "role": "moving",
+      "cut": {
+        "kind": "plane",
+        "axis": "z",
+        "at": 0.22,
+        "keep": "below",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": {
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          0.22
+        ]
+      },
+      "density_kg_m3": 600.0
+    }
+  ],
+  "joints": [
+    {
+      "name": "wheel",
+      "type": "hinge",
+      "parent": "chassis",
+      "child": "wheels",
+      "axis": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "anchor": [
+        0.5,
+        0.5,
+        0.22
+      ],
+      "low": 0.0,
+      "high": 8.0,
+      "damping": 0.2,
+      "armature": 0.01
+    }
+  ],
+  "action": {
+    "kind": "displacement",
+    "joint": "wheel",
+    "target": 0.5,
+    "axis": [
+      1.0,
+      0.0,
+      0.0
+    ],
+    "duration_s": 6.0,
+    "tolerance_rel": 0.02,
+    "dwell_steps": 40,
+    "drive": 6.0
+  },
+  "priors": {
+    "mass_kg": 30.0,
+    "friction": 0.8,
+    "actuator_force_n": 120.0,
+    "actuator_torque_nm": 10.0,
+    "base_static": false
+  },
+  "basis": {
+    "mass_kg": "estimated",
+    "friction": "estimated",
+    "actuator_force_n": "estimated",
+    "actuator_torque_nm": "estimated",
+    "base_static": "estimated"
+  },
+  "planner": {
+    "model": "MiniMax-M3.1-Flash",
+    "mode": "cloud-session",
+    "authored_by": "the physag-lite seat's own session; the inference ran on the provider's servers, not on the Thor",
+    "note": "the configured provider credential store is not readable from this session, so the plans were authored here and committed as data rather than fetched through a scripted API call"
+  }
+}
