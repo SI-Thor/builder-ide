@@ -65,7 +65,9 @@ works.
   world on the Thor with Minecraft Java (Paper; Casey accepted Mojang's EULA),
   mineflayer and prismarine-viewer, and Luanti; localai-org/motion-bricks.cpp
   (NVIDIA MotionBricks in GGML, Apache-2.0; weights licence checked first) to
-  evaluate and then rebuild Thor-native under SI-Thor. Also our crew's
+  evaluate and then rebuild Thor-native under SI-Thor; speridlabs/idol-sdk (image
+  to 3D Gaussians, Apache-2.0 code; gated DINOv3 and FLUX.2-dev weights via
+  Casey's Hugging Face access; outputs marked non-commercial). Also our crew's
   quilt-pincher, KTX-Software (`toktx`), and the open-source builds the seats
   listed in their reports. Any other third-party project from GitHub still
   needs his OK.
