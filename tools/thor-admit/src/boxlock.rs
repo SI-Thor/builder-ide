@@ -146,6 +146,29 @@ impl BoxLock {
         Ok(())
     }
 
+    /// Let the command that replaces this process inherit the lock.
+    ///
+    /// `thor-admit exec` runs the command **in place of** the client: the
+    /// command takes the process, its signals and its exit code. The
+    /// descriptor Rust opens carries `O_CLOEXEC`, so the lock would be
+    /// dropped by the `exec` and the command would run *without* it. This
+    /// clears the flag, so the command holds the lock for as long as it
+    /// runs — which is what `exec --lock` means.
+    pub fn clear_close_on_exec(&self) -> io::Result<()> {
+        let fd = self.file.as_raw_fd();
+        let flags = unsafe { libc::fcntl(fd, libc::F_GETFD) };
+        if flags < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        // Every descriptor Rust opens carries FD_CLOEXEC, which the kernel
+        // turns into a close at the next exec. Unset it so the lock survives
+        // into the command.
+        if unsafe { libc::fcntl(fd, libc::F_SETFD, flags & !libc::FD_CLOEXEC) } < 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    }
+
     /// The file the lock is on.
     pub fn path(&self) -> &Path {
         &self.path

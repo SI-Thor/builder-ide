@@ -824,13 +824,20 @@ fn run_exec(args: &[String]) -> ExitCode {
     if let Some(path) = options.get("lock") {
         let path = PathBuf::from(path);
         eprintln!("thor-admit: taking the box's lock {}", path.display());
-        let _lock = match thor_admit::boxlock::BoxLock::acquire(&path) {
+        let lock = match thor_admit::boxlock::BoxLock::acquire(&path) {
             Ok(lock) => lock,
             Err(error) => {
                 eprintln!("thor-admit: cannot take {}: {error}", path.display());
                 return ExitCode::from(1);
             }
         };
+        // The command replaces this process, so the descriptor it inherits
+        // is the only one that will be left: the lock must not be dropped by
+        // the exec.
+        if let Err(error) = lock.clear_close_on_exec() {
+            eprintln!("thor-admit: cannot hand the lock to the command: {error}");
+            return ExitCode::from(1);
+        }
         client::exec_now(command)
     }
     client::exec_now(command)

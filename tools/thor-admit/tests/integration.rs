@@ -4734,3 +4734,51 @@ fn a_client_that_inherited_the_box_lock_gives_it_back_while_it_waits() {
         "the client did not say that it inherited the lock: {errors}"
     );
 }
+
+/// `exec --lock` hands the lock to the command it runs.
+///
+/// `exec` runs the command **in place of** the client, so the descriptor
+/// Rust opens — which carries `O_CLOEXEC` — is closed by the `exec`, and the
+/// lock would be dropped with it. The command must run **holding** the lock,
+/// which is what the option says.
+#[test]
+fn the_exec_hands_the_box_lock_to_the_command() {
+    let _serial = serial_gate();
+    let mut path = std::env::temp_dir();
+    path.push(format!("thor-admit-exec-lock-{}", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+
+    // The command tries to take the lock on a *fresh* descriptor: if the
+    // lock is held (by the descriptor the command inherited), the attempt
+    // cannot succeed.
+    let script = "import fcntl, os, sys\n\
+         f = open(sys.argv[1], 'w')\n\
+         try:\n\
+         \x20   fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)\n\
+         except OSError:\n\
+         \x20   print('held')\n\
+         else:\n\
+         \x20   print('free')\n";
+    let ran = Command::new(BIN)
+        .arg("exec")
+        .arg("--lock")
+        .arg(&path)
+        .arg("--")
+        .arg("python3")
+        .arg("-c")
+        .arg(&script)
+        .arg(&path)
+        .output()
+        .expect("the exec runs");
+    assert!(
+        ran.status.success(),
+        "the command must run: {}",
+        String::from_utf8_lossy(&ran.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&ran.stdout).contains("held"),
+        "the command did not hold the lock: {}",
+        String::from_utf8_lossy(&ran.stdout)
+    );
+    let _ = std::fs::remove_file(&path);
+}
