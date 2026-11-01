@@ -20,6 +20,15 @@ The volume and the centre of mass are the signed ones (the divergence
 theorem): they are only the enclosed volume and the enclosed centre of mass
 when the mesh is closed and consistently wound. On an open mesh they are
 still computed and still reported — as measurements of what is there.
+
+**The occupied volume is a different measurement, and it is optional.** The
+signed volume answers "how much material is there"; the occupied volume
+answers "how much space does the object take up". They agree on a solid and
+disagree wildly on a shell: a real mug is 43 cm³ of ceramic inside a
+500 cm³ cylinder, and the critic wants the second number. It is measured
+by :mod:`core.genbatch.occupancy` and carried here when it was asked for,
+so that the plausibility features can be read off the object rather than
+off its wall.
 """
 
 from __future__ import annotations
@@ -28,6 +37,7 @@ import numpy as np
 from pydantic import BaseModel, Field
 
 from core.genbatch.glb import Mesh
+from core.genbatch.occupancy import FillMethod, occupied
 
 __all__ = ["MeshReport", "measure_mesh"]
 
@@ -52,6 +62,14 @@ class MeshReport(BaseModel):
     extent: tuple[float, float, float] = (0.0, 0.0, 0.0)
     #: The signed volume: positive when the mesh is closed and outward-wound.
     volume: float = 0.0
+    #: The volume of the space the object **occupies** — the envelope of a
+    #: shell, not the material in it. ``None`` when it was not measured;
+    #: the signed volume is then the only volume there is.
+    occupied_volume: float | None = None
+    #: The centre of the occupied region, in the mesh's own units.
+    occupied_centre: tuple[float, float, float] | None = None
+    #: Which measure produced :attr:`occupied_volume`.
+    occupied_method: str = ""
     #: The total surface area.
     area: float = 0.0
     #: The centre of mass of the enclosed solid.
@@ -63,8 +81,20 @@ class MeshReport(BaseModel):
         return self.model_dump()
 
 
-def measure_mesh(mesh: Mesh) -> MeshReport:
-    """Measure a mesh: topology, size, and the three solid quantities."""
+def measure_mesh(
+    mesh: Mesh,
+    *,
+    fill_method: FillMethod | str | None = None,
+    fill_resolution: int = 64,
+) -> MeshReport:
+    """Measure a mesh: topology, size, and the three solid quantities.
+
+    ``fill_method`` is optional and, when it is given, the report also
+    carries **what the object occupies** — the volume of the space it takes
+    up, which is not the same number as the volume of the material in it.
+    Without it the report carries the signed volume alone, and the cost of
+    the measurement is what it was.
+    """
     positions = np.asarray(mesh.positions, dtype=np.float64)
     indices = np.asarray(mesh.indices, dtype=np.int64)
     if indices.size == 0:
@@ -101,6 +131,16 @@ def measure_mesh(mesh: Mesh) -> MeshReport:
     # -- the topology ----------------------------------------------------
     boundary, nonmanifold, consistent = _edge_report(indices, positions.shape[0])
 
+    # -- what the object occupies ----------------------------------------
+    occupied_volume: float | None = None
+    occupied_centre: tuple[float, float, float] | None = None
+    occupied_method = ""
+    if fill_method is not None:
+        occupancy = occupied(mesh, fill_method, resolution=fill_resolution)
+        occupied_volume = occupancy.volume
+        occupied_centre = occupancy.centre
+        occupied_method = occupancy.method
+
     return MeshReport(
         triangles=int(indices.shape[0]),
         vertices=int(positions.shape[0]),
@@ -113,6 +153,9 @@ def measure_mesh(mesh: Mesh) -> MeshReport:
         bbox_max=tuple(float(x) for x in bbox_max),
         extent=tuple(float(x) for x in extent),
         volume=volume,
+        occupied_volume=occupied_volume,
+        occupied_centre=occupied_centre,
+        occupied_method=occupied_method,
         area=area,
         centre_of_mass=tuple(float(x) for x in com),
         diagonal=diagonal,

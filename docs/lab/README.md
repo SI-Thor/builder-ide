@@ -8,6 +8,18 @@ Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md
 
 ---
 
+## Round 8 — the critic's shells (2026-11-01)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-critic-shells.md`](exp-critic-shells.md) | the plausibility prior's `fill_ratio` measured against the **NVIDIA SimReady** assets instead of a synthetic toy: three occupancy measures against known volumes, the fill ratios over 38 real objects, the prior refitted on the union of the approved assets and the sample, and the confusion table before and after | **the measure was wrong and the prior was empty of real objects — the ghost is still flagged (0.0385) and 1 of 38 real assets is flagged (2.6 %) against 38 of 38 before; leave-one-out is 3 of 38, and that floor is structural for a kind of 38** |
+
+Scripts: [`critic-shells-scripts/`](critic-shells-scripts/) — the measures
+against known volumes, the fill ratios over the sample, the reference set's
+builder, and the confusion table.
+
+---
+
 ## Round 7 — the decision models (2026-10-31)
 
 | file | what it measured | verdict |

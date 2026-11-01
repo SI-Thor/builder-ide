@@ -1,0 +1,122 @@
+{
+  "box": {
+    "machine": "NVIDIA Jetson AGX Thor, aarch64, 14 Neoverse cores",
+    "kernel": "6.8.12-1021-tegra",
+    "python": "3.12.3",
+    "numpy": "2.5.4",
+    "load_average": [
+      6.4,
+      8.12,
+      9.69
+    ],
+    "mem_total_gb": 122.8,
+    "mem_available_gb": 64.6
+  },
+  "cases": [
+    {
+      "case": "cube",
+      "method": "visual",
+      "occupied_volume": 1.0,
+      "expected": 1.0,
+      "relative_error": 0.0
+    },
+    {
+      "case": "cube",
+      "method": "convex",
+      "occupied_volume": 1.0,
+      "expected": 1.0,
+      "relative_error": 0.0
+    },
+    {
+      "case": "cube",
+      "method": "signed",
+      "occupied_volume": 1.0,
+      "expected": 1.0,
+      "relative_error": 0.0
+    },
+    {
+      "case": "sphere",
+      "method": "visual",
+      "occupied_volume": 0.5810275607638888,
+      "expected": 0.5235987755982988,
+      "relative_error": 0.10968090041839397
+    },
+    {
+      "case": "sphere",
+      "method": "convex",
+      "occupied_volume": 0.5190855734435532,
+      "expected": 0.5235987755982988,
+      "relative_error": -0.008619581185209065
+    },
+    {
+      "case": "sphere",
+      "method": "signed",
+      "occupied_volume": 0.5190855734435532,
+      "expected": 0.5235987755982988,
+      "relative_error": -0.008619581185209065
+    },
+    {
+      "case": "mug",
+      "method": "visual",
+      "occupied_volume": 0.0004520000000000001,
+      "expected": 0.0004523893421169302,
+      "relative_error": -0.0008606350342123527
+    },
+    {
+      "case": "mug",
+      "method": "convex",
+      "occupied_volume": 0.00045166298263861504,
+      "expected": 0.0004523893421169302,
+      "relative_error": -0.0016056069643820639
+    },
+    {
+      "case": "mug",
+      "method": "signed",
+      "occupied_volume": -0.0001250698710605193,
+      "expected": 0.0004523893421169302,
+      "relative_error": -1.276465114043717
+    },
+    {
+      "case": "plate",
+      "method": "visual",
+      "occupied_volume": 4.708333333333333e-05,
+      "expected": 4.71238898038469e-05,
+      "relative_error": -0.0008606350342126881
+    },
+    {
+      "case": "plate",
+      "method": "convex",
+      "occupied_volume": 4.70482273581891e-05,
+      "expected": 4.71238898038469e-05,
+      "relative_error": -0.0016056069643814168
+    },
+    {
+      "case": "plate",
+      "method": "signed",
+      "occupied_volume": -4.70482273581891e-05,
+      "expected": 4.71238898038469e-05,
+      "relative_error": -1.9983943930356185
+    },
+    {
+      "case": "bracket",
+      "method": "visual",
+      "occupied_volume": 0.0003949652777777778,
+      "expected": 0.0004,
+      "relative_error": -0.012586805555555615
+    },
+    {
+      "case": "bracket",
+      "method": "convex",
+      "occupied_volume": 0.0011900000000000005,
+      "expected": 0.0004,
+      "relative_error": 1.9750000000000012
+    },
+    {
+      "case": "bracket",
+      "method": "signed",
+      "occupied_volume": 0.0004,
+      "expected": 0.0004,
+      "relative_error": 0.0
+    }
+  ]
+}

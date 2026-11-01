@@ -1,0 +1,1693 @@
+{
+  "box": {
+    "machine": "NVIDIA Jetson AGX Thor, aarch64, 14 Neoverse cores",
+    "kernel": "6.8.12-1021-tegra",
+    "python": "3.12.3",
+    "numpy": "2.5.4",
+    "load_average": [
+      9.43,
+      8.97,
+      10.31
+    ],
+    "mem_total_gb": 122.8,
+    "mem_available_gb": 65.1
+  },
+  "glb_dir": "/home/caseydigennaro/lm-wt/simready-survey/data/glb",
+  "resolutions": [
+    64
+  ],
+  "assets": [
+    {
+      "asset": "IV_pole_a01",
+      "triangles": 458714,
+      "triangles_first_primitive": 12416,
+      "primitives": 16,
+      "vertices": 230723,
+      "extent": [
+        0.722052,
+        0.570911,
+        1.799375
+      ],
+      "box_volume": 0.74175147491537,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 2544,
+      "signed_volume": 0.002512263910652921,
+      "signed_fill": 0.0033869348368192422,
+      "signed_seconds": 0.2019,
+      "defect_rate": 0.005545939299868763,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.0009026287860794183,
+          "fill": 0.001216888427734375,
+          "seconds": 0.6605,
+          "log_volume": -7.0101991786808355,
+          "sphericity": 90.6062333688193,
+          "elongation": 3.1517638311867864,
+          "fill_ratio": 0.001216888427734375,
+          "offcentre": 0.09963179214301926,
+          "defect_rate": 0.005545939299868763
+        },
+        "convex_64": {
+          "occupied_volume": 0.32045458705937335,
+          "fill": 0.4320241993397257,
+          "seconds": 0.4197,
+          "log_volume": -1.1380147067034785,
+          "sphericity": 1.807118095044997,
+          "elongation": 3.1517638311867864,
+          "fill_ratio": 0.4320241993397257,
+          "offcentre": 0.12480739777945693,
+          "defect_rate": 0.005545939299868763
+        }
+      }
+    },
+    {
+      "asset": "bodyPart_door_front_a01",
+      "triangles": 168604,
+      "triangles_first_primitive": 168604,
+      "primitives": 1,
+      "vertices": 84204,
+      "extent": [
+        0.180199,
+        1.042129,
+        1.185659
+      ],
+      "box_volume": 0.2226551047874235,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.0007904336596994502,
+      "signed_fill": 0.003550036099347933,
+      "signed_seconds": 0.0657,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.09399122829773358,
+          "fill": 0.4221382141113281,
+          "seconds": 0.2585,
+          "log_volume": -2.3645538170478977,
+          "sphericity": 16.954920525205164,
+          "elongation": 6.5797329802267885,
+          "fill_ratio": 0.4221382141113281,
+          "offcentre": 0.07240374065946682,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.11514926388048231,
+          "fill": 0.5171642661883691,
+          "seconds": 0.0801,
+          "log_volume": -2.161526045436855,
+          "sphericity": 14.808572564743267,
+          "elongation": 6.5797329802267885,
+          "fill_ratio": 0.5171642661883691,
+          "offcentre": 0.04917210853238071,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "bodyPart_trunk_lid_a01",
+      "triangles": 317648,
+      "triangles_first_primitive": 317648,
+      "primitives": 1,
+      "vertices": 158686,
+      "extent": [
+        0.665058,
+        1.212018,
+        0.349381
+      ],
+      "box_volume": 0.28162284618202904,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.0015045258198050939,
+      "signed_fill": 0.005342342924950884,
+      "signed_seconds": 0.1235,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.08354232410621379,
+          "fill": 0.2966461181640625,
+          "seconds": 0.4899,
+          "log_volume": -2.482401900019814,
+          "sphericity": 19.89814894436043,
+          "elongation": 3.4690457857998633,
+          "fill_ratio": 0.2966461181640625,
+          "offcentre": 0.07611167758488718,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.12781518410288853,
+          "fill": 0.45385232709520384,
+          "seconds": 0.1628,
+          "log_volume": -2.0571699326495216,
+          "sphericity": 14.986334181690694,
+          "elongation": 3.4690457857998633,
+          "fill_ratio": 0.45385232709520384,
+          "offcentre": 0.04295787243265903,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "box_long_a08",
+      "triangles": 4924,
+      "triangles_first_primitive": 4924,
+      "primitives": 1,
+      "vertices": 2847,
+      "extent": [
+        0.157504,
+        0.308999,
+        0.156134
+      ],
+      "box_volume": 0.007598835725965909,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 752,
+      "signed_volume": 0.0004864890902880412,
+      "signed_fill": 0.06402153011752366,
+      "signed_seconds": 0.0016,
+      "defect_rate": 0.15272136474411047,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.00747648051051447,
+          "fill": 0.9838981628417969,
+          "seconds": 0.0137,
+          "log_volume": -4.89599311770971,
+          "sphericity": 14.864941429783988,
+          "elongation": 1.9790608495201196,
+          "fill_ratio": 0.9838981628417969,
+          "offcentre": 0.00506904852819819,
+          "defect_rate": 0.15272136474411047
+        },
+        "convex_64": {
+          "occupied_volume": 0.007392126096975476,
+          "fill": 0.9727971973016751,
+          "seconds": 0.0039,
+          "log_volume": -4.907339886214728,
+          "sphericity": 14.977813836740916,
+          "elongation": 1.9790608495201196,
+          "fill_ratio": 0.9727971973016751,
+          "offcentre": 0.001240593799871299,
+          "defect_rate": 0.15272136474411047
+        }
+      }
+    },
+    {
+      "asset": "cabinet_file_a03",
+      "triangles": 19720,
+      "triangles_first_primitive": 11328,
+      "primitives": 5,
+      "vertices": 11018,
+      "extent": [
+        0.372795,
+        0.825892,
+        2.00027
+      ],
+      "box_volume": 0.6158598944333747,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 2204,
+      "signed_volume": 0.003973585088919293,
+      "signed_fill": 0.006452092634762671,
+      "signed_seconds": 0.0054,
+      "defect_rate": 0.11176470588235295,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.6146570430770596,
+          "fill": 0.9980468750000001,
+          "seconds": 0.0335,
+          "log_volume": -0.48669082025541727,
+          "sphericity": 21.348551747797828,
+          "elongation": 5.365606365667242,
+          "fill_ratio": 0.9980468750000001,
+          "offcentre": 8.175775157329145e-05,
+          "defect_rate": 0.11176470588235295
+        },
+        "convex_64": {
+          "occupied_volume": 0.6133164496118686,
+          "fill": 0.9958700918106606,
+          "seconds": 0.011,
+          "log_volume": -0.48887424523284845,
+          "sphericity": 21.3796496830552,
+          "elongation": 5.365606365667242,
+          "fill_ratio": 0.9958700918106606,
+          "offcentre": 0.0005026605886607727,
+          "defect_rate": 0.11176470588235295
+        }
+      }
+    },
+    {
+      "asset": "cleaning_sponge_c01",
+      "triangles": 3552,
+      "triangles_first_primitive": 3552,
+      "primitives": 1,
+      "vertices": 1778,
+      "extent": [
+        0.070814,
+        0.09086,
+        0.027197
+      ],
+      "box_volume": 0.00017498714055899417,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.00014663052851853056,
+      "signed_fill": 0.837950309091978,
+      "signed_seconds": 0.0013,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.0001489931287162368,
+          "fill": 0.851451873779297,
+          "seconds": 0.0081,
+          "log_volume": -8.8116103690806,
+          "sphericity": 6.6077894439396125,
+          "elongation": 3.3408817259408385,
+          "fill_ratio": 0.851451873779297,
+          "offcentre": 0.0003972287074261187,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.00016464664305708396,
+          "fill": 0.9409071005510599,
+          "seconds": 0.004,
+          "log_volume": -8.711708937706357,
+          "sphericity": 6.182039403828861,
+          "elongation": 3.3408817259408385,
+          "fill_ratio": 0.9409071005510599,
+          "offcentre": 0.0005957325932984075,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "consumable_fuse_micro_green_a01",
+      "triangles": 20496,
+      "triangles_first_primitive": 20496,
+      "primitives": 1,
+      "vertices": 10284,
+      "extent": [
+        0.013248,
+        0.052957,
+        0.013248
+      ],
+      "box_volume": 9.294763357088635e-06,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 64,
+      "signed_volume": 6.0527218204571e-06,
+      "signed_fill": 0.651196979193774,
+      "signed_seconds": 0.0062,
+      "defect_rate": 0.00312256049960968,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 6.798043781005439e-06,
+          "fill": 0.73138427734375,
+          "seconds": 0.0335,
+          "log_volume": -11.898875666433737,
+          "sphericity": 7.397694517707566,
+          "elongation": 3.9972825637088056,
+          "fill_ratio": 0.73138427734375,
+          "offcentre": 0.00018543781523990704,
+          "defect_rate": 0.00312256049960968
+        },
+        "convex_64": {
+          "occupied_volume": 7.2650176128081735e-06,
+          "fill": 0.781624806753958,
+          "seconds": 0.021,
+          "log_volume": -11.832439836607985,
+          "sphericity": 7.077196443940059,
+          "elongation": 3.9972825637088056,
+          "fill_ratio": 0.781624806753958,
+          "offcentre": 2.0485201390572614e-07,
+          "defect_rate": 0.00312256049960968
+        }
+      }
+    },
+    {
+      "asset": "container_system_sterilising_e01",
+      "triangles": 85800,
+      "triangles_first_primitive": 70288,
+      "primitives": 3,
+      "vertices": 42264,
+      "extent": [
+        0.508004,
+        0.313001,
+        0.146717
+      ],
+      "box_volume": 0.02332894693402829,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.0033414875339947098,
+      "signed_fill": 0.1432335348631068,
+      "signed_seconds": 0.0265,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.01972135396675977,
+          "fill": 0.8453598022460938,
+          "seconds": 0.1364,
+          "log_volume": -3.9260532725926116,
+          "sphericity": 22.06725998727775,
+          "elongation": 3.4624659140448064,
+          "fill_ratio": 0.8453598022460938,
+          "offcentre": 0.006588283531377025,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.02082834383513049,
+          "fill": 0.8928111454850821,
+          "seconds": 0.0374,
+          "log_volume": -3.8714405355053536,
+          "sphericity": 21.278274383040728,
+          "elongation": 3.4624659140448064,
+          "fill_ratio": 0.8928111454850821,
+          "offcentre": 0.0058257694934971405,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "crate_white_a01",
+      "triangles": 60744,
+      "triangles_first_primitive": 60744,
+      "primitives": 1,
+      "vertices": 31324,
+      "extent": [
+        0.605133,
+        0.405133,
+        0.253219
+      ],
+      "box_volume": 0.06207918769216397,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 4704,
+      "signed_volume": 0.0014963324706853975,
+      "signed_fill": 0.02410360905663516,
+      "signed_seconds": 0.0184,
+      "defect_rate": 0.07743974713551956,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.06184142713139229,
+          "fill": 0.9961700439453125,
+          "seconds": 0.0872,
+          "log_volume": -2.783181797165373,
+          "sphericity": 7.956232211805473,
+          "elongation": 2.389757888380149,
+          "fill_ratio": 0.9961700439453125,
+          "offcentre": 0.0007656812999312837,
+          "defect_rate": 0.07743974713551956
+        },
+        "convex_64": {
+          "occupied_volume": 0.061870608378265336,
+          "fill": 0.9966401088407771,
+          "seconds": 0.0271,
+          "log_volume": -2.78271003631698,
+          "sphericity": 7.953730312686608,
+          "elongation": 2.389757888380149,
+          "fill_ratio": 0.9966401088407771,
+          "offcentre": 0.0003519615662045635,
+          "defect_rate": 0.07743974713551956
+        }
+      }
+    },
+    {
+      "asset": "decor_candle_l01",
+      "triangles": 13856,
+      "triangles_first_primitive": 11880,
+      "primitives": 2,
+      "vertices": 6940,
+      "extent": [
+        0.0889,
+        0.0889,
+        0.273878
+      ],
+      "box_volume": 0.002164518123486799,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.00017106391433309898,
+      "signed_fill": 0.07903094572270614,
+      "signed_seconds": 0.0037,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.00013088966863064857,
+          "fill": 0.0604705810546875,
+          "seconds": 0.0198,
+          "log_volume": -8.94115581382671,
+          "sphericity": 13.73790691991067,
+          "elongation": 3.080746371864764,
+          "fill_ratio": 0.0604705810546875,
+          "offcentre": 0.041227928873255715,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.000711750798150488,
+          "fill": 0.32882644429141406,
+          "seconds": 0.007,
+          "log_volume": -7.247782710415133,
+          "sphericity": 4.442616648580831,
+          "elongation": 3.080746371864764,
+          "fill_ratio": 0.32882644429141406,
+          "offcentre": 0.1839924764078411,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "dishware_mug_a01",
+      "triangles": 11876,
+      "triangles_first_primitive": 11876,
+      "primitives": 1,
+      "vertices": 5938,
+      "extent": [
+        0.114445,
+        0.0902,
+        0.079999
+      ],
+      "box_volume": 0.0008258254343819427,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 4.330388188709641e-05,
+      "signed_fill": 0.05243708910407384,
+      "signed_seconds": 0.0035,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.0004496701145312443,
+          "fill": 0.5445098876953125,
+          "seconds": 0.0187,
+          "log_volume": -7.706996322853036,
+          "sphericity": 8.817547825464011,
+          "elongation": 1.4305691762449217,
+          "fill_ratio": 0.5445098876953125,
+          "offcentre": 0.04061280970103175,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.0004889548123606755,
+          "fill": 0.5920801079790124,
+          "seconds": 0.0087,
+          "log_volume": -7.623240481019685,
+          "sphericity": 8.338693747886792,
+          "elongation": 1.4305691762449217,
+          "fill_ratio": 0.5920801079790124,
+          "offcentre": 0.045993752516455086,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "drum_fiber_a02",
+      "triangles": 25425,
+      "triangles_first_primitive": 5404,
+      "primitives": 2,
+      "vertices": 13101,
+      "extent": [
+        0.577531,
+        0.586093,
+        0.907204
+      ],
+      "box_volume": 0.30707651084794757,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 765,
+      "signed_volume": 0.02230799197831712,
+      "signed_fill": 0.07264636398504339,
+      "signed_seconds": 0.007,
+      "defect_rate": 0.03008849557522124,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.22633983803768645,
+          "fill": 0.7370796203613281,
+          "seconds": 0.0344,
+          "log_volume": -1.48571770101548,
+          "sphericity": 11.74422912973462,
+          "elongation": 1.5708339118904409,
+          "fill_ratio": 0.7370796203613281,
+          "offcentre": 0.004647840803340915,
+          "defect_rate": 0.03008849557522124
+        },
+        "convex_64": {
+          "occupied_volume": 0.2361600943724645,
+          "fill": 0.7690594559653632,
+          "seconds": 0.0136,
+          "log_volume": -1.4432453379577088,
+          "sphericity": 11.416356106757686,
+          "elongation": 1.5708339118904409,
+          "fill_ratio": 0.7690594559653632,
+          "offcentre": 0.0029691562828069633,
+          "defect_rate": 0.03008849557522124
+        }
+      }
+    },
+    {
+      "asset": "engineComponent_camshaft_b01",
+      "triangles": 361096,
+      "triangles_first_primitive": 361096,
+      "primitives": 1,
+      "vertices": 182269,
+      "extent": [
+        1.184393,
+        0.303095,
+        0.303096
+      ],
+      "box_volume": 0.1088062581545449,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 3448,
+      "signed_volume": 0.007271532141322183,
+      "signed_fill": 0.066830091068787,
+      "signed_seconds": 0.1518,
+      "defect_rate": 0.009548707268981101,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.009656024130658464,
+          "fill": 0.0887451171875,
+          "seconds": 0.5274,
+          "log_volume": -4.640173296157463,
+          "sphericity": 16.189923390126644,
+          "elongation": 3.9076621864435412,
+          "fill_ratio": 0.0887451171875,
+          "offcentre": 0.00528461919891668,
+          "defect_rate": 0.009548707268981101
+        },
+        "convex_64": {
+          "occupied_volume": 0.04596027090482782,
+          "fill": 0.42240466388934483,
+          "seconds": 0.1968,
+          "log_volume": -3.079977931658035,
+          "sphericity": 5.721658968236372,
+          "elongation": 3.9076621864435412,
+          "fill_ratio": 0.42240466388934483,
+          "offcentre": 0.10546322158988454,
+          "defect_rate": 0.009548707268981101
+        }
+      }
+    },
+    {
+      "asset": "equipment_bench_vise_a01",
+      "triangles": 106162,
+      "triangles_first_primitive": 14512,
+      "primitives": 5,
+      "vertices": 53099,
+      "extent": [
+        0.324385,
+        0.232776,
+        0.180266
+      ],
+      "box_volume": 0.013611697877486019,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.0024735541962423147,
+      "signed_fill": 0.18172267842747344,
+      "signed_seconds": 0.0326,
+      "defect_rate": 2.8258698969499443e-05,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.0025379141126933447,
+          "fill": 0.18645095825195312,
+          "seconds": 0.1238,
+          "log_volume": -5.976412750808903,
+          "sphericity": 18.745869224221625,
+          "elongation": 1.799478359702005,
+          "fill_ratio": 0.18645095825195312,
+          "offcentre": 0.03207621301104842,
+          "defect_rate": 2.8258698969499443e-05
+        },
+        "convex_64": {
+          "occupied_volume": 0.006881232396730958,
+          "fill": 0.5055381377596276,
+          "seconds": 0.0471,
+          "log_volume": -4.978957515646462,
+          "sphericity": 9.640792003899882,
+          "elongation": 1.799478359702005,
+          "fill_ratio": 0.5055381377596276,
+          "offcentre": 0.05248637785496309,
+          "defect_rate": 2.8258698969499443e-05
+        }
+      }
+    },
+    {
+      "asset": "fixture_cabinet_a01",
+      "triangles": 483180,
+      "triangles_first_primitive": 370916,
+      "primitives": 3,
+      "vertices": 241842,
+      "extent": [
+        0.405157,
+        0.763583,
+        0.762
+      ],
+      "box_volume": 0.23574064827913882,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.05797835764264444,
+      "signed_fill": 0.24594128363468604,
+      "signed_seconds": 0.1826,
+      "defect_rate": 5.794941843619355e-05,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.20282343220854557,
+          "fill": 0.8603668212890625,
+          "seconds": 0.6475,
+          "log_volume": -1.5954194705050946,
+          "sphericity": 19.598289763736002,
+          "elongation": 1.8846609808954569,
+          "fill_ratio": 0.8603668212890625,
+          "offcentre": 0.02559071396515077,
+          "defect_rate": 5.794941843619355e-05
+        },
+        "convex_64": {
+          "occupied_volume": 0.21913537101632188,
+          "fill": 0.9295612471415844,
+          "seconds": 0.2322,
+          "log_volume": -1.5180656076362158,
+          "sphericity": 18.61323828977359,
+          "elongation": 1.8846609808954569,
+          "fill_ratio": 0.9295612471415844,
+          "offcentre": 0.007759537443539443,
+          "defect_rate": 5.794941843619355e-05
+        }
+      }
+    },
+    {
+      "asset": "food_processed_cannedFood_k01",
+      "triangles": 13140,
+      "triangles_first_primitive": 13140,
+      "primitives": 1,
+      "vertices": 6572,
+      "extent": [
+        0.0762,
+        0.0762,
+        0.1143
+      ],
+      "box_volume": 0.0006636760638822855,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.0004857659437762794,
+      "signed_fill": 0.7319322937981358,
+      "signed_seconds": 0.0038,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.0005014077928615061,
+          "fill": 0.7555007934570312,
+          "seconds": 0.019,
+          "log_volume": -7.598090830156021,
+          "sphericity": 6.135028490929577,
+          "elongation": 1.5000001008321722,
+          "fill_ratio": 0.7555007934570312,
+          "offcentre": 0.0005495367768977123,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.0005114542903385802,
+          "fill": 0.7706384457301981,
+          "seconds": 0.0079,
+          "log_volume": -7.578252340517734,
+          "sphericity": 6.054422897518714,
+          "elongation": 1.5000001008321722,
+          "fill_ratio": 0.7706384457301981,
+          "offcentre": 0.0021758165734670786,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "handTool_hammer_crossPeen_b01",
+      "triangles": 540751,
+      "triangles_first_primitive": 540751,
+      "primitives": 1,
+      "vertices": 270380,
+      "extent": [
+        0.267643,
+        0.104277,
+        0.035907
+      ],
+      "box_volume": 0.0010021410183312129,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 3,
+      "signed_volume": 0.00028966070309782883,
+      "signed_fill": 0.28904185917883907,
+      "signed_seconds": 0.2179,
+      "defect_rate": 0.0013666179073177859,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.00033294856968131504,
+          "fill": 0.33223724365234375,
+          "seconds": 0.7878,
+          "log_volume": -8.007522525313206,
+          "sphericity": 8.642008107835464,
+          "elongation": 7.453713118765375,
+          "fill_ratio": 0.33223724365234375,
+          "offcentre": 0.017445862337923237,
+          "defect_rate": 0.0013666179073177859
+        },
+        "convex_64": {
+          "occupied_volume": 0.0006399945672906012,
+          "fill": 0.6386272546316227,
+          "seconds": 0.3308,
+          "log_volume": -7.354050870255021,
+          "sphericity": 5.5900442645523105,
+          "elongation": 7.453713118765375,
+          "fill_ratio": 0.6386272546316227,
+          "offcentre": 0.10213023225134411,
+          "defect_rate": 0.0013666179073177859
+        }
+      }
+    },
+    {
+      "asset": "instrument_spoon_a01",
+      "triangles": 18624,
+      "triangles_first_primitive": 18624,
+      "primitives": 1,
+      "vertices": 9314,
+      "extent": [
+        0.182457,
+        0.028925,
+        0.028798
+      ],
+      "box_volume": 0.00015198770720882554,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 5.490365558756978e-05,
+      "signed_fill": 0.3612374750290441,
+      "signed_seconds": 0.0056,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 6.271672921826582e-05,
+          "fill": 0.4126434326171875,
+          "seconds": 0.0265,
+          "log_volume": -9.676882332225391,
+          "sphericity": 6.5445789092473206,
+          "elongation": 6.33566626019364,
+          "fill_ratio": 0.4126434326171875,
+          "offcentre": 0.028000844891268188,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 6.61286221912099e-05,
+          "fill": 0.435091912402834,
+          "seconds": 0.0172,
+          "log_volume": -9.623908891347165,
+          "sphericity": 6.317486556263106,
+          "elongation": 6.33566626019364,
+          "fill_ratio": 0.435091912402834,
+          "offcentre": 0.125743426976422,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "kitchenware_knife_b01",
+      "triangles": 7660,
+      "triangles_first_primitive": 7660,
+      "primitives": 1,
+      "vertices": 3836,
+      "extent": [
+        0.119447,
+        0.313176,
+        0.034096
+      ],
+      "box_volume": 0.0012754783227521675,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.00018517522301773567,
+      "signed_fill": 0.14518100363961753,
+      "signed_seconds": 0.0021,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.00013636715298376084,
+          "fill": 0.10691452026367189,
+          "seconds": 0.0122,
+          "log_volume": -8.900159655457283,
+          "sphericity": 19.87017927537427,
+          "elongation": 9.185033470810424,
+          "fill_ratio": 0.10691452026367189,
+          "offcentre": 0.1438967912731557,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.0004737162843051,
+          "fill": 0.37140285009543494,
+          "seconds": 0.0049,
+          "log_volume": -7.654901971793898,
+          "sphericity": 8.662889174261236,
+          "elongation": 9.185033470810424,
+          "fill_ratio": 0.37140285009543494,
+          "offcentre": 0.05860605180330167,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "lighting_overheadLed_hexGrid_a01",
+      "triangles": 189103,
+      "triangles_first_primitive": 189103,
+      "primitives": 1,
+      "vertices": 95535,
+      "extent": [
+        4.803981,
+        2.403981,
+        1.082208
+      ],
+      "box_volume": 12.49807103395267,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 1879,
+      "signed_volume": 0.014364403099626293,
+      "signed_fill": 0.0011493296093936004,
+      "signed_seconds": 0.0652,
+      "defect_rate": 0.009936383875454117,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.12896454676377095,
+          "fill": 0.010318756103515625,
+          "seconds": 0.2546,
+          "log_volume": -2.048217743682102,
+          "sphericity": 42.57690831668941,
+          "elongation": 4.439056748594658,
+          "fill_ratio": 0.010318756103515625,
+          "offcentre": 0.25976855582345904,
+          "defect_rate": 0.009936383875454117
+        },
+        "convex_64": {
+          "occupied_volume": 12.405271372266323,
+          "fill": 0.9925748812409336,
+          "seconds": 0.0839,
+          "log_volume": 2.518121492943691,
+          "sphericity": 2.028072612897871,
+          "elongation": 4.439056748594658,
+          "fill_ratio": 0.9925748812409336,
+          "offcentre": 0.00035093625919683526,
+          "defect_rate": 0.009936383875454117
+        }
+      }
+    },
+    {
+      "asset": "misc_golfBall_a01",
+      "triangles": 12288,
+      "triangles_first_primitive": 12288,
+      "primitives": 1,
+      "vertices": 6146,
+      "extent": [
+        0.042628,
+        0.042623,
+        0.0427
+      ],
+      "box_volume": 7.758415787404268e-05,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 4.0556915974246514e-05,
+      "signed_fill": 0.5227473892297752,
+      "signed_seconds": 0.0034,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 4.575453969899512e-05,
+          "fill": 0.5897407531738281,
+          "seconds": 0.0166,
+          "log_volume": -9.992219542772219,
+          "sphericity": 4.486299689562055,
+          "elongation": 1.0018010171663203,
+          "fill_ratio": 0.5897407531738281,
+          "offcentre": 0.00018655829723244373,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 4.0740364473697255e-05,
+          "fill": 0.5251118990018419,
+          "seconds": 0.0142,
+          "log_volume": -10.108291200870402,
+          "sphericity": 4.847239389169495,
+          "elongation": 1.0018010171663203,
+          "fill_ratio": 0.5251118990018419,
+          "offcentre": 0.00028636205621487316,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "paint_container_bottle_orange_a02",
+      "triangles": 35100,
+      "triangles_first_primitive": 35100,
+      "primitives": 1,
+      "vertices": 17628,
+      "extent": [
+        0.050459,
+        0.050259,
+        0.086656
+      ],
+      "box_volume": 0.0002197620775327203,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 144,
+      "signed_volume": 5.04191053062513e-05,
+      "signed_fill": 0.22942586761241562,
+      "signed_seconds": 0.0106,
+      "defect_rate": 0.0041025641025641026,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.00010434976516268854,
+          "fill": 0.47483062744140625,
+          "seconds": 0.0511,
+          "log_volume": -9.167762174920947,
+          "sphericity": 13.342276238785484,
+          "elongation": 1.7241844628575453,
+          "fill_ratio": 0.47483062744140625,
+          "offcentre": 0.04630232472780961,
+          "defect_rate": 0.0041025641025641026
+        },
+        "convex_64": {
+          "occupied_volume": 0.00012069006850327162,
+          "fill": 0.5491851454002664,
+          "seconds": 0.019,
+          "log_volume": -9.022284715737714,
+          "sphericity": 12.109044899806689,
+          "elongation": 1.7241844628575453,
+          "fill_ratio": 0.5491851454002664,
+          "offcentre": 0.10133932884935527,
+          "defect_rate": 0.0041025641025641026
+        }
+      }
+    },
+    {
+      "asset": "pallet_rackable_solid_top_blue_a02",
+      "triangles": 24078,
+      "triangles_first_primitive": 24078,
+      "primitives": 1,
+      "vertices": 12023,
+      "extent": [
+        1.009354,
+        1.208254,
+        0.153489
+      ],
+      "box_volume": 0.1871886993035972,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 16,
+      "signed_volume": 0.07239041458884293,
+      "signed_fill": 0.3867242780048091,
+      "signed_seconds": 0.0077,
+      "defect_rate": 0.0006645070188553867,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.18316706709199645,
+          "fill": 0.9785156249999999,
+          "seconds": 0.0355,
+          "log_volume": -1.697356607683411,
+          "sphericity": 13.753255107519328,
+          "elongation": 7.871915838033359,
+          "fill_ratio": 0.9785156249999999,
+          "offcentre": 0.002620410515709753,
+          "defect_rate": 0.0006645070188553867
+        },
+        "convex_64": {
+          "occupied_volume": 0.18475172627009478,
+          "fill": 0.9869811957529021,
+          "seconds": 0.013,
+          "log_volume": -1.6887423753809985,
+          "sphericity": 13.674498975565594,
+          "elongation": 7.871915838033359,
+          "fill_ratio": 0.9869811957529021,
+          "offcentre": 0.0003302162045511309,
+          "defect_rate": 0.0006645070188553867
+        }
+      }
+    },
+    {
+      "asset": "powerTool_cutting_tool_a01",
+      "triangles": 39858,
+      "triangles_first_primitive": 28998,
+      "primitives": 2,
+      "vertices": 20236,
+      "extent": [
+        0.27703,
+        0.128224,
+        0.020502
+      ],
+      "box_volume": 0.0007282737788725745,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 546,
+      "signed_volume": 0.00012255945456259815,
+      "signed_fill": 0.16828761122270514,
+      "signed_seconds": 0.0112,
+      "defect_rate": 0.013924431732650911,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.00015280903218500933,
+          "fill": 0.2098236083984375,
+          "seconds": 0.0472,
+          "log_volume": -8.786321571820412,
+          "sphericity": 20.470370271021174,
+          "elongation": 13.51223260135508,
+          "fill_ratio": 0.2098236083984375,
+          "offcentre": 0.05920061693337743,
+          "defect_rate": 0.013924431732650911
+        },
+        "convex_64": {
+          "occupied_volume": 0.00036205707798815006,
+          "fill": 0.49714419012674477,
+          "seconds": 0.0171,
+          "log_volume": -7.923708684567327,
+          "sphericity": 11.517910168339652,
+          "elongation": 13.51223260135508,
+          "fill_ratio": 0.49714419012674477,
+          "offcentre": 0.08965455855853867,
+          "defect_rate": 0.013924431732650911
+        }
+      }
+    },
+    {
+      "asset": "ppe_respirator_halfMask_b01",
+      "triangles": 101780,
+      "triangles_first_primitive": 101780,
+      "primitives": 1,
+      "vertices": 51297,
+      "extent": [
+        0.118526,
+        0.107012,
+        0.058586
+      ],
+      "box_volume": 0.0007430897921751649,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 784,
+      "signed_volume": 5.532629706001493e-05,
+      "signed_fill": 0.07445438982288312,
+      "signed_seconds": 0.0326,
+      "defect_rate": 0.007702888583218707,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.0003790992719121171,
+          "fill": 0.5101661682128906,
+          "seconds": 0.162,
+          "log_volume": -7.877712456013291,
+          "sphericity": 10.036436568739802,
+          "elongation": 2.0231182785329476,
+          "fill_ratio": 0.5101661682128906,
+          "offcentre": 0.03092240744828644,
+          "defect_rate": 0.007702888583218707
+        },
+        "convex_64": {
+          "occupied_volume": 0.00036950412238530674,
+          "fill": 0.4972536647337033,
+          "seconds": 0.0547,
+          "log_volume": -7.903348660979777,
+          "sphericity": 10.209441517712476,
+          "elongation": 2.0231182785329476,
+          "fill_ratio": 0.4972536647337033,
+          "offcentre": 0.03662708521639317,
+          "defect_rate": 0.007702888583218707
+        }
+      }
+    },
+    {
+      "asset": "rack_f04",
+      "triangles": 151834,
+      "triangles_first_primitive": 151834,
+      "primitives": 1,
+      "vertices": 78533,
+      "extent": [
+        2.113546,
+        0.459367,
+        1.95
+      ],
+      "box_volume": 1.8932425992836943,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 5666,
+      "signed_volume": 0.06757682095134206,
+      "signed_fill": 0.03569369344262043,
+      "signed_seconds": 0.054,
+      "defect_rate": 0.037317069957980425,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.25569290536895717,
+          "fill": 0.1350555419921875,
+          "seconds": 0.2263,
+          "log_volume": -1.3637781429871791,
+          "sphericity": 19.632737846920094,
+          "elongation": 4.600995315627473,
+          "fill_ratio": 0.1350555419921875,
+          "offcentre": 0.10352445700887719,
+          "defect_rate": 0.037317069957980425
+        },
+        "convex_64": {
+          "occupied_volume": 1.7300271849882052,
+          "fill": 0.9137905441398575,
+          "seconds": 0.0689,
+          "log_volume": 0.5481371222522406,
+          "sphericity": 5.488133930248423,
+          "elongation": 4.600995315627473,
+          "fill_ratio": 0.9137905441398575,
+          "offcentre": 0.02221381293253033,
+          "defect_rate": 0.037317069957980425
+        }
+      }
+    },
+    {
+      "asset": "serviceTool_brake_lathe_a01",
+      "triangles": 451042,
+      "triangles_first_primitive": 48708,
+      "primitives": 10,
+      "vertices": 226074,
+      "extent": [
+        1.031201,
+        1.279062,
+        1.2086
+      ],
+      "box_volume": 1.5941063304540077,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 431,
+      "signed_volume": 0.3695056463179837,
+      "signed_fill": 0.23179485537376107,
+      "signed_seconds": 0.1773,
+      "defect_rate": 0.0009599992905317021,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.4518085942843318,
+          "fill": 0.28342437744140625,
+          "seconds": 0.6233,
+          "log_volume": -0.7944966528088114,
+          "sphericity": 19.40132101525262,
+          "elongation": 1.240361425152281,
+          "fill_ratio": 0.28342437744140625,
+          "offcentre": 0.10838047441448659,
+          "defect_rate": 0.0009599992905317021
+        },
+        "convex_64": {
+          "occupied_volume": 0.7957623357770248,
+          "fill": 0.499190248840169,
+          "seconds": 0.214,
+          "log_volume": -0.22845471086403069,
+          "sphericity": 13.302870815049532,
+          "elongation": 1.240361425152281,
+          "fill_ratio": 0.499190248840169,
+          "offcentre": 0.0717433685460195,
+          "defect_rate": 0.0009599992905317021
+        }
+      }
+    },
+    {
+      "asset": "sign_hospital_board_b02",
+      "triangles": 3920,
+      "triangles_first_primitive": 3920,
+      "primitives": 1,
+      "vertices": 3474,
+      "extent": [
+        0.012002,
+        1.000696,
+        0.556166
+      ],
+      "box_volume": 0.006679542197765288,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 2954,
+      "signed_volume": 0.005713760293057892,
+      "signed_fill": 0.8554119614618936,
+      "signed_seconds": 0.0013,
+      "defect_rate": 0.7535714285714286,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.005635863729364462,
+          "fill": 0.84375,
+          "seconds": 0.0111,
+          "log_volume": -5.178604863846162,
+          "sphericity": 39.527961857036054,
+          "elongation": 83.37999478894115,
+          "fill_ratio": 0.84375,
+          "offcentre": 0.0,
+          "defect_rate": 0.7535714285714286
+        },
+        "convex_64": {
+          "occupied_volume": 0.006663526712451071,
+          "fill": 0.9976023079366764,
+          "seconds": 0.0032,
+          "log_volume": -5.011106398180701,
+          "sphericity": 35.351565349016674,
+          "elongation": 83.37999478894115,
+          "fill_ratio": 0.9976023079366764,
+          "offcentre": 4.5422923483740974e-08,
+          "defect_rate": 0.7535714285714286
+        }
+      }
+    },
+    {
+      "asset": "stationery_pen_plastic_a01",
+      "triangles": 83200,
+      "triangles_first_primitive": 15404,
+      "primitives": 3,
+      "vertices": 41771,
+      "extent": [
+        0.178075,
+        0.014632,
+        0.012383
+      ],
+      "box_volume": 3.226469401292929e-05,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 328,
+      "signed_volume": 9.75129154439434e-06,
+      "signed_fill": 0.30222792568516993,
+      "signed_seconds": 0.0265,
+      "defect_rate": 0.003942307692307692,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 1.726517569487636e-05,
+          "fill": 0.5351104736328125,
+          "seconds": 0.1243,
+          "log_volume": -10.966819050812884,
+          "sphericity": 23.469146215700146,
+          "elongation": 14.380316133405012,
+          "fill_ratio": 0.5351104736328125,
+          "offcentre": 0.01843542067639676,
+          "defect_rate": 0.003942307692307692
+        },
+        "convex_64": {
+          "occupied_volume": 1.764234921253455e-05,
+          "fill": 0.5468004502216822,
+          "seconds": 0.0485,
+          "log_volume": -10.945208340938924,
+          "sphericity": 23.133446981993547,
+          "elongation": 14.380316133405012,
+          "fill_ratio": 0.5468004502216822,
+          "offcentre": 0.038156319610424934,
+          "defect_rate": 0.003942307692307692
+        }
+      }
+    },
+    {
+      "asset": "storage_shelf_basic_a01",
+      "triangles": 1326754,
+      "triangles_first_primitive": 1326754,
+      "primitives": 1,
+      "vertices": 663215,
+      "extent": [
+        1.267362,
+        2.494273,
+        2.42275
+      ],
+      "box_volume": 7.658667745920041,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.225409095363323,
+      "signed_fill": 0.02943189374985015,
+      "signed_seconds": 0.5171,
+      "defect_rate": 0.0006233258011658529,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 7.205944374830956,
+          "fill": 0.940887451171875,
+          "seconds": 1.6567,
+          "log_volume": 1.9749062930109225,
+          "sphericity": 18.581302463396533,
+          "elongation": 1.9680829474834527,
+          "fill_ratio": 0.940887451171875,
+          "offcentre": 0.011304645902825792,
+          "defect_rate": 0.0006233258011658529
+        },
+        "convex_64": {
+          "occupied_volume": 7.658571280508949,
+          "fill": 0.9999874044136275,
+          "seconds": 0.566,
+          "log_volume": 2.035825449451222,
+          "sphericity": 17.84178289571554,
+          "elongation": 1.9680829474834527,
+          "fill_ratio": 0.9999874044136275,
+          "offcentre": 7.599544410991517e-09,
+          "defect_rate": 0.0006233258011658529
+        }
+      }
+    },
+    {
+      "asset": "structure_beam_a01",
+      "triangles": 11732,
+      "triangles_first_primitive": 11732,
+      "primitives": 1,
+      "vertices": 6408,
+      "extent": [
+        5.399995,
+        0.270003,
+        1.899591
+      ],
+      "box_volume": 2.7696334751288716,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 1008,
+      "signed_volume": 0.7531191351049743,
+      "signed_fill": 0.27192014462127756,
+      "signed_seconds": 0.0034,
+      "defect_rate": 0.08591885441527446,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 1.4028200313328212,
+          "fill": 0.506500244140625,
+          "seconds": 0.0214,
+          "log_volume": 0.33848451871773505,
+          "sphericity": 17.372808771694466,
+          "elongation": 19.99975451996733,
+          "fill_ratio": 0.506500244140625,
+          "offcentre": 0.0023666181097039985,
+          "defect_rate": 0.08591885441527446
+        },
+        "convex_64": {
+          "occupied_volume": 2.7684247713776418,
+          "fill": 0.9995635871092389,
+          "seconds": 0.0053,
+          "log_volume": 1.0182784838496142,
+          "sphericity": 11.04204537191507,
+          "elongation": 19.99975451996733,
+          "fill_ratio": 0.9995635871092389,
+          "offcentre": 2.4769088694773103e-07,
+          "defect_rate": 0.08591885441527446
+        }
+      }
+    },
+    {
+      "asset": "suspension_control_arm_rearward_left_a01",
+      "triangles": 21066,
+      "triangles_first_primitive": 21066,
+      "primitives": 1,
+      "vertices": 10535,
+      "extent": [
+        0.248458,
+        0.053345,
+        0.038138
+      ],
+      "box_volume": 0.0005054765893699111,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 7.088730153448545e-05,
+      "signed_fill": 0.1402385452169965,
+      "signed_seconds": 0.0057,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.00012493260842081418,
+          "fill": 0.2471580505371094,
+          "seconds": 0.0319,
+          "log_volume": -8.987736098679715,
+          "sphericity": 15.861358423958466,
+          "elongation": 6.5147234876338995,
+          "fill_ratio": 0.2471580505371094,
+          "offcentre": 0.05174005368406711,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.0003799231452523118,
+          "fill": 0.7516137309660479,
+          "seconds": 0.0113,
+          "log_volume": -7.875541575035019,
+          "sphericity": 7.556611290615492,
+          "elongation": 6.5147234876338995,
+          "fill_ratio": 0.7516137309660479,
+          "offcentre": 0.007831485418196579,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "tape_clear_a01",
+      "triangles": 2816,
+      "triangles_first_primitive": 2816,
+      "primitives": 1,
+      "vertices": 1408,
+      "extent": [
+        0.099872,
+        0.099872,
+        0.050241
+      ],
+      "box_volume": 0.0005011248788836246,
+      "watertight": true,
+      "consistent_winding": true,
+      "boundary_edges": 0,
+      "signed_volume": 0.00017114356058180668,
+      "signed_fill": 0.34151878662075186,
+      "signed_seconds": 0.0009,
+      "defect_rate": 0.0,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.00039297195092143604,
+          "fill": 0.7841796875,
+          "seconds": 0.0105,
+          "log_volume": -7.841772320343274,
+          "sphericity": 10.941758817626402,
+          "elongation": 1.9878457951291533,
+          "fill_ratio": 0.7841796875,
+          "offcentre": 0.0,
+          "defect_rate": 0.0
+        },
+        "convex_64": {
+          "occupied_volume": 0.0003917290511170373,
+          "fill": 0.7816994677847714,
+          "seconds": 0.0032,
+          "log_volume": -7.844940153289994,
+          "sphericity": 10.964891011388996,
+          "elongation": 1.9878457951291533,
+          "fill_ratio": 0.7816994677847714,
+          "offcentre": 8.0289341117436e-06,
+          "defect_rate": 0.0
+        }
+      }
+    },
+    {
+      "asset": "testingTool_multimeter_clamp_b01",
+      "triangles": 72588,
+      "triangles_first_primitive": 268,
+      "primitives": 8,
+      "vertices": 37212,
+      "extent": [
+        0.241721,
+        0.164439,
+        0.032257
+      ],
+      "box_volume": 0.001282177368967682,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 1784,
+      "signed_volume": 0.0002826184931525874,
+      "signed_fill": 0.22042074676464748,
+      "signed_seconds": 0.0223,
+      "defect_rate": 0.024577065079627487,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 7.13809834393095e-05,
+          "fill": 0.05567169189453125,
+          "seconds": 0.0861,
+          "log_volume": -9.547479062478123,
+          "sphericity": 40.76315292456049,
+          "elongation": 7.493501721417008,
+          "fill_ratio": 0.05567169189453125,
+          "offcentre": 0.0755225427194642,
+          "defect_rate": 0.024577065079627487
+        },
+        "convex_64": {
+          "occupied_volume": 0.0006751585472859232,
+          "fill": 0.5265718796998522,
+          "seconds": 0.0353,
+          "log_volume": -7.300563009804842,
+          "sphericity": 9.114208082333159,
+          "elongation": 7.493501721417008,
+          "fill_ratio": 0.5265718796998522,
+          "offcentre": 0.06747767174823266,
+          "defect_rate": 0.024577065079627487
+        }
+      }
+    },
+    {
+      "asset": "utensils_scissors_a01",
+      "triangles": 15176,
+      "triangles_first_primitive": 1446,
+      "primitives": 3,
+      "vertices": 7686,
+      "extent": [
+        0.067514,
+        0.199963,
+        0.009697
+      ],
+      "box_volume": 0.00013091354756468803,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 184,
+      "signed_volume": 7.9729668573352e-06,
+      "signed_fill": 0.06090253457836772,
+      "signed_seconds": 0.0046,
+      "defect_rate": 0.012124406958355299,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 9.082506902919698e-06,
+          "fill": 0.06937789916992188,
+          "seconds": 0.0202,
+          "log_volume": -11.609160312827154,
+          "sphericity": 23.702248682073552,
+          "elongation": 20.621010005129506,
+          "fill_ratio": 0.06937789916992188,
+          "offcentre": 0.010525258020938276,
+          "defect_rate": 0.012124406958355299
+        },
+        "convex_64": {
+          "occupied_volume": 4.0188442937760115e-05,
+          "fill": 0.30698459926694666,
+          "seconds": 0.0085,
+          "log_volume": -10.12193109278266,
+          "sphericity": 8.794124060342538,
+          "elongation": 20.621010005129506,
+          "fill_ratio": 0.30698459926694666,
+          "offcentre": 0.12119718457266206,
+          "defect_rate": 0.012124406958355299
+        }
+      }
+    },
+    {
+      "asset": "vehicleSupport_jack_stand_b01",
+      "triangles": 31466,
+      "triangles_first_primitive": 31466,
+      "primitives": 1,
+      "vertices": 15740,
+      "extent": [
+        0.222405,
+        0.247514,
+        0.305171
+      ],
+      "box_volume": 0.01679912883738116,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 64,
+      "signed_volume": 0.0013666035877976778,
+      "signed_fill": 0.08134967003507543,
+      "signed_seconds": 0.0087,
+      "defect_rate": 0.002033941397063497,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.0009354281755037415,
+          "fill": 0.055683135986328125,
+          "seconds": 0.0409,
+          "log_volume": -6.974506191783662,
+          "sphericity": 25.522243280201142,
+          "elongation": 1.372141513837642,
+          "fill_ratio": 0.055683135986328125,
+          "offcentre": 0.10370996355823583,
+          "defect_rate": 0.002033941397063497
+        },
+        "convex_64": {
+          "occupied_volume": 0.006709766664357875,
+          "fill": 0.39941158433331414,
+          "seconds": 0.0137,
+          "log_volume": -5.00419110291647,
+          "sphericity": 6.862055036398837,
+          "elongation": 1.372141513837642,
+          "fill_ratio": 0.39941158433331414,
+          "offcentre": 0.08855281314697479,
+          "defect_rate": 0.002033941397063497
+        }
+      }
+    },
+    {
+      "asset": "vehicle_forklift_blue_c01",
+      "triangles": 997893,
+      "triangles_first_primitive": 1860,
+      "primitives": 32,
+      "vertices": 528487,
+      "extent": [
+        1.363318,
+        3.733406,
+        2.174297
+      ],
+      "box_volume": 11.066781482004046,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 53005,
+      "signed_volume": 1.8322308251186212,
+      "signed_fill": 0.16556130868744945,
+      "signed_seconds": 0.364,
+      "defect_rate": 0.05311691734484559,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 3.0063157764300237,
+          "fill": 0.2716522216796875,
+          "seconds": 1.2372,
+          "log_volume": 1.1007153345261358,
+          "sphericity": 26.31521767296573,
+          "elongation": 2.738471026435995,
+          "fill_ratio": 0.2716522216796875,
+          "offcentre": 0.10524956036150024,
+          "defect_rate": 0.05311691734484559
+        },
+        "convex_64": {
+          "occupied_volume": 7.1372969082695175,
+          "fill": 0.6449297765457503,
+          "seconds": 0.4504,
+          "log_volume": 1.965334120394396,
+          "sphericity": 14.786799641778769,
+          "elongation": 2.738471026435995,
+          "fill_ratio": 0.6449297765457503,
+          "offcentre": 0.06222604026055933,
+          "defect_rate": 0.05311691734484559
+        }
+      }
+    },
+    {
+      "asset": "warehouse_conveyorBelt_a33",
+      "triangles": 306856,
+      "triangles_first_primitive": 306856,
+      "primitives": 1,
+      "vertices": 153256,
+      "extent": [
+        2.071351,
+        1.99751,
+        4.600812
+      ],
+      "box_volume": 19.03606331408204,
+      "watertight": false,
+      "consistent_winding": true,
+      "boundary_edges": 1044,
+      "signed_volume": 0.08453721674169351,
+      "signed_fill": 0.004440898065261036,
+      "signed_seconds": 0.1106,
+      "defect_rate": 0.0034022473081836433,
+      "candidates": {
+        "visual_64": {
+          "occupied_volume": 0.038123829803058895,
+          "fill": 0.002002716064453125,
+          "seconds": 0.3892,
+          "log_volume": -3.266915738215881,
+          "sphericity": 143.6441945824541,
+          "elongation": 2.3032735442982784,
+          "fill_ratio": 0.002002716064453125,
+          "offcentre": 0.14518235857347175,
+          "defect_rate": 0.0034022473081836433
+        },
+        "convex_64": {
+          "occupied_volume": 6.704487622462042,
+          "fill": 0.35219927102797344,
+          "seconds": 0.1452,
+          "log_volume": 1.9027770965820845,
+          "sphericity": 4.57623899716986,
+          "elongation": 2.3032735442982784,
+          "fill_ratio": 0.35219927102797344,
+          "offcentre": 0.11198796120587261,
+          "defect_rate": 0.0034022473081836433
+        }
+      }
+    }
+  ]
+}

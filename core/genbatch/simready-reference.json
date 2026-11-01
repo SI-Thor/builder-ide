@@ -1,0 +1,721 @@
+{
+  "version": 1,
+  "source": {
+    "dataset": "nvidia/simready-assets",
+    "licence": "CC-BY-4.0",
+    "credit": "NVIDIA SimReady Assets",
+    "sample": "38 packages, 37 categories",
+    "survey": "docs/research/simready.md",
+    "read_back_with": "core.genbatch.glb.read_glb",
+    "measured_at": "2026-11-01T16:14:55Z",
+    "box": {
+      "machine": "NVIDIA Jetson AGX Thor, aarch64, 14 Neoverse cores",
+      "kernel": "6.8.12-1021-tegra",
+      "python": "3.12.3",
+      "numpy": "2.5.4",
+      "load_average": [
+        8.85,
+        8.87,
+        10.34
+      ],
+      "mem_total_gb": 122.8,
+      "mem_available_gb": 66.0
+    }
+  },
+  "measure": {
+    "method": "convex",
+    "resolution": 64,
+    "note": "the volume the object occupies (its envelope), not the volume of the material in its wall"
+  },
+  "prior": {
+    "clusters": 22,
+    "seed": 20261031,
+    "note": "the prior is fitted on the union of the approved set and this sample; the cluster count and the seed are the ones the measurement chose (docs/lab/exp-critic-shells.md)"
+  },
+  "assets": [
+    {
+      "name": "IV_pole_a01",
+      "triangles": 458714,
+      "vertices": 230723,
+      "watertight": false,
+      "defect_rate": 0.005545939299868763,
+      "signed_volume": 0.002512263910652921,
+      "occupied_volume": 0.32045458705937335,
+      "box_volume": 0.74175147491537,
+      "features": {
+        "log_volume": -1.1380147067,
+        "sphericity": 1.80711809504,
+        "elongation": 3.15176383119,
+        "fill_ratio": 0.43202419934,
+        "offcentre": 0.124807397779,
+        "defect_rate": 0.00554593929987
+      }
+    },
+    {
+      "name": "bodyPart_door_front_a01",
+      "triangles": 168604,
+      "vertices": 84204,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 0.0007904336596994502,
+      "occupied_volume": 0.11514926388048231,
+      "box_volume": 0.2226551047874235,
+      "features": {
+        "log_volume": -2.16152604544,
+        "sphericity": 14.8085725647,
+        "elongation": 6.57973298023,
+        "fill_ratio": 0.517164266188,
+        "offcentre": 0.0491721085324,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "bodyPart_trunk_lid_a01",
+      "triangles": 317648,
+      "vertices": 158686,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 0.0015045258198050939,
+      "occupied_volume": 0.12781518410288853,
+      "box_volume": 0.28162284618202904,
+      "features": {
+        "log_volume": -2.05716993265,
+        "sphericity": 14.9863341817,
+        "elongation": 3.4690457858,
+        "fill_ratio": 0.453852327095,
+        "offcentre": 0.0429578724327,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "box_long_a08",
+      "triangles": 4924,
+      "vertices": 2847,
+      "watertight": false,
+      "defect_rate": 0.15272136474411047,
+      "signed_volume": 0.0004864890902880412,
+      "occupied_volume": 0.007392126096975476,
+      "box_volume": 0.007598835725965909,
+      "features": {
+        "log_volume": -4.90733988621,
+        "sphericity": 14.9778138367,
+        "elongation": 1.97906084952,
+        "fill_ratio": 0.972797197302,
+        "offcentre": 0.00124059379987,
+        "defect_rate": 0.152721364744
+      }
+    },
+    {
+      "name": "cabinet_file_a03",
+      "triangles": 19720,
+      "vertices": 11018,
+      "watertight": false,
+      "defect_rate": 0.11176470588235295,
+      "signed_volume": 0.003973585088919293,
+      "occupied_volume": 0.6133164496118686,
+      "box_volume": 0.6158598944333747,
+      "features": {
+        "log_volume": -0.488874245233,
+        "sphericity": 21.3796496831,
+        "elongation": 5.36560636567,
+        "fill_ratio": 0.995870091811,
+        "offcentre": 0.000502660588661,
+        "defect_rate": 0.111764705882
+      }
+    },
+    {
+      "name": "cleaning_sponge_c01",
+      "triangles": 3552,
+      "vertices": 1778,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 0.00014663052851853056,
+      "occupied_volume": 0.00016464664305708396,
+      "box_volume": 0.00017498714055899417,
+      "features": {
+        "log_volume": -8.71170893771,
+        "sphericity": 6.18203940383,
+        "elongation": 3.34088172594,
+        "fill_ratio": 0.940907100551,
+        "offcentre": 0.000595732593298,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "consumable_fuse_micro_green_a01",
+      "triangles": 20496,
+      "vertices": 10284,
+      "watertight": false,
+      "defect_rate": 0.00312256049960968,
+      "signed_volume": 6.0527218204571e-06,
+      "occupied_volume": 7.2650176128081735e-06,
+      "box_volume": 9.294763357088635e-06,
+      "features": {
+        "log_volume": -11.8324398366,
+        "sphericity": 7.07719644394,
+        "elongation": 3.99728256371,
+        "fill_ratio": 0.781624806754,
+        "offcentre": 2.04852013906e-07,
+        "defect_rate": 0.00312256049961
+      }
+    },
+    {
+      "name": "container_system_sterilising_e01",
+      "triangles": 85800,
+      "vertices": 42264,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 0.0033414875339947098,
+      "occupied_volume": 0.02082834383513049,
+      "box_volume": 0.02332894693402829,
+      "features": {
+        "log_volume": -3.87144053551,
+        "sphericity": 21.278274383,
+        "elongation": 3.46246591404,
+        "fill_ratio": 0.892811145485,
+        "offcentre": 0.0058257694935,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "crate_white_a01",
+      "triangles": 60744,
+      "vertices": 31324,
+      "watertight": false,
+      "defect_rate": 0.07743974713551956,
+      "signed_volume": 0.0014963324706853975,
+      "occupied_volume": 0.061870608378265336,
+      "box_volume": 0.06207918769216397,
+      "features": {
+        "log_volume": -2.78271003632,
+        "sphericity": 7.95373031269,
+        "elongation": 2.38975788838,
+        "fill_ratio": 0.996640108841,
+        "offcentre": 0.000351961566205,
+        "defect_rate": 0.0774397471355
+      }
+    },
+    {
+      "name": "decor_candle_l01",
+      "triangles": 13856,
+      "vertices": 6940,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 0.00017106391433309898,
+      "occupied_volume": 0.000711750798150488,
+      "box_volume": 0.002164518123486799,
+      "features": {
+        "log_volume": -7.24778271042,
+        "sphericity": 4.44261664858,
+        "elongation": 3.08074637186,
+        "fill_ratio": 0.328826444291,
+        "offcentre": 0.183992476408,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "dishware_mug_a01",
+      "triangles": 11876,
+      "vertices": 5938,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 4.330388188709641e-05,
+      "occupied_volume": 0.0004889548123606755,
+      "box_volume": 0.0008258254343819427,
+      "features": {
+        "log_volume": -7.62324048102,
+        "sphericity": 8.33869374789,
+        "elongation": 1.43056917624,
+        "fill_ratio": 0.592080107979,
+        "offcentre": 0.0459937525165,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "drum_fiber_a02",
+      "triangles": 25425,
+      "vertices": 13101,
+      "watertight": false,
+      "defect_rate": 0.03008849557522124,
+      "signed_volume": 0.02230799197831712,
+      "occupied_volume": 0.2361600943724645,
+      "box_volume": 0.30707651084794757,
+      "features": {
+        "log_volume": -1.44324533796,
+        "sphericity": 11.4163561068,
+        "elongation": 1.57083391189,
+        "fill_ratio": 0.769059455965,
+        "offcentre": 0.00296915628281,
+        "defect_rate": 0.0300884955752
+      }
+    },
+    {
+      "name": "engineComponent_camshaft_b01",
+      "triangles": 361096,
+      "vertices": 182269,
+      "watertight": false,
+      "defect_rate": 0.009548707268981101,
+      "signed_volume": 0.007271532141322183,
+      "occupied_volume": 0.04596027090482782,
+      "box_volume": 0.1088062581545449,
+      "features": {
+        "log_volume": -3.07997793166,
+        "sphericity": 5.72165896824,
+        "elongation": 3.90766218644,
+        "fill_ratio": 0.422404663889,
+        "offcentre": 0.10546322159,
+        "defect_rate": 0.00954870726898
+      }
+    },
+    {
+      "name": "equipment_bench_vise_a01",
+      "triangles": 106162,
+      "vertices": 53099,
+      "watertight": true,
+      "defect_rate": 2.8258698969499443e-05,
+      "signed_volume": 0.0024735541962423147,
+      "occupied_volume": 0.006881232396730958,
+      "box_volume": 0.013611697877486019,
+      "features": {
+        "log_volume": -4.97895751565,
+        "sphericity": 9.6407920039,
+        "elongation": 1.7994783597,
+        "fill_ratio": 0.50553813776,
+        "offcentre": 0.052486377855,
+        "defect_rate": 2.82586989695e-05
+      }
+    },
+    {
+      "name": "fixture_cabinet_a01",
+      "triangles": 483180,
+      "vertices": 241842,
+      "watertight": true,
+      "defect_rate": 5.794941843619355e-05,
+      "signed_volume": 0.05797835764264444,
+      "occupied_volume": 0.21913537101632188,
+      "box_volume": 0.23574064827913882,
+      "features": {
+        "log_volume": -1.51806560764,
+        "sphericity": 18.6132382898,
+        "elongation": 1.8846609809,
+        "fill_ratio": 0.929561247142,
+        "offcentre": 0.00775953744354,
+        "defect_rate": 5.79494184362e-05
+      }
+    },
+    {
+      "name": "food_processed_cannedFood_k01",
+      "triangles": 13140,
+      "vertices": 6572,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 0.0004857659437762794,
+      "occupied_volume": 0.0005114542903385802,
+      "box_volume": 0.0006636760638822855,
+      "features": {
+        "log_volume": -7.57825234052,
+        "sphericity": 6.05442289752,
+        "elongation": 1.50000010083,
+        "fill_ratio": 0.77063844573,
+        "offcentre": 0.00217581657347,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "handTool_hammer_crossPeen_b01",
+      "triangles": 540751,
+      "vertices": 270380,
+      "watertight": false,
+      "defect_rate": 0.0013666179073177859,
+      "signed_volume": 0.00028966070309782883,
+      "occupied_volume": 0.0006399945672906012,
+      "box_volume": 0.0010021410183312129,
+      "features": {
+        "log_volume": -7.35405087026,
+        "sphericity": 5.59004426455,
+        "elongation": 7.45371311877,
+        "fill_ratio": 0.638627254632,
+        "offcentre": 0.102130232251,
+        "defect_rate": 0.00136661790732
+      }
+    },
+    {
+      "name": "instrument_spoon_a01",
+      "triangles": 18624,
+      "vertices": 9314,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 5.490365558756978e-05,
+      "occupied_volume": 6.61286221912099e-05,
+      "box_volume": 0.00015198770720882554,
+      "features": {
+        "log_volume": -9.62390889135,
+        "sphericity": 6.31748655626,
+        "elongation": 6.33566626019,
+        "fill_ratio": 0.435091912403,
+        "offcentre": 0.125743426976,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "kitchenware_knife_b01",
+      "triangles": 7660,
+      "vertices": 3836,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 0.00018517522301773567,
+      "occupied_volume": 0.0004737162843051,
+      "box_volume": 0.0012754783227521675,
+      "features": {
+        "log_volume": -7.65490197179,
+        "sphericity": 8.66288917426,
+        "elongation": 9.18503347081,
+        "fill_ratio": 0.371402850095,
+        "offcentre": 0.0586060518033,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "lighting_overheadLed_hexGrid_a01",
+      "triangles": 189103,
+      "vertices": 95535,
+      "watertight": false,
+      "defect_rate": 0.009936383875454117,
+      "signed_volume": 0.014364403099626293,
+      "occupied_volume": 12.405271372266323,
+      "box_volume": 12.49807103395267,
+      "features": {
+        "log_volume": 2.51812149294,
+        "sphericity": 2.0280726129,
+        "elongation": 4.43905674859,
+        "fill_ratio": 0.992574881241,
+        "offcentre": 0.000350936259197,
+        "defect_rate": 0.00993638387545
+      }
+    },
+    {
+      "name": "misc_golfBall_a01",
+      "triangles": 12288,
+      "vertices": 6146,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 4.0556915974246514e-05,
+      "occupied_volume": 4.0740364473697255e-05,
+      "box_volume": 7.758415787404268e-05,
+      "features": {
+        "log_volume": -10.1082912009,
+        "sphericity": 4.84723938917,
+        "elongation": 1.00180101717,
+        "fill_ratio": 0.525111899002,
+        "offcentre": 0.000286362056215,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "paint_container_bottle_orange_a02",
+      "triangles": 35100,
+      "vertices": 17628,
+      "watertight": false,
+      "defect_rate": 0.0041025641025641026,
+      "signed_volume": 5.04191053062513e-05,
+      "occupied_volume": 0.00012069006850327162,
+      "box_volume": 0.0002197620775327203,
+      "features": {
+        "log_volume": -9.02228471574,
+        "sphericity": 12.1090448998,
+        "elongation": 1.72418446286,
+        "fill_ratio": 0.5491851454,
+        "offcentre": 0.101339328849,
+        "defect_rate": 0.00410256410256
+      }
+    },
+    {
+      "name": "pallet_rackable_solid_top_blue_a02",
+      "triangles": 24078,
+      "vertices": 12023,
+      "watertight": false,
+      "defect_rate": 0.0006645070188553867,
+      "signed_volume": 0.07239041458884293,
+      "occupied_volume": 0.18475172627009478,
+      "box_volume": 0.1871886993035972,
+      "features": {
+        "log_volume": -1.68874237538,
+        "sphericity": 13.6744989756,
+        "elongation": 7.87191583803,
+        "fill_ratio": 0.986981195753,
+        "offcentre": 0.000330216204551,
+        "defect_rate": 0.000664507018855
+      }
+    },
+    {
+      "name": "powerTool_cutting_tool_a01",
+      "triangles": 39858,
+      "vertices": 20236,
+      "watertight": false,
+      "defect_rate": 0.013924431732650911,
+      "signed_volume": 0.00012255945456259815,
+      "occupied_volume": 0.00036205707798815006,
+      "box_volume": 0.0007282737788725745,
+      "features": {
+        "log_volume": -7.92370868457,
+        "sphericity": 11.5179101683,
+        "elongation": 13.5122326014,
+        "fill_ratio": 0.497144190127,
+        "offcentre": 0.0896545585585,
+        "defect_rate": 0.0139244317327
+      }
+    },
+    {
+      "name": "ppe_respirator_halfMask_b01",
+      "triangles": 101780,
+      "vertices": 51297,
+      "watertight": false,
+      "defect_rate": 0.007702888583218707,
+      "signed_volume": 5.532629706001493e-05,
+      "occupied_volume": 0.00036950412238530674,
+      "box_volume": 0.0007430897921751649,
+      "features": {
+        "log_volume": -7.90334866098,
+        "sphericity": 10.2094415177,
+        "elongation": 2.02311827853,
+        "fill_ratio": 0.497253664734,
+        "offcentre": 0.0366270852164,
+        "defect_rate": 0.00770288858322
+      }
+    },
+    {
+      "name": "rack_f04",
+      "triangles": 151834,
+      "vertices": 78533,
+      "watertight": false,
+      "defect_rate": 0.037317069957980425,
+      "signed_volume": 0.06757682095134206,
+      "occupied_volume": 1.7300271849882052,
+      "box_volume": 1.8932425992836943,
+      "features": {
+        "log_volume": 0.548137122252,
+        "sphericity": 5.48813393025,
+        "elongation": 4.60099531563,
+        "fill_ratio": 0.91379054414,
+        "offcentre": 0.0222138129325,
+        "defect_rate": 0.037317069958
+      }
+    },
+    {
+      "name": "serviceTool_brake_lathe_a01",
+      "triangles": 451042,
+      "vertices": 226074,
+      "watertight": false,
+      "defect_rate": 0.0009599992905317021,
+      "signed_volume": 0.3695056463179837,
+      "occupied_volume": 0.7957623357770248,
+      "box_volume": 1.5941063304540077,
+      "features": {
+        "log_volume": -0.228454710864,
+        "sphericity": 13.302870815,
+        "elongation": 1.24036142515,
+        "fill_ratio": 0.49919024884,
+        "offcentre": 0.071743368546,
+        "defect_rate": 0.000959999290532
+      }
+    },
+    {
+      "name": "sign_hospital_board_b02",
+      "triangles": 3920,
+      "vertices": 3474,
+      "watertight": false,
+      "defect_rate": 0.7535714285714286,
+      "signed_volume": 0.005713760293057892,
+      "occupied_volume": 0.006663526712451071,
+      "box_volume": 0.006679542197765288,
+      "features": {
+        "log_volume": -5.01110639818,
+        "sphericity": 35.351565349,
+        "elongation": 83.3799947889,
+        "fill_ratio": 0.997602307937,
+        "offcentre": 4.54229234837e-08,
+        "defect_rate": 0.753571428571
+      }
+    },
+    {
+      "name": "stationery_pen_plastic_a01",
+      "triangles": 83200,
+      "vertices": 41771,
+      "watertight": false,
+      "defect_rate": 0.003942307692307692,
+      "signed_volume": 9.75129154439434e-06,
+      "occupied_volume": 1.764234921253455e-05,
+      "box_volume": 3.226469401292929e-05,
+      "features": {
+        "log_volume": -10.9452083409,
+        "sphericity": 23.133446982,
+        "elongation": 14.3803161334,
+        "fill_ratio": 0.546800450222,
+        "offcentre": 0.0381563196104,
+        "defect_rate": 0.00394230769231
+      }
+    },
+    {
+      "name": "storage_shelf_basic_a01",
+      "triangles": 1326754,
+      "vertices": 663215,
+      "watertight": true,
+      "defect_rate": 0.0006233258011658529,
+      "signed_volume": 0.225409095363323,
+      "occupied_volume": 7.658571280508949,
+      "box_volume": 7.658667745920041,
+      "features": {
+        "log_volume": 2.03582544945,
+        "sphericity": 17.8417828957,
+        "elongation": 1.96808294748,
+        "fill_ratio": 0.999987404414,
+        "offcentre": 7.59954441099e-09,
+        "defect_rate": 0.000623325801166
+      }
+    },
+    {
+      "name": "structure_beam_a01",
+      "triangles": 11732,
+      "vertices": 6408,
+      "watertight": false,
+      "defect_rate": 0.08591885441527446,
+      "signed_volume": 0.7531191351049743,
+      "occupied_volume": 2.7684247713776418,
+      "box_volume": 2.7696334751288716,
+      "features": {
+        "log_volume": 1.01827848385,
+        "sphericity": 11.0420453719,
+        "elongation": 19.99975452,
+        "fill_ratio": 0.999563587109,
+        "offcentre": 2.47690886948e-07,
+        "defect_rate": 0.0859188544153
+      }
+    },
+    {
+      "name": "suspension_control_arm_rearward_left_a01",
+      "triangles": 21066,
+      "vertices": 10535,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 7.088730153448545e-05,
+      "occupied_volume": 0.0003799231452523118,
+      "box_volume": 0.0005054765893699111,
+      "features": {
+        "log_volume": -7.87554157504,
+        "sphericity": 7.55661129062,
+        "elongation": 6.51472348763,
+        "fill_ratio": 0.751613730966,
+        "offcentre": 0.0078314854182,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "tape_clear_a01",
+      "triangles": 2816,
+      "vertices": 1408,
+      "watertight": true,
+      "defect_rate": 0.0,
+      "signed_volume": 0.00017114356058180668,
+      "occupied_volume": 0.0003917290511170373,
+      "box_volume": 0.0005011248788836246,
+      "features": {
+        "log_volume": -7.84494015329,
+        "sphericity": 10.9648910114,
+        "elongation": 1.98784579513,
+        "fill_ratio": 0.781699467785,
+        "offcentre": 8.02893411174e-06,
+        "defect_rate": 0.0
+      }
+    },
+    {
+      "name": "testingTool_multimeter_clamp_b01",
+      "triangles": 72588,
+      "vertices": 37212,
+      "watertight": false,
+      "defect_rate": 0.024577065079627487,
+      "signed_volume": 0.0002826184931525874,
+      "occupied_volume": 0.0006751585472859232,
+      "box_volume": 0.001282177368967682,
+      "features": {
+        "log_volume": -7.3005630098,
+        "sphericity": 9.11420808233,
+        "elongation": 7.49350172142,
+        "fill_ratio": 0.5265718797,
+        "offcentre": 0.0674776717482,
+        "defect_rate": 0.0245770650796
+      }
+    },
+    {
+      "name": "utensils_scissors_a01",
+      "triangles": 15176,
+      "vertices": 7686,
+      "watertight": false,
+      "defect_rate": 0.012124406958355299,
+      "signed_volume": 7.9729668573352e-06,
+      "occupied_volume": 4.0188442937760115e-05,
+      "box_volume": 0.00013091354756468803,
+      "features": {
+        "log_volume": -10.1219310928,
+        "sphericity": 8.79412406034,
+        "elongation": 20.6210100051,
+        "fill_ratio": 0.306984599267,
+        "offcentre": 0.121197184573,
+        "defect_rate": 0.0121244069584
+      }
+    },
+    {
+      "name": "vehicleSupport_jack_stand_b01",
+      "triangles": 31466,
+      "vertices": 15740,
+      "watertight": false,
+      "defect_rate": 0.002033941397063497,
+      "signed_volume": 0.0013666035877976778,
+      "occupied_volume": 0.006709766664357875,
+      "box_volume": 0.01679912883738116,
+      "features": {
+        "log_volume": -5.00419110292,
+        "sphericity": 6.8620550364,
+        "elongation": 1.37214151384,
+        "fill_ratio": 0.399411584333,
+        "offcentre": 0.088552813147,
+        "defect_rate": 0.00203394139706
+      }
+    },
+    {
+      "name": "vehicle_forklift_blue_c01",
+      "triangles": 997893,
+      "vertices": 528487,
+      "watertight": false,
+      "defect_rate": 0.05311691734484559,
+      "signed_volume": 1.8322308251186212,
+      "occupied_volume": 7.1372969082695175,
+      "box_volume": 11.066781482004046,
+      "features": {
+        "log_volume": 1.96533412039,
+        "sphericity": 14.7867996418,
+        "elongation": 2.73847102644,
+        "fill_ratio": 0.644929776546,
+        "offcentre": 0.0622260402606,
+        "defect_rate": 0.0531169173448
+      }
+    },
+    {
+      "name": "warehouse_conveyorBelt_a33",
+      "triangles": 306856,
+      "vertices": 153256,
+      "watertight": false,
+      "defect_rate": 0.0034022473081836433,
+      "signed_volume": 0.08453721674169351,
+      "occupied_volume": 6.704487622462042,
+      "box_volume": 19.03606331408204,
+      "features": {
+        "log_volume": 1.90277709658,
+        "sphericity": 4.57623899717,
+        "elongation": 2.3032735443,
+        "fill_ratio": 0.352199271028,
+        "offcentre": 0.111987961206,
+        "defect_rate": 0.00340224730818
+      }
+    }
+  ]
+}
