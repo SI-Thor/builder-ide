@@ -52,7 +52,7 @@ from .gate import (
     StandingConfig,
     StandingGate,
 )
-from .judge import Judge, JudgeAnswer, fold_judgments
+from .judge import Judge, JudgeAnswer, fold_judgments, plan_pack, verdict_payload_estimate
 from .models import (
     GateDecision,
     JudgeCost,
@@ -70,6 +70,8 @@ __all__ = [
     "Judge",
     "JudgeAnswer",
     "fold_judgments",
+    "plan_pack",
+    "verdict_payload_estimate",
     # the questions and their answers
     "Question",
     "QuestionKind",

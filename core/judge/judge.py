@@ -12,15 +12,20 @@ The contract, in order:
 
 1. **one call asks a pack** — a question set over one shared state,
    because §4.1 measured the per-question saving of the shared prefix;
-2. **the confidence gate is policy** — act at or above τ, escalate
+2. **the pack is pre-flighted against the ledger's payload cap** — a
+   pack whose verdict row cannot fit is split into sub-packs that fit
+   (the shared state kept, the questions partitioned), each asked and
+   recorded as its own attempt, the answers merged in pack order; a
+   refusal for size never reaches the caller as "no answer";
+3. **the confidence gate is policy** — act at or above τ, escalate
    below, walking the configured ladder rung by rung, escalating only
    the questions that fell short (a confident answer is not re-asked of
    a dearer backend);
-3. **every attempt is a row** — ``judge.verdict``, with the author
+4. **every attempt is a row** — ``judge.verdict``, with the author
    (``judge@<backend>:<model>``), the distribution, the cost, the
    latency, the question set's hash and the pack's hash. Refused
    attempts and escalated-away-from attempts are rows too;
-4. **below τ at the ladder's end is surfaced, not acted on** — the
+5. **below τ at the ladder's end is surfaced, not acted on** — the
    answer comes back flagged, and the row says so.
 
 The Judge never acts. It returns verdicts and the gate's decision;
@@ -34,6 +39,7 @@ from typing import Mapping, Sequence
 from pydantic import BaseModel, ConfigDict, Field
 
 from core.canon import now_utc
+from core.night.ledger import MAX_PAYLOAD_BYTES, canonical_bytes
 from core.records import Actor
 
 from .backends import BackendReply, FakeBackend, JudgeBackend, JudgeRefusal
@@ -42,7 +48,18 @@ from .gate import ConfidencePolicy, EscalationLadder, StandingGate
 from .models import JudgeCost, Judgment, Question, judgment_from_distribution, question_set_hash, state_hash
 from .ports import LedgerPort
 
-__all__ = ["Judge", "JudgeAnswer", "fold_judgments"]
+__all__ = ["Judge", "JudgeAnswer", "fold_judgments", "plan_pack", "verdict_payload_estimate"]
+
+#: The widest legal JSON spelling of a probability in [0, 1] — 17
+#: significant digits in exponent form. The pre-flight measures every
+#: would-be row with numbers this wide, so the estimate bounds the real
+#: row from above whatever comes back.
+_WIDE = 1.2345678901234567e-05
+
+#: Slack for the fields the estimate holds at a stand-in (the gate word,
+#: the latency, the cost, the escalated-from name). The estimate has to
+#: bound the real row, so the slack is generous.
+_ESTIMATE_MARGIN_BYTES = 512
 
 
 class JudgeAnswer(BaseModel):
@@ -175,99 +192,137 @@ class Judge:
                 break
             tau = self.policy.tau_for(backend.name, backend.model, task)
             standing_governs = self.standing is not None and index == 0
-            try:
-                reply = backend.ask(state, pending)
-            except JudgeRefusal as refusal:
+            # the rung's rows wait for the rung's escalated flags (a
+            # question is escalated when a later rung re-asks it — known
+            # only after the whole rung's sub-packs are asked), and they
+            # are written in ask order
+            rung_records: list[dict] = []
+            next_pending: list[Question] = []
+
+            for sub_pack in plan_pack(
+                pending,
+                task=task,
+                backend_name=backend.name,
+                model=backend.model,
+                standing=standing_governs,
+            ):
+                try:
+                    reply = backend.ask(state, sub_pack)
+                except JudgeRefusal as refusal:
+                    rung_records.append(
+                        dict(
+                            refusal=True,
+                            questions=sub_pack,
+                            reply=None,
+                            refusal_error=refusal,
+                            standing_words={},
+                            judgments=(),
+                        )
+                    )
+                    # the refused questions were not answered: the next
+                    # rung (if there is one) is asked them whole
+                    next_pending.extend(sub_pack)
+                    continue
+
+                judged = {
+                    question.qid: judgment_from_distribution(
+                        question=question,
+                        backend=backend.name,
+                        model=backend.model,
+                        distribution=reply.distributions.get(question.qid, {}),
+                        confidence=reply.confidences.get(question.qid),
+                    ).model_copy(update={"tau": tau})
+                    for question in sub_pack
+                }
+                still_pending: list[Question] = []
+                standing_words = {}
+                for question in sub_pack:
+                    judgment = judged[question.qid]
+                    if standing_governs:
+                        if judgment.confidence is None:
+                            # a judgment with no confidence cannot feed a
+                            # continuous gate: it never passes (the policy's
+                            # own rule), and the standing takes no reading
+                            acts = False
+                            standing_words[question.qid] = None
+                        else:
+                            word = self.standing.step_for(
+                                question.qid, judgment.confidence, now
+                            ).state
+                            standing_words[question.qid] = word
+                            acts = word == "act"
+                    else:
+                        acts = (
+                            self.policy.decision(confidence=judgment.confidence, tau=tau)
+                            == "act"
+                        )
+                    if acts:
+                        governing[question.qid] = judgment
+                        if standing_governs and standing_words.get(question.qid):
+                            governed_by[question.qid] = standing_words[question.qid]
+                    elif index + 1 < len(self.rungs):
+                        still_pending.append(question)
+                    else:
+                        governing[question.qid] = judgment  # surfaced
+                        if standing_governs and standing_words.get(question.qid):
+                            governed_by[question.qid] = standing_words[question.qid]
+                if standing_governs:
+                    standing_readings.update(standing_words)
+                rung_records.append(
+                    dict(
+                        refusal=False,
+                        questions=sub_pack,
+                        reply=reply,
+                        refusal_error=None,
+                        standing_words=standing_words,
+                        judgments=judged,
+                    )
+                )
+                next_pending.extend(still_pending)
+
+            escalated_qids = {question.qid for question in next_pending}
+            for record in rung_records:
+                if record["refusal"]:
+                    self._record(
+                        task=task,
+                        state_hash=s_hash,
+                        pack_hash=pack_hash,
+                        questions=record["questions"],
+                        backend=backend,
+                        tau=tau,
+                        judgments=(),
+                        reply=None,
+                        escalated_from=prev_backend,
+                        refusal=record["refusal_error"],
+                        at=moment,
+                    )
+                    continue
+                raw = record["judgments"]
+                row_judgments = tuple(
+                    raw[question.qid].model_copy(
+                        update={"escalated": question.qid in escalated_qids}
+                    )
+                    for question in record["questions"]
+                )
+                cost = backend.cost_of(record["reply"])
                 self._record(
                     task=task,
                     state_hash=s_hash,
                     pack_hash=pack_hash,
-                    questions=pending,
+                    questions=record["questions"],
                     backend=backend,
                     tau=tau,
-                    judgments=(),
-                    reply=None,
+                    judgments=row_judgments,
+                    reply=record["reply"],
                     escalated_from=prev_backend,
-                    refusal=refusal,
+                    refusal=None,
                     at=moment,
+                    standing_words=record["standing_words"],
                 )
-                prev_backend = name
-                continue
-
-            judged = {
-                question.qid: judgment_from_distribution(
-                    question=question,
-                    backend=backend.name,
-                    model=backend.model,
-                    distribution=reply.distributions.get(question.qid, {}),
-                    confidence=reply.confidences.get(question.qid),
-                ).model_copy(update={"tau": tau})
-                for question in pending
-            }
-            act: list[Judgment] = []
-            still_pending: list[Question] = []
-            standing_words = {}
-            for question in pending:
-                judgment = judged[question.qid]
-                if standing_governs:
-                    if judgment.confidence is None:
-                        # a judgment with no confidence cannot feed a
-                        # continuous gate: it never passes (the policy's
-                        # own rule), and the standing takes no reading
-                        acts = False
-                        standing_words[question.qid] = None
-                    else:
-                        word = self.standing.step_for(
-                            question.qid, judgment.confidence, now
-                        ).state
-                        standing_words[question.qid] = word
-                        acts = word == "act"
-                else:
-                    acts = (
-                        self.policy.decision(confidence=judgment.confidence, tau=tau)
-                        == "act"
-                    )
-                if acts:
-                    act.append(judgment)
-                    governing[question.qid] = judgment
-                    if standing_governs and standing_words.get(question.qid):
-                        governed_by[question.qid] = standing_words[question.qid]
-                elif index + 1 < len(self.rungs):
-                    still_pending.append(question)
-                else:
-                    act.append(judgment)
-                    governing[question.qid] = judgment  # surfaced
-                    if standing_governs and standing_words.get(question.qid):
-                        governed_by[question.qid] = standing_words[question.qid]
-            escalated_qids = {question.qid for question in still_pending}
-            if standing_governs:
-                standing_readings.update(standing_words)
-
-            row_judgments = tuple(
-                judged[question.qid].model_copy(
-                    update={"escalated": question.qid in escalated_qids}
-                )
-                for question in pending
-            )
-            cost = backend.cost_of(reply)
-            self._record(
-                task=task,
-                state_hash=s_hash,
-                pack_hash=pack_hash,
-                questions=pending,
-                backend=backend,
-                tau=tau,
-                judgments=row_judgments,
-                reply=reply,
-                escalated_from=prev_backend,
-                refusal=None,
-                at=moment,
-                standing_words=standing_words,
-            )
-            total = total.added(cost)
-            attempts += 1
+                total = total.added(cost)
+                attempts += 1
             prev_backend = name
-            pending = tuple(still_pending)
+            pending = tuple(next_pending)
 
         if len(governing) != len(pack):
             raise JudgeRefusal(
@@ -324,39 +379,22 @@ class Judge:
         omission.
         """
         standing_words = standing_words or {}
-        payload: dict[str, object] = {
-            "task": task,
-            "state_hash": state_hash,
-            "pack_hash": pack_hash,
-            "questions_hash": question_set_hash(questions),
-            "backend": backend.name,
-            "model": backend.model,
-            "author": f"judge@{backend.name}:{backend.model}",
-            "n_questions": len(questions),
-            # the gate decision is derived (confidence, τ, escalated), but the
-            # row carries it anyway: a log that needs a computation to say
-            # what was acted on is a log that lies by omission — and the
-            # standing's word rides beside it for the same reason
-            "judgments": [
-                {
-                    **judgment.model_dump(),
-                    "gate": judgment.gate,
-                    "standing": standing_words.get(judgment.qid),
-                }
-                for judgment in judgments
-            ],
-            "latency_seconds": reply.wall_seconds if reply else 0.0,
-            "cost": (
-                backend.cost_of(reply).model_dump()
-                if reply
-                else JudgeCost(wall_seconds=0.0).model_dump()
-            ),
-            "escalated_from": escalated_from,
-            "refused": refusal is not None,
-            "tau": tau,
-        }
-        if refusal is not None:
-            payload["error"] = {"code": refusal.code, "detail": refusal.detail}
+        payload = _verdict_payload(
+            task=task,
+            state_hash=state_hash,
+            pack_hash=pack_hash,
+            questions_hash=question_set_hash(questions),
+            backend_name=backend.name,
+            model=backend.model,
+            tau=tau,
+            judgments=judgments,
+            n_questions=len(questions),
+            standing_words=standing_words,
+            escalated_from=escalated_from,
+            refusal=refusal,
+            latency_seconds=reply.wall_seconds if reply else 0.0,
+            cost=backend.cost_of(reply) if reply else JudgeCost(wall_seconds=0.0),
+        )
         try:
             self.ledger.append(
                 type=JUDGE_EVENT_TYPE,
@@ -370,6 +408,165 @@ class Judge:
                 "payload_too_large",
                 f"this pack's verdict cannot fit the ledger's payload cap: {error}",
             ) from error
+
+
+# --- the row's shape, and the pack's plan -------------------------------------
+
+
+def _verdict_payload(
+    *,
+    task: str,
+    state_hash: str,
+    pack_hash: str,
+    questions_hash: str,
+    backend_name: str,
+    model: str,
+    tau: float,
+    judgments: tuple[Judgment, ...],
+    n_questions: int,
+    standing_words: Mapping[str, str | None],
+    escalated_from: str | None,
+    refusal: JudgeRefusal | None,
+    latency_seconds: float,
+    cost: JudgeCost,
+) -> dict[str, object]:
+    """The ``judge.verdict`` row's payload, in its one canonical shape.
+
+    The pre-flight (:func:`plan_pack`) measures would-be rows through
+    this same builder, so what it counts is what the ledger will be
+    handed, not a guess beside it.
+    """
+    payload: dict[str, object] = {
+        "task": task,
+        "state_hash": state_hash,
+        "pack_hash": pack_hash,
+        "questions_hash": questions_hash,
+        "backend": backend_name,
+        "model": model,
+        "author": f"judge@{backend_name}:{model}",
+        "n_questions": n_questions,
+        # the gate decision is derived (confidence, τ, escalated), but the
+        # row carries it anyway: a log that needs a computation to say
+        # what was acted on is a log that lies by omission — and the
+        # standing's word rides beside it for the same reason
+        "judgments": [
+            {
+                **judgment.model_dump(),
+                "gate": judgment.gate,
+                "standing": standing_words.get(judgment.qid),
+            }
+            for judgment in judgments
+        ],
+        "latency_seconds": latency_seconds,
+        "cost": cost.model_dump(),
+        "escalated_from": escalated_from,
+        "refused": refusal is not None,
+        "tau": tau,
+    }
+    if refusal is not None:
+        payload["error"] = {"code": refusal.code, "detail": refusal.detail}
+    return payload
+
+
+def verdict_payload_estimate(
+    *,
+    task: str,
+    questions: Sequence[Question],
+    backend_name: str,
+    model: str,
+    standing: bool = False,
+) -> dict[str, object]:
+    """The would-be verdict row for ``questions``, at the widest legal width.
+
+    Every probability, confidence and τ is measured at the widest JSON
+    spelling a float in [0, 1] can have, so the estimate bounds the real
+    row from above whatever the backend answers. ``standing`` adds the
+    hysteresis word the row would carry when a standing governs the rung.
+    """
+    questions = tuple(questions)
+    # model_construct, not the constructor: the stand-in is measured, not
+    # judged — its all-wide distribution deliberately breaks the
+    # sum-to-one rule the real judgment enforces
+    stand_ins = tuple(
+        Judgment.model_construct(
+            qid=question.qid,
+            kind=question.kind,
+            backend=backend_name,
+            model=model,
+            distribution={key: _WIDE for key in question.option_keys},
+            confidence=_WIDE,
+            tau=_WIDE,
+            escalated=True,
+        )
+        for question in questions
+    )
+    return _verdict_payload(
+        task=task,
+        state_hash=state_hash(""),
+        pack_hash=question_set_hash(questions),
+        questions_hash=question_set_hash(questions),
+        backend_name=backend_name,
+        model=model,
+        tau=_WIDE,
+        judgments=stand_ins,
+        n_questions=len(questions),
+        standing_words=(
+            {question.qid: "escalate" for question in questions} if standing else {}
+        ),
+        escalated_from=backend_name,
+        refusal=None,
+        latency_seconds=0.0,
+        cost=JudgeCost(wall_seconds=0.0),
+    )
+
+
+def plan_pack(
+    questions: Sequence[Question],
+    *,
+    task: str,
+    backend_name: str,
+    model: str,
+    standing: bool = False,
+    limit: int = MAX_PAYLOAD_BYTES,
+) -> tuple[tuple[Question, ...], ...]:
+    """Partition ``questions`` so every sub-pack's verdict row fits the cap.
+
+    The shared state is not the planner's business — it is kept whole by
+    the caller and every sub-pack is asked over it; only the questions
+    are partitioned, in pack order, by the pre-flight measurement. A
+    single question whose own row cannot fit any partition comes back as
+    its own (doomed) sub-pack: the judge will ask it, and the ledger's
+    refusal will be the loud refusal it should be.
+    """
+    pack = tuple(questions)
+    if not pack:
+        return ()
+    budget = limit - _ESTIMATE_MARGIN_BYTES
+
+    def fits(candidate: tuple[Question, ...]) -> bool:
+        row = verdict_payload_estimate(
+            task=task,
+            questions=candidate,
+            backend_name=backend_name,
+            model=model,
+            standing=standing,
+        )
+        return len(canonical_bytes(row)) <= budget
+
+    chunks: list[tuple[Question, ...]] = []
+    current: list[Question] = []
+    for question in pack:
+        if current and not fits((*current, question)):
+            chunks.append(tuple(current))
+            current = [question]
+        else:
+            # a first question is kept even when it cannot fit: one
+            # question cannot be partitioned further, and the honest
+            # outcome is the ledger's own refusal, not a silent drop
+            current.append(question)
+    if current:
+        chunks.append(tuple(current))
+    return tuple(chunks)
 
 
 # --- the fold -----------------------------------------------------------------
