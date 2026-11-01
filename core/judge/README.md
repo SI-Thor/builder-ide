@@ -225,10 +225,16 @@ on the liquid study's sea-state task the d1-2B's AUC is 0.2815, because
 the model is confident about which condition the *prompt* named and the
 prompt names the decoy first in 35 % of the steps. On that task the gate's
 **sign** is wrong — its escalations land on the right answers and its acts
-on the wrong ones — and no τ fixes it; the fix is upstream, in the prompt,
-or a both-order protocol that makes the leak visible instead of routing on
-it. The measurement, the mechanisms and the numbers:
-[`docs/lab/exp-judge-calibration.md`](../../docs/lab/exp-judge-calibration.md).
+on the wrong ones — and no τ fixes it; the fix is upstream, in the prompt.
+**A both-order protocol makes the leak visible instead of routing on it,
+but it is a diagnostic and not a gate** — measured on the reversed replay
+(240 steps, the two named conditions swapped): it catches **24.6 %** of the
+d1-2B's errors and **2.5 %** of the d1-3B's (the 3B's answers do not move
+when the prompt's order does), it costs two calls a judgment, and inside a
+10–30 % escalation budget it catches no more than the τ gate does. The
+measurement, the mechanisms and the numbers:
+[`docs/lab/exp-judge-calibration.md`](../../docs/lab/exp-judge-calibration.md)
+(§6 and §7).
 
 **The fold that makes the tracking possible.** A judgment is only worth
 scoring once something has happened, so `tracking.py` pairs a judgment

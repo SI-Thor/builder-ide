@@ -25,9 +25,12 @@ builder, and the confusion table.
 | file | what it measured | verdict |
 |---|---|---|
 | [`exp-judge-calibration.md`](exp-judge-calibration.md) | the judge's confidence under one definition, tracked against the Brier score on 1,470 recorded judgments: the per-cell Brier and ECE, the escalation sweeps under all three definitions, the recalibrations fitted on one split and read on another | **one definition is necessary and not sufficient — two cells' confidence is anti-correlated with being right (AUC 0.28, 0.29), one carries no signal (0.51), and the recalibration works where the signal is (10 of 11 cells improve their held-out Brier)** |
+| [`exp-judge-calibration.md`](exp-judge-calibration.md) §7 | the same cell measured again with **the two named conditions swapped** (the reversed replay, on the Thor): 240 steps × 2 orders for d1-2B and d1-3B, the positional share, the real disagreement set, the two averages, the catch rate inside a sane escalation budget, and the latency of the two calls | **the both-order protocol's catch rate is 24.6 % on the 2B and 2.5 % on the 3B, not the 71.9 % and 38.5 % the assumption produced; the 2B answers by position (85.8 %) and the 3B by content (order-invariant); averaging the two vectors does not cancel the position (AUC 0.1332) — the protocol stays a diagnostic, not a gate** |
 
 Scripts: [`judge-calibration-scripts/`](judge-calibration-scripts/) — the
-replay of the recorded vectors, and what it reads.
+replay of the recorded vectors, and what it reads; and
+[`judge-reversed-scripts/`](judge-reversed-scripts/) — the reversed replay on
+the Thor and its analysis.
 
 ---
 
