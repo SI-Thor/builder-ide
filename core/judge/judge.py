@@ -44,11 +44,25 @@ from core.records import Actor
 
 from .backends import BackendReply, FakeBackend, JudgeBackend, JudgeRefusal
 from .events import JUDGE_EVENT_TYPE
-from .gate import ConfidencePolicy, EscalationLadder, StandingGate
+from .gate import (
+    DEFAULT_BAND,
+    DEFAULT_DWELL_DOWN,
+    DEFAULT_DWELL_UP,
+    ConfidencePolicy,
+    EscalationLadder,
+    StandingGate,
+)
 from .models import JudgeCost, Judgment, Question, judgment_from_distribution, question_set_hash, state_hash
 from .ports import LedgerPort
 
-__all__ = ["Judge", "JudgeAnswer", "fold_judgments", "plan_pack", "verdict_payload_estimate"]
+__all__ = [
+    "Judge",
+    "JudgeAnswer",
+    "fold_judgments",
+    "standing_from_rows",
+    "plan_pack",
+    "verdict_payload_estimate",
+]
 
 #: The widest legal JSON spelling of a probability in [0, 1] — 17
 #: significant digits in exponent form. The pre-flight measures every
@@ -190,8 +204,18 @@ class Judge:
         for index, (name, backend) in enumerate(self.rungs):
             if not pending:
                 break
-            tau = self.policy.tau_for(backend.name, backend.model, task)
             standing_governs = self.standing is not None and index == 0
+            # the τ that governs this rung, and where it came from: on
+            # the standing-governed rung the standing's bound decides —
+            # explicitly bound (configured), else the policy's, which
+            # ships the measured calibration and falls back to
+            # DEFAULT_TAU for an uncalibrated pair. The row says which.
+            tau = self.policy.tau_for(backend.name, backend.model, task)
+            tau_source = self.policy.source_for(backend.name, backend.model, task)
+            if standing_governs and self.standing.tau is not None:
+                tau, tau_source = self.standing.tau, "configured"
+            if standing_governs:
+                self.standing.bind_tau(tau)
             # the rung's rows wait for the rung's escalated flags (a
             # question is escalated when a later rung re-asks it — known
             # only after the whole rung's sub-packs are asked), and they
@@ -281,6 +305,16 @@ class Judge:
                 next_pending.extend(still_pending)
 
             escalated_qids = {question.qid for question in next_pending}
+            standing_config = (
+                {
+                    "tau": tau,
+                    "band": self.standing.band,
+                    "dwell_up": self.standing.dwell_up,
+                    "dwell_down": self.standing.dwell_down,
+                }
+                if standing_governs
+                else None
+            )
             for record in rung_records:
                 if record["refusal"]:
                     self._record(
@@ -295,6 +329,10 @@ class Judge:
                         escalated_from=prev_backend,
                         refusal=record["refusal_error"],
                         at=moment,
+                        tau_source=tau_source,
+                        standing_governed=standing_governs,
+                        tick=now if standing_governs else None,
+                        standing_config=standing_config,
                     )
                     continue
                 raw = record["judgments"]
@@ -318,6 +356,10 @@ class Judge:
                     refusal=None,
                     at=moment,
                     standing_words=record["standing_words"],
+                    tau_source=tau_source,
+                    standing_governed=standing_governs,
+                    tick=now if standing_governs else None,
+                    standing_config=standing_config,
                 )
                 total = total.added(cost)
                 attempts += 1
@@ -368,6 +410,10 @@ class Judge:
         refusal: JudgeRefusal | None,
         at: str,
         standing_words: Mapping[str, str | None] | None = None,
+        tau_source: str = "default",
+        standing_governed: bool = False,
+        tick: float | None = None,
+        standing_config: Mapping[str, float] | None = None,
     ) -> None:
         """One ``judge.verdict`` row per attempt — refused attempts included.
 
@@ -376,7 +422,11 @@ class Judge:
         reading — a no-confidence judgment, or no standing wired). The
         row carries it beside the raw gate's word because a log that
         needs a computation to say what governed is a log that lies by
-        omission.
+        omission. A standing-governed row also carries what fed the
+        gate — the ``tick`` and the ``standing_config`` (the bound τ,
+        the band, the dwells) — because those are what a rebuild replays;
+        and every row carries ``tau_source``, the provenance of the τ it
+        was judged under.
         """
         standing_words = standing_words or {}
         payload = _verdict_payload(
@@ -394,6 +444,10 @@ class Judge:
             refusal=refusal,
             latency_seconds=reply.wall_seconds if reply else 0.0,
             cost=backend.cost_of(reply) if reply else JudgeCost(wall_seconds=0.0),
+            tau_source=tau_source,
+            standing_governed=standing_governed,
+            tick=tick,
+            standing_config=standing_config,
         )
         try:
             self.ledger.append(
@@ -429,6 +483,10 @@ def _verdict_payload(
     refusal: JudgeRefusal | None,
     latency_seconds: float,
     cost: JudgeCost,
+    tau_source: str = "default",
+    standing_governed: bool = False,
+    tick: float | None = None,
+    standing_config: Mapping[str, float] | None = None,
 ) -> dict[str, object]:
     """The ``judge.verdict`` row's payload, in its one canonical shape.
 
@@ -462,7 +520,13 @@ def _verdict_payload(
         "escalated_from": escalated_from,
         "refused": refusal is not None,
         "tau": tau,
+        "tau_source": tau_source,
+        "standing_governed": standing_governed,
     }
+    if tick is not None:
+        payload["tick"] = tick
+    if standing_config is not None:
+        payload["standing_config"] = dict(standing_config)
     if refusal is not None:
         payload["error"] = {"code": refusal.code, "detail": refusal.detail}
     return payload
@@ -517,6 +581,14 @@ def verdict_payload_estimate(
         refusal=None,
         latency_seconds=0.0,
         cost=JudgeCost(wall_seconds=0.0),
+        tau_source="calibrated" if standing else "default",
+        standing_governed=standing,
+        tick=_WIDE if standing else None,
+        standing_config=(
+            {"tau": _WIDE, "band": _WIDE, "dwell_up": _WIDE, "dwell_down": _WIDE}
+            if standing
+            else None
+        ),
     )
 
 
@@ -618,3 +690,83 @@ def fold_judgments(events, *, backend: str | None = None) -> list[dict]:
             entry["attempt_judgments"] = ()
             entries.append(entry)
     return entries
+
+
+# --- the rebuild --------------------------------------------------------------
+
+
+def standing_from_rows(rows) -> StandingGate:
+    """The standing, rebuilt from the folded ``judge.verdict`` rows.
+
+    A standing's state — dwell counters, last standing, the bound τ per
+    question id — used to live in memory only: a restart, a new process
+    or a clock jump lost it, and the ledger's ``standing_words`` could
+    not be reproduced. The fix is that a standing-governed row carries
+    everything the gate consumed — the confidence (in the judgment), the
+    ``tick``, the ``tau`` it was judged under and the ``standing_config``
+    (band, dwells) — so this rebuild replays the rows through a fresh
+    gate, subject by subject, and refuses anything it cannot reproduce:
+
+    * a row whose recorded word the replay does not return — the ledger
+      and the gate disagree, and the disagreement is raised, not
+      papered over;
+    * a null-confidence tick with a standing word on it — a continuous
+      gate takes no reading from a null;
+    * a τ (or a band or dwell) that moved under a live subject — a
+      standing judged at one bound is not silently re-bound.
+
+    The returned gate continues exactly where the log ends: hand it to a
+    fresh :class:`Judge` as its ``standing`` and the next word is the
+    word the old process would have said.
+
+        standing = standing_from_rows(fold_judgments(ledger.events()))
+        judge = Judge(backend=backend, standing=standing, ledger=ledger)
+    """
+    governed = [
+        row
+        for row in rows
+        if row.get("standing_governed") and row.get("judgment") is not None
+    ]
+    standing = StandingGate()
+    shape: tuple | None = None
+    for row in governed:
+        config = row.get("standing_config") or {}
+        current_shape = (
+            config.get("band", DEFAULT_BAND),
+            config.get("dwell_up", DEFAULT_DWELL_UP),
+            config.get("dwell_down", DEFAULT_DWELL_DOWN),
+        )
+        if shape is None:
+            shape = current_shape
+            standing = StandingGate(
+                band=current_shape[0],
+                dwell_up=current_shape[1],
+                dwell_down=current_shape[2],
+            )
+        elif current_shape != shape:
+            raise ValueError(
+                f"seq {row.get('seq')}: the standing's shape moved "
+                f"mid-history: {current_shape} after {shape} — a replay "
+                "cannot reproduce a gate whose numbers changed under it"
+            )
+        subject = row["qid"]
+        judgment = row["judgment"]
+        word = row.get("standing")
+        tau = row["tau"]
+        if judgment.confidence is None:
+            if word is not None:
+                raise ValueError(
+                    f"seq {row.get('seq')}: a null-confidence tick moved "
+                    f"the standing on {subject!r} — a continuous gate "
+                    "takes no reading from a null"
+                )
+            continue
+        standing.bind_subject(subject, tau)
+        transition = standing.step_for(subject, judgment.confidence, row["tick"])
+        if transition.state != word:
+            raise ValueError(
+                f"seq {row.get('seq')}: {subject!r}'s row says {word!r}; "
+                f"the replay says {transition.state!r} — the ledger and "
+                "the gate disagree"
+            )
+    return standing

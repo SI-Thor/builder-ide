@@ -47,12 +47,21 @@ from .gate import (
     DEFAULT_DWELL_DOWN,
     DEFAULT_DWELL_UP,
     DEFAULT_TAU,
+    CALIBRATED_TAUS,
+    SEA_STATE_TASK,
     ConfidencePolicy,
     EscalationLadder,
     StandingConfig,
     StandingGate,
 )
-from .judge import Judge, JudgeAnswer, fold_judgments, plan_pack, verdict_payload_estimate
+from .judge import (
+    Judge,
+    JudgeAnswer,
+    fold_judgments,
+    standing_from_rows,
+    plan_pack,
+    verdict_payload_estimate,
+)
 from .models import (
     GateDecision,
     JudgeCost,
@@ -70,6 +79,7 @@ __all__ = [
     "Judge",
     "JudgeAnswer",
     "fold_judgments",
+    "standing_from_rows",
     "plan_pack",
     "verdict_payload_estimate",
     # the questions and their answers
@@ -86,6 +96,8 @@ __all__ = [
     "DEFAULT_BAND",
     "DEFAULT_DWELL_UP",
     "DEFAULT_DWELL_DOWN",
+    "SEA_STATE_TASK",
+    "CALIBRATED_TAUS",
     "StandingConfig",
     "ConfidencePolicy",
     "EscalationLadder",

@@ -41,6 +41,8 @@ __all__ = [
     "DEFAULT_BAND",
     "DEFAULT_DWELL_UP",
     "DEFAULT_DWELL_DOWN",
+    "SEA_STATE_TASK",
+    "CALIBRATED_TAUS",
     "StandingConfig",
     "ConfidencePolicy",
     "EscalationLadder",
@@ -52,6 +54,26 @@ __all__ = [
 #: band; above 0.5 it was 196/196. The default until a task's own
 #: calibration says otherwise.
 DEFAULT_TAU = 0.5
+
+#: The sea-state task the liquid study's §4.3 recorded — five-way
+#: condition classification, 6 trials × 40 steps per model, one decision
+#: per tick. It is the task the calibration below is measured on.
+SEA_STATE_TASK = "sea-state.v1"
+
+#: The measured τ per (backend, model, task) — the sweep's calibrated
+#: τ* (``docs/lab/hysteresis-scripts/results/hysteresis-d1-sweep.json``;
+#: the method is ``docs/lab/exp-hysteresis-d1.md`` §5: the best catch of
+#: the model's misreadings subject to the rung still acting on at least
+#: half the ticks). On the recorded traces a τ of 0.5 never fires on the
+#: 2B's confidence at all — a gate at a τ the signal never crosses is
+#: not a gate — and at the calibrated 0.7 the raw threshold flickers 66
+#: times in 240 ticks. This table ships as the default: a calibrated
+#: pair is judged at its measured τ, an uncalibrated pair falls back to
+#: :data:`DEFAULT_TAU` until its own calibration lands here.
+CALIBRATED_TAUS: dict[tuple[str, str, str], float] = {
+    ("d1", "d1-2B", SEA_STATE_TASK): 0.7,
+    ("d1", "d1-3B", SEA_STATE_TASK): 0.7,
+}
 
 #: The adopted standing configuration, from the replay of the real d1
 #: traces through the gate (`docs/lab/exp-hysteresis-d1.md`; the sweep
@@ -111,12 +133,14 @@ class StandingConfig:
 
 
 class ConfidencePolicy:
-    """τ per (backend, model, task), defaulting from E1.
+    """τ per (backend, model, task), defaulting from the shipped calibration.
 
     The lookup order is the key you named, then ``*`` wildcards for the
     task, then the default — so a task's own calibration (E1's T3
     cautions that the tiles task is not T1) overrides per backend and
-    model without forking the policy.
+    model without forking the policy. The shipped
+    :data:`CALIBRATED_TAUS` sit under whatever the caller names, so the
+    measured default and the caller's override are one table.
     """
 
     def __init__(
@@ -129,7 +153,7 @@ class ConfidencePolicy:
                 raise ValueError(f"tau for {key} is a rate in (0, 1]")
             if len(key) != 3:
                 raise ValueError("a tau key is (backend, model, task)")
-        self.taus = dict(taus or {})
+        self.taus = {**CALIBRATED_TAUS, **(taus or {})}
         self.default = default
 
     def tau_for(self, backend: str, model: str, task: str) -> float:
@@ -138,6 +162,16 @@ class ConfidencePolicy:
         if (backend, model, "*") in self.taus:
             return self.taus[(backend, model, "*")]
         return self.default
+
+    def source_for(self, backend: str, model: str, task: str) -> str:
+        """Where the pair's τ came from — ``"calibrated"`` or ``"default"``.
+
+        The row carries it (``tau_source``): a log that does not say
+        which bound a decision was judged under cannot be audited.
+        """
+        if (backend, model, task) in self.taus or (backend, model, "*") in self.taus:
+            return "calibrated"
+        return "default"
 
     def decision(
         self,
@@ -196,11 +230,21 @@ class StandingGate:
     exactly as the mechanism requires, so a trace replays to the same
     answer.
 
-    The defaults are the **adopted configuration** — the standing
-    config the real d1 traces chose (see :class:`StandingConfig`): pass
-    nothing and the gate is the one the sweep's rule landed on; pass a
-    ``config`` (or the four numbers) and yours governs. Per-tick callers
-    pass ticks as ``now``; the adopted dwells are ticks.
+    **The τ is a bound, and the bound is a measurement.** Pass a
+    ``config`` or an explicit ``tau`` and yours governs (the row says
+    ``configured``); pass nothing — the default — and the τ is resolved
+    per ask from the shipped :data:`CALIBRATED_TAUS` for the (backend,
+    model, task) the Judge's first rung names, falling back to
+    :data:`DEFAULT_TAU` for an uncalibrated pair (the row says
+    ``calibrated`` or ``default``). The shape — band and dwells — stays
+    the adopted configuration the sweep chose.
+
+    The bound τ rides per **subject**: each question id's gate is built
+    at the τ its first reading was judged under, and a later ask that
+    resolves a different τ for that subject is refused rather than
+    silently re-binding it. That is what makes the standing
+    reconstructable: the τ each decision was judged under is in the row,
+    and :meth:`bind_subject` puts it back.
 
     Gates are per subject (a tile, a question, a builder): ask with
     :meth:`step_for` or with the default subject via :meth:`step`.
@@ -210,29 +254,80 @@ class StandingGate:
         self,
         *,
         config: StandingConfig | None = None,
-        tau: float = DEFAULT_TAU,
+        tau: float | None = None,
         band: float = DEFAULT_BAND,
         dwell_up: float = DEFAULT_DWELL_UP,
         dwell_down: float = DEFAULT_DWELL_DOWN,
         name: str = "",
     ) -> None:
         if config is not None:
-            tau, band = config.tau, config.band
-            dwell_up, dwell_down = config.dwell_up, config.dwell_down
-        if not 0.0 < tau <= 1.0:
+            tau = config.tau
+            band, dwell_up = config.band, config.dwell_up
+            dwell_down = config.dwell_down
+        if tau is not None and not 0.0 < tau <= 1.0:
             raise ValueError("tau is a rate in (0, 1]")
-        if not 0.0 <= band < tau:
+        if band < 0.0 or (tau is not None and not 0.0 <= band < tau):
             raise ValueError("the band sits below tau and does not reach zero")
+        #: ``None`` until bound: the τ is resolved per ask from the
+        #: shipped calibration (or the caller's own policy), never a
+        #: silent wall-clock-style default.
         self.tau = tau
         self.band = band
         self._gates: dict[str, HysteresisGate] = {}
-        self._levels = (
-            Level(name="escalate", enter=tau - band, exit=float("-inf")),
-            Level(name="act", enter=tau, exit=tau - band),
-        )
+        self._subject_tau: dict[str, float] = {}
+        self._current_tau: float | None = None
         self._dwell_up = dwell_up
         self._dwell_down = dwell_down
         self.name = name
+
+    # -- the τ -----------------------------------------------------------------
+
+    def tau_for(self, backend: str, model: str, task: str) -> tuple[float, str]:
+        """The τ this gate would bind for the pair, and where it came from.
+
+        An explicitly bound τ is ``"configured"``; otherwise the shipped
+        calibration answers (``"calibrated"``), then
+        :data:`DEFAULT_TAU` (``"default"``). The Judge resolves the τ
+        through its own policy first — the policy carries the caller's
+        taus too — so this is the direct user's path.
+        """
+        if self.tau is not None:
+            return self.tau, "configured"
+        if (backend, model, task) in CALIBRATED_TAUS:
+            return CALIBRATED_TAUS[(backend, model, task)], "calibrated"
+        if (backend, model, "*") in CALIBRATED_TAUS:
+            return CALIBRATED_TAUS[(backend, model, "*")], "calibrated"
+        return DEFAULT_TAU, "default"
+
+    def bind_tau(self, tau: float) -> None:
+        """Bind the τ subjects stepped from now on are gated by.
+
+        The Judge calls this once per ask, with the τ its policy (or the
+        shipped calibration) resolved for the rung. It does not move a
+        subject already bound — :meth:`_gate` refuses that — because a
+        standing judged at one τ cannot be re-bound mid-history without
+        the row and the gate disagreeing.
+        """
+        if not 0.0 < tau <= 1.0:
+            raise ValueError("tau is a rate in (0, 1]")
+        self._current_tau = tau
+
+    def bind_subject(self, subject: str, tau: float) -> None:
+        """Bind one subject's gate at τ — the rebuild's way to put the
+        row's calibrated bound back.
+
+        A subject already bound to another τ is a divergence the caller
+        must see, not a silent re-bind.
+        """
+        if not 0.0 < tau <= 1.0:
+            raise ValueError("tau is a rate in (0, 1]")
+        bound = self._subject_tau.get(subject)
+        if bound is not None and bound != tau:
+            raise ValueError(
+                f"subject {subject!r} was judged at τ {bound} and this "
+                f"rebuild binds {tau} — the bound moved under it"
+            )
+        self._subject_tau[subject] = tau
 
     # -- the reads -------------------------------------------------------------
 
@@ -247,11 +342,12 @@ class StandingGate:
     @property
     def standing(self) -> str:
         """The default subject's standing."""
-        return self._gate("").state
+        return self.standing_for("")
 
     def standing_for(self, subject: str) -> str:
-        """One subject's standing."""
-        return self._gate(subject).state
+        """One subject's standing — the cold ``escalate`` before a binding."""
+        gate = self._gates.get(subject)
+        return gate.state if gate is not None else "escalate"
 
     # -- the step --------------------------------------------------------------
 
@@ -269,14 +365,40 @@ class StandingGate:
 
     # -- internals -------------------------------------------------------------
 
+    def _levels_at(self, tau: float) -> tuple[Level, Level]:
+        if not 0.0 < tau <= 1.0:
+            raise ValueError("tau is a rate in (0, 1]")
+        if not 0.0 <= self.band < tau:
+            raise ValueError("the band sits below tau and does not reach zero")
+        return (
+            Level(name="escalate", enter=tau - self.band, exit=float("-inf")),
+            Level(name="act", enter=tau, exit=tau - self.band),
+        )
+
     def _gate(self, subject: str) -> HysteresisGate:
         gate = self._gates.get(subject)
         if gate is None:
+            tau = self._subject_tau.get(subject)
+            if tau is None:
+                tau = self._current_tau
+            if tau is None:
+                tau = self.tau_for("", "", "")[0]
+            self._subject_tau[subject] = tau
             gate = HysteresisGate(
-                self._levels,
+                self._levels_at(tau),
                 dwell_up=self._dwell_up,
                 dwell_down=self._dwell_down,
                 name=f"{self.name}:{subject}" if self.name else subject,
             )
             self._gates[subject] = gate
+        elif (
+            self._current_tau is not None
+            and self._subject_tau.get(subject) != self._current_tau
+        ):
+            raise ValueError(
+                f"subject {subject!r} is bound to τ "
+                f"{self._subject_tau.get(subject)} and this ask binds "
+                f"{self._current_tau} — a standing is not re-bound "
+                "mid-history; reset it or wire another"
+            )
         return gate

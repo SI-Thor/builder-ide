@@ -21,6 +21,7 @@ import pytest
 from core.judge.backends import FakeBackend
 from core.judge.gate import (
     DEFAULT_TAU,
+    SEA_STATE_TASK,
     ConfidencePolicy,
     EscalationLadder,
     StandingConfig,
@@ -134,26 +135,29 @@ def test_the_standing_starts_at_escalate():
 def test_the_adopted_standing_config_is_the_sweep_s_choice():
     """The default is a measurement, not a taste.
 
-    The real d1 traces replayed through the gate (exp-hysteresis-d1; the
-    sweep table and its results JSON are beside the harness): at the
-    traces' calibrated τ the raw τ gate flickers 66 times in 240 ticks on
-    the 2B recording, and this shape leaves one flicker with the raw
-    gate's catch and agreement kept and both latency bounds met — band
-    0.15, dwell_up 2 ticks, dwell_down 0 (the band holds the shallow
-    wobble; the dwell_up earns act; a real drop is not delayed). τ stays
-    E1's default until a task's own calibration names another.
+    The shape is the sweep's choice (exp-hysteresis-d1): at the traces'
+    calibrated τ the raw τ gate flickers 66 times in 240 ticks on the 2B
+    recording, and this shape leaves one flicker with the raw gate's
+    catch and agreement kept and both latency bounds met — band 0.15,
+    dwell_up 2 ticks, dwell_down 0. The τ itself is no longer a constant
+    the standing ships: it is resolved per ask from the shipped
+    calibration for the (backend, model, task) the first rung names —
+    the traces' calibrated 0.7 — and falls back to E1's default for an
+    uncalibrated pair.
     """
     assert StandingConfig() == StandingConfig(
         tau=DEFAULT_TAU, band=0.15, dwell_up=2.0, dwell_down=0.0
     )
-    # the gate the wiring builds by default carries the adopted numbers
+    # the gate the wiring builds by default carries the adopted shape
+    # and resolves the τ per ask
     gate = StandingGate()
-    assert (gate.tau, gate.band, gate.dwell_up, gate.dwell_down) == (
-        DEFAULT_TAU,
-        0.15,
-        2.0,
-        0.0,
-    )
+    assert gate.tau is None
+    assert (gate.band, gate.dwell_up, gate.dwell_down) == (0.15, 2.0, 0.0)
+    assert gate.tau_for("d1", "d1-2B", SEA_STATE_TASK) == (0.7, "calibrated")
+    assert gate.tau_for("d1", "d1-2B", "tiles.shortlist") == (DEFAULT_TAU, "default")
+    # an explicitly bound τ still binds, and says so
+    bound = StandingGate(tau=DEFAULT_TAU)
+    assert bound.tau_for("d1", "d1-2B", SEA_STATE_TASK) == (DEFAULT_TAU, "configured")
 
 
 def test_a_wandering_confidence_no_longer_flips_the_standing_state():
