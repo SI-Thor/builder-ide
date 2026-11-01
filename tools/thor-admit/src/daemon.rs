@@ -843,6 +843,20 @@ impl Daemon {
             return;
         };
         let lease = state.leases.remove(index);
+        // A lease that the watchdog stopped must not be left frozen. A
+        // stopped process keeps its memory, and once the lease is over
+        // nobody is watching it any more: an unwatched hog holding tens of
+        // gigabytes is exactly what this daemon exists to prevent. So the
+        // work is asked to stop (SIGTERM) and then let go (SIGCONT) — a
+        // stopped process never sees its SIGTERM until it runs again.
+        if lease.stopped {
+            let signalled = signal_target(lease.target, libc::SIGTERM);
+            let _ = signal_target(lease.target, libc::SIGCONT);
+            self.log_event(
+                "lease.released_while_stopped",
+                json!({"lease": lease.id, "signalled": signalled}),
+            );
+        }
         let (peak, peak_source) = lease.measured_peak();
         let mut record = PeakRecord::new(&lease.label, &lease.label, peak);
         record.peak_gpu_bytes = if lease.peak_gpu > 0 {

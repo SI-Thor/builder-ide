@@ -729,6 +729,21 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         "the kernel's OOM killer fired; the watchdog was too late"
     );
 
+    // And nothing is left behind. A hog that was stopped and never killed
+    // would sit on the box holding its memory with nobody watching it.
+    let deadline = Instant::now() + Duration::from_secs(5);
+    while Instant::now() < deadline && hog_pid > 0 && Path::new(&format!("/proc/{hog_pid}")).exists() {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    if hog_pid > 0 && Path::new(&format!("/proc/{hog_pid}")).exists() {
+        // Clean up before failing: the box must not keep a frozen hog.
+        unsafe {
+            libc::kill(-(hog_pid as i32), libc::SIGCONT);
+            libc::kill(-(hog_pid as i32), libc::SIGTERM);
+        }
+        panic!("the hog {hog_pid} was still there after the watchdog killed it");
+    }
+
     // How fast: the curve crossed the floor, and the daemon acted after it.
     // The number is an upper bound — the log is polled every 20 ms.
     let crossed = curve
