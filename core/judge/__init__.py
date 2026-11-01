@@ -43,9 +43,13 @@ from .backends import (
 )
 from .events import JUDGE_EVENT_TYPE, JUDGE_EVENT_TYPES
 from .gate import (
+    DEFAULT_BAND,
+    DEFAULT_DWELL_DOWN,
+    DEFAULT_DWELL_UP,
     DEFAULT_TAU,
     ConfidencePolicy,
     EscalationLadder,
+    StandingConfig,
     StandingGate,
 )
 from .judge import Judge, JudgeAnswer, fold_judgments
@@ -77,6 +81,10 @@ __all__ = [
     "state_hash",
     # the gate as policy
     "DEFAULT_TAU",
+    "DEFAULT_BAND",
+    "DEFAULT_DWELL_UP",
+    "DEFAULT_DWELL_DOWN",
+    "StandingConfig",
     "ConfidencePolicy",
     "EscalationLadder",
     "StandingGate",

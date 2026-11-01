@@ -23,6 +23,7 @@ from core.judge.gate import (
     DEFAULT_TAU,
     ConfidencePolicy,
     EscalationLadder,
+    StandingConfig,
     StandingGate,
 )
 
@@ -125,3 +126,105 @@ def test_the_standing_starts_at_escalate():
     """A cold standing is the safe one: escalate until the signal earns act."""
     gate = StandingGate(tau=0.5, band=0.1)
     assert gate.standing == "escalate"
+
+
+# --- the adopted configuration (the sweep's choice, tests first) --------------
+
+
+def test_the_adopted_standing_config_is_the_sweep_s_choice():
+    """The default is a measurement, not a taste.
+
+    The real d1 traces replayed through the gate (exp-hysteresis-d1; the
+    sweep table and its results JSON are beside the harness): at the
+    traces' calibrated τ the raw τ gate flickers 66 times in 240 ticks on
+    the 2B recording, and this shape leaves one flicker with the raw
+    gate's catch and agreement kept and both latency bounds met — band
+    0.15, dwell_up 2 ticks, dwell_down 0 (the band holds the shallow
+    wobble; the dwell_up earns act; a real drop is not delayed). τ stays
+    E1's default until a task's own calibration names another.
+    """
+    assert StandingConfig() == StandingConfig(
+        tau=DEFAULT_TAU, band=0.15, dwell_up=2.0, dwell_down=0.0
+    )
+    # the gate the wiring builds by default carries the adopted numbers
+    gate = StandingGate()
+    assert (gate.tau, gate.band, gate.dwell_up, gate.dwell_down) == (
+        DEFAULT_TAU,
+        0.15,
+        2.0,
+        0.0,
+    )
+
+
+def test_a_wandering_confidence_no_longer_flips_the_standing_state():
+    """The brief's first wired behaviour, on the adopted configuration.
+
+    The signal warms into `act` and then wanders across τ every other
+    tick without ever falling below the exit line — the raw τ gate (the
+    current policy) flips on every crossing and writes a fact per flip;
+    the standing holds.
+    """
+    gate = StandingGate()
+    wander = [0.9, 0.9, 0.9, 0.55, 0.42, 0.55, 0.42, 0.55, 0.42]
+    for tick, value in enumerate(wander):
+        gate.step(value, now=tick)
+
+    assert gate.standing == "act"  # the wobble never dropped it
+    standing_changes = 0
+    fresh = StandingGate()
+    for tick, value in enumerate(wander):
+        if fresh.step(value, now=tick).changed:
+            standing_changes += 1
+    # the only change in the whole series is the warm-up commit
+    assert standing_changes == 1
+
+    raw = ConfidencePolicy()
+    raw_words = [raw.decision(confidence=value) for value in wander]
+    raw_flips = sum(
+        1 for before, after in zip(raw_words, raw_words[1:]) if before != after
+    )
+    assert raw_flips >= 4  # the raw gate flip-flops across the same series
+
+
+def test_a_real_drop_still_escalates_within_the_latency_bound():
+    """The brief's second wired behaviour: a sustained drop commits within
+    the bound (2 ticks), not eventually, never."""
+    gate = StandingGate()
+    for tick, value in enumerate([0.9, 0.9, 0.9]):
+        gate.step(value, now=tick)
+    assert gate.standing == "act"
+
+    transition = gate.step(0.30, now=3.0)
+    assert transition.changed
+    assert transition.state == "escalate"
+    assert transition.latency <= 2.0
+
+    # and with a down-dwell configured, the commitment still lands inside
+    # the bound: a 2-tick dwell serves two readings, then commits at
+    # latency 2.0 — the bound, not past it
+    gated = StandingGate(dwell_down=2.0)
+    gated.step(0.9, now=0.0)  # dwell_up defaults to 2.0; warm it
+    gated.step(0.9, now=1.0)
+    gated.step(0.9, now=2.0)
+    assert gated.standing == "act"
+    first = gated.step(0.30, now=3.0)
+    assert not first.changed  # the dwell is being served
+    second = gated.step(0.30, now=4.0)
+    assert not second.changed  # still being served
+    third = gated.step(0.30, now=5.0)
+    assert third.changed and third.state == "escalate"
+    assert third.latency == pytest.approx(2.0)
+    assert third.latency <= 2.0
+
+
+def test_the_standing_config_validates_its_numbers():
+    with pytest.raises(ValueError):
+        StandingConfig(tau=0.5, band=0.5)  # the band reaches tau itself
+    with pytest.raises(ValueError):
+        StandingConfig(tau=0.5, band=-0.1)
+    with pytest.raises(ValueError):
+        StandingConfig(tau=0.0)
+    with pytest.raises(ValueError):
+        StandingConfig(dwell_up=-1.0)
+    with pytest.raises(ValueError):
+        StandingConfig(dwell_down=-1.0)
