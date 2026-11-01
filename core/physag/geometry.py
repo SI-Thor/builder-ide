@@ -596,20 +596,39 @@ def triangle_components(part: MeshPart) -> tuple[np.ndarray, int]:
     labelling is what makes the segmentation check honest: a part that
     comes back in three pieces has not been segmented, it has been cut in
     the wrong place.
+
+    Sharing a vertex means sharing the *position*: a generated mesh splits
+    its vertices along its UV-chart seams — the same surface point carried
+    by several indices — so the raw index graph reads one shell as
+    thousands of islands (docs/lab/exp-mesh-repair.md: those boundary
+    edges are seams, median 14–17 edges per loop, not holes). The
+    vertices are therefore welded onto a grid one tenth of a percent of
+    the part's diagonal before the graph is built: exact coincidences
+    join, and two pieces of material a millimetre apart on a metre prop —
+    a wrong cut's fragments, a crate's wall beside its floor's edge — stay
+    apart, which is the failure the check exists to catch.
     """
     if part.is_empty:
         return np.zeros(0, dtype=np.int64), 0
+    extent = part.bbox_size
+    diagonal = float(np.linalg.norm(extent))
+    if diagonal > 0.0:
+        weld = np.round(part.vertices / (0.001 * diagonal)).astype(np.int64)
+        _keys, weld_index = np.unique(weld, axis=0, return_inverse=True)
+        welded = weld_index.reshape(-1)[part.triangles]
+    else:
+        welded = part.triangles
     edges = np.concatenate(
-        [part.triangles[:, [0, 1]], part.triangles[:, [1, 2]], part.triangles[:, [2, 0]]],
+        [welded[:, [0, 1]], welded[:, [1, 2]], welded[:, [2, 0]]],
         axis=0,
     )
-    n = part.vertices.shape[0]
+    n = int(welded.max()) + 1 if welded.size else 0
     graph = coo_matrix(
         (np.ones(edges.shape[0], dtype=np.int8), (edges[:, 0], edges[:, 1])),
         shape=(n, n),
     )
     _, labels = connected_components(graph, directed=False)
-    tri_labels = labels[part.triangles[:, 0]]
+    tri_labels = labels[welded[:, 0]]
     _, tri_labels = np.unique(tri_labels, return_inverse=True)
     return tri_labels.astype(np.int64), int(tri_labels.max()) + 1
 

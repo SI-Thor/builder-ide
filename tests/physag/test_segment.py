@@ -149,6 +149,27 @@ def test_a_moving_part_that_falls_into_pieces_is_flagged(tmp_path):
     assert not lid.verified
 
 
+def test_uv_seam_copies_of_one_surface_weld_into_one_piece(tmp_path):
+    # One box whose vertices are carried twice — the same positions under
+    # two sets of indices, as a generated mesh carries them across its UV
+    # chart seams. The index graph alone reads two islands and would void
+    # the mapping; the weld joins what occupies the same point, and the
+    # part comes out whole.
+    import numpy as np
+
+    v1, f1 = box_mesh((0.2, 0.2, 0.3), (0.0, 0.0, 0.65))
+    vertices = np.concatenate([v1, v1])
+    triangles = np.concatenate([f1, f1 + v1.shape[0]])
+    path = write_glb(tmp_path / "seam.glb", vertices, triangles)
+    mesh = load_mesh(path)
+
+    segmentation = segment(mesh, crate_spec(cut_at=0.5, expect_min=0.5))
+    lid = segmentation.piece("lid")
+    assert lid.components == 1
+    assert not lid.ambiguous
+    assert lid.verified
+
+
 def test_the_iou_against_the_planner_s_claim_is_measured(crate):
     # The planner claims the lid is the top 14 % of the height; the cut
     # takes the top 30 %. The piece does not match the claim, and the
