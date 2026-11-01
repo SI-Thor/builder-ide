@@ -1,0 +1,1107 @@
+{
+  "team": "mcode",
+  "result": {
+    "team": "mcode",
+    "baseline_llamacpp": {
+      "decisions_per_s_n64": 23.667733972498603,
+      "p95_ms_n1": 143.53782274702098
+    },
+    "ours": {
+      "decisions_per_s_n64": 42.22632178124632,
+      "p95_ms_n1": 79.43935014700398,
+      "p95_ms_n64_tick": 4886.222716706106,
+      "peak_mem_gb": 8.316
+    },
+    "agreement_with_llamacpp_top1": 0.9908854166666666,
+    "notes": "llama.cpp cannot batch an LFM3-d1 decision: its decision graph reads the whole prompt as one flat token run (src/models/lfm3.cpp, build_attn_inp_no_cache) and the recurrent layers' short convolutions would mix the sequences, so the server refuses to put two decision requests in one ubatch (tools/server/server-context.cpp: task.decision.no_batching, set unconditionally for this model family, with upstream's own TODO describing what this server does) and a tick of 64 characters x 3 questions is 192 separate prefills, each streaming the 1.76 GB of Q8_0 weights out of memory. This server runs the same arithmetic as llama.cpp - the same norms, sandwich norms, short convolutions, NeoX rotary, grouped-query attention and head gate, the same non-causal dense attention and causal sliding-window attention, the same output head, the same label groups, the same temperature and the same decision head - and adds the two things the flat decision graph lacks: a block-diagonal attention mask, so a dense layer of one sequence never sees another sequence and a sliding-window layer sees only its own sequence's last 256 positions, and a per-sequence short convolution, so the recurrent layers' six-token window never crosses from one sequence into the next. The batch is right-padded to the longest prompt, which is safe because the convolutions look backwards and the attention masks the padded keys out, so a batched forward pass is numerically the same as running each prompt on its own (tests/test_batching_exactness.py checks that against an independent numpy reference written from llama.cpp's graph). A single worker thread drains the request queue into batches, so one tick of 192 questions becomes a handful of forward passes and the weights are streamed once per batch instead of once per decision. The engine moves the activations as few times as it can: the rotary is written as one complex multiplication (the rotation of a pair is the product of the complex numbers x0+i*x1 and cos+i*sin) instead of ten passes over the head, the short convolution runs in fp16 with cuDNN's fp32 accumulator instead of copying its input into fp32, the shared key and value heads are read by the attention instead of being repeated, and a tick's sequences are run in chunks of 32 to keep the GPU's peak down - together 1.64x the engine it started with, and the answers are unchanged. The server speaks llama.cpp's wire (the same POST /v1/systemone body and answer shape), so the answers are llama.cpp's answers: the two servers agree on 99.09% of the 768 questions, and all 7 of the disagreements are questions where the two leading options are within 0.4% of each other. The cause is the precision of the activations: llama.cpp's matmuls go through the MMQ path, which quantises the activations to eight bits, while this server keeps them in fp16, so on a question whose two leading options are level the two engines pick different ones. llama.cpp's own answers do not move between runs (0 changes over the same 768 questions asked twice, results/baseline_self_stability.json), so these are a real numerical difference rather than its noise. The box is shared and its load moves by a factor of two within a run, so the numbers are the median over 15 interleaved rounds - the baseline, then ours, then the baseline, then ours, so that the drift hits both of them the same way - and every round's number is in results/rounds/pooled.json."
+  },
+  "speedup_x": 1.7841303197979324,
+  "rounds": "the median over all 15 interleaved rounds measured with this engine (run1, run3, run4), each round of this server paired with the baseline's round measured just before it",
+  "workload": {
+    "seed": 20261031,
+    "ticks": 4,
+    "chars_per_tick": 64,
+    "questions_per_pack": 3,
+    "n_packs": 256,
+    "n_questions": 768,
+    "source": {
+      "reference_set": "/home/caseydigennaro/src/builder-ide/core/critic/reference-set.json",
+      "defect_classes": [
+        "missing_object",
+        "texture_swap",
+        "wrong_scale"
+      ],
+      "tile_candidates": [
+        "weathered crates (harbor.crates.style)",
+        "stacked rope coils (props.harbor.rope)",
+        "tide-stained bollards (props.harbor.bollards)",
+        "tarred lobster pots (props.harbor.pots)",
+        "brine-cured nets (props.harbor.nets)",
+        "chalk-marked bollard cap (props.harbor.cap)",
+        "faded dock lantern (props.harbor.lantern)",
+        "salvaged timber pallet (props.harbor.pallet)",
+        "dredged channel marker (props.harbor.marker)",
+        "hull-planked dinghy (props.harbor.dinghy)"
+      ]
+    }
+  },
+  "definition": "one decision = one question answered with its calibrated probability vector; a pack of 3 questions over one shared state is 3 decisions",
+  "baseline": {
+    "server": "llama-server (upstream llama.cpp, decision mode)",
+    "flags": "-ngl 99 -fa on -c 32768 --parallel 64 -ub 512 -t 14 -tb 14 --cache-ram 0",
+    "peak_mem_gb": 0.7601661682128906,
+    "n64": {
+      "decisions_per_s_n64": 23.667733972498603,
+      "decisions_per_s_n64_mean": 21.32252947711256,
+      "decisions_per_s_n64_min": 11.347667713197284,
+      "decisions_per_s_n64_max": 26.205325275483645,
+      "p95_ms_n1": 143.53782274702098,
+      "p95_ms_n1_mean": 170.9366747002059,
+      "p95_ms_n64_tick": 8544.65586995284,
+      "tick_ms_p95": 8544.65586995284
+    },
+    "n1": {
+      "pack_ms_p95": 143.53782274702098
+    }
+  },
+  "ours_detail": {
+    "server": "the batched d1 decision server in this repo (src/d1dec)",
+    "mechanism": "one forward pass per batch, with a block-diagonal attention mask and a per-sequence short convolution, so the weights are streamed once per batch instead of once per decision",
+    "peak_mem": {
+      "port": 8138,
+      "pid": 1045260,
+      "host_peak_rss_gb": 2.5093307495117188,
+      "host_rss_gb": 1.6468467712402344,
+      "gpu_peak_alloc_gb": 3.744722843170166,
+      "gpu_peak_reserved_gb": 5.806640625
+    },
+    "n64": {
+      "decisions_per_s_n64": 42.22632178124632,
+      "decisions_per_s_n64_mean": 44.10160739604227,
+      "decisions_per_s_n64_min": 28.461587097611584,
+      "decisions_per_s_n64_max": 60.41118569611112,
+      "p95_ms_n1": 79.43935014700398,
+      "p95_ms_n1_mean": 89.60925458915878,
+      "p95_ms_n64_tick": 4886.222716706106,
+      "tick_ms_p95": 4886.222716706106
+    },
+    "n1": {
+      "pack_ms_p95": 79.43935014700398
+    }
+  },
+  "agreement": {
+    "questions": 768,
+    "agreement_with_llamacpp_top1": 0.9908854166666666,
+    "by_type": {
+      "choice": [
+        0.98046875,
+        256
+      ],
+      "score": [
+        1.0,
+        256
+      ],
+      "noul": [
+        0.9921875,
+        256
+      ]
+    },
+    "max_prob_abs_diff": 0.012730954122738891,
+    "mean_prob_abs_diff": 0.004930128812667479,
+    "n_disagreements": 7,
+    "disagreements": [
+      {
+        "pack": "char_17",
+        "qid": "q1",
+        "type": "choice",
+        "baseline": {
+          "type": "choice",
+          "choice": "opt0",
+          "probabilities": {
+            "opt0": 0.30431790841067863,
+            "opt1": 0.3032093082354576,
+            "opt2": 0.19738340625897163,
+            "opt3": 0.19508937709489213
+          },
+          "confidence": 0.30431790841067863
+        },
+        "ours": {
+          "type": "choice",
+          "choice": "opt1",
+          "probabilities": {
+            "opt0": 0.2989828712058197,
+            "opt1": 0.30605124204133205,
+            "opt2": 0.19863653974294643,
+            "opt3": 0.19632934700990184
+          },
+          "confidence": 0.30605124204133205
+        }
+      },
+      {
+        "pack": "char_34",
+        "qid": "q1",
+        "type": "noul",
+        "baseline": {
+          "type": "noul",
+          "noul": 0.4996600382664456
+        },
+        "ours": {
+          "type": "noul",
+          "noul": 0.5014603871453908
+        }
+      },
+      {
+        "pack": "char_36",
+        "qid": "q2",
+        "type": "noul",
+        "baseline": {
+          "type": "noul",
+          "noul": 0.506838563569833
+        },
+        "ours": {
+          "type": "noul",
+          "noul": 0.489778685102477
+        }
+      },
+      {
+        "pack": "char_36",
+        "qid": "q0",
+        "type": "choice",
+        "baseline": {
+          "type": "choice",
+          "choice": "opt0",
+          "probabilities": {
+            "opt0": 0.2780105531949691,
+            "opt1": 0.2760662635555127,
+            "opt2": 0.17805986452034142,
+            "opt3": 0.26786331872917674
+          },
+          "confidence": 0.2780105531949691
+        },
+        "ours": {
+          "type": "choice",
+          "choice": "opt1",
+          "probabilities": {
+            "opt0": 0.2707184655954819,
+            "opt1": 0.2771186265783915,
+            "opt2": 0.17985839467501807,
+            "opt3": 0.27230451315110854
+          },
+          "confidence": 0.2771186265783915
+        }
+      },
+      {
+        "pack": "char_59",
+        "qid": "q1",
+        "type": "choice",
+        "baseline": {
+          "type": "choice",
+          "choice": "opt1",
+          "probabilities": {
+            "opt0": 0.3082094975136293,
+            "opt1": 0.3087918008721861,
+            "opt2": 0.19740544868478077,
+            "opt3": 0.18559325292940387
+          },
+          "confidence": 0.3087918008721861
+        },
+        "ours": {
+          "type": "choice",
+          "choice": "opt0",
+          "probabilities": {
+            "opt0": 0.31253650832965424,
+            "opt1": 0.3035400198852636,
+            "opt2": 0.19700668038906768,
+            "opt3": 0.18691679139601444
+          },
+          "confidence": 0.31253650832965424
+        }
+      },
+      {
+        "pack": "char_04",
+        "qid": "q2",
+        "type": "choice",
+        "baseline": {
+          "type": "choice",
+          "choice": "opt0",
+          "probabilities": {
+            "opt0": 0.2784833700430554,
+            "opt1": 0.27413772088073296,
+            "opt2": 0.24341653785705622,
+            "opt3": 0.20396237121915536
+          },
+          "confidence": 0.2784833700430554
+        },
+        "ours": {
+          "type": "choice",
+          "choice": "opt1",
+          "probabilities": {
+            "opt0": 0.27300775611045547,
+            "opt1": 0.27783430227832745,
+            "opt2": 0.24290463107255406,
+            "opt3": 0.20625331053866314
+          },
+          "confidence": 0.27783430227832745
+        }
+      },
+      {
+        "pack": "char_10",
+        "qid": "q2",
+        "type": "choice",
+        "baseline": {
+          "type": "choice",
+          "choice": "opt2",
+          "probabilities": {
+            "opt0": 0.17767421063662184,
+            "opt1": 0.28209100815355104,
+            "opt2": 0.28591569858996946,
+            "opt3": 0.25431908261985775
+          },
+          "confidence": 0.28591569858996946
+        },
+        "ours": {
+          "type": "choice",
+          "choice": "opt1",
+          "probabilities": {
+            "opt0": 0.17886448772783056,
+            "opt1": 0.28210252039755573,
+            "opt2": 0.28210252039755573,
+            "opt3": 0.256930471477058
+          },
+          "confidence": 0.28210252039755573
+        }
+      }
+    ]
+  },
+  "bars": {
+    "agreement_with_llamacpp_top1>=0.99": true,
+    "peak_mem_gb<=10": true,
+    "beats_llamacpp": true
+  },
+  "rounds_pooled": {
+    "runs": [
+      "run1",
+      "run3",
+      "run4"
+    ],
+    "n_rounds": 15,
+    "statistic": "the median over every interleaved round measured",
+    "ours": {
+      "decisions_per_s_n64": 42.22632178124632,
+      "decisions_per_s_n64_mean": 44.10160739604227,
+      "decisions_per_s_n64_min": 28.461587097611584,
+      "decisions_per_s_n64_max": 60.41118569611112,
+      "p95_ms_n1": 79.43935014700398,
+      "p95_ms_n1_mean": 89.60925458915878,
+      "p95_ms_n64_tick": 4886.222716706106
+    },
+    "llamacpp": {
+      "decisions_per_s_n64": 23.667733972498603,
+      "decisions_per_s_n64_mean": 21.32252947711256,
+      "decisions_per_s_n64_min": 11.347667713197284,
+      "decisions_per_s_n64_max": 26.205325275483645,
+      "p95_ms_n1": 143.53782274702098,
+      "p95_ms_n1_mean": 170.9366747002059,
+      "p95_ms_n64_tick": 8544.65586995284
+    },
+    "speedup_x": 1.7841303197979324,
+    "rounds": [
+      {
+        "run": "run1",
+        "round": 1,
+        "ours_decisions_per_s": 47.854310384386466,
+        "llamacpp_decisions_per_s": 11.347667713197284,
+        "ours_p95_ms_n1": 99.1435426476527,
+        "llamacpp_p95_ms_n1": 350.2156563488825,
+        "ours_p95_ms_n64_tick": 4663.155013258073,
+        "llamacpp_p95_ms_n64_tick": 17781.864955705532,
+        "speedup": 4.217105364191457,
+        "loadavg": null
+      },
+      {
+        "run": "run1",
+        "round": 2,
+        "ours_decisions_per_s": 49.62638646354358,
+        "llamacpp_decisions_per_s": 14.421308434837742,
+        "ours_p95_ms_n1": 124.73423384071786,
+        "llamacpp_p95_ms_n1": 179.911138558964,
+        "ours_p95_ms_n64_tick": 4212.2420891602815,
+        "llamacpp_p95_ms_n64_tick": 15463.907706695316,
+        "speedup": 3.4411847363073154,
+        "loadavg": null
+      },
+      {
+        "run": "run1",
+        "round": 3,
+        "ours_decisions_per_s": 50.95687398200173,
+        "llamacpp_decisions_per_s": 21.75430977599713,
+        "ours_p95_ms_n1": 69.57022004207829,
+        "llamacpp_p95_ms_n1": 163.40676663821796,
+        "ours_p95_ms_n64_tick": 4036.548284937453,
+        "llamacpp_p95_ms_n64_tick": 9029.493990894844,
+        "speedup": 2.3423806366049633,
+        "loadavg": null
+      },
+      {
+        "run": "run3",
+        "round": 1,
+        "ours_decisions_per_s": 52.14838296650713,
+        "llamacpp_decisions_per_s": 22.87802417178867,
+        "ours_p95_ms_n1": 130.01188990019725,
+        "llamacpp_p95_ms_n1": 145.00124214828244,
+        "ours_p95_ms_n64_tick": 3743.924931900983,
+        "llamacpp_p95_ms_n64_tick": 8544.65586995284,
+        "speedup": 2.2794093832111733,
+        "loadavg": 7.67529296875
+      },
+      {
+        "run": "run3",
+        "round": 2,
+        "ours_decisions_per_s": 28.461587097611584,
+        "llamacpp_decisions_per_s": 21.478865248712996,
+        "ours_p95_ms_n1": 102.45460295336663,
+        "llamacpp_p95_ms_n1": 320.5953285527357,
+        "ours_p95_ms_n64_tick": 7787.635927060182,
+        "llamacpp_p95_ms_n64_tick": 9885.85983350349,
+        "speedup": 1.3250973348937505,
+        "loadavg": 16.76904296875
+      },
+      {
+        "run": "run3",
+        "round": 3,
+        "ours_decisions_per_s": 29.939195832285872,
+        "llamacpp_decisions_per_s": 13.86542894569803,
+        "ours_p95_ms_n1": 157.06089954182968,
+        "llamacpp_p95_ms_n1": 142.17888714701985,
+        "ours_p95_ms_n64_tick": 7666.874646849465,
+        "llamacpp_p95_ms_n64_tick": 17837.031123042107,
+        "speedup": 2.1592693561474694,
+        "loadavg": 24.72119140625
+      },
+      {
+        "run": "run3",
+        "round": 4,
+        "ours_decisions_per_s": 38.03325184471019,
+        "llamacpp_decisions_per_s": 24.795717051443724,
+        "ours_p95_ms_n1": 76.29089529873454,
+        "llamacpp_p95_ms_n1": 143.51080544656722,
+        "ours_p95_ms_n64_tick": 5243.234870247397,
+        "llamacpp_p95_ms_n64_tick": 7777.0983991496905,
+        "speedup": 1.5338637622700133,
+        "loadavg": 22.9697265625
+      },
+      {
+        "run": "run3",
+        "round": 5,
+        "ours_decisions_per_s": 33.167478317184525,
+        "llamacpp_decisions_per_s": 24.483116767971712,
+        "ours_p95_ms_n1": 102.54254284736814,
+        "llamacpp_p95_ms_n1": 143.53782274702098,
+        "ours_p95_ms_n64_tick": 6110.986466952454,
+        "llamacpp_p95_ms_n64_tick": 7893.691420245887,
+        "speedup": 1.354708170185812,
+        "loadavg": 23.80517578125
+      },
+      {
+        "run": "run3",
+        "round": 6,
+        "ours_decisions_per_s": 36.0296827326477,
+        "llamacpp_decisions_per_s": 15.190872110603454,
+        "ours_p95_ms_n1": 79.43935014700398,
+        "llamacpp_p95_ms_n1": 138.92896389443194,
+        "ours_p95_ms_n64_tick": 5591.600817460858,
+        "llamacpp_p95_ms_n64_tick": 17594.5002605491,
+        "speedup": 2.3717981739506877,
+        "loadavg": 23.13427734375
+      },
+      {
+        "run": "run4",
+        "round": 1,
+        "ours_decisions_per_s": 37.5091648369471,
+        "llamacpp_decisions_per_s": 24.47805927202352,
+        "ours_p95_ms_n1": 72.17300545089529,
+        "llamacpp_p95_ms_n1": 153.43372000497763,
+        "ours_p95_ms_n64_tick": 5562.3948317545,
+        "llamacpp_p95_ms_n64_tick": 7991.119781097223,
+        "speedup": 1.532358608176797,
+        "loadavg": 24.31982421875
+      },
+      {
+        "run": "run4",
+        "round": 2,
+        "ours_decisions_per_s": 42.22632178124632,
+        "llamacpp_decisions_per_s": 23.987103441043242,
+        "ours_p95_ms_n1": 81.45450415613595,
+        "llamacpp_p95_ms_n1": 140.17724784716847,
+        "ours_p95_ms_n64_tick": 4886.222716706106,
+        "llamacpp_p95_ms_n64_tick": 8239.520033953886,
+        "speedup": 1.760376023934377,
+        "loadavg": 21.091796875
+      },
+      {
+        "run": "run4",
+        "round": 3,
+        "ours_decisions_per_s": 35.207584554176755,
+        "llamacpp_decisions_per_s": 23.667733972498603,
+        "ours_p95_ms_n1": 71.94332265498815,
+        "llamacpp_p95_ms_n1": 166.06669475222589,
+        "ours_p95_ms_n64_tick": 6104.942722701526,
+        "llamacpp_p95_ms_n64_tick": 8840.87861614971,
+        "speedup": 1.4875773318682393,
+        "loadavg": 21.5673828125
+      },
+      {
+        "run": "run4",
+        "round": 4,
+        "ours_decisions_per_s": 60.41118569611112,
+        "llamacpp_decisions_per_s": 25.210772744360245,
+        "ours_p95_ms_n1": 60.75790624963702,
+        "llamacpp_p95_ms_n1": 124.32385180291021,
+        "ours_p95_ms_n64_tick": 3242.8418236413563,
+        "llamacpp_p95_ms_n64_tick": 7751.239371445263,
+        "speedup": 2.3962449032676063,
+        "loadavg": 15.546875
+      },
+      {
+        "run": "run4",
+        "round": 5,
+        "ours_decisions_per_s": 59.81599246917476,
+        "llamacpp_decisions_per_s": 26.205325275483645,
+        "ours_p95_ms_n1": 54.6654377511004,
+        "llamacpp_p95_ms_n1": 127.8546223111334,
+        "ours_p95_ms_n64_tick": 3294.4823108970013,
+        "llamacpp_p95_ms_n64_tick": 7337.932895744598,
+        "speedup": 2.2825892004910746,
+        "loadavg": 10.05810546875
+      },
+      {
+        "run": "run4",
+        "round": 6,
+        "ours_decisions_per_s": 60.136711982099236,
+        "llamacpp_decisions_per_s": 26.073637231028417,
+        "ours_p95_ms_n1": 61.89646535567587,
+        "llamacpp_p95_ms_n1": 124.90737230255034,
+        "ours_p95_ms_n64_tick": 3267.5158403464593,
+        "llamacpp_p95_ms_n64_tick": 7418.579609350854,
+        "speedup": 2.306418220413634,
+        "loadavg": 10.10791015625
+      }
+    ]
+  },
+  "measurements": {
+    "baseline": {
+      "rounds": 6,
+      "n64": {
+        "decisions_per_s_n64": 24.84441600819188,
+        "decisions_per_s_n64_mean": 24.937105322739612,
+        "decisions_per_s_n64_rounds": [
+          24.47805927202352,
+          23.987103441043242,
+          23.667733972498603,
+          25.210772744360245,
+          26.205325275483645,
+          26.073637231028417
+        ],
+        "tick_ms_p95": 7871.179576271243,
+        "tick_ms_p95_mean": 7929.878384623589,
+        "tick_ms_p95_rounds": [
+          7991.119781097223,
+          8239.520033953886,
+          8840.87861614971,
+          7751.239371445263,
+          7337.932895744598,
+          7418.579609350854
+        ]
+      },
+      "n1": {
+        "pack_ms_p95": 134.01593507915095,
+        "pack_ms_p95_mean": 139.46058483682765,
+        "pack_ms_p95_rounds": [
+          153.43372000497763,
+          140.17724784716847,
+          166.06669475222589,
+          124.32385180291021,
+          127.8546223111334,
+          124.90737230255034
+        ]
+      },
+      "ticks": 4,
+      "label": "llamacpp",
+      "server": "http://127.0.0.1:8137",
+      "loadavg_per_round": [
+        23.29296875,
+        23.43115234375,
+        20.02490234375,
+        18.01220703125,
+        11.19287109375,
+        9.9150390625
+      ],
+      "all_rounds": [
+        {
+          "label": "llamacpp",
+          "server": "http://127.0.0.1:8137",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 24.47805927202352,
+            "tick_ms_mean": 7843.759093248082,
+            "tick_ms_p95": 7991.119781097223,
+            "pack_ms_p95": 7670.260111495736,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 132.82505168945136,
+            "pack_ms_p50": 131.8967565021012,
+            "pack_ms_p95": 153.43372000497763,
+            "decisions_per_s_n1": 22.586100753147704
+          },
+          "loadavg": [
+            23.29296875,
+            21.54541015625,
+            16.248046875
+          ]
+        },
+        {
+          "label": "llamacpp",
+          "server": "http://127.0.0.1:8137",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 23.987103441043242,
+            "tick_ms_mean": 8004.30116424468,
+            "tick_ms_p95": 8239.520033953886,
+            "pack_ms_p95": 7826.255953747022,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 126.29503056268732,
+            "pack_ms_p50": 124.43906100816093,
+            "pack_ms_p95": 140.17724784716847,
+            "decisions_per_s_n1": 23.75390374929227
+          },
+          "loadavg": [
+            23.43115234375,
+            22.06005859375,
+            16.87255859375
+          ]
+        },
+        {
+          "label": "llamacpp",
+          "server": "http://127.0.0.1:8137",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 23.667733972498603,
+            "tick_ms_mean": 8112.310212000011,
+            "tick_ms_p95": 8840.87861614971,
+            "pack_ms_p95": 7797.249250252207,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 145.71335046798595,
+            "pack_ms_p50": 143.86659149749903,
+            "pack_ms_p95": 166.06669475222589,
+            "decisions_per_s_n1": 20.58836743760907
+          },
+          "loadavg": [
+            20.02490234375,
+            21.2373046875,
+            16.984375
+          ]
+        },
+        {
+          "label": "llamacpp",
+          "server": "http://127.0.0.1:8137",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 25.210772744360245,
+            "tick_ms_mean": 7615.79194524893,
+            "tick_ms_p95": 7751.239371445263,
+            "pack_ms_p95": 7457.64933074679,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 118.18108156194285,
+            "pack_ms_p50": 116.40884500229731,
+            "pack_ms_p95": 124.32385180291021,
+            "decisions_per_s_n1": 25.384773606320355
+          },
+          "loadavg": [
+            18.01220703125,
+            20.7392578125,
+            17.18798828125
+          ]
+        },
+        {
+          "label": "llamacpp",
+          "server": "http://127.0.0.1:8137",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 26.205325275483645,
+            "tick_ms_mean": 7326.755076748668,
+            "tick_ms_p95": 7337.932895744598,
+            "pack_ms_p95": 7209.805587994197,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 119.00300918728135,
+            "pack_ms_p50": 117.24210849206429,
+            "pack_ms_p95": 127.8546223111334,
+            "decisions_per_s_n1": 25.209446555076106
+          },
+          "loadavg": [
+            11.19287109375,
+            18.2685546875,
+            16.5576171875
+          ]
+        },
+        {
+          "label": "llamacpp",
+          "server": "http://127.0.0.1:8137",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 26.073637231028417,
+            "tick_ms_mean": 7363.759735504573,
+            "tick_ms_p95": 7418.579609350854,
+            "pack_ms_p95": 7187.276216998725,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 117.1028928904434,
+            "pack_ms_p50": 116.8901904966333,
+            "pack_ms_p95": 124.90737230255034,
+            "decisions_per_s_n1": 25.618496058903304
+          },
+          "loadavg": [
+            9.9150390625,
+            16.439453125,
+            16.03515625
+          ]
+        }
+      ]
+    },
+    "ours": {
+      "rounds": 6,
+      "n64": {
+        "decisions_per_s_n64": 51.021157125210536,
+        "decisions_per_s_n64_mean": 49.21782688662588,
+        "decisions_per_s_n64_rounds": [
+          37.5091648369471,
+          42.22632178124632,
+          35.207584554176755,
+          60.41118569611112,
+          59.81599246917476,
+          60.136711982099236
+        ],
+        "tick_ms_p95": 4090.352513801554,
+        "tick_ms_p95_mean": 4393.066707674491,
+        "tick_ms_p95_rounds": [
+          5562.3948317545,
+          4886.222716706106,
+          6104.942722701526,
+          3242.8418236413563,
+          3294.4823108970013,
+          3267.5158403464593
+        ]
+      },
+      "n1": {
+        "pack_ms_p95": 66.91989400533201,
+        "pack_ms_p95_mean": 67.14844026973878,
+        "pack_ms_p95_rounds": [
+          72.17300545089529,
+          81.45450415613595,
+          71.94332265498815,
+          60.75790624963702,
+          54.6654377511004,
+          61.89646535567587
+        ]
+      },
+      "ticks": 4,
+      "label": "ours",
+      "server": "http://127.0.0.1:8138",
+      "loadavg_per_round": [
+        24.31982421875,
+        21.091796875,
+        21.5673828125,
+        15.546875,
+        10.05810546875,
+        10.10791015625
+      ],
+      "all_rounds": [
+        {
+          "label": "ours",
+          "server": "http://127.0.0.1:8138",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 37.5091648369471,
+            "tick_ms_mean": 5118.749000001117,
+            "tick_ms_p95": 5562.3948317545,
+            "pack_ms_p95": 5548.620797493641,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 61.19165406335014,
+            "pack_ms_p50": 60.269181500189006,
+            "pack_ms_p95": 72.17300545089529,
+            "decisions_per_s_n1": 49.02629363302024
+          },
+          "loadavg": [
+            24.31982421875,
+            21.99658203125,
+            16.56884765625
+          ]
+        },
+        {
+          "label": "ours",
+          "server": "http://127.0.0.1:8138",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 42.22632178124632,
+            "tick_ms_mean": 4546.926938004617,
+            "tick_ms_p95": 4886.222716706106,
+            "pack_ms_p95": 4860.590283009515,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 60.50692356257059,
+            "pack_ms_p50": 58.34670150943566,
+            "pack_ms_p95": 81.45450415613595,
+            "decisions_per_s_n1": 49.581102845159215
+          },
+          "loadavg": [
+            21.091796875,
+            21.59521484375,
+            16.85498046875
+          ]
+        },
+        {
+          "label": "ours",
+          "server": "http://127.0.0.1:8138",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 35.207584554176755,
+            "tick_ms_mean": 5453.370415245445,
+            "tick_ms_p95": 6104.942722701526,
+            "pack_ms_p95": 6074.467501755862,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 59.97150549956132,
+            "pack_ms_p50": 56.92840248957509,
+            "pack_ms_p95": 71.94332265498815,
+            "decisions_per_s_n1": 50.02375669928687
+          },
+          "loadavg": [
+            21.5673828125,
+            21.51318359375,
+            17.2138671875
+          ]
+        },
+        {
+          "label": "ours",
+          "server": "http://127.0.0.1:8138",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 60.41118569611112,
+            "tick_ms_mean": 3178.2193609942624,
+            "tick_ms_p95": 3242.8418236413563,
+            "pack_ms_p95": 3227.034001996799,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 52.49155011028961,
+            "pack_ms_p50": 51.02606200671289,
+            "pack_ms_p95": 60.75790624963702,
+            "decisions_per_s_n1": 57.152055782249185
+          },
+          "loadavg": [
+            15.546875,
+            20.064453125,
+            17.0234375
+          ]
+        },
+        {
+          "label": "ours",
+          "server": "http://127.0.0.1:8138",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 59.81599246917476,
+            "tick_ms_mean": 3209.8439242472523,
+            "tick_ms_p95": 3294.4823108970013,
+            "pack_ms_p95": 3282.8220847513876,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 52.00441659349053,
+            "pack_ms_p50": 51.62062399904244,
+            "pack_ms_p95": 54.6654377511004,
+            "decisions_per_s_n1": 57.68740804171456
+          },
+          "loadavg": [
+            10.05810546875,
+            17.55322265625,
+            16.35791015625
+          ]
+        },
+        {
+          "label": "ours",
+          "server": "http://127.0.0.1:8138",
+          "ticks": 4,
+          "n64": {
+            "questions_per_tick": 192,
+            "decisions_per_s_n64": 60.136711982099236,
+            "tick_ms_mean": 3192.7252700006648,
+            "tick_ms_p95": 3267.5158403464593,
+            "pack_ms_p95": 3262.1279354934813,
+            "errors": 0
+          },
+          "n1": {
+            "samples": 64,
+            "questions": 192,
+            "pack_ms_mean": 53.38592553084709,
+            "pack_ms_p50": 52.23337549978169,
+            "pack_ms_p95": 61.89646535567587,
+            "decisions_per_s_n1": 56.19458631032931
+          },
+          "loadavg": [
+            10.10791015625,
+            16.068359375,
+            15.92138671875
+          ]
+        }
+      ]
+    },
+    "agreement": {
+      "questions": 768,
+      "agreement_with_llamacpp_top1": 0.9908854166666666,
+      "by_type": {
+        "choice": [
+          0.98046875,
+          256
+        ],
+        "score": [
+          1.0,
+          256
+        ],
+        "noul": [
+          0.9921875,
+          256
+        ]
+      },
+      "max_prob_abs_diff": 0.012730954122738891,
+      "mean_prob_abs_diff": 0.004930128812667479,
+      "n_disagreements": 7,
+      "disagreements": [
+        {
+          "pack": "char_17",
+          "qid": "q1",
+          "type": "choice",
+          "baseline": {
+            "type": "choice",
+            "choice": "opt0",
+            "probabilities": {
+              "opt0": 0.30431790841067863,
+              "opt1": 0.3032093082354576,
+              "opt2": 0.19738340625897163,
+              "opt3": 0.19508937709489213
+            },
+            "confidence": 0.30431790841067863
+          },
+          "ours": {
+            "type": "choice",
+            "choice": "opt1",
+            "probabilities": {
+              "opt0": 0.2989828712058197,
+              "opt1": 0.30605124204133205,
+              "opt2": 0.19863653974294643,
+              "opt3": 0.19632934700990184
+            },
+            "confidence": 0.30605124204133205
+          }
+        },
+        {
+          "pack": "char_34",
+          "qid": "q1",
+          "type": "noul",
+          "baseline": {
+            "type": "noul",
+            "noul": 0.4996600382664456
+          },
+          "ours": {
+            "type": "noul",
+            "noul": 0.5014603871453908
+          }
+        },
+        {
+          "pack": "char_36",
+          "qid": "q2",
+          "type": "noul",
+          "baseline": {
+            "type": "noul",
+            "noul": 0.506838563569833
+          },
+          "ours": {
+            "type": "noul",
+            "noul": 0.489778685102477
+          }
+        },
+        {
+          "pack": "char_36",
+          "qid": "q0",
+          "type": "choice",
+          "baseline": {
+            "type": "choice",
+            "choice": "opt0",
+            "probabilities": {
+              "opt0": 0.2780105531949691,
+              "opt1": 0.2760662635555127,
+              "opt2": 0.17805986452034142,
+              "opt3": 0.26786331872917674
+            },
+            "confidence": 0.2780105531949691
+          },
+          "ours": {
+            "type": "choice",
+            "choice": "opt1",
+            "probabilities": {
+              "opt0": 0.2707184655954819,
+              "opt1": 0.2771186265783915,
+              "opt2": 0.17985839467501807,
+              "opt3": 0.27230451315110854
+            },
+            "confidence": 0.2771186265783915
+          }
+        },
+        {
+          "pack": "char_59",
+          "qid": "q1",
+          "type": "choice",
+          "baseline": {
+            "type": "choice",
+            "choice": "opt1",
+            "probabilities": {
+              "opt0": 0.3082094975136293,
+              "opt1": 0.3087918008721861,
+              "opt2": 0.19740544868478077,
+              "opt3": 0.18559325292940387
+            },
+            "confidence": 0.3087918008721861
+          },
+          "ours": {
+            "type": "choice",
+            "choice": "opt0",
+            "probabilities": {
+              "opt0": 0.31253650832965424,
+              "opt1": 0.3035400198852636,
+              "opt2": 0.19700668038906768,
+              "opt3": 0.18691679139601444
+            },
+            "confidence": 0.31253650832965424
+          }
+        },
+        {
+          "pack": "char_04",
+          "qid": "q2",
+          "type": "choice",
+          "baseline": {
+            "type": "choice",
+            "choice": "opt0",
+            "probabilities": {
+              "opt0": 0.2784833700430554,
+              "opt1": 0.27413772088073296,
+              "opt2": 0.24341653785705622,
+              "opt3": 0.20396237121915536
+            },
+            "confidence": 0.2784833700430554
+          },
+          "ours": {
+            "type": "choice",
+            "choice": "opt1",
+            "probabilities": {
+              "opt0": 0.27300775611045547,
+              "opt1": 0.27783430227832745,
+              "opt2": 0.24290463107255406,
+              "opt3": 0.20625331053866314
+            },
+            "confidence": 0.27783430227832745
+          }
+        },
+        {
+          "pack": "char_10",
+          "qid": "q2",
+          "type": "choice",
+          "baseline": {
+            "type": "choice",
+            "choice": "opt2",
+            "probabilities": {
+              "opt0": 0.17767421063662184,
+              "opt1": 0.28209100815355104,
+              "opt2": 0.28591569858996946,
+              "opt3": 0.25431908261985775
+            },
+            "confidence": 0.28591569858996946
+          },
+          "ours": {
+            "type": "choice",
+            "choice": "opt1",
+            "probabilities": {
+              "opt0": 0.17886448772783056,
+              "opt1": 0.28210252039755573,
+              "opt2": 0.28210252039755573,
+              "opt3": 0.256930471477058
+            },
+            "confidence": 0.28210252039755573
+          }
+        }
+      ]
+    },
+    "peak_mem": {
+      "ours": {
+        "port": 8138,
+        "pid": 1045260,
+        "host_peak_rss_gb": 2.5093307495117188,
+        "host_rss_gb": 1.6468467712402344,
+        "gpu_peak_alloc_gb": 3.744722843170166,
+        "gpu_peak_reserved_gb": 5.806640625
+      },
+      "baseline": {
+        "port": 8137,
+        "pid": 798716,
+        "host_peak_rss_gb": 0.7601661682128906,
+        "host_rss_gb": 0.6131248474121094
+      },
+      "both_servers_host_peak_rss_gb": 3.2694969177246094
+    }
+  },
+  "git_rev": "bbd2275"
+}

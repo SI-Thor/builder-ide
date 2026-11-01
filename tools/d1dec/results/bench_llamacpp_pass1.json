@@ -1,0 +1,30 @@
+{
+  "server": "http://127.0.0.1:8137",
+  "label": "llamacpp",
+  "workload": "workload/packs.jsonl",
+  "n_packs": 256,
+  "questions_per_pack": 3,
+  "n64": {
+    "ticks": 4,
+    "questions_per_tick": 192,
+    "decisions_per_s_n64": 25.710315078358395,
+    "tick_ms_mean": 7467.8197997509415,
+    "tick_ms_p95": 7588.958978698065,
+    "pack_ms_p95": 7299.489631746837,
+    "errors": 0
+  },
+  "n1": {
+    "samples": 32,
+    "questions": 96,
+    "pack_ms_mean": 118.22691962561294,
+    "pack_ms_p50": 116.64961950373254,
+    "pack_ms_p95": 130.25950254996133,
+    "decisions_per_s_n1": 25.374931610330762
+  },
+  "client_peak_rss_gb": 0.02681732177734375,
+  "loadavg": [
+    17.45654296875,
+    18.83154296875,
+    17.63818359375
+  ]
+}

@@ -1,0 +1,47 @@
+=== box state 2026-11-01T08:08:13-09:00 ===
+loadavg: 10.11 16.07 15.92 5/1789 1123340
+--- memory ---
+               total        used        free      shared  buff/cache   available
+Mem:             122          37          40           1          44          84
+Swap:             47           0          47
+--- nvidia-smi ---
+pid, used_gpu_memory [MiB]
+582374, 2138 MiB
+704703, 2514 MiB
+798716, 1938 MiB
+989743, 383 MiB
+1045260, 6142 MiB
+--- other llama / seat processes ---
+ 817479 2915548 14417468 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8141 -ngl 0 -fa on -c 32768 -b 32768 -ub 32768 --parallel 1 -t 14 --alias d1-2B
+1041061 2192432 21336404 ./llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf -ngl 0 --no-repack --host 127.0.0.1 --port 8393 -ub 4096 -b 4096 --flash-attn on
+1045260 1726844 33607864 /home/caseydigennaro/lm-wt/missionA-mcode/.venv/bin/python /home/caseydigennaro/lm-wt/missionA-mcode/scripts/run_server.py --gguf /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8138 --max-batch-seqs 192 --max-batch-tokens 49152 --linger-ms 4.0
+ 582374 730888 52052588 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8295 -ngl 99 --flash-attn on --ctx-size 8192 -ub 4096 --alias d1-2B-Q8
+ 704703 693740 52246688 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --mmproj /home/caseydigennaro/models/d1-2B/mmproj-d1-2B-Q8_0.gguf --host 0.0.0.0 --port 8094 -ngl 99 --flash-attn on --ctx-size 32768 -ub 4096 --parallel 8 --cont-batching --slot-prompt-similarity 0 --alias d1-2B
+ 798716 642908 55594744 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8137 -ngl 99 -fa on -c 32768 --parallel 64 -ub 512 -t 14 -tb 14 --cache-ram 0
+ 760739 242740 1292172 /home/caseydigennaro/lm-wt/agent-world/runtime/venv/bin/python -m agent_world_reflex serve
+   2472 31096 112444 python3 /home/caseydigennaro/sitka-distill/pipeline/serve-index
+   6121  7792  18816 tmux new-session -d -s last-mile -n sweep cd ~/src/infinigen-thor && bash thor/sweep-worker.sh 10 12 > outputs/sweep-w5.log 2>&1
+ 999900  3200   9648 bash -c cd ~/src/infinigen-thor && THOR_ADMIT_BIN=~/lm-tools/thor-admit bash thor/sweep-worker.sh 16 18 > outputs/sweep-w9.log 2>&1
+ 760738  2900   9648 bash -c cd '/home/caseydigennaro/lm-wt/agent-world/reflex' && AW_RUNTIME='/home/caseydigennaro/lm-wt/agent-world/runtime' AW_HOST='192.168.0.78' AW_PAPER_PORT='25565' AW_MINECRAFT_VERSION='26.1' AW_REFLEX_HOST='127.0.0.1' AW_REFLEX_PORT='8110' AW_D1_PORT='8094' AW_HEAVY_LOCK='/home/caseydigennaro/lm-wt/heavy.lock' AW_BOT_LOG='/home/caseydigennaro/lm-wt/agent-world/runtime/logs/bots.jsonl' AW_TICK_MS='2000' PYTHONPATH='/home/caseydigennaro/lm-wt/agent-world/reflex' '/home/caseydigennaro/lm-wt/agent-world/runtime/venv/bin/python' -m agent_world_reflex serve >> '/home/caseydigennaro/lm-wt/agent-world/runtime/logs/reflex.log' 2>&1
+1015117  2652  72316 /home/caseydigennaro/lm-tools/thor-admit serve glide --port 8293 --peak 58G -- bash -c cd "/mnt/toshiba/cold-shelf/home/caseydigennaro/models/GLiDE" && exec env PYTHONDONTWRITEBYTECODE=1 GLIDE_MODEL="/mnt/toshiba/cold-shelf/home/caseydigennaro/models/GLiDE" GLIDE_DEVICE=cpu "/home/caseydigennaro/lm-wt/coldshelf-bakeoff/.venv-glide/bin/python" -m glide.server --model "/mnt/toshiba/cold-shelf/home/caseydigennaro/models/GLiDE" --host 127.0.0.1 --port 8293
+--- thor-admit leases ---
+memory: 84.9G free of 122.8G (floor 25.0G, emergency floor 8.0G, gpu floor 0B)
+gpu view: nvidia-smi,nvidia-smi:gpu,tegrastats
+gpu pool: 12.3G free of the allocation pool (from nvidia-smi,nvidia-smi:gpu,tegrastats)
+leases: 4
+  #11 night-v3.heavy   peak    40.0G  now     1.4G  saw     4.1G  pid 979583  6382s
+  #56 d1-2B-batched    peak     6.0G  now     1.6G  saw     2.5G  pid 1045260  2655s
+  #67 cad-bakeoff.experiment peak     4.0G  now   109.5M  saw   515.9M  pid 1089990  937s
+  #74 cad-bakeoff.sweep peak     3.0G  now   369.8M  saw   464.7M  pid 1117059  101s
+queue: 23
+  1. serve.glide      peak    58.0G  priority 0
+  2. coldshelf.d1-cpu peak     6.0G  priority 0
+  3. coldshelf.idol   peak    12.0G  priority 0
+  4. serve.glide      peak    58.0G  priority 0
+  5. serve.d1-2B-batched peak     6.0G  priority 0
+  6. xp-batch.chain   peak     2.0G  priority 0
+  7. serve.d1-2B-batched peak     6.0G  priority 0
+  8. physag-lite.probe peak    40.0G  priority 0
+  9. infinigen.desert.coarse peak     1.5G  priority 0
+  10. xp-batch.chain   peak     2.0G  priority 0
+  11. physag-lite.probe peak    40.0G  priority 0

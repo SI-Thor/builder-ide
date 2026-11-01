@@ -1,0 +1,184 @@
+{
+  "questions": 768,
+  "agreement_with_llamacpp_top1": 0.9908854166666666,
+  "by_type": {
+    "choice": [
+      0.98046875,
+      256
+    ],
+    "score": [
+      1.0,
+      256
+    ],
+    "noul": [
+      0.9921875,
+      256
+    ]
+  },
+  "max_prob_abs_diff": 0.012730954122738891,
+  "mean_prob_abs_diff": 0.004930128812667479,
+  "n_disagreements": 7,
+  "disagreements": [
+    {
+      "pack": "char_17",
+      "qid": "q1",
+      "type": "choice",
+      "baseline": {
+        "type": "choice",
+        "choice": "opt0",
+        "probabilities": {
+          "opt0": 0.30431790841067863,
+          "opt1": 0.3032093082354576,
+          "opt2": 0.19738340625897163,
+          "opt3": 0.19508937709489213
+        },
+        "confidence": 0.30431790841067863
+      },
+      "ours": {
+        "type": "choice",
+        "choice": "opt1",
+        "probabilities": {
+          "opt0": 0.2989828712058197,
+          "opt1": 0.30605124204133205,
+          "opt2": 0.19863653974294643,
+          "opt3": 0.19632934700990184
+        },
+        "confidence": 0.30605124204133205
+      }
+    },
+    {
+      "pack": "char_34",
+      "qid": "q1",
+      "type": "noul",
+      "baseline": {
+        "type": "noul",
+        "noul": 0.4996600382664456
+      },
+      "ours": {
+        "type": "noul",
+        "noul": 0.5014603871453908
+      }
+    },
+    {
+      "pack": "char_36",
+      "qid": "q2",
+      "type": "noul",
+      "baseline": {
+        "type": "noul",
+        "noul": 0.506838563569833
+      },
+      "ours": {
+        "type": "noul",
+        "noul": 0.489778685102477
+      }
+    },
+    {
+      "pack": "char_36",
+      "qid": "q0",
+      "type": "choice",
+      "baseline": {
+        "type": "choice",
+        "choice": "opt0",
+        "probabilities": {
+          "opt0": 0.2780105531949691,
+          "opt1": 0.2760662635555127,
+          "opt2": 0.17805986452034142,
+          "opt3": 0.26786331872917674
+        },
+        "confidence": 0.2780105531949691
+      },
+      "ours": {
+        "type": "choice",
+        "choice": "opt1",
+        "probabilities": {
+          "opt0": 0.2707184655954819,
+          "opt1": 0.2771186265783915,
+          "opt2": 0.17985839467501807,
+          "opt3": 0.27230451315110854
+        },
+        "confidence": 0.2771186265783915
+      }
+    },
+    {
+      "pack": "char_59",
+      "qid": "q1",
+      "type": "choice",
+      "baseline": {
+        "type": "choice",
+        "choice": "opt1",
+        "probabilities": {
+          "opt0": 0.3082094975136293,
+          "opt1": 0.3087918008721861,
+          "opt2": 0.19740544868478077,
+          "opt3": 0.18559325292940387
+        },
+        "confidence": 0.3087918008721861
+      },
+      "ours": {
+        "type": "choice",
+        "choice": "opt0",
+        "probabilities": {
+          "opt0": 0.31253650832965424,
+          "opt1": 0.3035400198852636,
+          "opt2": 0.19700668038906768,
+          "opt3": 0.18691679139601444
+        },
+        "confidence": 0.31253650832965424
+      }
+    },
+    {
+      "pack": "char_04",
+      "qid": "q2",
+      "type": "choice",
+      "baseline": {
+        "type": "choice",
+        "choice": "opt0",
+        "probabilities": {
+          "opt0": 0.2784833700430554,
+          "opt1": 0.27413772088073296,
+          "opt2": 0.24341653785705622,
+          "opt3": 0.20396237121915536
+        },
+        "confidence": 0.2784833700430554
+      },
+      "ours": {
+        "type": "choice",
+        "choice": "opt1",
+        "probabilities": {
+          "opt0": 0.27300775611045547,
+          "opt1": 0.27783430227832745,
+          "opt2": 0.24290463107255406,
+          "opt3": 0.20625331053866314
+        },
+        "confidence": 0.27783430227832745
+      }
+    },
+    {
+      "pack": "char_10",
+      "qid": "q2",
+      "type": "choice",
+      "baseline": {
+        "type": "choice",
+        "choice": "opt2",
+        "probabilities": {
+          "opt0": 0.17767421063662184,
+          "opt1": 0.28209100815355104,
+          "opt2": 0.28591569858996946,
+          "opt3": 0.25431908261985775
+        },
+        "confidence": 0.28591569858996946
+      },
+      "ours": {
+        "type": "choice",
+        "choice": "opt1",
+        "probabilities": {
+          "opt0": 0.17886448772783056,
+          "opt1": 0.28210252039755573,
+          "opt2": 0.28210252039755573,
+          "opt3": 0.256930471477058
+        },
+        "confidence": 0.28210252039755573
+      }
+    }
+  ]
+}

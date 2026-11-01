@@ -1,0 +1,7 @@
+{
+  "server": "http://127.0.0.1:8137",
+  "questions": 768,
+  "self_flips": 0,
+  "self_stability": 1.0,
+  "flips": []
+}

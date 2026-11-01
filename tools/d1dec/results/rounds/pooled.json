@@ -1,0 +1,210 @@
+{
+  "runs": [
+    "run1",
+    "run3",
+    "run4"
+  ],
+  "n_rounds": 15,
+  "statistic": "the median over every interleaved round measured",
+  "ours": {
+    "decisions_per_s_n64": 42.22632178124632,
+    "decisions_per_s_n64_mean": 44.10160739604227,
+    "decisions_per_s_n64_min": 28.461587097611584,
+    "decisions_per_s_n64_max": 60.41118569611112,
+    "p95_ms_n1": 79.43935014700398,
+    "p95_ms_n1_mean": 89.60925458915878,
+    "p95_ms_n64_tick": 4886.222716706106
+  },
+  "llamacpp": {
+    "decisions_per_s_n64": 23.667733972498603,
+    "decisions_per_s_n64_mean": 21.32252947711256,
+    "decisions_per_s_n64_min": 11.347667713197284,
+    "decisions_per_s_n64_max": 26.205325275483645,
+    "p95_ms_n1": 143.53782274702098,
+    "p95_ms_n1_mean": 170.9366747002059,
+    "p95_ms_n64_tick": 8544.65586995284
+  },
+  "speedup_x": 1.7841303197979324,
+  "rounds": [
+    {
+      "run": "run1",
+      "round": 1,
+      "ours_decisions_per_s": 47.854310384386466,
+      "llamacpp_decisions_per_s": 11.347667713197284,
+      "ours_p95_ms_n1": 99.1435426476527,
+      "llamacpp_p95_ms_n1": 350.2156563488825,
+      "ours_p95_ms_n64_tick": 4663.155013258073,
+      "llamacpp_p95_ms_n64_tick": 17781.864955705532,
+      "speedup": 4.217105364191457,
+      "loadavg": null
+    },
+    {
+      "run": "run1",
+      "round": 2,
+      "ours_decisions_per_s": 49.62638646354358,
+      "llamacpp_decisions_per_s": 14.421308434837742,
+      "ours_p95_ms_n1": 124.73423384071786,
+      "llamacpp_p95_ms_n1": 179.911138558964,
+      "ours_p95_ms_n64_tick": 4212.2420891602815,
+      "llamacpp_p95_ms_n64_tick": 15463.907706695316,
+      "speedup": 3.4411847363073154,
+      "loadavg": null
+    },
+    {
+      "run": "run1",
+      "round": 3,
+      "ours_decisions_per_s": 50.95687398200173,
+      "llamacpp_decisions_per_s": 21.75430977599713,
+      "ours_p95_ms_n1": 69.57022004207829,
+      "llamacpp_p95_ms_n1": 163.40676663821796,
+      "ours_p95_ms_n64_tick": 4036.548284937453,
+      "llamacpp_p95_ms_n64_tick": 9029.493990894844,
+      "speedup": 2.3423806366049633,
+      "loadavg": null
+    },
+    {
+      "run": "run3",
+      "round": 1,
+      "ours_decisions_per_s": 52.14838296650713,
+      "llamacpp_decisions_per_s": 22.87802417178867,
+      "ours_p95_ms_n1": 130.01188990019725,
+      "llamacpp_p95_ms_n1": 145.00124214828244,
+      "ours_p95_ms_n64_tick": 3743.924931900983,
+      "llamacpp_p95_ms_n64_tick": 8544.65586995284,
+      "speedup": 2.2794093832111733,
+      "loadavg": 7.67529296875
+    },
+    {
+      "run": "run3",
+      "round": 2,
+      "ours_decisions_per_s": 28.461587097611584,
+      "llamacpp_decisions_per_s": 21.478865248712996,
+      "ours_p95_ms_n1": 102.45460295336663,
+      "llamacpp_p95_ms_n1": 320.5953285527357,
+      "ours_p95_ms_n64_tick": 7787.635927060182,
+      "llamacpp_p95_ms_n64_tick": 9885.85983350349,
+      "speedup": 1.3250973348937505,
+      "loadavg": 16.76904296875
+    },
+    {
+      "run": "run3",
+      "round": 3,
+      "ours_decisions_per_s": 29.939195832285872,
+      "llamacpp_decisions_per_s": 13.86542894569803,
+      "ours_p95_ms_n1": 157.06089954182968,
+      "llamacpp_p95_ms_n1": 142.17888714701985,
+      "ours_p95_ms_n64_tick": 7666.874646849465,
+      "llamacpp_p95_ms_n64_tick": 17837.031123042107,
+      "speedup": 2.1592693561474694,
+      "loadavg": 24.72119140625
+    },
+    {
+      "run": "run3",
+      "round": 4,
+      "ours_decisions_per_s": 38.03325184471019,
+      "llamacpp_decisions_per_s": 24.795717051443724,
+      "ours_p95_ms_n1": 76.29089529873454,
+      "llamacpp_p95_ms_n1": 143.51080544656722,
+      "ours_p95_ms_n64_tick": 5243.234870247397,
+      "llamacpp_p95_ms_n64_tick": 7777.0983991496905,
+      "speedup": 1.5338637622700133,
+      "loadavg": 22.9697265625
+    },
+    {
+      "run": "run3",
+      "round": 5,
+      "ours_decisions_per_s": 33.167478317184525,
+      "llamacpp_decisions_per_s": 24.483116767971712,
+      "ours_p95_ms_n1": 102.54254284736814,
+      "llamacpp_p95_ms_n1": 143.53782274702098,
+      "ours_p95_ms_n64_tick": 6110.986466952454,
+      "llamacpp_p95_ms_n64_tick": 7893.691420245887,
+      "speedup": 1.354708170185812,
+      "loadavg": 23.80517578125
+    },
+    {
+      "run": "run3",
+      "round": 6,
+      "ours_decisions_per_s": 36.0296827326477,
+      "llamacpp_decisions_per_s": 15.190872110603454,
+      "ours_p95_ms_n1": 79.43935014700398,
+      "llamacpp_p95_ms_n1": 138.92896389443194,
+      "ours_p95_ms_n64_tick": 5591.600817460858,
+      "llamacpp_p95_ms_n64_tick": 17594.5002605491,
+      "speedup": 2.3717981739506877,
+      "loadavg": 23.13427734375
+    },
+    {
+      "run": "run4",
+      "round": 1,
+      "ours_decisions_per_s": 37.5091648369471,
+      "llamacpp_decisions_per_s": 24.47805927202352,
+      "ours_p95_ms_n1": 72.17300545089529,
+      "llamacpp_p95_ms_n1": 153.43372000497763,
+      "ours_p95_ms_n64_tick": 5562.3948317545,
+      "llamacpp_p95_ms_n64_tick": 7991.119781097223,
+      "speedup": 1.532358608176797,
+      "loadavg": 24.31982421875
+    },
+    {
+      "run": "run4",
+      "round": 2,
+      "ours_decisions_per_s": 42.22632178124632,
+      "llamacpp_decisions_per_s": 23.987103441043242,
+      "ours_p95_ms_n1": 81.45450415613595,
+      "llamacpp_p95_ms_n1": 140.17724784716847,
+      "ours_p95_ms_n64_tick": 4886.222716706106,
+      "llamacpp_p95_ms_n64_tick": 8239.520033953886,
+      "speedup": 1.760376023934377,
+      "loadavg": 21.091796875
+    },
+    {
+      "run": "run4",
+      "round": 3,
+      "ours_decisions_per_s": 35.207584554176755,
+      "llamacpp_decisions_per_s": 23.667733972498603,
+      "ours_p95_ms_n1": 71.94332265498815,
+      "llamacpp_p95_ms_n1": 166.06669475222589,
+      "ours_p95_ms_n64_tick": 6104.942722701526,
+      "llamacpp_p95_ms_n64_tick": 8840.87861614971,
+      "speedup": 1.4875773318682393,
+      "loadavg": 21.5673828125
+    },
+    {
+      "run": "run4",
+      "round": 4,
+      "ours_decisions_per_s": 60.41118569611112,
+      "llamacpp_decisions_per_s": 25.210772744360245,
+      "ours_p95_ms_n1": 60.75790624963702,
+      "llamacpp_p95_ms_n1": 124.32385180291021,
+      "ours_p95_ms_n64_tick": 3242.8418236413563,
+      "llamacpp_p95_ms_n64_tick": 7751.239371445263,
+      "speedup": 2.3962449032676063,
+      "loadavg": 15.546875
+    },
+    {
+      "run": "run4",
+      "round": 5,
+      "ours_decisions_per_s": 59.81599246917476,
+      "llamacpp_decisions_per_s": 26.205325275483645,
+      "ours_p95_ms_n1": 54.6654377511004,
+      "llamacpp_p95_ms_n1": 127.8546223111334,
+      "ours_p95_ms_n64_tick": 3294.4823108970013,
+      "llamacpp_p95_ms_n64_tick": 7337.932895744598,
+      "speedup": 2.2825892004910746,
+      "loadavg": 10.05810546875
+    },
+    {
+      "run": "run4",
+      "round": 6,
+      "ours_decisions_per_s": 60.136711982099236,
+      "llamacpp_decisions_per_s": 26.073637231028417,
+      "ours_p95_ms_n1": 61.89646535567587,
+      "llamacpp_p95_ms_n1": 124.90737230255034,
+      "ours_p95_ms_n64_tick": 3267.5158403464593,
+      "llamacpp_p95_ms_n64_tick": 7418.579609350854,
+      "speedup": 2.306418220413634,
+      "loadavg": 10.10791015625
+    }
+  ]
+}

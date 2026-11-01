@@ -1,0 +1,42 @@
+=== box state 2026-11-01T01:35:47-09:00 ===
+loadavg: 18.51 19.20 17.69 10/1913 794005
+--- memory ---
+               total        used        free      shared  buff/cache   available
+Mem:             122          41           8           1          59          81
+Swap:             47           0          47
+--- nvidia-smi ---
+pid, used_gpu_memory [MiB]
+582374, 2132 MiB
+704703, 2512 MiB
+751530, 1938 MiB
+750927, 11733 MiB
+--- other llama / seat processes ---
+ 770488 2624348 18550652 /home/caseydigennaro/src/infinigen-thor/.venv/bin/python -m infinigen_examples.generate_nature --seed 1 -g canyon.gin simple.gin --task coarse --output_folder /home/caseydigennaro/lm-wt/syzygy-keyframes/corpus/gt_scenes/canyon-s1/coarse
+ 740710 2153300 18111608 /home/caseydigennaro/src/infinigen-thor/.venv/bin/python -m infinigen_examples.generate_nature --seed 12 -g canyon.gin simple.gin --task coarse --output_folder /home/caseydigennaro/src/infinigen-thor/outputs/sweep/canyon-s12/coarse
+ 756928 1330596 17690996 /home/caseydigennaro/src/infinigen-thor/.venv/bin/python -m infinigen_examples.generate_nature --seed 15 -g mountain.gin simple.gin --task coarse --output_folder /home/caseydigennaro/src/infinigen-thor/outputs/sweep/mountain-s15/coarse
+ 704703 850268 52246688 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --mmproj /home/caseydigennaro/models/d1-2B/mmproj-d1-2B-Q8_0.gguf --host 0.0.0.0 --port 8094 -ngl 99 --flash-attn on --ctx-size 32768 -ub 4096 --parallel 8 --cont-batching --slot-prompt-similarity 0 --alias d1-2B
+ 582374 808972 51578360 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8295 -ngl 99 --flash-attn on --ctx-size 8192 -ub 4096 --alias d1-2B-Q8
+ 751530 786864 55594076 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8137 -ngl 99 -fa on -c 32768 --parallel 64 -ub 512 -t 14 -tb 14 --cache-ram 0
+ 760739 241396 1144588 /home/caseydigennaro/lm-wt/agent-world/runtime/venv/bin/python -m agent_world_reflex serve
+   2472 31496 112444 python3 /home/caseydigennaro/sitka-distill/pipeline/serve-index
+ 638868 19364 104832 python3 -m http.server 43403
+ 647735 19344 104832 python3 -m http.server 45765
+ 628515 19308 104832 python3 -m http.server 36165
+ 635424 19308 104832 python3 -m http.server 38251
+--- thor-admit leases ---
+memory: 81.7G free of 122.8G (floor 25.0G, emergency floor 8.0G, gpu floor 2.0G)
+gpu view: nvidia-smi,nvidia-smi:gpu,tegrastats
+gpu pool: 4.8G free of the allocation pool (from nvidia-smi,nvidia-smi:gpu,tegrastats)
+leases: 4
+  #30 serve.d1-2B      peak     8.0G  now   829.3M  saw   829.3M  pid 704703  5033s
+  #35 serve.d1-2B-baseline peak     8.0G  now   767.4M  saw   767.4M  pid 751530  1712s
+  #39 infinigen.mountain.coarse peak     3.6M  now     1.3G  saw     1.4G  pid 756916  1390s
+  #48 syzygy-keyframes.gt.canyon peak    12.0G  now     2.5G  saw     2.8G  pid 770481  916s
+queue: 4
+  1. serve.d1-2B-batch peak     8.0G  priority 0
+  2. serve.d1-2B-kf   peak     8.0G  priority 0
+  3. serve.d1-2B-kf   peak     2.5G  priority 0
+  4. serve.d1-2B-batched peak     6.0G  priority 0
+presence: 2
+  #0 measure.study    study        peak     1.0G  done        runs 1  preempted 0
+  #1 syzygy-keyframes.d1kf study        peak     2.5G  pending     runs 0  preempted 0

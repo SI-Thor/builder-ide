@@ -1,0 +1,32 @@
+{
+  "seed": 20261031,
+  "ticks": 4,
+  "chars_per_tick": 64,
+  "questions_per_pack": 3,
+  "n_packs": 256,
+  "n_questions": 768,
+  "notes": {
+    "source": {
+      "reference_set": "/home/caseydigennaro/src/builder-ide/core/critic/reference-set.json",
+      "defect_classes": [
+        "missing_object",
+        "texture_swap",
+        "wrong_scale"
+      ],
+      "tile_candidates": [
+        "weathered crates (harbor.crates.style)",
+        "stacked rope coils (props.harbor.rope)",
+        "tide-stained bollards (props.harbor.bollards)",
+        "tarred lobster pots (props.harbor.pots)",
+        "brine-cured nets (props.harbor.nets)",
+        "chalk-marked bollard cap (props.harbor.cap)",
+        "faded dock lantern (props.harbor.lantern)",
+        "salvaged timber pallet (props.harbor.pallet)",
+        "dredged channel marker (props.harbor.marker)",
+        "hull-planked dinghy (props.harbor.dinghy)"
+      ]
+    },
+    "n_packs": 256,
+    "n_questions": 768
+  }
+}

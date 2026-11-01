@@ -1,0 +1,48 @@
+=== box state 2026-11-01T08:00:17-09:00 ===
+loadavg: 23.71 20.99 15.52 7/2052 1103063
+--- memory ---
+               total        used        free      shared  buff/cache   available
+Mem:             122          39          38           1          43          82
+Swap:             47           0          47
+--- nvidia-smi ---
+pid, used_gpu_memory [MiB]
+582374, 2138 MiB
+704703, 2514 MiB
+798716, 1938 MiB
+989743, 383 MiB
+1045260, 6138 MiB
+1102801, 151 MiB
+--- other llama / seat processes ---
+ 817479 2915548 14417468 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8141 -ngl 0 -fa on -c 32768 -b 32768 -ub 32768 --parallel 1 -t 14 --alias d1-2B
+1041061 2192184 21336404 ./llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf -ngl 0 --no-repack --host 127.0.0.1 --port 8393 -ub 4096 -b 4096 --flash-attn on
+1045260 1665472 33607864 /home/caseydigennaro/lm-wt/missionA-mcode/.venv/bin/python /home/caseydigennaro/lm-wt/missionA-mcode/scripts/run_server.py --gguf /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8138 --max-batch-seqs 192 --max-batch-tokens 49152 --linger-ms 4.0
+ 582374 730888 52052588 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8295 -ngl 99 --flash-attn on --ctx-size 8192 -ub 4096 --alias d1-2B-Q8
+ 704703 693740 52246688 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --mmproj /home/caseydigennaro/models/d1-2B/mmproj-d1-2B-Q8_0.gguf --host 0.0.0.0 --port 8094 -ngl 99 --flash-attn on --ctx-size 32768 -ub 4096 --parallel 8 --cont-batching --slot-prompt-similarity 0 --alias d1-2B
+ 798716 642832 55594744 /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --host 127.0.0.1 --port 8137 -ngl 99 -fa on -c 32768 --parallel 64 -ub 512 -t 14 -tb 14 --cache-ram 0
+ 760739 241328 1218396 /home/caseydigennaro/lm-wt/agent-world/runtime/venv/bin/python -m agent_world_reflex serve
+   2472 31096 112444 python3 /home/caseydigennaro/sitka-distill/pipeline/serve-index
+1086362 25764 4759036 python3 bench/bench.py --server http://127.0.0.1:8393 --mode llamacpp --ticks 2 --warmup-ticks 1 --n1-samples 2 --out /tmp/bench_dry.json --record /tmp/answers_dry.json
+1101150 17200  29272 python3 /home/caseydigennaro/lm-wt/verify-cs/core/engine/resident/worker.py --backend fake --root /tmp/pytest-of-caseydigennaro/pytest-171/test_the_resident_scene_server0/resident --pin {"blender":"4.2","commit":"v2-0001","config":"sha256:bbbbbbbbbbbbbbbb","python":"3.11","repo":"SI-Thor/infinigen-thor"}
+   6121  7792  18816 tmux new-session -d -s last-mile -n sweep cd ~/src/infinigen-thor && bash thor/sweep-worker.sh 10 12 > outputs/sweep-w5.log 2>&1
+1086359  3252   9648 /bin/bash -c . '/home/caseydigennaro/.zcode/cli/exec/shell-snapshots/snapshot-bash-1793543498309-tcm3by.sh' 2>/dev/null || true . '/home/caseydigennaro/.zcode/cli/exec/bash-startup/sess_06890363-26e0-4763-84e4-e6e951754f7a/embedded-search-startup-0f0131c8f43b7f1f.sh' cd ~/lm-wt/missionA-zcode && timeout 900 python3 bench/bench.py --server http://127.0.0.1:8393 --mode llamacpp --ticks 2 --warmup-ticks 1 --n1-samples 2 --out /tmp/bench_dry.json --record /tmp/answers_dry.json 2>&1 | tail -15 __zcode_status=$? if [ "$__zcode_status" -eq 0 ]; then pwd -P > '/tmp/zcode-519f5c30-09b7-40f9-af6b-9584ff37387e-cwd'; fi exit "$__zcode_status"
+--- thor-admit leases ---
+memory: 82.8G free of 122.8G (floor 25.0G, emergency floor 8.0G, gpu floor 0B)
+gpu view: nvidia-smi,nvidia-smi:gpu,tegrastats
+gpu pool: 12.3G free of the allocation pool (from nvidia-smi,nvidia-smi:gpu,tegrastats)
+leases: 3
+  #11 night-v3.heavy   peak    40.0G  now     1.4G  saw     4.1G  pid 979583  5906s
+  #56 d1-2B-batched    peak     6.0G  now     1.6G  saw     2.5G  pid 1045260  2178s
+  #67 cad-bakeoff.experiment peak     4.0G  now   470.3M  saw   470.3M  pid 1089990  461s
+queue: 23
+  1. serve.glide      peak    58.0G  priority 0
+  2. coldshelf.d1-cpu peak     6.0G  priority 0
+  3. coldshelf.idol   peak    12.0G  priority 0
+  4. serve.glide      peak    58.0G  priority 0
+  5. serve.d1-2B-batched peak     6.0G  priority 0
+  6. xp-batch.chain   peak     2.0G  priority 0
+  7. serve.d1-2B-batched peak     6.0G  priority 0
+  8. physag-lite.probe peak    40.0G  priority 0
+  9. infinigen.desert.coarse peak     1.5G  priority 0
+  10. xp-batch.chain   peak     2.0G  priority 0
+  11. physag-lite.probe peak    40.0G  priority 0
+  12. cad-bakeoff.slim-build peak    20.0G  priority 0
