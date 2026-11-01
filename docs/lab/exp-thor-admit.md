@@ -170,6 +170,7 @@ GPU peak is a measurement, not an estimate.
 | `the_watchdog_stops_a_runaway_before_the_memory_runs_out` | **passed** — the low-water mark, §6.3 |
 | `three_thirty_gigabyte_hogs_are_serialised` | see §6 |
 | `the_watchdog_stops_a_runaway_before_the_kernel_oom_does` | see §6 |
+| the Python shim's own tests (`tests/thor_admit/test_shim.py`) | **6 passed** — `pytest tests/thor_admit -q`; the shim takes a lease for the calling process, gives it back, and survives the daemon being gone |
 
 ## 6. The two heavy tests
 
@@ -201,17 +202,28 @@ serialisation: 12 GiB hogs, floor 78295891968, at most 1 at a time,
 ```
 
 The grants are strictly sequential — each hog was released before the next
-was granted — and the box never fell below 80 GiB free. The hogs were
-*refused* by the reservation rule, not by running out of memory: the second
-hog was never admitted because the first still owed its 12 GiB.
+was granted — and the box never fell below 80 GiB free. The second and
+third hogs were **not admitted while the first was running**: they waited
+in the queue, because the first still owed its 12 GiB and the rule
+charges a running lease's promise against the headroom. They were not
+*refused* (nothing was rejected) — the queue is where a request waits for
+room.
 
-**The watchdog** — a runaway hog, the emergency floor at `available - 8 GiB`
-(86 764 MiB):
+**The watchdog** — a runaway hog. The daemon's emergency floor is a
+fixed **8 GiB**; the *test* lowers it to `available - 8 GiB` (86 764 MiB),
+because driving the real box to 8 GiB free would need 110 GiB of
+allocation. The rule that fires is the same rule; only the number it
+fires at is different.
 
 ```
 watchdog: the runaway was stopped with 82633 MiB free (the emergency floor
 was 86764 MiB) and killed 2042 ms later; the kernel's OOM killer fired 0 times
 ```
+
+**The box, beside the numbers:** `MemTotal: 128 766 532 kB` (122.8 GiB,
+no swap), `MemAvailable` 99 776 745 472 B (92.9 GiB) when the first
+lease was granted — the daemon's own log line. (The load average for
+that run was not recorded; the log lines are.)
 
 | | |
 |---|---|

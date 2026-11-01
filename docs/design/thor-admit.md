@@ -200,10 +200,14 @@ dependency, and readable with `nc -U`.
 | `{"event":"status", ...}` | the status report |
 | `{"event":"ok"}` / `{"event":"error","message":"..."}` | answers to `held`/`release`/`ping` |
 
+**One command does not use the socket.** `thor-admit peaks` reads the
+history file (`<state-dir>/peaks.jsonl`, or `--history`) directly and
+reports each label's p50 and p95 — the daemon writes that file as leases
+end, so the history is there without asking the daemon anything.
+
 The `target` says what the lease covers: a **process group** (what the CLI
 leases — the command it spawns) or a **single process** (what the Python
-shim leases — the calling process, so the watchdog cannot stop a seat's
-other work by accident).
+shim leases — the calling process, so the watchdog cannot stop a seat'sother work by accident).
 
 ## 5. The knobs
 
@@ -395,7 +399,17 @@ not *refused* (nothing was rejected): the queue is where a request waits
 for room.
 
 #### 7.3.2 The watchdog (12 GiB runaway, 2026-10-31 22:08 UTC — 14:08 on the box)
-The emergency floor was `available - 8 GiB` (86 764 MiB):
+The daemon's emergency floor is a fixed **8 GiB** (§2.3). The *test*
+lowers it to `available - 8 GiB` (86 764 MiB), because driving the real
+box to 8 GiB free would need 110 GiB of allocation — more than the
+brief allows a test to use, and more than the box can afford while a
+seat is working. The rule that fires is the same rule; only the number
+it fires at is different.
+
+**The box, beside the numbers:** `MemTotal: 128 766 532 kB` (122.8 GiB,
+no swap), and `MemAvailable` 99 776 745 472 B (92.9 GiB) when the first
+lease was granted — the daemon's own log line. (The load average for
+that run was not recorded; the log lines are.)
 
 | | |
 |---|---|
@@ -455,12 +469,15 @@ the claim is split in two, and both halves are checked:
 
 ### 7.4 The rule, checked
 
-| Case | `available` | Leases | New peak | Admitted? |
-|---|---|---|---|---|
-| alone | 100 GiB | — | 40 GiB | yes (60 GiB left, floor 25) |
-| alone | 100 GiB | — | 80 GiB | no (20 GiB left, floor 25) |
-| with a lease that has not grown | 100 GiB | 40 GiB reserved, 2 GiB used | 38 GiB | no (the running lease owes 38) |
-| with a lease that overshot | 100 GiB | 10 GiB reserved, 30 GiB used | 65 GiB | yes (it owes nothing more) |
+The rule is `projected = available - Σ (reserved_i - current_i)`, and a
+lease is admitted when `projected - peak >= floor`. Worked through:
+
+| Case | `available` | Leases | New peak | Projected | Admitted? |
+|---|---|---|---|---|---|
+| alone | 100 GiB | — | 40 GiB | 100 GiB | **yes** — 60 GiB left, floor 25 |
+| alone | 100 GiB | — | 80 GiB | 100 GiB | **no** — 20 GiB left, floor 25 |
+| with a lease that has not grown | 100 GiB | 40 GiB reserved, 2 GiB used | 38 GiB | 62 GiB | **no** — 24 GiB left, one short of the floor |
+| with a lease that overshot | 100 GiB | 10 GiB reserved, 30 GiB used | 65 GiB | 120 GiB | **yes** — 55 GiB left; the lease owes nothing more, so the memory it took past its promise is given back |
 
 ## 8. The daemon as a service
 
