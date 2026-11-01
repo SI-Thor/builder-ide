@@ -100,14 +100,16 @@
     "friction": 0.8,
     "actuator_force_n": 120.0,
     "actuator_torque_nm": 10.0,
-    "base_static": false
+    "base_static": false,
+    "size_m": 0.8
   },
   "basis": {
     "mass_kg": "estimated",
     "friction": "estimated",
     "actuator_force_n": "estimated",
     "actuator_torque_nm": "estimated",
-    "base_static": "estimated"
+    "base_static": "estimated",
+    "size_m": "estimated"
   },
   "planner": {
     "model": "MiniMax-M3.1-Flash",

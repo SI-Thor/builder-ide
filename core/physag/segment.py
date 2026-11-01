@@ -43,6 +43,7 @@ __all__ = [
     "Segmentation",
     "SegmentationError",
     "segment",
+    "segmentation_from_parts",
 ]
 
 
@@ -320,77 +321,149 @@ def segment(
         piece = moved[part.name]
         if piece.is_empty:
             reasons.append(f"part {part.name!r} came out empty")
-        notes: list[str] = []
-        if piece.is_empty:
-            # The part's own record says so too: the split-level reason is
-            # one line in the run's log, and the part-level note is what
-            # the verdict for that part is built on.
-            notes.append("the part came out empty")
-        components = 0
-        shares: tuple[float, ...] = ()
-        ambiguous = False
+        pieces[part.name] = _piece_record(part, piece, origin, size)
 
-        # The piece is kept whole: dropping the smaller blobs would throw
-        # away material the collider has to stand for. The fragmentation is
-        # measured instead, and the flag lands on the part that moves —
-        # a base that fell into two blobs still supports the prop, but a
-        # moving part that fell into two is not the part the spec named.
-        if not piece.is_empty:
-            _kept, components, share_list = largest_component(piece)
-            shares = tuple(share_list)
-            if components > 1:
-                notes.append(
-                    f"the split fell into {components} pieces; the largest holds "
-                    f"{shares[0]:.0%} of the area"
-                )
-                if part.role == "moving" and shares[0] < 0.9:
-                    notes.append("the part is ambiguous: no piece dominates")
-                    ambiguous = True
-            if piece.triangle_count == 0:
-                notes.append("the part has no triangles")
+    return Segmentation(
+        mesh=mesh,
+        pieces=pieces,
+        gap_m=gap_m,
+        assigned_triangles=assigned,
+        total_triangles=int(mesh.triangle_count),
+        mesh_area=mesh_area,
+        parts_area=parts_area,
+        reasons=tuple(reasons),
+    )
 
-        claim = part.claimed_box()
-        claimed_min = origin + np.asarray(claim.min) * size
-        claimed_max = origin + np.asarray(claim.max) * size
-        if piece.is_empty:
-            bbox_min = np.zeros(3)
-            bbox_max = np.zeros(3)
-        else:
-            bbox_min = piece.bbox_min
-            bbox_max = piece.bbox_max
 
-        iou = 0.0
-        contained = False
-        if not piece.is_empty:
-            iou = bbox_iou(bbox_min, bbox_max, claimed_min, claimed_max)
-            contained = bool(
-                np.all(bbox_min >= claimed_min - 1e-9) and np.all(bbox_max <= claimed_max + 1e-9)
+def _piece_record(
+    part: Part,
+    piece: MeshPart,
+    origin: np.ndarray,
+    size: np.ndarray,
+) -> PartPiece:
+    """Measure one part against the claim the spec makes about it.
+
+    The same measurement runs whether the part came out of a geometric cut
+    or out of the CAD kernel that built it: the planner's claim about where
+    the part is is still a claim, and the CAD arm is exactly the case where
+    checking it is worthwhile — the geometry is exact, so a poor claim is
+    the planner's and not the kernel's.
+    """
+    notes: list[str] = []
+    if piece.is_empty:
+        # The part's own record says so too: the split-level reason is one
+        # line in the run's log, and the part-level note is what the verdict
+        # for that part is built on.
+        notes.append("the part came out empty")
+    components = 0
+    shares: tuple[float, ...] = ()
+    ambiguous = False
+
+    # The piece is kept whole: dropping the smaller blobs would throw away
+    # material the collider has to stand for. The fragmentation is measured
+    # instead, and the flag lands on the part that moves — a base that fell
+    # into two blobs still supports the prop, but a moving part that fell
+    # into two is not the part the spec named.
+    if not piece.is_empty:
+        _kept, components, share_list = largest_component(piece)
+        shares = tuple(share_list)
+        if components > 1:
+            notes.append(
+                f"the split fell into {components} pieces; the largest holds "
+                f"{shares[0]:.0%} of the area"
             )
-            if part.role == "moving":
-                if iou < 0.5:
-                    notes.append(
-                        f"the piece covers {iou:.0%} of the region the spec claimed"
-                    )
-                if not contained:
-                    notes.append("the piece reaches outside the region the spec claimed")
+            if part.role == "moving" and shares[0] < 0.9:
+                notes.append("the part is ambiguous: no piece dominates")
+                ambiguous = True
+        if piece.triangle_count == 0:
+            notes.append("the part has no triangles")
 
-        pieces[part.name] = PartPiece(
-            name=part.name,
-            role=part.role,
-            part=piece,
-            claimed=claim,
-            bbox_min=bbox_min,
-            bbox_max=bbox_max,
-            claimed_min=claimed_min,
-            claimed_max=claimed_max,
-            bbox_iou=iou,
-            contained=contained,
-            components=components,
-            component_shares=shares,
-            triangles=int(piece.triangle_count),
-            ambiguous=ambiguous,
-            notes=tuple(notes),
+    claim = part.claimed_box()
+    claimed_min = origin + np.asarray(claim.min) * size
+    claimed_max = origin + np.asarray(claim.max) * size
+    if piece.is_empty:
+        bbox_min = np.zeros(3)
+        bbox_max = np.zeros(3)
+    else:
+        bbox_min = piece.bbox_min
+        bbox_max = piece.bbox_max
+
+    iou = 0.0
+    contained = False
+    if not piece.is_empty:
+        iou = bbox_iou(bbox_min, bbox_max, claimed_min, claimed_max)
+        contained = bool(
+            np.all(bbox_min >= claimed_min - 1e-9) and np.all(bbox_max <= claimed_max + 1e-9)
         )
+        if part.role == "moving":
+            if iou < 0.5:
+                notes.append(f"the piece covers {iou:.0%} of the region the spec claimed")
+            if not contained:
+                notes.append("the piece reaches outside the region the spec claimed")
+
+    return PartPiece(
+        name=part.name,
+        role=part.role,
+        part=piece,
+        claimed=claim,
+        bbox_min=bbox_min,
+        bbox_max=bbox_max,
+        claimed_min=claimed_min,
+        claimed_max=claimed_max,
+        bbox_iou=iou,
+        contained=contained,
+        components=components,
+        component_shares=shares,
+        triangles=int(piece.triangle_count),
+        ambiguous=ambiguous,
+        notes=tuple(notes),
+    )
+
+
+def segmentation_from_parts(
+    mesh: MeshPart,
+    parts: dict[str, MeshPart],
+    spec: InteractionSpec,
+    gap_m: float = 0.0,
+) -> Segmentation:
+    """Build the split from parts that are already known.
+
+    The CAD arm knows where the parts are: the kernel that built the prop
+    made them, one body each, so the split is exact rather than guessed.
+
+    The split is still *measured*. The planner's claim about where the
+    moving part is is a claim, and in the CAD arm it is the one thing that
+    can still be wrong — the geometry is exact, so a poor claim is the
+    planner's and not the kernel's. The guard is the same guard: an
+    ambiguous mapping is flagged, and the completion rate is reported only
+    for verified mappings.
+
+    The parts are placed in the mesh's own frame, and the gap is not opened:
+    the kernel's bodies already stand where it put them.
+    """
+    if mesh.is_empty:
+        raise SegmentationError("the mesh is empty")
+
+    size = mesh.bbox_size
+    origin = mesh.bbox_min
+    reasons: list[str] = []
+
+    missing = [part.name for part in spec.parts if part.name not in parts]
+    if missing:
+        raise SegmentationError(
+            f"{spec.prop}: no geometry for the part(s) {', '.join(missing)}"
+        )
+
+    pieces: dict[str, PartPiece] = {}
+    for part in spec.parts:
+        piece = parts[part.name]
+        if piece.is_empty:
+            reasons.append(f"part {part.name!r} came out empty")
+        pieces[part.name] = _piece_record(part, piece, origin, size)
+
+    assigned = sum(int(piece.triangle_count) for piece in parts.values())
+    mesh_area = surface_area(mesh)
+    parts_area = sum(surface_area(piece) for piece in parts.values())
 
     return Segmentation(
         mesh=mesh,

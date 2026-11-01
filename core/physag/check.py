@@ -486,25 +486,29 @@ def check_prop(
     # The companion test is the distance from the material to the
     # collider, held against the prop's own size, because a collider
     # that is blind to a hollow is wrong in the same place it is thin.
-    # The guard's own test is the inflation: the collider must not be
-    # more than 1 % fatter than the mesh. A generated prop is a rounded
-    # shape and a convex hull of it is fatter by the rounding, so that
-    # bound is reported for every prop and, separately, the two local
-    # measures that decide whether the stability score means anything:
-    # how far the collider is from the surface it stands for, and how
-    # deep a hollow it fills in.
-    guard_inflation_ok = built.inflation <= 0.01
+    #
+    # The volume ratio is the third test, and it only works when the
+    # mesh's surface is closed: an open shell has no volume for the
+    # collider to be compared with. When it is closed, the ratio is
+    # checked against the guard's one per cent, and it is reported either
+    # way. When it is not, the hollow the collider fills in — measured
+    # from the inside of the collider — is the test that stands in for it,
+    # because that is the thing the ratio was measuring in the first
+    # place.
+    inflation = built.inflation
+    guard_inflation_ok = inflation is not None and inflation <= 0.01
     collider_valid = (
         built.collider_deviation_m <= 0.02 * max(diag, 1e-6)
         and built.collider_concavity_m <= 0.02 * max(diag, 1e-6)
-        and built.inflation <= 0.15
+        and (inflation is None or inflation <= 0.15)
     )
     valid = rest.settled and collider_valid and not exploded
     if not rest.settled:
         stability_reasons.append("the prop was not stable at rest, so the score is void")
     if not collider_valid:
         stability_reasons.append(
-            f"the collider is {built.volume_ratio:.3f} of the mesh's volume, "
+            f"the collider is {built.collider_volume_m3:.4f} m³ against the mesh's "
+            f"{built.mesh_volume_m3:.4f} m³, "
             f"{built.collider_deviation_m * 1000:.1f} mm from the material it "
             f"stands for and {built.collider_concavity_m * 1000:.1f} mm into it, "
             "so the score is void"
@@ -545,9 +549,19 @@ def check_prop(
             notes.append(f"the render failed: {exc}")
 
     collider_record = {
-        "volume_ratio": round(built.volume_ratio, 6),
-        "inflation": round(built.inflation, 6),
-        "shrinkage": round(built.shrinkage, 6),
+        "volume_ratio": None if built.volume_ratio is None else round(built.volume_ratio, 6),
+        "inflation": None if built.inflation is None else round(built.inflation, 6),
+        "shrinkage": None if built.shrinkage is None else round(built.shrinkage, 6),
+        "mesh_closed": built.mesh_closed,
+        "mesh_hull_volume_m3": round(built.mesh_hull_volume_m3, 9),
+        "volume_ratio_evaluable": built.volume_ratio is not None,
+        "volume_ratio_note": (
+            ""
+            if built.mesh_closed
+            else "the mesh's surface is not closed, so it has no volume to "
+            "compare the collider's against; the hollow the collider fills "
+            "in is measured instead"
+        ),
         "deviation_m": round(built.collider_deviation_m, 6),
         "deviation_rel_diag": round(
             built.collider_deviation_m / max(diag, 1e-6), 6
@@ -559,6 +573,7 @@ def check_prop(
         "valid": collider_valid,
         "guard_inflation_within_1pct": guard_inflation_ok,
         "concavity_m": round(built.collider_concavity_m, 6),
+        "concavity_rel_diag": round(built.collider_concavity_m / max(diag, 1e-6), 6),
         "mesh_volume_m3": round(built.mesh_volume_m3, 9),
         "collider_volume_m3": round(built.collider_volume_m3, 9),
         "epsilon_m": round(epsilon, 8),

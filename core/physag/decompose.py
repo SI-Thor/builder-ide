@@ -530,18 +530,13 @@ def decompose_part(
         distances = distance_to_union(material, planes)
         deviation = float(distances.max()) if distances.size else 0.0
         p95 = float(np.percentile(distances, 95)) if distances.size else 0.0
-        depth = 0.0
-        for plane in planes:
-            _outside, inside = hull_metrics(material, plane)
-            if inside.size:
-                depth = max(depth, float(inside.max()))
     else:
         deviation = 0.0
         p95 = 0.0
-        depth = 0.0
 
     collider_volume = float(sum(p.volume for p in pieces))
     overlaps = _pieces_overlap(pieces)
+    hollow = _hollow_depth(pieces, part, tol_m)
 
     return Decomposition(
         part_name=part_name,
@@ -550,10 +545,87 @@ def decompose_part(
         collider_volume=collider_volume,
         deviation_m=deviation,
         deviation_p95_m=p95,
-        concavity_m=depth,
+        concavity_m=hollow,
         overlaps=overlaps,
         notes=tuple(notes),
     )
+
+
+def _hollow_depth(
+    pieces: list[Collider],
+    material: MeshPart,
+    tol_m: float,
+    samples_per_piece: int = 400,
+) -> float:
+    """How deep a hollow the collider fills in.
+
+    The depth of a material vertex below the hull's surface cannot see a
+    hollow: a crate's walls are *on* the hull's outside, so every one of
+    their vertices sits on the surface and the depth is zero — while the
+    collider has swallowed the crate's whole interior.
+
+    The hollow is in the *interior* of the collider, and the measure has to
+    look there. So the pieces are sampled inside — points drawn uniformly
+    from each piece's own volume — and each sample is measured against the
+    material it stands for. The deepest such distance is how far inside a
+    hollow the collider reaches: near zero for a solid prop, and the
+    prop's own thickness for a shell.
+
+    The material is measured against its **vertices**, through a tree. For
+    a generated prop the vertices are millimetres apart, so the distance to
+    the nearest vertex is the distance to the surface to within a
+    millimetre, which is finer than the tolerance the guard uses.
+    """
+    if not pieces or material.is_empty:
+        return 0.0
+    from scipy.spatial import cKDTree
+
+    vertices = material.vertices
+    if vertices.shape[0] > 60000:
+        stride = max(1, vertices.shape[0] // 60000)
+        vertices = vertices[::stride]
+    tree = cKDTree(vertices)
+
+    deepest = 0.0
+    for piece in pieces:
+        if piece.is_empty or piece.volume <= 0.0:
+            continue
+        points = _sample_piece(piece, samples_per_piece)
+        if points.shape[0] == 0:
+            continue
+        distances, _ = tree.query(points)
+        deepest = max(deepest, float(np.max(distances)))
+    return deepest
+
+
+def _sample_piece(piece: Collider, count: int) -> np.ndarray:
+    """Points drawn uniformly from a convex piece's volume.
+
+    The piece is a mesh, so the sampling is by rejection: a point is drawn
+    in the piece's box and kept when it is inside every face of the piece.
+    The faces are few — a convex piece has as many faces as it has
+    corners — so the test is cheap.
+    """
+    if count <= 0 or piece.is_empty:
+        return np.zeros((0, 3))
+    lo = piece.vertices.min(axis=0)
+    hi = piece.vertices.max(axis=0)
+    planes = piece.planes
+    rng = np.random.default_rng(20261101)
+    if planes.shape[0] == 0:
+        return np.zeros((0, 3))
+    out: list[np.ndarray] = []
+    for _ in range(12):
+        if sum(len(chunk) for chunk in out) >= count:
+            break
+        candidates = rng.random((count * 2, 3)) * (hi - lo) + lo
+        signed = candidates @ planes[:, :3].T + planes[:, 3]
+        inside = np.all(signed <= 1e-9, axis=1)
+        if inside.any():
+            out.append(candidates[inside])
+    if not out:
+        return np.zeros((0, 3))
+    return np.concatenate(out, axis=0)[:count]
 
 
 def _pieces_overlap(pieces: list[Collider]) -> bool:

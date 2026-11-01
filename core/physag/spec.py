@@ -300,6 +300,16 @@ class Priors:
     actuator_force_n: float = 40.0
     actuator_torque_nm: float = 12.0
     base_static: bool = False
+    #: The prop's largest dimension, in metres.
+    #:
+    #: A generated mesh arrives in the generator's own units, and the
+    #: generator's unit is not a metre: TRELLIS.2 puts its output in a
+    #: unit cube, so a crate comes out a metre across. The physics is a
+    #: statement about metres — a prop's weight on its own hinge, and an
+    #: actuator's limit in newtons against it — so the prop is scaled to
+    #: this number before anything is simulated. It is an estimate, like
+    #: the mass, and it is recorded as one.
+    size_m: float | None = None
 
     def validate(self) -> None:
         if self.mass_kg <= 0.0:
@@ -310,6 +320,8 @@ class Priors:
             raise SpecError("the prior actuator force must be positive")
         if self.actuator_torque_nm <= 0.0:
             raise SpecError("the prior actuator torque must be positive")
+        if self.size_m is not None and self.size_m <= 0.0:
+            raise SpecError("the prior size must be positive")
 
     def fields(self) -> tuple[str, ...]:
         return (
@@ -318,6 +330,7 @@ class Priors:
             "actuator_force_n",
             "actuator_torque_nm",
             "base_static",
+            "size_m",
         )
 
 
@@ -422,7 +435,15 @@ class InteractionSpec:
                     )
 
         self.priors.validate()
-        missing = [f for f in self.priors.fields() if f not in self.basis]
+        # A prior the planner did not assert has no value and so has
+        # nothing to be measured, estimated or derived from: it does not
+        # need a basis.
+        asserted = [
+            f
+            for f in self.priors.fields()
+            if f != "size_m" or self.priors.size_m is not None
+        ]
+        missing = [f for f in asserted if f not in self.basis]
         if missing:
             raise SpecError(
                 f"{self.prop}: no basis for {', '.join(missing)}; every prior "

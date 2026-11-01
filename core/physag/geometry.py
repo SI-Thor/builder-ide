@@ -41,10 +41,14 @@ __all__ = [
     "ConvexPiece",
     "GeometryError",
     "MeshPart",
+    "apply_transform",
     "convex_hull",
     "hull_volume",
+    "is_closed",
     "largest_component",
     "load_mesh",
+    "prop_frame_transform",
+    "scale_mesh",
     "signed_volume",
     "surface_area",
 ]
@@ -205,6 +209,87 @@ def _orient(vertices: np.ndarray) -> np.ndarray:
         # y is the shortest, so y is up: x stays x, z becomes the new -y.
         return vertices[:, [0, 2, 1]] * np.array([1.0, -1.0, 1.0])
     return vertices
+
+
+def prop_frame_transform(vertices: np.ndarray) -> np.ndarray:
+    """The transform from a mesh's own frame into the prop frame.
+
+    :func:`load_mesh` applies it: the standing axis is put up, and the
+    bounding box's minimum corner becomes the origin. The CAD arm needs the
+    same transform for the *parts*, which come from the kernel that built
+    the prop rather than from the merged mesh — and the parts have to end up
+    in the same frame as the mesh, or the collider stands somewhere the
+    material is not.
+
+    The transform is decided by the **merged** mesh's own shape, so it has
+    to be computed from it and then applied to each part.
+    """
+    size = vertices.max(axis=0) - vertices.min(axis=0)
+    if size[1] < size[0] and size[1] < size[2]:
+        # y is the shortest, so y is up: x stays x, z becomes the new -y.
+        rotation = np.array([[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]])
+    else:
+        rotation = np.eye(3)
+    oriented = vertices @ rotation.T
+    shift = oriented.min(axis=0)
+    matrix = np.eye(4)
+    matrix[:3, :3] = rotation
+    matrix[:3, 3] = -shift
+    return matrix
+
+
+def apply_transform(matrix: np.ndarray, vertices: np.ndarray) -> np.ndarray:
+    """Apply a 4x4 transform to a set of points."""
+    points = np.asarray(vertices, dtype=np.float64)
+    if points.size == 0:
+        return points.reshape(0, 3)
+    return points @ matrix[:3, :3].T + matrix[:3, 3]
+
+
+def is_closed(mesh: MeshPart) -> bool:
+    """Whether the mesh's surface is closed: every edge shared by two faces.
+
+    It matters because a closed surface has a **volume** — the divergence
+    theorem gives the space it encloses — and an open one does not. A
+    generated prop is a shell with holes in it, and the "volume" the
+    divergence theorem gives for it is the difference of two large numbers,
+    which is a number and not a volume. The guards that compare the
+    collider's volume with the mesh's need to know which of the two they
+    have.
+    """
+    triangles = mesh.triangles
+    if triangles.shape[0] == 0:
+        return False
+    edges = np.concatenate(
+        [triangles[:, [0, 1]], triangles[:, [1, 2]], triangles[:, [2, 0]]], axis=0
+    )
+    edges = np.sort(edges, axis=1)
+    _, counts = np.unique(edges, axis=0, return_counts=True)
+    return bool(np.all(counts == 2))
+
+
+def scale_mesh(mesh: MeshPart, size_m: float | None) -> MeshPart:
+    """Scale a mesh so that its largest dimension is ``size_m`` metres.
+
+    A generated prop arrives in the generator's own units — TRELLIS.2 puts
+    its output in a unit cube, so a crate comes out a metre across. That
+    is a scale, not a shape, and the physics is a statement about metres:
+    a metre-wide crate falls differently from a forty-centimetre one, and
+    the actuator's force limit is in newtons. The prop's real size is a
+    prior, an estimate, and it is recorded as one.
+
+    The mesh's own corner stays at the origin, so the prop frame the specs
+    are written in does not move.
+    """
+    if size_m is None or size_m <= 0.0 or mesh.is_empty:
+        return mesh
+    largest = float(mesh.bbox_size.max())
+    if largest <= 0.0:
+        return mesh
+    scale = float(size_m) / largest
+    if abs(scale - 1.0) < 1e-9:
+        return mesh
+    return MeshPart(vertices=mesh.vertices * scale, triangles=mesh.triangles)
 
 
 def signed_volume(vertices: np.ndarray, triangles: np.ndarray) -> float:

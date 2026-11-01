@@ -31,10 +31,10 @@ from typing import Any
 from core.physag.check import CheckResult, check_prop
 from core.physag.decompose import Decomposition, decompose_part
 from core.physag.delivery import Delivery, build_delivery
-from core.physag.geometry import MeshPart, load_mesh
+from core.physag.geometry import MeshPart, load_mesh, scale_mesh
 from core.physag.mjcf import BuiltProp, build_mjcf
 from core.physag.planner import Planner, RepairFeedback
-from core.physag.segment import Segmentation, segment
+from core.physag.segment import Segmentation, segment, segmentation_from_parts
 from core.physag.spec import InteractionSpec
 
 __all__ = ["PropRun", "run_prop"]
@@ -200,8 +200,20 @@ def run_prop(
     allow_repair: bool = True,
     mesh_provenance: dict[str, Any] | None = None,
     ground_truth: dict[str, Any] | None = None,
+    parts: dict[str, MeshPart] | None = None,
+    mesh: MeshPart | None = None,
 ) -> PropRun:
-    """Run one prop through the whole loop."""
+    """Run one prop through the whole loop.
+
+    ``parts`` is the CAD arm's way in: when the parts are known already —
+    because the kernel that built the prop made them, one body each — they
+    are passed in and the geometric cut is skipped. ``mesh`` is the matching
+    merged mesh, for the same reason: it has already been put in the prop
+    frame, so it is not read again.
+
+    Everything after the split is the same code for both arms: the
+    decomposition, the MJCF, the check, the repair and the record.
+    """
     out_dir = Path(out_dir) if out_dir else Path("artifacts/physag-lite") / spec.prop
     out_dir.mkdir(parents=True, exist_ok=True)
     notes: list[str] = []
@@ -209,11 +221,18 @@ def run_prop(
 
     # -- build ------------------------------------------------------------
     started = time.perf_counter()
-    mesh = load_mesh(mesh_path)
+    if mesh is None:
+        mesh = load_mesh(mesh_path)
+        # The generator's units are not metres; the prop's size is a prior
+        # and the mesh is scaled to it before anything is simulated.
+        mesh = scale_mesh(mesh, spec.priors.size_m)
     timings["load_mesh_s"] = time.perf_counter() - started
 
     started = time.perf_counter()
-    segmentation = segment(mesh, spec)
+    if parts is None:
+        segmentation = segment(mesh, spec)
+    else:
+        segmentation = segmentation_from_parts(mesh, parts, spec)
     timings["segment_s"] = time.perf_counter() - started
 
     started = time.perf_counter()
@@ -288,8 +307,12 @@ def run_prop(
 
             # Rebuild and re-check with the revised spec.
             started = time.perf_counter()
-            mesh = load_mesh(mesh_path)
-            segmentation = segment(mesh, repaired)
+            if parts is None:
+                mesh = load_mesh(mesh_path)
+                mesh = scale_mesh(mesh, spec.priors.size_m)
+                segmentation = segment(mesh, repaired)
+            else:
+                segmentation = segmentation_from_parts(mesh, parts, repaired)
             decompositions = _decompose_all(
                 segmentation, repaired, decomposition_tolerance_m, max_pieces
             )

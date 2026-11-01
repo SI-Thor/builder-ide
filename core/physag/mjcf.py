@@ -31,7 +31,13 @@ from typing import Iterable
 import numpy as np
 
 from core.physag.decompose import Collider, Decomposition
-from core.physag.geometry import MeshPart, distance_to_union, signed_volume
+from core.physag.geometry import (
+    MeshPart,
+    convex_hull,
+    distance_to_union,
+    is_closed,
+    signed_volume,
+)
 from core.physag.segment import Segmentation
 from core.physag.spec import WORLD_ANCHOR, InteractionSpec, Joint, SpecError
 
@@ -90,6 +96,13 @@ class BuiltProp:
     mesh_volume_m3: float
     root_body: str
     free_base: bool
+    #: Whether the mesh's surface is closed. A closed surface has a volume
+    #: and an open one does not, so the volume ratio below is only a
+    #: statement about the collider when this is true.
+    mesh_closed: bool = True
+    #: The volume of the mesh's own convex hull: the space the prop
+    #: occupies, whatever shape its surface is.
+    mesh_hull_volume_m3: float = 0.0
     #: How far the mesh's own vertices are from the collider's surface:
     #: the Hausdorff distance in the direction that matters, because a
     #: collider that is blind to a hollow shows up here.
@@ -102,14 +115,25 @@ class BuiltProp:
     notes: tuple[str, ...] = ()
 
     @property
-    def volume_ratio(self) -> float:
-        """The collider's volume over the mesh's."""
+    def volume_ratio(self) -> float | None:
+        """The collider's volume over the mesh's.
+
+        ``None`` when the mesh's surface is not closed: a shell with holes
+        in it has no volume for the divergence theorem to measure, and
+        dividing the collider's volume by a number that is not a volume
+        would be a number about nothing. The record says so, and the
+        guards that do work on an open mesh — the distance from the
+        material to the collider, and the depth of the hollow the collider
+        fills in — carry the guard instead.
+        """
+        if not self.mesh_closed:
+            return None
         if self.mesh_volume_m3 <= 0.0:
-            return 0.0
+            return None
         return self.collider_volume_m3 / self.mesh_volume_m3
 
     @property
-    def inflation(self) -> float:
+    def inflation(self) -> float | None:
         """How much fatter the collider is than the mesh.
 
         The Hy4 guard is about *inflation*: a hull that bulges over a
@@ -117,12 +141,18 @@ class BuiltProp:
         the hull. A collider that is a little thin is a different fault
         and is reported as ``shrinkage``.
         """
-        return self.volume_ratio - 1.0
+        ratio = self.volume_ratio
+        if ratio is None:
+            return None
+        return ratio - 1.0
 
     @property
-    def shrinkage(self) -> float:
+    def shrinkage(self) -> float | None:
         """How much thinner the collider is than the mesh."""
-        return max(0.0, 1.0 - self.volume_ratio)
+        ratio = self.volume_ratio
+        if ratio is None:
+            return None
+        return max(0.0, 1.0 - ratio)
 
     def to_dict(self) -> dict:
         return {
@@ -133,9 +163,11 @@ class BuiltProp:
             "total_mass_kg": round(self.total_mass_kg, 4),
             "collider_volume_m3": round(self.collider_volume_m3, 9),
             "mesh_volume_m3": round(self.mesh_volume_m3, 9),
-            "volume_ratio": round(self.volume_ratio, 6),
-            "inflation": round(self.inflation, 6),
-            "shrinkage": round(self.shrinkage, 6),
+            "mesh_closed": self.mesh_closed,
+            "mesh_hull_volume_m3": round(self.mesh_hull_volume_m3, 9),
+            "volume_ratio": None if self.volume_ratio is None else round(self.volume_ratio, 6),
+            "inflation": None if self.inflation is None else round(self.inflation, 6),
+            "shrinkage": None if self.shrinkage is None else round(self.shrinkage, 6),
             "collider_deviation_m": round(self.collider_deviation_m, 6),
             "coverage_deviation_m": round(self.coverage_deviation_m, 6),
             "collider_concavity_m": round(self.collider_concavity_m, 6),
@@ -494,6 +526,12 @@ def build_mjcf(
             if finite.size:
                 coverage = float(finite.max())
 
+    mesh_closed = is_closed(segmentation.mesh)
+    hull_volume = 0.0
+    if segmentation.mesh.vertices.shape[0] > 0:
+        hull = convex_hull(segmentation.mesh.vertices)
+        hull_volume = float(hull.volume)
+
     return BuiltProp(
         spec=spec,
         xml=xml,
@@ -505,6 +543,8 @@ def build_mjcf(
         total_mass_kg=total_mass,
         collider_volume_m3=total_collider_volume,
         mesh_volume_m3=volume_of(segmentation.mesh),
+        mesh_closed=mesh_closed,
+        mesh_hull_volume_m3=hull_volume,
         root_body=f"body_{root_name}",
         free_base=free_base,
         collider_deviation_m=deviation,
