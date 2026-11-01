@@ -336,6 +336,65 @@ def test_a_failed_render_carries_the_engines_last_words(venv_home):
             subject="harbor.crates", rung=2, seed=42))
 
 
+class SilentCli(CliDouble):
+    """A CLI that exits 0 and writes nothing — the run C shape, whatever
+    its trigger was that morning: a manifest that no longer resolves the
+    trailing render word, a skipped pass, a teardown that swallowed the
+    work. The seam must turn that silence into a loud, diagnosable
+    failure, not a missing-file guess."""
+
+    def run(self, argv, *, cwd=None) -> CommandResult:
+        argv = [str(a) for a in argv]
+        self.argvs.append(argv)
+        if argv[0] == "git":
+            return CommandResult(argv=argv, returncode=0, stdout=COMMIT + "\n")
+        if len(argv) > 1 and argv[1] == "-c":
+            return CommandResult(argv=argv, returncode=0,
+                                 stdout=json.dumps(REPORT) + "\n")
+        return CommandResult(argv=argv, returncode=0,
+                             stdout="infinigen: nothing to do\n")
+
+
+def test_a_missing_render_subcommand_is_a_loud_failure(venv_home):
+    """The CLI exits 0 having ignored the render word (a manifest that
+    dropped it, the way PR #1's merge dropped a fallback in the fork): the
+    render is refused loudly, with the exit, the argv and the CLI's own
+    last words in the failure — never a silent None and never a bare
+    'no PNG' without the engine's side of the story."""
+    cli = SilentCli()
+    rt = _runtime(venv_home, cli)
+    engine = Infinigen2Engine(pin=rt.engine_pin(), runtime=rt)
+    from core.engine import EngineFailed
+    with pytest.raises(EngineFailed) as caught:
+        engine.render_preview(PreviewRequest(
+            recipe=fjellvik(engine.describe().pin),
+            version_hash="sha256:" + "a" * 64,
+            subject="harbor.crates", rung=2, seed=42))
+    assert caught.value.detail["returncode"] == 0
+    assert caught.value.detail["missing"].endswith(
+        "render/harbor_crates-42-960x540-16spp")
+    assert "no PNG" in caught.value.message
+    assert "last words" in caught.value.message
+    assert "nothing to do" in caught.value.message
+
+
+def test_a_silent_no_op_trace_is_a_loud_failure(venv_home):
+    """Same silence on the trace path: exit 0, no graph.json — refused with
+    the CLI's last words, because a stage built from nothing must never
+    enter the cache as if it were a stage."""
+    cli = SilentCli()
+    rt = _runtime(venv_home, cli)
+    engine = Infinigen2Engine(pin=rt.engine_pin(), runtime=rt)
+    from core.engine import EngineFailed
+    with pytest.raises(EngineFailed) as caught:
+        engine.generate_stage(StageRequest(
+            recipe=fjellvik(engine.describe().pin),
+            version_hash="sha256:" + "a" * 64, stage="objects"))
+    assert caught.value.detail["returncode"] == 0
+    assert "no graph.json" in caught.value.message
+    assert "nothing to do" in caught.value.message
+
+
 # ------------------------------------------------------------------ registry
 
 

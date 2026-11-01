@@ -28,7 +28,13 @@ What this runtime implements of :class:`~core.engine.infinigen2.ProcfuncRuntime`
   room scene; the first live run's object renders happened to come out
   byte-identical — luck, not a contract). Rule 3's byte-promise holds for
   **stages** (the normalized graph above); a preview's artifact hash is a
-  plain content hash of that render.
+  plain content hash of that render. An exit-0 run that leaves no PNG
+  behind is a **loud failure carrying the CLI's own last words** — the
+  night-v3 run C lesson: an engine that silently does nothing must be
+  diagnosable from its failure alone. The exporter chain is the v2 CLI's
+  supported render path (the sweep's ``generate_nature --task render`` is
+  the *nature pipeline's* equivalent, another repo and another venv, and
+  cannot take a v2 generator chain — the seam stays here).
 
 The three ops it refuses, each naming its missing piece: ``replace`` /
 ``execute`` (single-node re-execution needs the call-site instrumentation the
@@ -54,7 +60,7 @@ from pydantic import BaseModel
 
 from core.canon import content_hash
 from core.engine.errors import EngineFailed, EngineUnavailable
-from core.engine.infinigen1 import CommandRunner, SubprocessRunner
+from core.engine.infinigen1 import CommandResult, CommandRunner, SubprocessRunner
 from core.records import EnginePin
 
 __all__ = [
@@ -359,16 +365,20 @@ class Venv2Runtime:
             seed = call.seed if call.seed is not None else int(
                 seeds.get(call.entry_path.split(".")[0], 0))
             out = self._scratch("trace", call.entry_path, seed)
-            self._run([
+            result = self._run([
                 *chain, "--seed", str(seed),
                 "--trace", "graph", "--trace_level", "RANDOM_CONTROL",
                 "--output", str(out),
             ])
             graph_file = out / "graph.json"
             if not graph_file.is_file():
+                last = self._last_words(result)
                 raise EngineFailed(
-                    f"the engine exited 0 but wrote no graph.json under {out}",
-                    missing=str(graph_file),
+                    f"the engine exited 0 but wrote no graph.json under {out} "
+                    f"— a silent no-op trace is refused loudly; the CLI's "
+                    f"last words: {last or '(none)'}",
+                    missing=str(graph_file), last_words=last or None,
+                    argv=result.argv, returncode=result.returncode,
                 )
             try:
                 graph = json.loads(graph_file.read_text("utf-8"))
@@ -391,7 +401,7 @@ class Venv2Runtime:
         out = self._scratch(
             "render", call.entry_path, seed,
             suffix=f"{width}x{height}-{samples}spp")
-        self._run([
+        result = self._run([
             *chain, "render_cycles",
             "--seed", str(seed),
             "-r", str(width), str(height),
@@ -402,9 +412,13 @@ class Venv2Runtime:
         if not png.is_file():
             found = sorted(out.rglob("*.png"))
             if not found:
+                last = self._last_words(result)
                 raise EngineFailed(
-                    f"the engine exited 0 but wrote no PNG under {out}",
-                    missing=str(out),
+                    f"the engine exited 0 but wrote no PNG under {out} — a "
+                    f"silent no-op render is refused loudly; the CLI's last "
+                    f"words: {last or '(none)'}",
+                    missing=str(out), last_words=last or None,
+                    argv=result.argv, returncode=result.returncode,
                 )
             png = found[0]
         return png.read_bytes()
@@ -455,6 +469,13 @@ class Venv2Runtime:
             shutil.rmtree(out)
         out.mkdir(parents=True, exist_ok=True)
         return out
+
+    @staticmethod
+    def _last_words(result: CommandResult, limit: int = 240) -> str:
+        """The engine's own last words for a failure row: stderr first, then
+        stdout — a silent no-op (exit 0, nothing written) is exactly when
+        the words matter, because nothing else names what happened."""
+        return (result.stderr.strip()[-limit:] or result.stdout.strip()[-limit:])
 
     def _run(self, argv: Sequence[str]):
         result = self._runner.run([str(self._cli), *argv], cwd=self._repo)
