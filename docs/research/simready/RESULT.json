@@ -1,0 +1,3115 @@
+{
+  "survey": "nvidia/simready-assets, read on the Jetson AGX Thor",
+  "date_utc": "2026-11-01T11:08:52Z",
+  "box": {
+    "MemTotal_gib": 122.8,
+    "cpu_count": 14,
+    "disk_free": "120G",
+    "date_utc": "2026-11-01T11:08:52Z"
+  },
+  "dataset": {
+    "repo": "nvidia/simready-assets",
+    "licence": "CC-BY-4.0",
+    "credit": "NVIDIA SimReady Assets (nvidia/simready-assets), CC-BY-4.0",
+    "sha": "4763fbfaa4f8e97658e68b57d01b4c86659e08b5",
+    "stored_bytes": 82985197802,
+    "stored_gib": 77.29,
+    "tree_entries": 228417,
+    "files": 183394,
+    "folders": 45023,
+    "packages": 2677,
+    "categories": 196,
+    "index_bytes_gib": 456.0,
+    "largest_category": "food (538 assets)",
+    "source": "data/repo_index.jsonl"
+  },
+  "sample": {
+    "assets": 38,
+    "categories": 37,
+    "payload_gib": 2.999,
+    "on_disk": "~/lm-cold/simready-sample",
+    "files_fetched": 1372,
+    "selection_rule": "one asset per category, closest to the category's median payload size, categories ordered by how many assets they hold, plus the explicit list; thumbnails excluded",
+    "source": "data/sample_manifest.json"
+  },
+  "q1_schema": {
+    "units": "metersPerUnit = 1, upAxis = Z (38/38 sampled)",
+    "package_metadata": [
+      "asset_type",
+      "profile",
+      "profile_version",
+      "uuid"
+    ],
+    "semantics": [
+      "semantics:labels:wikidata_class",
+      "semantic:wikidata_class:params:semanticData",
+      "material labels (steel, plastic, rubber, aluminum, ...)"
+    ],
+    "physics_attributes": [
+      "physics:mass",
+      "physics:centerOfMass",
+      "physics:diagonalInertia",
+      "physics:principalAxes",
+      "physics:density",
+      "physics:collisionEnabled",
+      "physics:approximation",
+      "physics:staticFriction",
+      "physics:dynamicFriction",
+      "physics:restitution"
+    ],
+    "physics_attributes_duplicated": [
+      "pxr:usd:physics_mass",
+      "pxr:usd:physics_centerofmass",
+      "pxr:usd:physics_inertia"
+    ],
+    "collider_approximations": [
+      "sdf",
+      "convexDecomposition"
+    ],
+    "solver_variant_sets": [
+      "MuJoCo",
+      "Newton",
+      "PhysX"
+    ],
+    "articulation_joint_types": [
+      "PhysicsRevoluteJoint",
+      "PhysicsPrismaticJoint",
+      "PhysicsFixedJoint"
+    ],
+    "grasp_curve_prim": "/RootNode/Grasp/grasp_identifier/grasp_identifier_curve",
+    "materials": "UsdShade Material + Shader + OmniPBR MDL + PNG textures",
+    "lod": "no LOD prim in any of the 38 sampled packages",
+    "two_reader_traps": [
+      "the geometry is instanced: stage.Traverse() finds 0 meshes; Usd.PrimRange.Stage(stage, Usd.TraverseInstanceProxies()) finds them",
+      "the mass is stated twice, on the mesh and on the Xform that wraps it: adding both doubles every asset's mass"
+    ],
+    "source": "data/sample_report.json"
+  },
+  "q2_priors": {
+    "priors_file": "simready_priors.json",
+    "categories": 37,
+    "what_the_priors_carry": [
+      "mass_kg (from the USD physics payload)",
+      "size_m (world-space extent; metersPerUnit is 1)",
+      "density_kg_m3 and material labels",
+      "the critic's own six features, measured on the asset's mesh"
+    ],
+    "critic_experiment": {
+      "baseline_critics_own_prior": {
+        "ghost_score": 0.023809523809523808,
+        "ghost_flagged": true,
+        "mug_median": 0.4696132596685083,
+        "plank_median": 0.35714285714285715
+      },
+      "prior_refitted_on_simready": {
+        "2_clusters": {
+          "ghost_score": 0.17105263157894737,
+          "ghost_flagged": false,
+          "ghost_distance": 1.3851640674703836
+        },
+        "3_clusters": {
+          "ghost_score": 0.14864864864864866,
+          "ghost_flagged": false
+        }
+      },
+      "answer": "No. The SimReady priors do not flag the critic's known-bad prop: the ghost scores 0.149-0.171 against a SimReady-fitted prior, against a threshold of 0.05, and does not separate from the toy mug. Its per-feature percentiles inside the SimReady distribution are 0.14 to 0.94, so the ghost is an ordinary point in the space real objects occupy.",
+      "the_other_direction": {
+        "share_of_real_assets_the_critics_own_prior_calls_a_ghost": 1.0,
+        "assets_scored": 38,
+        "median_score": 0.0027624309392265192,
+        "answer": "All 38 real assets score below the critic's own 0.05 ghost threshold against its toy approved set. The mechanism is the fill-ratio feature: it divides a closed mesh's signed volume by the bounding box, real objects are hollow shells (a mug's measured fill ratio is 0.052 against the toy mug's 0.68), and a prior fitted on solid generated meshes calls real objects ghosts."
+      },
+      "meshes_not_closed": {
+        "watertight_of_sampled": 38,
+        "open_of_sampled": 0,
+        "repair_stage_closes_boundaries": false,
+        "note": "core/genbatch/repair.py welds seams and splits non-manifold edges; on the four sampled assets with the largest defects it reports boundary_edges_closed = 0."
+      },
+      "source": "data/critic_experiment.json"
+    },
+    "dataset_wide_mass": {
+      "assets": 2669,
+      "categories_with_mass": 196,
+      "per_category": {
+        "CT": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 25.38638173916187,
+            "max": 25.38638173916187,
+            "median": 25.38638173916187,
+            "p10": 25.38638173916187,
+            "p90": 25.38638173916187
+          }
+        },
+        "IV": {
+          "assets": 7,
+          "assets_with_mass": 7,
+          "mass_kg": {
+            "n": 7,
+            "min": 1.5925225461111585,
+            "max": 12.550280692895004,
+            "median": 2.508078582694807,
+            "p10": 1.5925225461111585,
+            "p90": 12.550280692895004
+          }
+        },
+        "TV": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 35.29894667167892,
+            "max": 35.29894667167892,
+            "median": 35.29894667167892,
+            "p10": 35.29894667167892,
+            "p90": 35.29894667167892
+          }
+        },
+        "Xray": {
+          "assets": 4,
+          "assets_with_mass": 4,
+          "mass_kg": {
+            "n": 4,
+            "min": 13.00653260534192,
+            "max": 183.04456671911697,
+            "median": 36.93764606578785,
+            "p10": 13.00653260534192,
+            "p90": 183.04456671911697
+          }
+        },
+        "accessory": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.17507812694817454,
+            "max": 0.17507812694817454,
+            "median": 0.17507812694817454,
+            "p10": 0.17507812694817454,
+            "p90": 0.17507812694817454
+          }
+        },
+        "airSystem": {
+          "assets": 9,
+          "assets_with_mass": 9,
+          "mass_kg": {
+            "n": 9,
+            "min": 0.29872751722882,
+            "max": 11.348730945328175,
+            "median": 2.2445112427688962,
+            "p10": 0.29872751722882,
+            "p90": 11.348730945328175
+          }
+        },
+        "anesthesia": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 0.09607863566528967,
+            "max": 120.17003875926095,
+            "median": 120.17003875926095,
+            "p10": 0.09607863566528967,
+            "p90": 120.17003875926095
+          }
+        },
+        "appliance": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 1.4917762262883183,
+            "max": 154.997269065683,
+            "median": 14.481720815891258,
+            "p10": 1.4917762262883183,
+            "p90": 154.997269065683
+          }
+        },
+        "arm": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 45.26071799519916,
+            "max": 45.26071799519916,
+            "median": 45.26071799519916,
+            "p10": 45.26071799519916,
+            "p90": 45.26071799519916
+          }
+        },
+        "bandage": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 0.01626364281970646,
+            "max": 0.03309129997064773,
+            "median": 0.016599967033025537,
+            "p10": 0.01626364281970646,
+            "p90": 0.03309129997064773
+          }
+        },
+        "barrier": {
+          "assets": 5,
+          "assets_with_mass": 5,
+          "mass_kg": {
+            "n": 5,
+            "min": 6.8034709927236,
+            "max": 45.90959870894825,
+            "median": 42.93395352510397,
+            "p10": 6.8034709927236,
+            "p90": 45.90959870894825
+          }
+        },
+        "bed": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 66.58232870542251,
+            "max": 76.54460544776978,
+            "median": 76.54460544776978,
+            "p10": 66.58232870542251,
+            "p90": 76.54460544776978
+          }
+        },
+        "bedding": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 3.7754176421297916,
+            "max": 3.7754176421297916,
+            "median": 3.7754176421297916,
+            "p10": 3.7754176421297916,
+            "p90": 3.7754176421297916
+          }
+        },
+        "bin": {
+          "assets": 5,
+          "assets_with_mass": 5,
+          "mass_kg": {
+            "n": 5,
+            "min": 6.424435037654791,
+            "max": 45.740844407893405,
+            "median": 22.641075671743824,
+            "p10": 6.424435037654791,
+            "p90": 45.740844407893405
+          }
+        },
+        "blinds": {
+          "assets": 10,
+          "assets_with_mass": 10,
+          "mass_kg": {
+            "n": 10,
+            "min": 45.123566666524255,
+            "max": 127.54482542336088,
+            "median": 95.44665804500436,
+            "p10": 45.124205404022796,
+            "p90": 127.54482542336088
+          }
+        },
+        "blood": {
+          "assets": 4,
+          "assets_with_mass": 4,
+          "mass_kg": {
+            "n": 4,
+            "min": 0.4000000134110451,
+            "max": 36.1909031012253,
+            "median": 25.951344146232607,
+            "p10": 0.4000000134110451,
+            "p90": 36.1909031012253
+          }
+        },
+        "bodyPart": {
+          "assets": 67,
+          "assets_with_mass": 67,
+          "mass_kg": {
+            "n": 67,
+            "min": 0.12605730169115004,
+            "max": 348.0209078705286,
+            "median": 8.271061866108095,
+            "p10": 0.5518919958787581,
+            "p90": 185.3947278104978
+          }
+        },
+        "book": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.24835726747261694,
+            "max": 0.24835726747261694,
+            "median": 0.24835726747261694,
+            "p10": 0.24835726747261694,
+            "p90": 0.24835726747261694
+          }
+        },
+        "bottle": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 0.044297870428814716,
+            "max": 2.032308559566809,
+            "median": 0.9460182930133474,
+            "p10": 0.044297870428814716,
+            "p90": 2.032308559566809
+          }
+        },
+        "box": {
+          "assets": 154,
+          "assets_with_mass": 154,
+          "mass_kg": {
+            "n": 154,
+            "min": 0.08270992199417529,
+            "max": 92.03777347065115,
+            "median": 0.5970235783351066,
+            "p10": 0.23231206504616667,
+            "p90": 3.944710289912443
+          }
+        },
+        "brakeSystem": {
+          "assets": 12,
+          "assets_with_mass": 12,
+          "mass_kg": {
+            "n": 12,
+            "min": 0.09071242013946453,
+            "max": 79.3275012312925,
+            "median": 7.325867913246592,
+            "p10": 0.14039883461022412,
+            "p90": 25.50736784297231
+          }
+        },
+        "bucket": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 1.327403956089338,
+            "max": 12.620328277777565,
+            "median": 1.8560326230435293,
+            "p10": 1.327403956089338,
+            "p90": 12.620328277777565
+          }
+        },
+        "cabinet": {
+          "assets": 23,
+          "assets_with_mass": 23,
+          "mass_kg": {
+            "n": 23,
+            "min": 30.0,
+            "max": 510.48526440277504,
+            "median": 90.0,
+            "p10": 36.0,
+            "p90": 283.1015472859144
+          }
+        },
+        "cannulae": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.09905239795681396,
+            "max": 0.09905239795681396,
+            "median": 0.09905239795681396,
+            "p10": 0.09905239795681396,
+            "p90": 0.09905239795681396
+          }
+        },
+        "carFrame": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 593.842122229247,
+            "max": 593.842122229247,
+            "median": 593.842122229247,
+            "p10": 593.842122229247,
+            "p90": 593.842122229247
+          }
+        },
+        "cart": {
+          "assets": 12,
+          "assets_with_mass": 12,
+          "mass_kg": {
+            "n": 12,
+            "min": 8.784037221918517,
+            "max": 142.25680471363037,
+            "median": 37.55427549143674,
+            "p10": 14.582881037137273,
+            "p90": 116.83303188961203
+          }
+        },
+        "case": {
+          "assets": 4,
+          "assets_with_mass": 4,
+          "mass_kg": {
+            "n": 4,
+            "min": 2.28874823795601,
+            "max": 6.4961333700477635,
+            "median": 4.677169999866567,
+            "p10": 2.28874823795601,
+            "p90": 6.4961333700477635
+          }
+        },
+        "catheter": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.23275812511677837,
+            "max": 0.23275812511677837,
+            "median": 0.23275812511677837,
+            "p10": 0.23275812511677837,
+            "p90": 0.23275812511677837
+          }
+        },
+        "chair": {
+          "assets": 9,
+          "assets_with_mass": 9,
+          "mass_kg": {
+            "n": 9,
+            "min": 3.1967906330458766,
+            "max": 51.65725369836373,
+            "median": 19.619066877843974,
+            "p10": 3.1967906330458766,
+            "p90": 51.65725369836373
+          }
+        },
+        "cleaning": {
+          "assets": 29,
+          "assets_with_mass": 29,
+          "mass_kg": {
+            "n": 29,
+            "min": 0.0018990788539980487,
+            "max": 31.0518818109821,
+            "median": 0.4755537179492713,
+            "p10": 0.018907161971327465,
+            "p90": 3.5612153327208085
+          }
+        },
+        "climate": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 5.455082792468643,
+            "max": 194.3534032632416,
+            "median": 54.1022689929765,
+            "p10": 5.455082792468643,
+            "p90": 194.3534032632416
+          }
+        },
+        "clogs": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 1.0,
+            "max": 1.0,
+            "median": 1.0,
+            "p10": 1.0,
+            "p90": 1.0
+          }
+        },
+        "computer": {
+          "assets": 12,
+          "assets_with_mass": 12,
+          "mass_kg": {
+            "n": 12,
+            "min": 0.057102027932596125,
+            "max": 35.3036762968494,
+            "median": 0.5560284886631437,
+            "p10": 0.15974160035244322,
+            "p90": 28.725936124974922
+          }
+        },
+        "construction": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 21.49389790213927,
+            "max": 28.89662989542408,
+            "median": 24.28572597693855,
+            "p10": 21.49389790213927,
+            "p90": 28.89662989542408
+          }
+        },
+        "consumable": {
+          "assets": 75,
+          "assets_with_mass": 75,
+          "mass_kg": {
+            "n": 75,
+            "min": 0.001006223478025081,
+            "max": 38.60708060215418,
+            "median": 0.22015805618617687,
+            "p10": 0.009999999776482582,
+            "p90": 2.553912659777949
+          }
+        },
+        "container": {
+          "assets": 44,
+          "assets_with_mass": 44,
+          "mass_kg": {
+            "n": 44,
+            "min": 0.13779999315738678,
+            "max": 61.35917951683597,
+            "median": 3.2988119313121023,
+            "p10": 0.8544999957084656,
+            "p90": 21.840816071178963
+          }
+        },
+        "conveyor": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 112.52427715803402,
+            "max": 1178.3575691098088,
+            "median": 244.68007610407903,
+            "p10": 112.52427715803402,
+            "p90": 1178.3575691098088
+          }
+        },
+        "coolingSystem": {
+          "assets": 14,
+          "assets_with_mass": 14,
+          "mass_kg": {
+            "n": 14,
+            "min": 0.15081174554424492,
+            "max": 553.5341221001396,
+            "median": 1.1232909658019776,
+            "p10": 0.16734119564666677,
+            "p90": 223.64273312845268
+          }
+        },
+        "crate": {
+          "assets": 29,
+          "assets_with_mass": 29,
+          "mass_kg": {
+            "n": 29,
+            "min": 0.30715330157545084,
+            "max": 1530.0277049346666,
+            "median": 2.836737550366747,
+            "p10": 1.7019487608225348,
+            "p90": 142.28724114904432
+          }
+        },
+        "decor": {
+          "assets": 15,
+          "assets_with_mass": 15,
+          "mass_kg": {
+            "n": 15,
+            "min": 0.2616589769884591,
+            "max": 8.743815339496127,
+            "median": 2.2381961369844117,
+            "p10": 0.5929130603541495,
+            "p90": 6.2296126383495
+          }
+        },
+        "defibrillator": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 2.5386972859276855,
+            "max": 2.5386972859276855,
+            "median": 2.5386972859276855,
+            "p10": 2.5386972859276855,
+            "p90": 2.5386972859276855
+          }
+        },
+        "desk": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 120.56459501871738,
+            "max": 120.56459501871738,
+            "median": 120.56459501871738,
+            "p10": 120.56459501871738,
+            "p90": 120.56459501871738
+          }
+        },
+        "detector": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 0.08345494595847756,
+            "max": 1.269836427341295,
+            "median": 0.19513671254025258,
+            "p10": 0.08345494595847756,
+            "p90": 1.269836427341295
+          }
+        },
+        "device": {
+          "assets": 11,
+          "assets_with_mass": 11,
+          "mass_kg": {
+            "n": 11,
+            "min": 0.027575385761032217,
+            "max": 60.062857329778126,
+            "median": 0.8999999910593033,
+            "p10": 0.02792902053685661,
+            "p90": 27.8239950037588
+          }
+        },
+        "digitalSystem": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 18.0,
+            "max": 478.2229226607154,
+            "median": 96.6853450017119,
+            "p10": 18.0,
+            "p90": 478.2229226607154
+          }
+        },
+        "dishware": {
+          "assets": 22,
+          "assets_with_mass": 22,
+          "mass_kg": {
+            "n": 22,
+            "min": 0.015875717544929797,
+            "max": 4.40953785582334,
+            "median": 0.6566904539644477,
+            "p10": 0.025488106556046136,
+            "p90": 1.7484764987785182
+          }
+        },
+        "disinfectant": {
+          "assets": 4,
+          "assets_with_mass": 4,
+          "mass_kg": {
+            "n": 4,
+            "min": 0.03488987240044543,
+            "max": 1.2731788104293145,
+            "median": 0.11649379901078993,
+            "p10": 0.03488987240044543,
+            "p90": 1.2731788104293145
+          }
+        },
+        "dispenser": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 56.57239487185788,
+            "max": 56.57239487185788,
+            "median": 56.57239487185788,
+            "p10": 56.57239487185788,
+            "p90": 56.57239487185788
+          }
+        },
+        "drainage": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 0.21000000275671482,
+            "max": 2.0054430053658225,
+            "median": 2.0054430053658225,
+            "p10": 0.21000000275671482,
+            "p90": 2.0054430053658225
+          }
+        },
+        "drape": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 0.29139692763166203,
+            "max": 0.300538786009643,
+            "median": 0.300538786009643,
+            "p10": 0.29139692763166203,
+            "p90": 0.300538786009643
+          }
+        },
+        "drivetrain": {
+          "assets": 15,
+          "assets_with_mass": 15,
+          "mass_kg": {
+            "n": 15,
+            "min": 3.219074593181264,
+            "max": 44.46556071111519,
+            "median": 13.072697086520291,
+            "p10": 3.480071268992467,
+            "p90": 35.166533337542305
+          }
+        },
+        "drum": {
+          "assets": 14,
+          "assets_with_mass": 14,
+          "mass_kg": {
+            "n": 14,
+            "min": 0.1752585303496333,
+            "max": 102.30038540208292,
+            "median": 6.295049083988466,
+            "p10": 0.40551971919157814,
+            "p90": 62.281407442334014
+          }
+        },
+        "electrical": {
+          "assets": 5,
+          "assets_with_mass": 5,
+          "mass_kg": {
+            "n": 5,
+            "min": 59.11239296109721,
+            "max": 817.2371660946046,
+            "median": 125.7878008644996,
+            "p10": 59.11239296109721,
+            "p90": 817.2371660946046
+          }
+        },
+        "electricalSystem": {
+          "assets": 12,
+          "assets_with_mass": 12,
+          "mass_kg": {
+            "n": 12,
+            "min": 0.896970282548179,
+            "max": 92.78357755678371,
+            "median": 7.9325709095734,
+            "p10": 1.224321272879252,
+            "p90": 16.3847136198052
+          }
+        },
+        "engine": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 0.27593054203792944,
+            "max": 2.323484607144697,
+            "median": 2.323484607144697,
+            "p10": 0.27593054203792944,
+            "p90": 2.323484607144697
+          }
+        },
+        "engineAssembly": {
+          "assets": 4,
+          "assets_with_mass": 4,
+          "mass_kg": {
+            "n": 4,
+            "min": 38.367576271660376,
+            "max": 525.1790035179594,
+            "median": 471.9094815211498,
+            "p10": 38.367576271660376,
+            "p90": 525.1790035179594
+          }
+        },
+        "engineComponent": {
+          "assets": 52,
+          "assets_with_mass": 52,
+          "mass_kg": {
+            "n": 52,
+            "min": 0.0039816200274589205,
+            "max": 57.99573423818354,
+            "median": 2.0475954608122167,
+            "p10": 0.07645033854092877,
+            "p90": 25.933300050401204
+          }
+        },
+        "environment": {
+          "assets": 5,
+          "assets_with_mass": 5,
+          "mass_kg": {
+            "n": 5,
+            "min": 15.0,
+            "max": 25414.631151369005,
+            "median": 156.18864450413534,
+            "p10": 15.0,
+            "p90": 25414.631151369005
+          }
+        },
+        "equipment": {
+          "assets": 59,
+          "assets_with_mass": 59,
+          "mass_kg": {
+            "n": 59,
+            "min": 0.101997200260274,
+            "max": 5483.211495769158,
+            "median": 34.71363597998975,
+            "p10": 0.7861227322829116,
+            "p90": 331.00832163295297
+          }
+        },
+        "exhaustSystem": {
+          "assets": 10,
+          "assets_with_mass": 10,
+          "mass_kg": {
+            "n": 10,
+            "min": 4.336151214408229,
+            "max": 501225.8416890742,
+            "median": 19.90278331327995,
+            "p10": 4.796388363779956,
+            "p90": 501225.8416890742
+          }
+        },
+        "extractor": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.6452999711036682,
+            "max": 0.6452999711036682,
+            "median": 0.6452999711036682,
+            "p10": 0.6452999711036682,
+            "p90": 0.6452999711036682
+          }
+        },
+        "extrusion": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 137.1568311719679,
+            "max": 265.3640832641443,
+            "median": 265.36402358195653,
+            "p10": 137.1568311719679,
+            "p90": 265.3640832641443
+          }
+        },
+        "facemask": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.10129176304927776,
+            "max": 0.10129176304927776,
+            "median": 0.10129176304927776,
+            "p10": 0.10129176304927776,
+            "p90": 0.10129176304927776
+          }
+        },
+        "facilityEquipment": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 180.0423278455686,
+            "max": 180.0423278455686,
+            "median": 180.0423278455686,
+            "p10": 180.0423278455686,
+            "p90": 180.0423278455686
+          }
+        },
+        "facilityFurniture": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 558.8802958399417,
+            "max": 558.8802958399417,
+            "median": 558.8802958399417,
+            "p10": 558.8802958399417,
+            "p90": 558.8802958399417
+          }
+        },
+        "facilitySystem": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 83.82075750752803,
+            "max": 114.79103704266063,
+            "median": 114.79103704266063,
+            "p10": 83.82075750752803,
+            "p90": 114.79103704266063
+          }
+        },
+        "factory": {
+          "assets": 15,
+          "assets_with_mass": 15,
+          "mass_kg": {
+            "n": 15,
+            "min": 0.0002676437910038521,
+            "max": 0.010707934694551089,
+            "median": 0.0017649689375541467,
+            "p10": 0.0002686424727142403,
+            "p90": 0.005658945676782052
+          }
+        },
+        "fauset": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 1.9744678289959245,
+            "max": 1.9744678289959245,
+            "median": 1.9744678289959245,
+            "p10": 1.9744678289959245,
+            "p90": 1.9744678289959245
+          }
+        },
+        "fireExtinguisher": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 9.375800915013214,
+            "max": 11.607203512002028,
+            "median": 11.607203512002028,
+            "p10": 9.375800915013214,
+            "p90": 11.607203512002028
+          }
+        },
+        "fireProtection": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 4.4000000059604645,
+            "max": 37.06875145512072,
+            "median": 15.530573322391474,
+            "p10": 4.4000000059604645,
+            "p90": 37.06875145512072
+          }
+        },
+        "fixture": {
+          "assets": 13,
+          "assets_with_mass": 13,
+          "mass_kg": {
+            "n": 13,
+            "min": 0.7316162766312913,
+            "max": 332.34822976457303,
+            "median": 25.240908824901407,
+            "p10": 0.9828924423217722,
+            "p90": 164.54115572965256
+          }
+        },
+        "food": {
+          "assets": 538,
+          "assets_with_mass": 538,
+          "mass_kg": {
+            "n": 538,
+            "min": 0.002437521611539686,
+            "max": 23.398390099912376,
+            "median": 0.16495054702399092,
+            "p10": 0.04516621834793,
+            "p90": 0.8237036484385692
+          }
+        },
+        "fuelSystem": {
+          "assets": 13,
+          "assets_with_mass": 13,
+          "mass_kg": {
+            "n": 13,
+            "min": 0.025235254437571398,
+            "max": 151.01551852028896,
+            "median": 1.1507682632588594,
+            "p10": 0.08081875513760811,
+            "p90": 69.48562400406789
+          }
+        },
+        "furniture": {
+          "assets": 7,
+          "assets_with_mass": 7,
+          "mass_kg": {
+            "n": 7,
+            "min": 37.0,
+            "max": 115.04766157417274,
+            "median": 42.0,
+            "p10": 37.0,
+            "p90": 115.04766157417274
+          }
+        },
+        "grid": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 9.807364790570933,
+            "max": 9.807364790570933,
+            "median": 9.807364790570933,
+            "p10": 9.807364790570933,
+            "p90": 9.807364790570933
+          }
+        },
+        "grocery": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.12197171213782719,
+            "max": 0.12197171213782719,
+            "median": 0.12197171213782719,
+            "p10": 0.12197171213782719,
+            "p90": 0.12197171213782719
+          }
+        },
+        "handTool": {
+          "assets": 97,
+          "assets_with_mass": 97,
+          "mass_kg": {
+            "n": 97,
+            "min": 0.009439946635180878,
+            "max": 5.474908661212223,
+            "median": 0.41605838018312125,
+            "p10": 0.08168299885699268,
+            "p90": 1.3481076388566664
+          }
+        },
+        "handTruck": {
+          "assets": 4,
+          "assets_with_mass": 4,
+          "mass_kg": {
+            "n": 4,
+            "min": 12.775802760977559,
+            "max": 29.810102191474332,
+            "median": 29.810102191474332,
+            "p10": 12.775802760977559,
+            "p90": 29.810102191474332
+          }
+        },
+        "hardware": {
+          "assets": 8,
+          "assets_with_mass": 8,
+          "mass_kg": {
+            "n": 8,
+            "min": 0.00010925419047138619,
+            "max": 0.00662137452026741,
+            "median": 0.0016270254946467442,
+            "p10": 0.00010925419047138619,
+            "p90": 0.00662137452026741
+          }
+        },
+        "headlight": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 1.2676139137538238,
+            "max": 1.2676139137538238,
+            "median": 1.2676139137538238,
+            "p10": 1.2676139137538238,
+            "p90": 1.2676139137538238
+          }
+        },
+        "hemodialysis": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 27.986986196044978,
+            "max": 27.986986196044978,
+            "median": 27.986986196044978,
+            "p10": 27.986986196044978,
+            "p90": 27.986986196044978
+          }
+        },
+        "hopper": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 464.9670934339549,
+            "max": 1226.9731180039116,
+            "median": 963.2641950316263,
+            "p10": 464.9670934339549,
+            "p90": 1226.9731180039116
+          }
+        },
+        "humidifier": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 161.83900067449218,
+            "max": 161.83900067449218,
+            "median": 161.83900067449218,
+            "p10": 161.83900067449218,
+            "p90": 161.83900067449218
+          }
+        },
+        "hvac": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 20.0,
+            "max": 693.4998234776778,
+            "median": 258.2421555078266,
+            "p10": 20.0,
+            "p90": 693.4998234776778
+          }
+        },
+        "ibcTank": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 34.104159081673124,
+            "max": 195.16030423695315,
+            "median": 180.54782999505974,
+            "p10": 34.104159081673124,
+            "p90": 195.16030423695315
+          }
+        },
+        "instrument": {
+          "assets": 38,
+          "assets_with_mass": 38,
+          "mass_kg": {
+            "n": 38,
+            "min": 0.05728644888916284,
+            "max": 1.1612137867577483,
+            "median": 0.36493364205189444,
+            "p10": 0.13535691078418474,
+            "p90": 0.9891912475149506
+          }
+        },
+        "interiorPart": {
+          "assets": 15,
+          "assets_with_mass": 15,
+          "mass_kg": {
+            "n": 15,
+            "min": 0.39363564238017534,
+            "max": 29.80869087354119,
+            "median": 3.7570264528835624,
+            "p10": 0.45700375613137445,
+            "p90": 12.529616734251976
+          }
+        },
+        "kitchenware": {
+          "assets": 179,
+          "assets_with_mass": 179,
+          "mass_kg": {
+            "n": 179,
+            "min": 0.008837984785991465,
+            "max": 18.454410228313673,
+            "median": 1.2264499593156728,
+            "p10": 0.1407002771785301,
+            "p90": 5.509731790147946
+          }
+        },
+        "labware": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 21.34132675047841,
+            "max": 99.21031555576093,
+            "median": 62.527555010208225,
+            "p10": 21.34132675047841,
+            "p90": 99.21031555576093
+          }
+        },
+        "ladder": {
+          "assets": 13,
+          "assets_with_mass": 13,
+          "mass_kg": {
+            "n": 13,
+            "min": 3.0057138769915706,
+            "max": 113.2216134328135,
+            "median": 8.071721921476492,
+            "p10": 3.1351873170251867,
+            "p90": 78.9018159690571
+          }
+        },
+        "lamp": {
+          "assets": 9,
+          "assets_with_mass": 9,
+          "mass_kg": {
+            "n": 9,
+            "min": 0.680036039955903,
+            "max": 42.31800049102967,
+            "median": 17.156398725794254,
+            "p10": 0.680036039955903,
+            "p90": 42.31800049102967
+          }
+        },
+        "laser": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 29.252149896685516,
+            "max": 29.252149896685516,
+            "median": 29.252149896685516,
+            "p10": 29.252149896685516,
+            "p90": 29.252149896685516
+          }
+        },
+        "light": {
+          "assets": 5,
+          "assets_with_mass": 5,
+          "mass_kg": {
+            "n": 5,
+            "min": 6.454259991645813,
+            "max": 296.5658950069855,
+            "median": 42.87495106121424,
+            "p10": 6.454259991645813,
+            "p90": 296.5658950069855
+          }
+        },
+        "lighting": {
+          "assets": 17,
+          "assets_with_mass": 17,
+          "mass_kg": {
+            "n": 17,
+            "min": 0.19331017973792197,
+            "max": 1301.3986421221166,
+            "median": 33.63699940325798,
+            "p10": 0.8052083189844433,
+            "p90": 614.5216074176448
+          }
+        },
+        "lung": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 43.31173307022256,
+            "max": 43.31173307022256,
+            "median": 43.31173307022256,
+            "p10": 43.31173307022256,
+            "p90": 43.31173307022256
+          }
+        },
+        "machine": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 150.57350407757264,
+            "max": 509.4333010880176,
+            "median": 509.4333010880176,
+            "p10": 150.57350407757264,
+            "p90": 509.4333010880176
+          }
+        },
+        "machineGuard": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 19.378797857510296,
+            "max": 23.630716730597957,
+            "median": 23.630716730597957,
+            "p10": 19.378797857510296,
+            "p90": 23.630716730597957
+          }
+        },
+        "magazines": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.35528901259487466,
+            "max": 0.35528901259487466,
+            "median": 0.35528901259487466,
+            "p10": 0.35528901259487466,
+            "p90": 0.35528901259487466
+          }
+        },
+        "mask": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.3565722793594538,
+            "max": 0.3565722793594538,
+            "median": 0.3565722793594538,
+            "p10": 0.3565722793594538,
+            "p90": 0.3565722793594538
+          }
+        },
+        "measurement": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 2.443382610362498,
+            "max": 7.896550592636732,
+            "median": 7.896550592636732,
+            "p10": 2.443382610362498,
+            "p90": 7.896550592636732
+          }
+        },
+        "medical": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.1803543439243589,
+            "max": 0.1803543439243589,
+            "median": 0.1803543439243589,
+            "p10": 0.1803543439243589,
+            "p90": 0.1803543439243589
+          }
+        },
+        "medicine": {
+          "assets": 11,
+          "assets_with_mass": 11,
+          "mass_kg": {
+            "n": 11,
+            "min": 0.05007196774619309,
+            "max": 0.11357585975273354,
+            "median": 0.06984756319827617,
+            "p10": 0.05510557018389998,
+            "p90": 0.11357585575557254
+          }
+        },
+        "mirror": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 14.184900283813477,
+            "max": 14.184900283813477,
+            "median": 14.184900283813477,
+            "p10": 14.184900283813477,
+            "p90": 14.184900283813477
+          }
+        },
+        "misc": {
+          "assets": 28,
+          "assets_with_mass": 28,
+          "mass_kg": {
+            "n": 28,
+            "min": 0.010374271276423316,
+            "max": 2.9206237362944765,
+            "median": 0.16408309989782807,
+            "p10": 0.02787201569113623,
+            "p90": 1.2746975217210474
+          }
+        },
+        "modular": {
+          "assets": 7,
+          "assets_with_mass": 7,
+          "mass_kg": {
+            "n": 7,
+            "min": 60894.76889423624,
+            "max": 952460.9678884625,
+            "median": 302943.52845321904,
+            "p10": 60894.76889423624,
+            "p90": 952460.9678884625
+          }
+        },
+        "monitor": {
+          "assets": 9,
+          "assets_with_mass": 9,
+          "mass_kg": {
+            "n": 9,
+            "min": 2.80164486468058,
+            "max": 36.689242720447126,
+            "median": 4.5541500112610285,
+            "p10": 2.80164486468058,
+            "p90": 36.689242720447126
+          }
+        },
+        "needle": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 0.005985718224228706,
+            "max": 0.3545550034694455,
+            "median": 0.015801782970851354,
+            "p10": 0.005985718224228706,
+            "p90": 0.3545550034694455
+          }
+        },
+        "oximeter": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.24531291849736367,
+            "max": 0.24531291849736367,
+            "median": 0.24531291849736367,
+            "p10": 0.24531291849736367,
+            "p90": 0.24531291849736367
+          }
+        },
+        "pack": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 0.06380952003222724,
+            "max": 0.09769946568759565,
+            "median": 0.06380952003222724,
+            "p10": 0.06380952003222724,
+            "p90": 0.09769946568759565
+          }
+        },
+        "pad": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 7.327222721431279,
+            "max": 7.327222721431279,
+            "median": 7.327222721431279,
+            "p10": 7.327222721431279,
+            "p90": 7.327222721431279
+          }
+        },
+        "pail": {
+          "assets": 10,
+          "assets_with_mass": 10,
+          "mass_kg": {
+            "n": 10,
+            "min": 0.317755005431997,
+            "max": 2.146611592251713,
+            "median": 0.8878841489188881,
+            "p10": 0.5760018212144903,
+            "p90": 2.146611592251713
+          }
+        },
+        "paint": {
+          "assets": 68,
+          "assets_with_mass": 68,
+          "mass_kg": {
+            "n": 68,
+            "min": 0.04422029066349815,
+            "max": 1.426159206128812,
+            "median": 0.2728359986233995,
+            "p10": 0.07704537091332132,
+            "p90": 0.3457848816417335
+          }
+        },
+        "pallet": {
+          "assets": 64,
+          "assets_with_mass": 64,
+          "mass_kg": {
+            "n": 64,
+            "min": 6.476704165989438,
+            "max": 116.19420724701511,
+            "median": 41.645031799860284,
+            "p10": 16.943579009921006,
+            "p90": 66.25715644785727
+          }
+        },
+        "palletJack": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 163.46589596331512,
+            "max": 167.72627908385624,
+            "median": 163.87040655932452,
+            "p10": 163.46589596331512,
+            "p90": 167.72627908385624
+          }
+        },
+        "panel": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 22.349199964708152,
+            "max": 28.143239035506426,
+            "median": 28.143239035506426,
+            "p10": 22.349199964708152,
+            "p90": 28.143239035506426
+          }
+        },
+        "paper": {
+          "assets": 7,
+          "assets_with_mass": 7,
+          "mass_kg": {
+            "n": 7,
+            "min": 0.0023523284011651223,
+            "max": 0.9947830584637668,
+            "median": 0.03922893248516065,
+            "p10": 0.0023523284011651223,
+            "p90": 0.9947830584637668
+          }
+        },
+        "paperbag": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 0.23718166024316958,
+            "max": 0.2521754768589337,
+            "median": 0.2521754768589337,
+            "p10": 0.23718166024316958,
+            "p90": 0.2521754768589337
+          }
+        },
+        "pendant": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 36.68116091913938,
+            "max": 36.68116091913938,
+            "median": 36.68116091913938,
+            "p10": 36.68116091913938,
+            "p90": 36.68116091913938
+          }
+        },
+        "phone": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.1800397219719899,
+            "max": 0.1800397219719899,
+            "median": 0.1800397219719899,
+            "p10": 0.1800397219719899,
+            "p90": 0.1800397219719899
+          }
+        },
+        "pipe": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 241.3168375210816,
+            "max": 3805.345654341532,
+            "median": 3669.0530015985278,
+            "p10": 241.3168375210816,
+            "p90": 3805.345654341532
+          }
+        },
+        "power": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 0.055303468608629926,
+            "max": 0.19931854716507771,
+            "median": 0.19931854716507771,
+            "p10": 0.055303468608629926,
+            "p90": 0.19931854716507771
+          }
+        },
+        "powerTool": {
+          "assets": 19,
+          "assets_with_mass": 19,
+          "mass_kg": {
+            "n": 19,
+            "min": 0.493519896572913,
+            "max": 35.49326621956499,
+            "median": 3.1205577221228986,
+            "p10": 0.5169397284714241,
+            "p90": 19.169430899952413
+          }
+        },
+        "ppe": {
+          "assets": 13,
+          "assets_with_mass": 13,
+          "mass_kg": {
+            "n": 13,
+            "min": 0.04068338869044522,
+            "max": 4.313793410172821,
+            "median": 0.4801607329715114,
+            "p10": 0.12389265290555046,
+            "p90": 3.1705058170436375
+          }
+        },
+        "primitives": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 0.048455095122853606,
+            "max": 0.840245821778268,
+            "median": 0.840245821778268,
+            "p10": 0.048455095122853606,
+            "p90": 0.840245821778268
+          }
+        },
+        "prop": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 0.6053612708903682,
+            "max": 0.7446228867930781,
+            "median": 0.7446228867930781,
+            "p10": 0.6053612708903682,
+            "p90": 0.7446228867930781
+          }
+        },
+        "pump": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 1.2805365045705426,
+            "max": 60.057841051917734,
+            "median": 21.644551268786547,
+            "p10": 1.2805365045705426,
+            "p90": 60.057841051917734
+          }
+        },
+        "purifier": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 58.82623317953597,
+            "max": 117.84191589701463,
+            "median": 117.84191589701463,
+            "p10": 58.82623317953597,
+            "p90": 117.84191589701463
+          }
+        },
+        "rack": {
+          "assets": 22,
+          "assets_with_mass": 22,
+          "mass_kg": {
+            "n": 22,
+            "min": 170.37638771388387,
+            "max": 8445.183485895326,
+            "median": 1555.8833900226634,
+            "p10": 415.017979903358,
+            "p90": 5809.527026011809
+          }
+        },
+        "rail": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 14.150143845157437,
+            "max": 23.558062424674596,
+            "median": 23.558062424674596,
+            "p10": 14.150143845157437,
+            "p90": 23.558062424674596
+          }
+        },
+        "ramp": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 89.30150456706868,
+            "max": 89.30150456706868,
+            "median": 89.30150456706868,
+            "p10": 89.30150456706868,
+            "p90": 89.30150456706868
+          }
+        },
+        "refrigerator": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 89.09480216138174,
+            "max": 373.8981184252607,
+            "median": 142.9851374726911,
+            "p10": 89.09480216138174,
+            "p90": 373.8981184252607
+          }
+        },
+        "robot": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 65.00355753579389,
+            "max": 65.00355753579389,
+            "median": 65.00355753579389,
+            "p10": 65.00355753579389,
+            "p90": 65.00355753579389
+          }
+        },
+        "robotic": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 14.595775200815403,
+            "max": 283.09625526628133,
+            "median": 17.99290878207378,
+            "p10": 14.595775200815403,
+            "p90": 283.09625526628133
+          }
+        },
+        "robotics": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 13.01882937927601,
+            "max": 13.01882937927601,
+            "median": 13.01882937927601,
+            "p10": 13.01882937927601,
+            "p90": 13.01882937927601
+          }
+        },
+        "safety": {
+          "assets": 12,
+          "assets_with_mass": 12,
+          "mass_kg": {
+            "n": 12,
+            "min": 0.10358582714369487,
+            "max": 256.5051707028984,
+            "median": 26.560966008010006,
+            "p10": 0.6984878159841263,
+            "p90": 255.9122027829465
+          }
+        },
+        "safetyBoard": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 26.76674454746329,
+            "max": 26.76674454746329,
+            "median": 26.76674454746329,
+            "p10": 26.76674454746329,
+            "p90": 26.76674454746329
+          }
+        },
+        "sanitary": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 30.93064220958931,
+            "max": 41.35352019648473,
+            "median": 36.895900976445546,
+            "p10": 30.93064220958931,
+            "p90": 41.35352019648473
+          }
+        },
+        "scaffold": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 243.97029384566048,
+            "max": 372.84706078544025,
+            "median": 372.84706078544025,
+            "p10": 243.97029384566048,
+            "p90": 372.84706078544025
+          }
+        },
+        "screen": {
+          "assets": 10,
+          "assets_with_mass": 10,
+          "mass_kg": {
+            "n": 10,
+            "min": 14.400000095367432,
+            "max": 37.78275194136773,
+            "median": 30.731422040642528,
+            "p10": 23.693734280200307,
+            "p90": 37.78275194136773
+          }
+        },
+        "screw": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.0006355567044905644,
+            "max": 0.0006355567044905644,
+            "median": 0.0006355567044905644,
+            "p10": 0.0006355567044905644,
+            "p90": 0.0006355567044905644
+          }
+        },
+        "security": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 778.6279633974997,
+            "max": 778.6279633974997,
+            "median": 778.6279633974997,
+            "p10": 778.6279633974997,
+            "p90": 778.6279633974997
+          }
+        },
+        "serviceTool": {
+          "assets": 56,
+          "assets_with_mass": 56,
+          "mass_kg": {
+            "n": 56,
+            "min": 0.16154146686032442,
+            "max": 1200.4817127049425,
+            "median": 5.3858749169395,
+            "p10": 0.4445558724471945,
+            "p90": 249.47500945668736
+          }
+        },
+        "set": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 267348.7243405052,
+            "max": 267348.7243405052,
+            "median": 267348.7243405052,
+            "p10": 267348.7243405052,
+            "p90": 267348.7243405052
+          }
+        },
+        "shelve": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 502.51886672679154,
+            "max": 502.51886672679154,
+            "median": 502.51886672679154,
+            "p10": 502.51886672679154,
+            "p90": 502.51886672679154
+          }
+        },
+        "sign": {
+          "assets": 25,
+          "assets_with_mass": 25,
+          "mass_kg": {
+            "n": 25,
+            "min": 0.25004825600879343,
+            "max": 48.55624513546128,
+            "median": 0.49343325632258234,
+            "p10": 0.48214334811059956,
+            "p90": 3.8093787554833334
+          }
+        },
+        "sink": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 307.2027935161791,
+            "max": 307.2027935161791,
+            "median": 307.2027935161791,
+            "p10": 307.2027935161791,
+            "p90": 307.2027935161791
+          }
+        },
+        "socket": {
+          "assets": 8,
+          "assets_with_mass": 8,
+          "mass_kg": {
+            "n": 8,
+            "min": 0.08916787001386033,
+            "max": 0.4674188945386191,
+            "median": 0.3652890021157877,
+            "p10": 0.08916787001386033,
+            "p90": 0.4674188945386191
+          }
+        },
+        "sofa": {
+          "assets": 4,
+          "assets_with_mass": 4,
+          "mass_kg": {
+            "n": 4,
+            "min": 22.684600830078125,
+            "max": 49.05010899462314,
+            "median": 31.58774654715659,
+            "p10": 22.684600830078125,
+            "p90": 49.05010899462314
+          }
+        },
+        "stapler": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.9267061731644757,
+            "max": 0.9267061731644757,
+            "median": 0.9267061731644757,
+            "p10": 0.9267061731644757,
+            "p90": 0.9267061731644757
+          }
+        },
+        "stationary": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 0.10000000149011612,
+            "max": 0.17454999685287476,
+            "median": 0.10000000149011612,
+            "p10": 0.10000000149011612,
+            "p90": 0.17454999685287476
+          }
+        },
+        "stationery": {
+          "assets": 36,
+          "assets_with_mass": 36,
+          "mass_kg": {
+            "n": 36,
+            "min": 0.006250626690305265,
+            "max": 0.16369422635815647,
+            "median": 0.05000000074505806,
+            "p10": 0.006250627279228836,
+            "p90": 0.050768020894063244
+          }
+        },
+        "steering": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 0.6560657239981015,
+            "max": 0.7457280061683248,
+            "median": 0.6634009608632724,
+            "p10": 0.6560657239981015,
+            "p90": 0.7457280061683248
+          }
+        },
+        "steeringSystem": {
+          "assets": 12,
+          "assets_with_mass": 12,
+          "mass_kg": {
+            "n": 12,
+            "min": 0.27855839165299334,
+            "max": 21.73945361041889,
+            "median": 1.3548114125980306,
+            "p10": 0.4357763413047938,
+            "p90": 8.653866585874383
+          }
+        },
+        "stethoscope": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.7901136348995331,
+            "max": 0.7901136348995331,
+            "median": 0.7901136348995331,
+            "p10": 0.7901136348995331,
+            "p90": 0.7901136348995331
+          }
+        },
+        "stool": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 6.953982801270956,
+            "max": 6.953982801270956,
+            "median": 6.953982801270956,
+            "p10": 6.953982801270956,
+            "p90": 6.953982801270956
+          }
+        },
+        "storage": {
+          "assets": 20,
+          "assets_with_mass": 20,
+          "mass_kg": {
+            "n": 20,
+            "min": 0.19380593183027964,
+            "max": 3010.8330176113773,
+            "median": 43.10876797076324,
+            "p10": 2.299857924325708,
+            "p90": 726.1079158795498
+          }
+        },
+        "storageSystem": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 154.27987353283353,
+            "max": 415.2431351409654,
+            "median": 414.72143431499126,
+            "p10": 154.27987353283353,
+            "p90": 415.2431351409654
+          }
+        },
+        "structure": {
+          "assets": 15,
+          "assets_with_mass": 15,
+          "mass_kg": {
+            "n": 15,
+            "min": 102.47371801691486,
+            "max": 217652.73692017593,
+            "median": 259.56257769291386,
+            "p10": 117.50093971352166,
+            "p90": 192773.79818284707
+          }
+        },
+        "supply": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 478.8083864108913,
+            "max": 478.8083864108913,
+            "median": 478.8083864108913,
+            "p10": 478.8083864108913,
+            "p90": 478.8083864108913
+          }
+        },
+        "suspension": {
+          "assets": 21,
+          "assets_with_mass": 21,
+          "mass_kg": {
+            "n": 21,
+            "min": 0.7252737875531268,
+            "max": 20.16428191546184,
+            "median": 2.321149689370128,
+            "p10": 0.7422561314298246,
+            "p90": 11.138638956385893
+          }
+        },
+        "syringe": {
+          "assets": 8,
+          "assets_with_mass": 8,
+          "mass_kg": {
+            "n": 8,
+            "min": 0.015050871264587916,
+            "max": 0.0639055839354112,
+            "median": 0.026102587522046423,
+            "p10": 0.015050871264587916,
+            "p90": 0.0639055839354112
+          }
+        },
+        "table": {
+          "assets": 7,
+          "assets_with_mass": 7,
+          "mass_kg": {
+            "n": 7,
+            "min": 38.15561556176646,
+            "max": 850.6370891962788,
+            "median": 258.39338645029596,
+            "p10": 38.15561556176646,
+            "p90": 850.6370891962788
+          }
+        },
+        "tape": {
+          "assets": 17,
+          "assets_with_mass": 17,
+          "mass_kg": {
+            "n": 17,
+            "min": 0.02432270067785599,
+            "max": 48.699274829182684,
+            "median": 1.7662784741249915,
+            "p10": 0.02475221771299268,
+            "p90": 8.263444293623905
+          }
+        },
+        "testingTool": {
+          "assets": 24,
+          "assets_with_mass": 24,
+          "mass_kg": {
+            "n": 24,
+            "min": 0.1234119932759531,
+            "max": 4960.1756745388275,
+            "median": 3.1242433954276088,
+            "p10": 0.27130627752763026,
+            "p90": 3010.529632617253
+          }
+        },
+        "thermometer": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.05713089537578743,
+            "max": 0.05713089537578743,
+            "median": 0.05713089537578743,
+            "p10": 0.05713089537578743,
+            "p90": 0.05713089537578743
+          }
+        },
+        "tiltTruck": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 315.5278567724726,
+            "max": 504.94044044214604,
+            "median": 473.1324273559902,
+            "p10": 315.5278567724726,
+            "p90": 504.94044044214604
+          }
+        },
+        "tireTool": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 8.91528838447324,
+            "max": 492.27414233198215,
+            "median": 145.8104763727159,
+            "p10": 8.91528838447324,
+            "p90": 492.27414233198215
+          }
+        },
+        "toilet": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 18.862064217777274,
+            "max": 18.862064217777274,
+            "median": 18.862064217777274,
+            "p10": 18.862064217777274,
+            "p90": 18.862064217777274
+          }
+        },
+        "tool": {
+          "assets": 11,
+          "assets_with_mass": 11,
+          "mass_kg": {
+            "n": 11,
+            "min": 0.041760882285726456,
+            "max": 2.2546586352514097,
+            "median": 0.5670843737343507,
+            "p10": 0.04239904547089485,
+            "p90": 1.8902118875884968
+          }
+        },
+        "tools": {
+          "assets": 5,
+          "assets_with_mass": 5,
+          "mass_kg": {
+            "n": 5,
+            "min": 0.11248355920058582,
+            "max": 15.094644909924604,
+            "median": 0.1529848150552678,
+            "p10": 0.11248355920058582,
+            "p90": 15.094644909924604
+          }
+        },
+        "toy": {
+          "assets": 11,
+          "assets_with_mass": 11,
+          "mass_kg": {
+            "n": 11,
+            "min": 0.05000000074505806,
+            "max": 0.05000000074505806,
+            "median": 0.05000000074505806,
+            "p10": 0.05000000074505806,
+            "p90": 0.05000000074505806
+          }
+        },
+        "toys": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.19517891912812926,
+            "max": 0.19517891912812926,
+            "median": 0.19517891912812926,
+            "p10": 0.19517891912812926,
+            "p90": 0.19517891912812926
+          }
+        },
+        "trash": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 0.947704174001869,
+            "max": 1.1820356965009249,
+            "median": 1.1171755400487382,
+            "p10": 0.947704174001869,
+            "p90": 1.1820356965009249
+          }
+        },
+        "trashCan": {
+          "assets": 9,
+          "assets_with_mass": 9,
+          "mass_kg": {
+            "n": 9,
+            "min": 0.4545714135191693,
+            "max": 272.8811928568995,
+            "median": 3.0708824379961652,
+            "p10": 0.4545714135191693,
+            "p90": 272.8811928568995
+          }
+        },
+        "tray": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 14.022737058038265,
+            "max": 15.849223909988618,
+            "median": 15.849223909988618,
+            "p10": 14.022737058038265,
+            "p90": 15.849223909988618
+          }
+        },
+        "trolley": {
+          "assets": 13,
+          "assets_with_mass": 13,
+          "mass_kg": {
+            "n": 13,
+            "min": 19.036905268767434,
+            "max": 83.00858678902985,
+            "median": 28.54073718162345,
+            "p10": 20.716840192649162,
+            "p90": 63.845685432984375
+          }
+        },
+        "tube": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 0.07959568781340681,
+            "max": 0.07959568781340681,
+            "median": 0.07959568781340681,
+            "p10": 0.07959568781340681,
+            "p90": 0.07959568781340681
+          }
+        },
+        "ultrasound": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 3.9798895457850016,
+            "max": 127.22409289903622,
+            "median": 127.22409289903622,
+            "p10": 3.9798895457850016,
+            "p90": 127.22409289903622
+          }
+        },
+        "unit": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 8.048371679508227,
+            "max": 30.952626044277906,
+            "median": 19.31564093641783,
+            "p10": 8.048371679508227,
+            "p90": 30.952626044277906
+          }
+        },
+        "utensil": {
+          "assets": 11,
+          "assets_with_mass": 11,
+          "mass_kg": {
+            "n": 11,
+            "min": 0.11335538730975257,
+            "max": 1.1510930104685302,
+            "median": 0.20449786968736489,
+            "p10": 0.12802419922977573,
+            "p90": 0.2387643320164045
+          }
+        },
+        "utensils": {
+          "assets": 10,
+          "assets_with_mass": 10,
+          "mass_kg": {
+            "n": 10,
+            "min": 0.029641600146358697,
+            "max": 0.5517518188880761,
+            "median": 0.29557198844017163,
+            "p10": 0.10476678961201089,
+            "p90": 0.5517518188880761
+          }
+        },
+        "vehicle": {
+          "assets": 5,
+          "assets_with_mass": 5,
+          "mass_kg": {
+            "n": 5,
+            "min": 265.3624873510005,
+            "max": 1730.2989102644228,
+            "median": 1002.3513915870103,
+            "p10": 265.3624873510005,
+            "p90": 1730.2989102644228
+          }
+        },
+        "vehicleSupport": {
+          "assets": 22,
+          "assets_with_mass": 22,
+          "mass_kg": {
+            "n": 22,
+            "min": 0.28102114735371647,
+            "max": 4752.04003124496,
+            "median": 44.555709660922844,
+            "p10": 10.77812306000157,
+            "p90": 144.13756308887534
+          }
+        },
+        "ventilation": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 84.85901290839003,
+            "max": 155.61141473892204,
+            "median": 97.71570820570099,
+            "p10": 84.85901290839003,
+            "p90": 155.61141473892204
+          }
+        },
+        "video": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 83.73712349604365,
+            "max": 83.73712349604365,
+            "median": 83.73712349604365,
+            "p10": 83.73712349604365,
+            "p90": 83.73712349604365
+          }
+        },
+        "warehouse": {
+          "assets": 61,
+          "assets_with_mass": 61,
+          "mass_kg": {
+            "n": 61,
+            "min": 0.15375820163206344,
+            "max": 400081.412616024,
+            "median": 451.00158695220966,
+            "p10": 7.133997445545363,
+            "p90": 1299.3274717838462
+          }
+        },
+        "warmer": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 4.5531175670569155,
+            "max": 4.5531175670569155,
+            "median": 4.5531175670569155,
+            "p10": 4.5531175670569155,
+            "p90": 4.5531175670569155
+          }
+        },
+        "washBasin": {
+          "assets": 2,
+          "assets_with_mass": 2,
+          "mass_kg": {
+            "n": 2,
+            "min": 15.0,
+            "max": 15.4621000289917,
+            "median": 15.4621000289917,
+            "p10": 15.0,
+            "p90": 15.4621000289917
+          }
+        },
+        "waste": {
+          "assets": 3,
+          "assets_with_mass": 3,
+          "mass_kg": {
+            "n": 3,
+            "min": 5.185710737382041,
+            "max": 188.39346600065704,
+            "median": 5.638876031086752,
+            "p10": 5.185710737382041,
+            "p90": 188.39346600065704
+          }
+        },
+        "wasteManagement": {
+          "assets": 5,
+          "assets_with_mass": 5,
+          "mass_kg": {
+            "n": 5,
+            "min": 1.5943570830449252,
+            "max": 115.65190874949411,
+            "median": 11.010677568592683,
+            "p10": 1.5943570830449252,
+            "p90": 115.65190874949411
+          }
+        },
+        "water": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 168.06122482387633,
+            "max": 168.06122482387633,
+            "median": 168.06122482387633,
+            "p10": 168.06122482387633,
+            "p90": 168.06122482387633
+          }
+        },
+        "wheelAssembly": {
+          "assets": 9,
+          "assets_with_mass": 9,
+          "mass_kg": {
+            "n": 9,
+            "min": 11.15947245553507,
+            "max": 60.31356526933469,
+            "median": 28.966975202984063,
+            "p10": 11.15947245553507,
+            "p90": 60.31356526933469
+          }
+        },
+        "wheelChair": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 62.78848889003581,
+            "max": 62.78848889003581,
+            "median": 62.78848889003581,
+            "p10": 62.78848889003581,
+            "p90": 62.78848889003581
+          }
+        },
+        "wire": {
+          "assets": 6,
+          "assets_with_mass": 6,
+          "mass_kg": {
+            "n": 6,
+            "min": 73.90121348534775,
+            "max": 423.73078455702944,
+            "median": 175.2675578633323,
+            "p10": 73.90121348534775,
+            "p90": 423.73078455702944
+          }
+        },
+        "workshopSystem": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 36.92584928048577,
+            "max": 36.92584928048577,
+            "median": 36.92584928048577,
+            "p10": 36.92584928048577,
+            "p90": 36.92584928048577
+          }
+        },
+        "workstation": {
+          "assets": 1,
+          "assets_with_mass": 1,
+          "mass_kg": {
+            "n": 1,
+            "min": 354.3647892203605,
+            "max": 354.3647892203605,
+            "median": 354.3647892203605,
+            "p10": 354.3647892203605,
+            "p90": 354.3647892203605
+          }
+        }
+      },
+      "note": "a category is a name, not a scale: warehouse runs from 0.15 kg to 400081 kg, and bodyPart from 0.13 kg to 348 kg",
+      "source": "data/dataset_physics.json"
+    },
+    "dataset_wide_material_table": {
+      "materials": 57,
+      "assets_parsed": 2669,
+      "top": [
+        [
+          "metal",
+          {
+            "assets": 1502,
+            "density_kg_m3": {
+              "n": 3262,
+              "min": 200.0,
+              "max": 19300.0,
+              "median": 7850.0,
+              "p10": 2700.0,
+              "p90": 8000.0
+            },
+            "static_friction": {
+              "n": 3262,
+              "min": 0.2,
+              "max": 1.5,
+              "median": 0.3,
+              "p10": 0.3,
+              "p90": 0.61
+            },
+            "dynamic_friction": {
+              "n": 3262,
+              "min": 0.1,
+              "max": 1.2,
+              "median": 0.3,
+              "p10": 0.3,
+              "p90": 0.47
+            },
+            "restitution": {
+              "n": 3262,
+              "min": 0.0,
+              "max": 0.8,
+              "median": 0.1,
+              "p10": 0.1,
+              "p90": 0.15
+            }
+          }
+        ],
+        [
+          "plastic",
+          {
+            "assets": 1393,
+            "density_kg_m3": {
+              "n": 3085,
+              "min": 400.0,
+              "max": 9500.0,
+              "median": 950.0,
+              "p10": 950.0,
+              "p90": 950.0
+            },
+            "static_friction": {
+              "n": 3085,
+              "min": 0.3,
+              "max": 1.5,
+              "median": 0.4,
+              "p10": 0.4,
+              "p90": 0.4
+            },
+            "dynamic_friction": {
+              "n": 3085,
+              "min": 0.3,
+              "max": 1.5,
+              "median": 0.4,
+              "p10": 0.4,
+              "p90": 0.4
+            },
+            "restitution": {
+              "n": 3085,
+              "min": 0.05,
+              "max": 0.8,
+              "median": 0.4,
+              "p10": 0.4,
+              "p90": 0.4
+            }
+          }
+        ],
+        [
+          "rubber",
+          {
+            "assets": 491,
+            "density_kg_m3": {
+              "n": 628,
+              "min": 50.0,
+              "max": 7850.0,
+              "median": 1200.0,
+              "p10": 950.0,
+              "p90": 1200.0
+            },
+            "static_friction": {
+              "n": 628,
+              "min": 0.3,
+              "max": 2.2,
+              "median": 0.8,
+              "p10": 0.5,
+              "p90": 0.8
+            },
+            "dynamic_friction": {
+              "n": 628,
+              "min": 0.3,
+              "max": 2.0,
+              "median": 0.8,
+              "p10": 0.45,
+              "p90": 0.8
+            },
+            "restitution": {
+              "n": 628,
+              "min": 0.1,
+              "max": 0.8,
+              "median": 0.8,
+              "p10": 0.4,
+              "p90": 0.8
+            }
+          }
+        ],
+        [
+          "paper",
+          {
+            "assets": 341,
+            "density_kg_m3": {
+              "n": 471,
+              "min": 100.0,
+              "max": 7800.0,
+              "median": 900.0,
+              "p10": 689.0,
+              "p90": 900.0
+            },
+            "static_friction": {
+              "n": 471,
+              "min": 0.0,
+              "max": 0.8,
+              "median": 0.5,
+              "p10": 0.5,
+              "p90": 0.7
+            },
+            "dynamic_friction": {
+              "n": 471,
+              "min": 0.0,
+              "max": 0.8,
+              "median": 0.45,
+              "p10": 0.45,
+              "p90": 0.7
+            },
+            "restitution": {
+              "n": 471,
+              "min": 0.0,
+              "max": 0.4,
+              "median": 0.12,
+              "p10": 0.12,
+              "p90": 0.4
+            }
+          }
+        ],
+        [
+          "glass",
+          {
+            "assets": 310,
+            "density_kg_m3": {
+              "n": 372,
+              "min": 50.0,
+              "max": 7800.0,
+              "median": 2500.0,
+              "p10": 2500.0,
+              "p90": 2500.0
+            },
+            "static_friction": {
+              "n": 372,
+              "min": 0.0,
+              "max": 0.8,
+              "median": 0.4,
+              "p10": 0.4,
+              "p90": 0.4
+            },
+            "dynamic_friction": {
+              "n": 372,
+              "min": 0.0,
+              "max": 0.8,
+              "median": 0.4,
+              "p10": 0.4,
+              "p90": 0.4
+            },
+            "restitution": {
+              "n": 372,
+              "min": 0.0,
+              "max": 0.7,
+              "median": 0.05,
+              "p10": 0.05,
+              "p90": 0.05
+            }
+          }
+        ],
+        [
+          "organic",
+          {
+            "assets": 287,
+            "density_kg_m3": {
+              "n": 291,
+              "min": 100.0,
+              "max": 1200.0,
+              "median": 500.0,
+              "p10": 400.0,
+              "p90": 650.0
+            },
+            "static_friction": {
+              "n": 291,
+              "min": 0.02,
+              "max": 0.65,
+              "median": 0.45,
+              "p10": 0.4,
+              "p90": 0.65
+            },
+            "dynamic_friction": {
+              "n": 291,
+              "min": 0.02,
+              "max": 0.6,
+              "median": 0.4,
+              "p10": 0.35,
+              "p90": 0.6
+            },
+            "restitution": {
+              "n": 291,
+              "min": 0.1,
+              "max": 0.5,
+              "median": 0.4,
+              "p10": 0.1,
+              "p90": 0.5
+            }
+          }
+        ],
+        [
+          "cardboard",
+          {
+            "assets": 264,
+            "density_kg_m3": {
+              "n": 509,
+              "min": 100.0,
+              "max": 900.0,
+              "median": 689.0,
+              "p10": 689.0,
+              "p90": 689.0
+            },
+            "static_friction": {
+              "n": 509,
+              "min": 0.4,
+              "max": 0.7,
+              "median": 0.7,
+              "p10": 0.7,
+              "p90": 0.7
+            },
+            "dynamic_friction": {
+              "n": 509,
+              "min": 0.3,
+              "max": 0.7,
+              "median": 0.7,
+              "p10": 0.7,
+              "p90": 0.7
+            },
+            "restitution": {
+              "n": 509,
+              "min": 0.1,
+              "max": 0.4,
+              "median": 0.4,
+              "p10": 0.4,
+              "p90": 0.4
+            }
+          }
+        ],
+        [
+          "wood",
+          {
+            "assets": 204,
+            "density_kg_m3": {
+              "n": 230,
+              "min": 689.0,
+              "max": 1400.0,
+              "median": 700.0,
+              "p10": 700.0,
+              "p90": 1000.0
+            },
+            "static_friction": {
+              "n": 230,
+              "min": 0.0,
+              "max": 1.5,
+              "median": 0.5,
+              "p10": 0.5,
+              "p90": 1.0
+            },
+            "dynamic_friction": {
+              "n": 230,
+              "min": 0.0,
+              "max": 1.0,
+              "median": 0.5,
+              "p10": 0.5,
+              "p90": 1.0
+            },
+            "restitution": {
+              "n": 230,
+              "min": 0.0,
+              "max": 0.4,
+              "median": 0.4,
+              "p10": 0.0,
+              "p90": 0.4
+            }
+          }
+        ]
+      ],
+      "hygiene": "the material names carry spelling drift (platic, plasic, pastic for plastic; cemaric for ceramic), and one aluminum material carries the plastic density of 950 kg/m3",
+      "source": "data/dataset_physics.json"
+    }
+  },
+  "q3_vocabulary": {
+    "simready": {
+      "packages": 2677,
+      "categories": 196,
+      "asset_types": {
+        "prop": 2669
+      },
+      "profiles": {
+        "Robotics-Prop": 2669
+      },
+      "semantic_labels_distinct": 1246,
+      "prop_meaning": "every asset in the dataset declares asset_type = prop and profile = Robotics-Prop, including the forklift, the conveyor belt, the structural beam and the 400-tonne warehouse: in SimReady 'prop' means a simulated object, where in builder-ide it means a thing in a room"
+    },
+    "builder_ide": {
+      "words": 3,
+      "namespace_segments": 14,
+      "tile_kinds": 3,
+      "simready_lite_semantic_slot": "an open string with no closed list; the demo uses crate, post, bracket, ground",
+      "collision_models": [
+        "none",
+        "boundingCube",
+        "boundingSphere",
+        "convexHull",
+        "mesh"
+      ]
+    },
+    "infinigen": {
+      "factories": 147,
+      "groups": 38
+    },
+    "overlap": {
+      "simready_categories": 196,
+      "categories_with_an_infinigen_factory": 41,
+      "categories_without": 155,
+      "categories_without_names": [
+        "kitchenware",
+        "handTool",
+        "consumable",
+        "equipment",
+        "serviceTool",
+        "engineComponent",
+        "instrument",
+        "stationery",
+        "cleaning",
+        "misc",
+        "sign",
+        "testingTool",
+        "suspension",
+        "vehicleSupport",
+        "powerTool",
+        "tape",
+        "interiorPart",
+        "decor",
+        "drivetrain",
+        "factory",
+        "coolingSystem",
+        "drum",
+        "ladder",
+        "ppe",
+        "trolley",
+        "brakeSystem",
+        "cart",
+        "computer",
+        "electricalSystem",
+        "safety",
+        "steeringSystem",
+        "device",
+        "medicine",
+        "tool",
+        "toy",
+        "utensil",
+        "blinds",
+        "exhaustSystem",
+        "pail",
+        "screen",
+        "utensils",
+        "airSystem",
+        "monitor",
+        "trashCan",
+        "wheelAssembly",
+        "hardware",
+        "socket",
+        "IV",
+        "fireProtection",
+        "modular",
+        "paper",
+        "bucket",
+        "climate",
+        "conveyor",
+        "hvac",
+        "pack",
+        "stationary",
+        "tireTool",
+        "wire",
+        "barrier",
+        "bin",
+        "electrical",
+        "environment",
+        "tools",
+        "vehicle",
+        "wasteManagement",
+        "Xray",
+        "disinfectant",
+        "engineAssembly",
+        "handTruck",
+        "bandage",
+        "construction",
+        "detector",
+        "digitalSystem",
+        "extrusion",
+        "hopper",
+        "labware",
+        "palletJack",
+        "pipe",
+        "pump",
+        "robotic",
+        "sanitary",
+        "steering",
+        "storageSystem",
+        "tiltTruck",
+        "trash",
+        "unit",
+        "ventilation",
+        "waste",
+        "anesthesia",
+        "drainage",
+        "drape",
+        "engine",
+        "facilitySystem",
+        "fireExtinguisher",
+        "machine",
+        "machineGuard",
+        "measurement",
+        "panel",
+        "power",
+        "primitives",
+        "prop",
+        "purifier",
+        "rail",
+        "scaffold",
+        "tray",
+        "ultrasound",
+        "CT",
+        "TV",
+        "accessory",
+        "arm",
+        "cannulae",
+        "carFrame",
+        "catheter",
+        "clogs",
+        "defibrillator",
+        "dispenser",
+        "facemask",
+        "facilityEquipment",
+        "facilityFurniture",
+        "grid",
+        "grocery",
+        "headlight",
+        "hemodialysis",
+        "humidifier",
+        "laser",
+        "lung",
+        "magazines",
+        "mask",
+        "medical",
+        "mirror",
+        "oximeter",
+        "pad",
+        "pendant",
+        "phone",
+        "ramp",
+        "robot",
+        "robotics",
+        "safetyBoard",
+        "screw",
+        "security",
+        "set",
+        "shelve",
+        "stapler",
+        "stethoscope",
+        "stool",
+        "supply",
+        "thermometer",
+        "toys",
+        "tube",
+        "video",
+        "warmer",
+        "water",
+        "wheelChair",
+        "workshopSystem"
+      ],
+      "simready_assets_covered_by_an_infinigen_factory": 1269,
+      "simready_assets_covered_share": 0.474
+    },
+    "gap_shape": "the unmatched half is the industrial end (handTool 97, consumable 77, serviceTool 57, engineComponent 52, instrument 38, stationery 36, cleaning 29, sign 25, testingTool 25, vehicleSupport 22, powerTool 20): Infinigen builds rooms, SimReady is a workshop",
+    "usable_now": "the semantic class: SimReady carries a populated taxonomy (Wikidata classes beside human labels and material labels) for a slot builder-ide leaves open",
+    "source": "data/vocabulary_mapping.json"
+  },
+  "q4_loaders": {
+    "usd_core_on_aarch64": {
+      "version_installed": "26.11",
+      "aarch64_wheel": "manylinux_2_27_aarch64.manylinux_2_28_aarch64 (cp311/cp312/cp313)",
+      "aarch64_wheel_missing_in": [
+        "26.3",
+        "26.5",
+        "26.8"
+      ],
+      "already_installed_in_venvs": 11,
+      "note": "26.11 is the first recent release with an aarch64 wheel; the Thor already carries it in eleven project venvs, so a USD read needs no new install"
+    },
+    "loader": "scripts/simready_loader.py",
+    "glb_conversion": {
+      "runs": 3,
+      "total_seconds_median_of_runs": [
+        20.08,
+        23.74,
+        22.95
+      ],
+      "total_seconds_median": 21.56,
+      "per_asset_median_seconds": 0.103,
+      "slowest": {
+        "asset": "vehicle_forklift_blue_c01",
+        "seconds_median": 4.672911238994857,
+        "seconds_min": 3.0707510850043036,
+        "seconds_max": 5.724340414002654,
+        "triangles": 997893,
+        "glb_bytes": 18339048
+      },
+      "fastest": {
+        "asset": "sign_hospital_board_b02",
+        "seconds_median": 0.01490463899972383,
+        "seconds_min": 0.01465736200043466,
+        "seconds_max": 0.03705565100244712,
+        "triangles": 3920,
+        "glb_bytes": 90188
+      },
+      "triangles_total": 6600522,
+      "glb_bytes_total": 119445224
+    },
+    "verification": {
+      "reader": "builder-ide core.genbatch.glb.read_glb",
+      "opened": 38,
+      "ok": 38,
+      "failures": 0,
+      "max_box_error_m": 5.960464477539063e-08,
+      "max_union_box_error_m": 1.190631713221535e-07,
+      "note": "checked with builder-ide's own reader, not the survey's; the first writer put float64 bytes under a float32 accessor and every reader decoded garbage until it was fixed",
+      "source": "data/gltf_verification.json"
+    },
+    "not_done": [
+      "textures are not written into the GLB",
+      "no per-mesh material binding",
+      "the sdf and convexDecomposition colliders are not translated into builder-ide's five collision models"
+    ]
+  },
+  "q5_articulation": {
+    "packages_sampled": 38,
+    "with_joints": 12,
+    "with_grasp_curves": 22,
+    "joint_types": [
+      "PhysicsRevoluteJoint",
+      "PhysicsPrismaticJoint",
+      "PhysicsFixedJoint"
+    ],
+    "joint_attributes": [
+      "physics:axis",
+      "physics:lowerLimit",
+      "physics:upperLimit",
+      "physics:localPos0",
+      "physics:localPos1",
+      "physics:localRot0",
+      "physics:localRot1",
+      "physics:jointEnabled",
+      "physics:collisionEnabled"
+    ],
+    "door_example": {
+      "asset": "cabinet_file_a03",
+      "joints": [
+        "joint_door_01_joint_00: revolute about Z, -90 to 0 degrees",
+        "joint_door_02_joint_00: revolute about Z, 0 to 90 degrees",
+        "joint_glass_01_joint_00: fixed",
+        "joint_glass_02_joint_00: fixed"
+      ]
+    },
+    "drawer_example": {
+      "asset": "equipment_bench_vise_a01",
+      "joint": "joint_slidingJaw_01_joint_00: prismatic along X, -0.045 to 0.055 m",
+      "drawers_in_the_dataset": 0,
+      "note": "searching all 2,677 package names for 'drawer' returns zero assets: the dataset has cabinets with doors, a desk, three shelves and one shelving rack, and no drawer. The bench vise's sliding jaw is the nearest articulated sliding mechanism."
+    },
+    "usable_for_physics": true,
+    "usable_for_an_agent": "partly: the joints are standard UsdPhysics objects with axis, limits and frames, and the three solver variants are already authored as variant sets, so a physics world can instantiate them as they stand; but the joint prims are named from the mesh part, the grasp curve is a curve rather than a named handle, and the sdf collider is not one of builder-ide's five",
+    "not_verified": "the glTF path was verified against builder-ide's GLB reader, not against the thor-world viewer, which is a separate repository and is not checked out on this box",
+    "source": "data/sample_report.json"
+  },
+  "cost": {
+    "sample_gib": 2.9993,
+    "sample_budget_gib": 3,
+    "physics_payload_all_assets_mib": 24.1,
+    "base_payload_all_assets_mib": 45.5,
+    "total_fetched_gib": 3.07,
+    "budget": "3 GiB for the sample; the director's gate is 5 GiB",
+    "within_budget": true,
+    "box_rules": {
+      "heavy_step_threshold_gib": 8,
+      "peak_rss_of_the_heaviest_step_mib": 545,
+      "peak_rss_measured_on": "storage_shelf_basic_a01, 1.33M triangles",
+      "lease_taken": false,
+      "note": "no step came near the 8 GB threshold, so no thor-admit lease was needed; MemAvailable stayed between 69.9 GB and 78.0 GB against a 25.0 GB floor with five other leases running. A thor-admit run invocation for the sample download was refused by the desktop permission gate; the download is network-bound and light on memory."
+    },
+    "fetch_method": "plain HTTP against the resolve endpoint, one GET per file, driven by the file index; snapshot_download spends an API call per file on a token and hits the anonymous rate limit"
+  }
+}
