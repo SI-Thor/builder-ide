@@ -226,6 +226,17 @@ processor's normalisation, the host-to-device copy, the forward — is
 with the graph's descriptor **bit-identical** to the eager one on every
 picture.
 
+The same measurement with the GPU left cold (`--no-warm`) is **53 ms eager**
+and **44 ms graphed**, with the forward at **13 ms** against 6.2 ms: the clock
+is the difference, the 2.1× that `docs/lab/IDEAS.md` warns a cold GPU costs.
+
+And the write-up's earlier figure of "**~0.9 s per picture**" was neither of
+these. The ~0.9 s is what the **linear head's numpy fit** costs per member —
+the table's own median column says so, because the two heads score the same
+cached features: the kNN head is **1–3 ms** per verdict and the linear head
+**804–1 397 ms**. The forward was never that expensive, and the write-up said
+otherwise until it was measured.
+
 The earlier lab measured the same path at render resolution and batch size
 (`docs/lab/exp-critic-cuda-graph.md`): the PNG path costs 61–8,984 ms per
 verdict (B = 1…8), the zero-copy device-resident path 7.9–106 ms eager, and
