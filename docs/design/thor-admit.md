@@ -1536,7 +1536,7 @@ Reading it honestly:
 
 ### 15.7 The suite, and the one test that was measuring the wrong thing
 
-The suite is **41/41**, serial, 172 s, on a box with 71 GiB
+The suite is **41/41**, serial, 173 s, on a box with 71 GiB
 `MemAvailable` and other seats' work running. The heavy tests took the
 stopgap lock and ran for real.
 
