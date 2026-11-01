@@ -27,13 +27,17 @@ builder, and the confusion table.
 | [`exp-judge-calibration.md`](exp-judge-calibration.md) | the judge's confidence under one definition, tracked against the Brier score on 1,470 recorded judgments: the per-cell Brier and ECE, the escalation sweeps under all three definitions, the recalibrations fitted on one split and read on another | **one definition is necessary and not sufficient — two cells' confidence is anti-correlated with being right (AUC 0.28, 0.29), one carries no signal (0.51), and the recalibration works where the signal is (10 of 11 cells improve their held-out Brier)** |
 | [`exp-judge-calibration.md`](exp-judge-calibration.md) §7 | the same cell measured again with **the two named conditions swapped** (the reversed replay, on the Thor): 240 steps × 2 orders for d1-2B and d1-3B, the positional share, the real disagreement set, the two averages, the catch rate inside a sane escalation budget, and the latency of the two calls | **the both-order protocol's catch rate is 24.6 % on the 2B and 2.5 % on the 3B, not the 71.9 % and 38.5 % the assumption produced; the 2B answers by position (85.8 %) and the 3B by content (order-invariant); averaging the two vectors does not cancel the position (AUC 0.1332) — the protocol stays a diagnostic, not a gate** |
 | [`exp-judge-calibration.md`](exp-judge-calibration.md) §8 | the same cell with **the prompt fixed** (the fresh recording, on the Thor): the 240 steps × 3 arms (the recorded text, and the true condition and the decoy in the canonical and the seeded-balanced orders of `core/judge/ordering.py`) × 2 models, the accuracies by group, the AUCs, the τ gate's catch and tax by group, the order mode chosen by measurement, and the routing table | **the AUC un-inverts (0.2815 → 0.5766 [0.5050, 0.6457] on the 2B, the interval wholly above the coin-flip line) and the decoy-first steps become answerable (0.0 → 0.4634 on the 3B); the 3B passes every criterion and gains 16 points of accuracy, the 2B stays positional (86.3 %) and loses its leak-inflated score — the cell routes to the d1-3B; the shipped order is canonical** |
+| [`exp-judge-calibration.md`](exp-judge-calibration.md) §9 | the **recorder fixed at the source** and the trace re-recorded (on the Thor): the sea-state builder that left the truth out of 82 of its 240 prompts now names the truth and the drawn decoy, once each, in the canonical order, on the October seed and stream; the 240 steps re-recorded on both models, the cell re-measured, and the §8.3 route applied end to end through the shipped `Judge` seam | **the once-unwinnable steps become answerable (the 43 doubled: 0.0 → 0.4419 on the 3B); the inversion stays gone and the confidence stays no signal (2B 0.5300 [0.4583, 0.5979], 3B 0.4797 [0.4091, 0.5540] — both straddle the line); the 3B keeps the accuracy edge (0.5208 against 0.4833) and the route stands, applied at the calibrated τ 0.76: act 59, surface 181, catch 0.783 at a 0.728 tax** |
 
 Scripts: [`judge-calibration-scripts/`](judge-calibration-scripts/) — the
 replay of the recorded vectors, and what it reads;
 [`judge-reversed-scripts/`](judge-reversed-scripts/) — the reversed replay on
-the Thor and its analysis; and
+the Thor and its analysis;
 [`judge-prompt-fix-scripts/`](judge-prompt-fix-scripts/) — the fresh
-recording under the fixed prompts and its analysis.
+recording under the fixed prompts and its analysis; and
+[`judge-recorder-fix-scripts/`](judge-recorder-fix-scripts/) — the fixed
+builder (the old one kept verbatim as the regression baseline), the
+re-recording, its analysis, and the routed cell's end-to-end run.
 
 ---
 

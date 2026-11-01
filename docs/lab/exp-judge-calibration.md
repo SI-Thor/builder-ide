@@ -20,6 +20,21 @@ under it: the AUC un-inverts (**0.2815 → 0.5766 [0.5050, 0.6457]** on the
 2B, the interval wholly above the coin-flip line), the decoy-first steps
 become answerable, **the d1-3B passes every criterion**, and the d1-2B
 stays positional — so the cell routes to the 3B.
+**Continued 2026-11-01 (a fourth time, on the
+Thor):** §9 fixes the recorder that built the trace — its noise steps left
+the truth out of the prompt entirely (82 of 240 prompts, 43 of them naming
+one condition twice) — and **re-records the 240 steps the fixed recorder
+builds**: the truth and the drawn decoy, once each, in the canonical
+order, on the same seed and stream. The instrument reproduces the
+recording (the 2B's vectors bit-exact on the 82 comparable steps), the
+inversion stays gone on the recorder's own trace (2B 0.2815 → 0.5300
+[0.4583, 0.5979], 3B 0.2944 → 0.4797 [0.4091, 0.5540] — both intervals now
+straddle the line: the confidence is not a routing signal on this cell),
+the once-unwinnable steps become answerable (the 43 doubled: 0.0 → 0.4419
+on the 3B), the 3B keeps the accuracy edge (0.5208 against 0.4833) and
+§8.3's route stands — applied end to end through the shipped judge seam at
+the calibrated τ. §9.5 corrects two §8 statements in writing.
+
 **Verdict: ONE DEFINITION OF CONFIDENCE IS NECESSARY AND NOT SUFFICIENT.
 MEASURED ON 1,470 RECORDED JUDGMENTS, THE CANONICAL DEFINITION (THE TOP
 PROBABILITY) MAKES TWO CELLS' CONFIDENCE **ANTI-CORRELATED** WITH BEING
@@ -979,7 +994,11 @@ October recording, vector against vector:
 The ``recorded`` arm's numbers are the published ones, to the fourth
 decimal: the 2B's accuracy 0.5250 and AUC **0.2815 [0.2167, 0.3474]**, the
 3B's 0.3292 and **0.3046 [0.2345, 0.3752]** (§7.3's row) — the instrument
-is the recording's. The determinism control re-asked the first 12 steps in
+is the recording's. **[Corrected in §9.5: the 0.3046 is §7.3's live replay
+arm — the recording re-asked on the two-slot server — not the recording's
+own vectors, whose AUC is 0.2944 [0.2255, 0.3652], the number §5.1
+publishes; "to the fourth decimal" holds for the 2B only.]** The
+determinism control re-asked the first 12 steps in
 all three arms at the end of the run: **36 of 36 vectors identical**, per
 model.
 
@@ -1127,12 +1146,249 @@ nothing else to read.
 **What the fix does not do.** It does not make the task easy. The fixed
 state names two conditions and nothing in the text says which holds, so a
 model that reads content lands near the half a symmetrical question
-deserves (the 3B: 0.4875). The fix removes the *wrong* signal; it does
-not add a right one. A cell that needs accuracy above that needs a state
+deserves (the 3B: 0.4875). The fix removes the *wrong* signal; it does not
+add a right one. A cell that needs accuracy above that needs a state
 that carries evidence — which is the caller's perception to provide, not
 the order policy's.
 
-## 9. What this does not say
+**§9 continues this section**: the recorder itself is fixed, the trace is
+re-recorded on the prompts the fixed recorder builds, the cell and the
+route are re-measured on it, and two §8 statements are corrected in
+writing (§9.5).
+
+## 9. The recorder, fixed at the source
+
+§8 fixed the prompt at replay time, on the recorded steps. This section
+fixes the recorder that wrote those steps, re-records the trace it should
+have written, and re-measures the cell on the recorder's own prompts — one
+session, 2026-11-01, the same two models. The scripts are in
+[`judge-recorder-fix-scripts/`](judge-recorder-fix-scripts/); the raw
+recordings are `…/results/rerecorded-d1-2B.json` and
+`…/results/rerecorded-d1-3B.json`, the numbers in
+`…/results/recorder-fix-measurement.json`, and the routed cell's rows in
+`…/results/routed-end-to-end-d1-3B.json` and
+`…/results/routed-end-to-end-d1-2B.json`.
+
+**The fault, in the code.** The recorder is liquid-study's
+`scripts/exp_c_hysteresis.py::make_trial`, and its docstring always
+claimed the right design: *"the state text mentions the true condition
+plus a decoy"*. What the code built was:
+
+```python
+other = decoy if shown != decoy else (truth + 1) % len(SEA_STATES)
+state = (TRUE_TEXT[shown] + " " + TRUE_TEXT[other])
+```
+
+On a noise step (p = 0.35) `shown` *is* the decoy, so the second named
+condition is `(truth + 1) % 5` — the decoy again when the decoy came from
+above, the truth's other neighbour when it came from below. **The truth is
+absent from every noise prompt** — the §7.1 bound no gate could lift. The
+audit (`recorder.py --october`, run on the committed copy of the old
+builder, kept verbatim): **82 of 240 prompts omit the truth, 43 name one
+condition twice**; the October file `exp_c_trace_d1-2B.json` audits to the
+same 82/43, so the committed copy is the recorded code. The fixed builder
+audits to 0 and 0.
+
+**The fix, and what it keeps.** The fixed builder (`recorder.py`,
+committed beside its tests; the liquid-study script is patched in place to
+build through the same policy) names **the true condition and the drawn
+decoy, once each, in `core/judge/ordering.py`'s canonical order** — the
+mode §8.2 shipped. It spends the random stream exactly as the old builder
+spent it — same draws, in the same order — so the truths, the dwells, the
+decoys and the noise labels are the October task's, step for step; only
+the state text changed. `tests/judge/test_recorder_fix.py` (9 tests) pins
+the whole contract: the invariant — *no prompt omits the truth, no prompt
+names an option twice* — passes on the fixed builder and fails on the old
+one with the counts above; the order is canonical; the named pair is truth
++ drawn decoy; the task equals the old builder's; the builder is
+byte-deterministic.
+
+**What the noise label means now.** With the pair fixed and the order
+neutral, the presentation no longer depends on `shown`: on the fixed
+prompts the noise process has nothing left to present itself through, and
+`shown` survives only as the label of which group a step belonged to in
+the October task. The groups below are kept so the numbers sit beside
+§8's; on the fixed prompts no group's prompt differs from another's, so
+the honest expectation is no group difference — and the fixed cell shows
+none beyond noise.
+
+### 9.1 The re-record, and its fidelity to the recording
+
+One prompt per step, one call a step: 240 calls a model, on fresh
+single-slot ctx-4096 servers under thor-admit leases — the recorder's own
+server flags, so the instrument is the recording's — plus the determinism
+control (the first 12 steps re-asked). On the **82 steps whose fixed
+prompt is byte-identical to the recorded one** (the clean steps whose
+canonical order keeps the recorded order), the live reply must equal the
+October recording's vector:
+
+| model | compared | max abs diff | the argmax is the same | vector identical | determinism (12 steps) |
+|---|---|---|---|---|---|
+| d1-2B | 82 of 240 | **0.0** | **82 of 82** | **82 of 82** | **12 of 12** |
+| d1-3B | 82 of 240 | 0.0134 | **82 of 82** | 0 of 82 (the third decimal again, as in §7 and §8) | **12 of 12** |
+
+The instrument is the recording's. **The box, beside the numbers:** the
+box was quiet — load 3.9–4.5, 114.8–115.6 GB of memory available, the GPU
+at 0 % at both starts (90 % at the 3B run's end sample), 34.9–38.6 °C,
+VDD_GPU 2.4–8.7 W. The 240 calls took the 2B ~12 s (p50 31.76 ms) and the
+3B ~15 s (p50 46.28 ms). No prompt failed the audit (`faulty_prompts: 0`
+in both recordings).
+
+### 9.2 What the fixed cell says
+
+| model | accuracy before → after | truth-presented (158) | decoy-presented (82) | the 43 doubled | AUC before → after [after's interval] |
+|---|---|---|---|---|---|
+| d1-2B | 0.5250 → 0.4833 [0.4209, 0.5463] | 0.7975 → 0.4620 | 0.0000 → **0.5244** | 0.0000 → 0.1860 | 0.2815 → **0.5300 [0.4583, 0.5979]** |
+| d1-3B | 0.3292 → **0.5208 [0.4578, 0.5832]** | 0.5000 → 0.5000 | 0.0000 → **0.5610** | 0.0000 → **0.4419** | 0.2944 → 0.4797 [0.4091, 0.5540] |
+
+(The "before" is the October recording's own vectors; on the 3B that is
+0.2944, not §8's 0.3046 — see §9.5.)
+
+**The once-unwinnable steps are answerable.** The 43 steps whose October
+prompt named one condition twice — accuracy 0.0 by arithmetic, on every
+ordering of that prompt — score 0.1860 (2B) and 0.4419 (3B) once the
+prompt names the truth. The whole decoy-presented group: 0.5244 and
+0.5610.
+
+**The inversion stays gone, and the confidence stays no signal.** Both
+AUCs move from wholly below the coin-flip line to straddling it: the 2B's
+0.2815 → 0.5300 [0.4583, 0.5979], the 3B's 0.2944 → 0.4797 [0.4091,
+0.5540]. On the recorder's own trace neither model's confidence separates
+right from wrong — which is what a prompt that names two conditions and no
+evidence deserves: the fix removes the wrong signal; it does not add a
+right one (§8's own closing paragraph).
+
+**The 2B is still positional, and its gain is name-sorting's accident.**
+It answers the first-named condition on 203 of 240 steps (84.6 %; §8.1's
+86.3 % again). The canonical order puts the truth first on roughly half
+the steps by the accident of which of two neighbouring condition names
+sorts first, so the positional habit lands near a coin-flip instead of on
+the leak. Its truth-presented accuracy falls from 0.7975 to 0.4620 for
+the reason §8.1 gave: that number was the leak's own product. (73 of its
+73 fixed-cell truth-presented wins are inside the 126 it used to take.)
+
+**The 3B reads content, and it is literally the same 79 steps.** Its
+truth-presented accuracy is 0.5000 before and after — and it is the same
+79 steps: the §7 order-invariance showing up once more as
+presentation-invariance. Its decoy-presented group goes 0.0000 → 0.5610
+on prompts that finally name the truth. Its positional tally is 144/240
+(60.0 %), with 96 answers on the second-named condition: content-reading,
+imperfectly.
+
+### 9.3 The τ gate on the fixed cell
+
+The gate's semantics are the repository's (escalate when the confidence is
+below τ; the canonical confidence is the top probability). The "before"
+columns are the recorded arm's, as §8.3 printed them.
+
+**d1-2B** (124 wrong, 116 right on the fixed trace — against 114 wrong,
+126 right before):
+
+| τ | before: escalated · catch · tax | fixed: escalated · catch · tax |
+|---|---|---|
+| 0.7 | 98 · 0.210 · 0.587 | 142 · 0.613 · 0.569 |
+| 0.8 | 168 · 0.517 · 0.865 | 197 · 0.798 · 0.845 |
+| 0.9 | 179 · 0.553 · 0.921 | 197 · 0.798 · 0.845 |
+
+By group at τ = 0.8: truth-presented escalates 132 (catch 0.812, tax
+0.863); decoy-presented escalates 65 (catch 0.769, tax 0.814). Inside the
+30 % budget, τ = 0.625 catches 0.274 at a 0.216 tax; inside 10–20 % nothing
+useful exists — the confidences jump from 0.600, where nothing escalates,
+to 0.605, where 24.6 % do (§7.4's gap again).
+
+**d1-3B** (115 wrong, 125 right on the fixed trace — against 161 wrong,
+79 right before):
+
+| τ | before: escalated · catch · tax | fixed: escalated · catch · tax |
+|---|---|---|
+| 0.7 | 39 · 0.093 · 0.304 | 55 · 0.200 · 0.256 |
+| 0.8 | 130 · 0.460 · 0.709 | 181 · 0.783 · 0.728 |
+| 0.9 | 197 · 0.733 · 1.000 | 240 · 1.000 · 1.000 |
+
+By group at τ = 0.8: truth-presented escalates 118 (catch 0.785, tax
+0.709); decoy-presented escalates 63 (catch 0.778, tax 0.761) — the
+gate's word no longer depends on which group a step is in, because the
+prompt no longer tells it. Inside 30 %, τ = 0.735 catches 0.200 at a
+0.256 tax; inside 10–20 % nothing (nothing below τ 0.555, 22.9 % at it —
+the same shape of gap).
+
+### 9.4 The routing re-measured, and the routed cell end to end
+
+| the fixed recorder's trace | d1-2B | d1-3B |
+|---|---|---|
+| accuracy | 0.4833 | **0.5208** |
+| decoy-presented accuracy | 0.5244 | **0.5610** |
+| AUC [interval] | **0.5300** [0.4583, 0.5979] | 0.4797 [0.4091, 0.5540] |
+| the τ gate at 0.8 | catch 0.798 · tax 0.845 | **catch 0.783 · tax 0.728** |
+| latency p50, matched flags, this box | **31.8 ms** | 46.3 ms |
+| the steps one model is right on | the 2B only: 25 | the 3B only: **34** |
+
+**The §8.3 route stands: this cell goes to the d1-3B** — 34 steps it is
+right on that the 2B gets wrong, against 25 the other way; more accuracy
+overall and in the group the leak had pinned; and at the operative τ the
+gate catches about the same while taxing 12 points less. **The margins are
+narrower than §8.3's table showed**: §8's arms asked the truth's +1
+neighbour on the 39 noise steps where the drawn decoy came from below (the
+recording's decoy field carried it; see §9.5), and that pair flattered the
+route a little. What inverts is the latency row: on matched configurations
+(the same server flags, the same session) **the 2B is the faster model**
+(31.8 against 46.3 ms p50). §8's "the 3B was the faster model today"
+compared two different servers' configurations, as that section itself
+flagged; matched, the smaller model is faster — the route rests on the
+answers, not on the clock.
+
+**Applied, end to end, through the shipped seam.** The routed cell is not
+a spreadsheet: `route_end_to_end.py` runs the fixed recorder's 240 states
+through `core.judge`'s own `Judge` — `D1Backend` on the routed model, the
+shipped `CALIBRATED_TAUS` resolving τ per ask, every attempt a
+`judge.verdict` row (240 rows a run) — and reports what the operator would
+see:
+
+| the routed cell, end to end | d1-3B (the route) | d1-2B (the contrast) |
+|---|---|---|
+| the policy's τ | 0.76 (`tau_source: calibrated`) | 0.7 (`calibrated`) |
+| gate words | act 59 · surfaced 181 | act 98 · surfaced 142 |
+| catch · tax at that τ | **0.783 · 0.728** | 0.613 · 0.569 |
+| accuracy | **0.5208** | 0.4833 |
+| latency p50 through the seam | 46.5 ms | **30.7 ms** |
+
+On a one-rung ladder the below-τ word is `surfaced` — the ladder's end is
+surfaced rows, and acting on one is the caller's decision (the judge
+README's contract). The routed run surfaces three steps in four and, when
+it escalates, catches 0.783 of the errors at a 0.728 tax. That is what an
+honest cell looks like: near a half by construction, a gate that knows it,
+and the accuracy the cell has is the routed model's own.
+
+### 9.5 Corrections, in writing
+
+* **§8's "before" for the d1-3B was the replay arm's number, not the
+  recording's.** §8 prints the 3B's recorded-arm AUC as 0.3046
+  [0.2345, 0.3752] ("§7.3's row … the instrument is the recording's").
+  The 0.3046 is §7.3's *live replay* of the recording — the same 240
+  steps re-asked on the two-slot server, whose vectors differ from the
+  recording's in the third decimal. The recording's own vectors score
+  **0.2944 [0.2255, 0.3652]** — the number §5.1 publishes, and the number
+  this section's "before" uses. §8's claim "to the fourth decimal" holds
+  for the 2B (max diff 0.0, 240 of 240) and fails for the 3B by §8's own
+  fidelity table two paragraphs above it (max diff 0.0168). This note's
+  convention from here on: 0.2944 wherever the recording's vectors are
+  meant (§5.1, §9, §12's item 2), 0.3046 only where the replay's are.
+* **§8's fixed arms asked a different pair on 39 noise steps.** §8's
+  `canonical` and `balanced` arms built their pair from the recording's
+  decoy field — which the old recorder wrote as the *second-named
+  condition* (the truth's +1 neighbour on every noise step), not as the
+  decoy it had drawn. The recorder's own pair is the truth and the drawn
+  decoy; the two differ on the 39 noise steps where the drawn decoy came
+  from below — (truth, truth+1) against (truth, truth−1) — and on 119
+  clean steps only the order moved. §8's numbers stand as the replay
+  measurement on its pairs; this section's are the recorder's, and §9.4's
+  route is measured on those.
+* Nothing in §1–§7 changes: the leak, the positional share, the both-order
+  protocol and the un-inversion are all measured on the prompts this
+  section's fix removes at the source. §8 was the fix's rehearsal; §9 is
+  the fix.
+
+## 10. What this does not say
 
 * **It does not say the d1 models are useless.** It says their confidence
   is not a routing signal *on the sea-state task*, where the prompt
@@ -1173,7 +1429,7 @@ the order policy's.
   test, which builds a night whose confidence stops separating and checks
   that the morning carries one line for it.
 
-## 10. Reproducing it
+## 11. Reproducing it
 
 ```bash
 # the suites (no network, no GPU, no LLM)
@@ -1206,9 +1462,10 @@ state.
 The clef results live on another machine's worktree; copy them in, or
 point the script at that path.
 
-**§7's replay, on the Thor.** §7 is the one part of this note that *asks a
-model*: the 240 recorded steps were asked again with the two named
-conditions swapped, on a served d1, and the replies were recorded.
+**§7's replay, on the Thor.** §7 was the first part of this note that
+*asked a model*: the 240 recorded steps were asked again with the two named
+conditions swapped, on a served d1, and the replies were recorded. §8 and
+§9 ask models the same way; the three runs' wrappers are the same shape.
 
 ```bash
 # the replay (needs a served d1; under a lease, on a shared box)
@@ -1256,12 +1513,40 @@ suites are `tests/judge/test_ordering.py` (the policy) and
 `tests/judge/test_prompt_fix.py` (the replay's arms and the analysis's
 semantics).
 
+**§9's re-recording, on the Thor.** §9 fixes the recorder and asks a model
+on the prompts the fixed recorder builds.
+
+```bash
+# the audit (CPU; the 82/43 in §9's first paragraphs)
+~/lm-wt/core-judge/.venv/bin/python docs/lab/judge-recorder-fix-scripts/recorder.py \
+  --october /home/caseydigennaro/lm-wt/liquid-study/results/exp_c_trace_d1-2B.json
+
+# the re-recording (needs a served d1; under a lease, on a shared box)
+~/lm-wt/core-judge/.venv/bin/python docs/lab/judge-recorder-fix-scripts/rerecord.py \
+  --model d1-2B --port 8094 --out docs/lab/judge-recorder-fix-scripts/results/rerecorded-d1-2B.json
+~/lm-wt/core-judge/.venv/bin/python docs/lab/judge-recorder-fix-scripts/rerecord.py \
+  --model d1-3B --port 8320 --out docs/lab/judge-recorder-fix-scripts/results/rerecorded-d1-3B.json
+
+# the analysis (CPU, no model)
+~/lm-wt/core-judge/.venv/bin/python docs/lab/judge-recorder-fix-scripts/measure_rerecord.py
+
+# the routed cell, end to end (needs the routed model served)
+~/lm-wt/core-judge/.venv/bin/python docs/lab/judge-recorder-fix-scripts/route_end_to_end.py \
+  --model d1-3B --port 8320 --out docs/lab/judge-recorder-fix-scripts/results/routed-end-to-end-d1-3B.json
+```
+
+(The runs went under `thor-admit` leases — `judge-recorder-fix.rerecord-*`
+— and the served models under `thor-admit serve`; the wrapper adds nothing
+to the numbers.) The suite for the fixed builder is
+`tests/judge/test_recorder_fix.py`; what the scripts read and write is in
+[`judge-recorder-fix-scripts/`](judge-recorder-fix-scripts/)'s README.
+
 The whole core, on the ProArt at this commit: **1,669 passed, 13 skipped,
 16 deselected** (the deselected are the opt-in real-engine run). The
 `pxr` collection error in `tests/usd` is pre-existing — the USD extra's
 wheels are not installed here.
 
-## 11. The verdict
+## 12. The verdict
 
 **One definition of confidence is necessary and not sufficient.** The
 mechanism the seed asked for is built and measured: one function computes
@@ -1346,6 +1631,24 @@ What the measurement adds, on 1,470 recorded judgments:
    the builder is now concrete: **route decision prompts of this shape
    to the d1-3B** — more right answers, a gate with the right sign, less
    tax, and (on the box that measured it) less latency (§8.3).
+9. **The recorder was fixed at the source, and the cell's honest baseline
+   is a near-coin-flip with a working gate.** The builder that left the
+   truth out of 82 of its 240 prompts now names the truth and the drawn
+   decoy, once each, in the canonical order, on the October seed and
+   stream (§9); the trace is re-recorded and the cell re-measured on it.
+   The inversion stays gone and the confidence stays no signal (both AUC
+   intervals straddle the line: 0.5300 [0.4583, 0.5979] on the 2B, 0.4797
+   [0.4091, 0.5540] on the 3B) — so on this cell the τ is still not a
+   number to tune, it is a number to stop tuning on. What the route buys
+   is accuracy, not signal: the 3B is right on 0.5208 against the 2B's
+   0.4833, keeps 34 steps the 2B misses against 25 the other way, and its
+   gate taxes 12 points less at the same catch — §8.3's route, re-measured
+   on the recorder's own prompts and narrower, but standing. Applied end
+   to end through the shipped judge seam at the calibrated τ (0.76), the
+   routed cell acts on 59 steps, surfaces 181, and catches 0.783 of its
+   errors when it escalates — an honest cell, whose further accuracy has
+   to come from evidence in the state (the caller's perception), not from
+   the order policy or the model size.
 
 The practical consequence for the builder: **the confidence gate's τ is a
 per-cell parameter with a measured value, not a default.** `core/judge`
@@ -1371,7 +1674,13 @@ replay's own box state is in §7 and in the replies' file; its scripts are in
 state is in §8 and in the replies' files; its scripts, and the order policy
 they ask under, are in
 [`judge-prompt-fix-scripts/`](judge-prompt-fix-scripts/) and
-`core/judge/ordering.py`.*
+`core/judge/ordering.py`. §9 was recorded on the **Thor** the same day too
+— the re-recordings' box state is in §9.1 and in the recordings' files;
+the fixed builder, the re-record, the analysis and the routed seam run are
+in [`judge-recorder-fix-scripts/`](judge-recorder-fix-scripts/), and the
+liquid-study recorder itself is patched in place on the Thor
+(`scripts/exp_c_hysteresis.py`; the tested copy of both builders, old and
+fixed, is `recorder.py` in that directory).*
 
 ## Limits of the both-order protocol (Hy4 adversarial review, 2026-11-01)
 **Answered by §7** (the replay named in this section's last paragraph was
