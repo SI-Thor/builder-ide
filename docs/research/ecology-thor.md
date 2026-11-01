@@ -243,4 +243,145 @@ the `prop.night` band the cost model already carried). The runner's own
 the tick loop is that belief asked at every admission instead of once
 per three-variant round.
 
+## 7. The swarm addendum (2026-11-01, dsswarm × thor-fp4, checked against the ecology)
+
+Two research rounds landed while our branch waited for review:
+`docs/research/dsswarm.md` (dsswarm 1–3) and `dsswarm4.md` in
+builder-ide, and the published `SI-Thor/thor-fp4` with its
+DIRECTIONS. Both name the ecology explicitly (the shadow conductor
+"applies to … the ecology auction"; the power auction is "a seed for
+the ecology auction and thor-admit"; object leases "pair with
+per-agent tokens and thor-admit's lease idea"). This section is the
+answer from our side: what already exists, what is genuinely new, and
+what we would build — with citations into the code, per §5's rules.
+
+### 7.1 The shadow conductor, and the four layers that are not one
+
+The swarm's safest idea — run the trusted chooser and the new one on
+the same requests, log both, switch only on measured agreement — has
+an offline form we already exercised: the mini-night-2 replay *is* a
+shadow run of the auction against the night runner, from the recorded
+ledger (§6.4). The live form is the next rung of the adoption ladder
+(§3): the runner journals the bid set (tiles rule 8), the mirror
+scores it read-only, nobody acts on the auction's choice — the bridge
+being a non-writer by construction is what makes it a shadow rather
+than a second conductor.
+
+The layering note the swarm round forces, because "conductor" now
+names four different things: the **never-wait conductor**
+(`655ac8f`, request-level: deadline, fallback, supersede — 1,000
+requests, max wait 52 ms) optimises *latency of an answer*; the
+**invariant kernel** (tiles' vocabulary door, the night's rails)
+gates *what reaches a learned ranker*; the **auction** (this study)
+prices *who gets the GPU tonight*; the **admission daemons**
+(thor-admit, the bake-off) reserve *bytes*. Four units —
+milliseconds, candidates, gpu-minutes, bytes — and none of them
+should grow the others' logic. The swarm's stigmergic-trace
+alternative to the conductor is decided the shadow way (dsswarm's own
+experiment 1), not by argument.
+
+### 7.2 The trust ladder is the justification axis — and one honest gap
+
+dsswarm4's T0–T4 ladder (autonomy earned level by level, human-only
+promotion, one bad artifact demotes) maps onto what the ecology
+already has, rung for rung: the **class** (Kernel/Maintenance/World/
+Agent) is the policy rung — who may bypass the admission cap is the
+owner's call, exactly "human-only promotion"; the **justification
+score** is the evidence rung — earned by served work, spent by
+failure, and the veto law ("dead lineages cannot buy GPU-seconds")
+is trust below the floor refusing to transact; and the WHY state
+machine's harvest-to-UNKNOWN → revive-on-parole (bridge
+`LEASE_EVENTS_TO_WHY`, the bake-off's stall law) *is*
+demote-and-earn-back. The genuinely new part of the ladder is not a
+mechanism but a policy: the ecology demotes automatically on harvest,
+but promotion is currently re-request-triggered, not
+evidence-earned — a harvested lineage that asks again gets parole
+regardless of what it did while silent. If the swarm's ladder is
+adopted, the ecology's answer is one rule: *parole requires a
+justification above its pre-harvest level*, which the ledger's own
+evidence can compute. We note the seam; we do not ask for the change.
+
+### 7.3 Leases on objects: the seam, written down
+
+dsswarm 1–3: "a builder claims an object before acting, so two
+builders never edit the same thing — it pairs with per-agent tokens
+and thor-admit's lease idea." From the ecology side the composition
+is already three-deep, and only the first axis exists: a **memory
+lease** (thor-admit: kernel-held, watchdog-watched, learned peaks as
+the reserve) → a **WHY node** (the lease as a purpose: granted →
+served, watchdog-stop → UNKNOWN, the mapping the bridge carries) →
+an **object lease** (does not exist). The object axis is a doors
+problem, not a daemon problem: a claim is an audit event with the
+`agent` claim riding it (core-doors §2), and the lifecycle the WHY
+state machine already models. One law worth writing down before
+anyone builds it: *an object lease implies a memory lease for the
+work done under it, never the reverse* — an editor that holds the
+tile but spawns no work takes no memory, and a 30 GiB render that
+touches no shared object should not block one. The memory daemon
+stays the only thing that prices bytes.
+
+### 7.4 The power auction: the reserve-price pattern thor-admit already has
+
+dsswarm4's last mechanism — "jobs bid for thermal or power headroom;
+the reserve is the measured marginal cost, not the datasheet" — is
+the learned-peaks pattern with a different rail. thor-admit's
+reserve for memory *is* the measured marginal cost: the label's own
+history, p95, learned per job kind (`history.rs`, `peaks.jsonl`),
+and the cost model already carries the power side as
+`CostEstimate.joules` — "the measured `VIN` rail over the job's wall
+time" (`core/night/cost/model.py`). So if a power/thermal rail is
+ever added to the night's `Rail`, the bridge needs no change in kind:
+bids are cost estimates in whatever axes the core books, the auction
+conserves what the bank holds, and the reserve for a bidder's own
+draw is its own measured history. The decision that is *not* ours:
+whether `Rail` grows a joules axis at all is a core cost-model
+change with ledger-wide consequences (every band re-derived); the
+bridge deliberately moved joules off its rails onto the estimate
+column precisely to keep that decision in one place.
+
+### 7.5 WAL + snapshot: the chain names the log side
+
+dsswarm4: "the decision journal is the log; everything else is a
+snapshot … our core is already an event log; this names the snapshot
+side." The ecology's side of that sentence is now built twice: the
+core's audit log is the single writer's WAL (§1.0), and the daemon's
+decision log is a chained WAL (`research/ecology-ledger` on
+thor-admit — every line `seq` + running FNV-1a, `verify` names the
+break). The dirty-sector bitmap checkpoint is then a *cache of the
+fold*, and the chain is what makes the cache trustworthy: a snapshot
+is valid exactly as long as the log it was folded from can be proved
+whole. Nothing to build on our side; the note exists so whoever
+builds the snapshot does not build a second journal beside the
+chained one.
+
+### 7.6 thor-fp4: prices move, the protocol doesn't
+
+The published repo's lab numbers (371–456 TFLOPS at K ≥ ~2048,
+*slower* than BF16 below K ~1280, FP4 weights 3.56× smaller) do not
+touch the auction's protocol, and that is the point of §6.1: **a bid
+is a cost estimate in the cost model's own axes**, so when FP4
+changes a stage's throughput, the measured p50/p95 move, the bids
+move, and the auction's laws (veto, conservation, the strict order)
+are none the wiser. Precision is a price, not a protocol. Two
+asymmetries are worth naming for whoever prices the FP4 night:
+
+1. **The fast regime is the night's big batch legs** (retrieval,
+   K = 2048–4096 embeddings; large-K GEMMs) — DIRECTIONS §3 is right
+   that retrieval lands there. But a tick's decisions and the decode
+   stages are small-M and bandwidth-bound (DIRECTIONS §2), where
+   FP4's win is *bytes*, not FLOPs, and only via the GEMV kernel
+   that doesn't exist yet. The cost model should price the two
+   regimes from separate bands, the way `prop.mesh.512` and
+   `prop.512` are already separate (`b565e88`).
+2. **Certified FP4 changes quality per job, which is the value
+   side, not the cost side.** The certificate (the winning logit
+   beats the runner-up by more than the error bound) is the same law
+   as the veto and the invariant kernel — arithmetic gates before
+   learned ones, everywhere in this project. For the auction it
+   means a certified-FP4 job's EV is provably the BF16 EV, and the
+   judge seam already handles the uncertified remainder the way it
+   handles every below-τ judgment: surfaced, no EV set — which the
+   veto law already agrees with (§6.3). No bridge change; the note
+   is so the first FP4 night's replay reads its winners correctly.
+
 *— the ecology-thor team*
