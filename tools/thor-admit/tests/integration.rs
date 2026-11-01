@@ -1294,7 +1294,8 @@ fn the_ledger_books_the_time_by_tier() {
     let unattributed = bucket["idle"]["unattributed_s"].as_f64().unwrap_or(-1.0);
     assert_eq!(
         unattributed, 0.0,
-        "some idle time had no cause the ledger could name: {bucket}"
+        "some idle time had no cause the ledger could name: {bucket}\nthe daemon's log:\n{}",
+        daemon.log()
     );
 
     let _ = live.kill();

@@ -1367,7 +1367,15 @@ impl Daemon {
         let mut running_tiers: Vec<Tier> = Vec::new();
         let mut preempted_tiers: Vec<Tier> = Vec::new();
         for lease in state.leases.iter() {
-            if lease.state == LeaseState::Active && !running_tiers.contains(&lease.tier) {
+            // A lease is booked from the **grant**, not from the client's
+            // confirmation. The memory is committed at the grant — that is
+            // exactly what the admission rule charges — and the client's
+            // "held" arrives a tick later, so counting only the confirmed
+            // leases would leave a sample of the box looking idle while a
+            // lease was already committed to it.
+            if matches!(lease.state, LeaseState::Granted | LeaseState::Active)
+                && !running_tiers.contains(&lease.tier)
+            {
                 running_tiers.push(lease.tier);
             }
         }
