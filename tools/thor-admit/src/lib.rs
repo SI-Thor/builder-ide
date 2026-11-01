@@ -14,6 +14,8 @@
 //! * [`procscan`] — the resident set of a process group, read from `/proc`.
 //! * [`admission`] — the rule: admit only if `available - peak >= floor`.
 //! * [`queue`] — the priority queue the rule drains.
+//! * [`backfill`] — EASY-style backfill: passing the head without delaying
+//!   its earliest possible start.
 //! * [`tier`] — the four tiers the work falls into.
 //! * [`presence`] — the registered work that runs when the box has room.
 //! * [`ledger`] — where the box's time went, and why it was idle.
@@ -25,6 +27,7 @@
 //! * [`client`] — the CLI's side of the protocol.
 
 pub mod admission;
+pub mod backfill;
 pub mod client;
 pub mod clock;
 pub mod daemon;

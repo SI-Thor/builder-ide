@@ -1351,3 +1351,233 @@ director's: stop the daemon and start it again from `~/lm-tools/thor-admit`
 the box while checking for leaks and left alone: pid 878521, started
 02:55 by the round-9 smoke test (`--socket sock`, cwd `/tmp/admit-smoke`,
 the shipped binary); it holds no live socket and can be stopped whenever.
+
+## 15. Round 11 (2026-11-01): the queue that could not pass, and the lease that would not give the memory back
+
+Round 10 was merged and the daemon ran its binary through the day. The
+day's log held one shape, repeated: the queue was not slow, it was
+**stuck**, and nothing in the old rule could unstuck it.
+
+**A note on this round's brief.** The three items below (backfill,
+coalescing, phase) were specified in a brief that is **not in this
+repository**: a pi seat was given it on the ProArt, worked on it here
+from about 09:30, and stopped when the Thor hung at 10:45. The brief
+itself could not be recovered from this box (`~/lm-wt/` holds only
+`thor-admit.round7.txt`; the seat's pull log holds no brief). The
+requirements were therefore **reconstructed from the seat's own work and
+its own comments**, which are unusually explicit, and every item below is
+checked against the day's log and the suite before it is claimed. Where
+the reconstruction was a guess, the guess is named.
+
+### 15.1 The shape of the failure, in the log
+
+Daemon 956421, 14:28:53Z → 17:17:25Z: **76 arrivals, 52 granted, 24
+still waiting when the window closed.** The queue was:
+
+* **#14 `serve.glide`, 58 GiB**, queued at 15:23:55Z at position 1. The
+  head. It never ran — not under the rule, not because the box was full:
+  35 GiB stood above the floor and the head needed 58.
+* **#17 `serve.glide`, 58 GiB**, at 15:27:06Z — the *same model*, three
+  minutes later, with its own 58 GiB promise. And **#37 `serve.glide`,
+  58 GiB**, at 15:47:06Z: the same model a third time. Three promises for
+  one server, one after another, none of them admitted.
+* **#11 `night-v3.heavy`, 40 GiB**, granted at 15:21:51Z and **never
+  released**: its client was alive, its work was done, and it held forty
+  gibibytes of the box for the rest of the window. Its own measured peak
+  was 0.2 GiB.
+* behind them, nineteen waiters, the small ones between 1.5 and 12 GiB,
+  none of them admitted, because the rule is strict FIFO: the head had to
+  fit before anything behind it was even considered.
+
+Every one of those is a rule problem, not a box problem. The box had
+room; the rule had no way to spend it.
+
+### 15.2 Backfill: a waiter may pass a head it cannot delay (EASY)
+
+Strict FIFO wastes a head that cannot fit. The **backfill** rule lets a
+waiter *behind* the head be admitted when two things hold:
+
+1. **it cannot delay the head's earliest possible start** — the head's
+   start is bounded by when the memory it waits for can exist, and a
+   smaller request that fits now does not move that moment;
+2. **the head's own wait is bounded** — `--backfill-max-head-wait`
+   (default **1800 s**), after which the head stops being protected and
+   the queue is plain FIFO again.
+
+The daemon does not guess: without an estimate of when the head could
+start, nothing passes it (`src/backfill.rs`). The guarantee is stated as
+a test and checked by the replay (§15.5): **a backfilling policy must
+never start the blocking head later than strict FIFO did.**
+
+Where it lives: `src/backfill.rs` (the rule, with eleven unit tests),
+`Daemon::admit` and `Daemon::backfill_pass` (the daemon), and the knobs
+`--no-backfill` / `--backfill-max-head-wait`. Tests:
+`a_small_request_backfills_past_a_blocked_head`,
+`the_heads_wait_bound_closes_the_backfill_window`.
+
+### 15.3 Coalescing: one promise for one server
+
+Two asks for the *same model* were two promises, and the second one
+blocked the box for as long as the first was waiting. The registry
+already keys a server on the model file and its flags (§13.3); the
+**coalesce key** is that same key, and two asks that carry it *while
+waiting* become **one waiter and one promise**. The follower is told
+(`Response::Coalesced`) which lease holds it, and reads the leader's
+port from the registry when it answers; it starts no server of its own.
+
+This is not the same as the registry: the registry answers "is there
+already a server for this model?" *after* one is up, and the coalesce
+key answers "is another ask for this model waiting?" *before* one is
+up — which is exactly the 2026-11-01 window, where the second and third
+`serve.glide` asks came while the first was still queued.
+
+Test: `two_identical_serve_asks_waiting_side_by_side_become_one_waiter`.
+
+### 15.4 Phase: a lease that changes phase gives the difference back
+
+`night-v3.heavy` held 40 GiB and used 0.2 GiB. That is not a queue
+problem; it is a *promise* problem, and the promise was the rule's unit
+of account.
+
+**`thor-admit phase`** changes a running lease's reservation:
+
+* **shrink** — always allowed, never below what the run has already
+  touched. The freed bytes are charged back at once, and the queue behind
+  it is admitted in the same tick;
+* **grow** — allowed only if the box has the room; a grow that does not
+  fit is refused with the numbers and the lease keeps the promise it has
+  (the memory is already spoken for).
+
+**The cue.** The daemon does not shrink a lease by itself — the work may
+legitimately spike later, and only the workload knows. It *names* the
+lease: a lease holding at least four times both its label's learned p95
+and its own measured peak, with 8 GiB of the promise still owed, for five
+minutes, is logged as `lease.overreserved` with the numbers and the peak
+it would suggest. Three ways to act on it:
+
+* `thor-admit status` now marks such a lease **over-reserved**, with the
+  peak it would fit in — the holder can see it without reading the log;
+* `thor-admit run` puts the lease's id in the command's environment as
+  `THOR_ADMIT_LEASE`, so the workload can phase itself
+  (`thor-admit phase "$THOR_ADMIT_LEASE" --peak 8G`);
+* the Python shim grew `phase(lease, peak)`, for a workload that already
+  holds its lease.
+
+Tests: `a_phase_shrink_frees_the_room_the_queue_is_waiting_for`,
+`a_phase_grow_that_does_not_fit_is_refused`,
+`a_lease_that_holds_far_more_than_it_uses_is_named_in_the_status`, and
+`run_leaves_the_lease_id_in_the_command_environment`.
+
+### 15.5 The replay: what each policy would have done
+
+`examples/replay.rs` replays the day's queue against a policy. It reads
+the daemon's own log (the arrivals, the grants, the releases, the
+memory samples) and the peak history, and it **validates itself against
+what really happened**: under strict FIFO the simulation reproduces **52
+of the 52 real grants with a median error of 2 s** (mean 32 s, max 435 s;
+44 of 52 within 30 s). The model is the daemon's own model — measured
+peak RSS, rectangular, each lease charged its whole promise.
+
+    policy                      granted  waiting  backfill  coalescd
+    fifo                             52       24         0         0
+    easy-900                         54       22         2         0
+    easy-1800                        54       22         2         0
+    easy-3600                        54       22         2         0
+    easy-1800+coalesce               54       19         2         3
+    fifo+coalesce+phase              68        6         0         2
+    easy-1800+coalesce+phase         68        6         3         2
+
+    the requests of 12 GiB or less (the class behind the blocking head)
+    policy                      granted  waiting       wait p50/p95/max
+    fifo                             48       17            0/1948/2777
+    easy-1800                        50       15            2/1948/2777
+    easy-1800+coalesce               50       14            2/1948/2777
+    fifo+coalesce+phase              59        5          417/3039/3325
+    easy-1800+coalesce+phase         59        5          514/3164/3323
+
+Reading it honestly:
+
+* **The head-delay guarantee holds everywhere.** Under FIFO the head was
+  never started; under every backfilling policy it was never started
+  either (and under the phase policies it started *earlier* than FIFO
+  could have managed — at 196 s after its arrival). No backfilling
+  policy pushed the head later.
+* **Backfill alone is a small win: two grants out of 76.** That is the
+  honest number. The two it added were small requests that fit under the
+  head. The bound matters too: the same policy with a 900 s bound and a
+  3600 s bound gave the same two, because the head's wait never came
+  near the bound.
+* **Coalescing removed three promises for one server** (`#17` and `#37`
+  became followers of `#14`).
+* **The phase cue is the lever**: 68 granted against 52, and 6 waiting
+  against 24. The mechanism is the one the day's log shows — the
+  40 GiB promise shrinks to what the label's runs really need, and the
+  58 GiB head fits at last (196 s).
+* **And it costs something.** Under the phase policies the *median* wait
+  of the small requests got **worse** (0 s → 514 s) and the worst wait
+  got worse (2777 s → 3323 s): the head got in, and then held the room.
+  More requests ran (59 of the small class against 48), but the ones that
+  waited, waited longer. A phase policy is not free, and a queue that
+  wants *both* wants the operator to choose.
+
+### 15.6 The limits, stated
+
+* The phase numbers **assume the holder answers the cue**. On
+  2026-11-01 nothing answered it — the cue did not exist — so the win is
+  available, not taken. The tool that takes it now exists (§15.4); the
+  seat scripts have to use it.
+* The backfill win is small **on this day**. It is the rule that would
+  have mattered on a day when a *small* head blocked the queue; on
+  2026-11-01 the head was the biggest request on the box.
+* The replay models the daemon, not the world: it assumes a lease's
+  memory is what it promised and that a run lasts as long as its history
+  says. The validation against the real FIFO run is what makes it worth
+  reading, and its median error is 2 s.
+
+### 15.7 The suite, and the one test that was measuring the wrong thing
+
+The suite is **41/41**, serial, 173 s, on a box with 71 GiB
+`MemAvailable` and other seats' work running. The heavy tests took the
+stopgap lock and ran for real.
+
+One test failed on the first run of the round and the failure was
+**worth more than the fix**. `three_thirty_gigabyte_hogs_are_serialised`
+asserts that the daemon's lease list never shows two 30 GiB hogs at
+once. It showed two. The daemon had done nothing wrong:
+
+* the grants were **plain FIFO** — no backfill was involved, and the
+  log has no `lease.backfilled` in it;
+* the first hog's *pages* came back about a second before the client
+  processed its release, so `MemAvailable` rose by the hog's full 30 GiB
+  while its lease was still listed; the second hog was then admitted
+  **lawfully** — its grant cleared the floor (38.62 GiB above a 36.59 GiB
+  floor), and the box never went below the allowed line (41.61 GiB free
+  against a 37.59 GiB allowance).
+
+The test was measuring a *proxy* (the lease list) for a claim about the
+*box* (two hogs' worth of memory at once). The +10 GiB margin that
+keeps the claim honest was sized for a co-tenant dropping up to 25 GiB;
+the test's own predecessor drops 30. The test now checks the claim
+where the daemon makes it — **every grant cleared the floor**, read from
+the daemon's own log — and reports the lease count instead of asserting
+it. The same failure was seen on 2026-11-01, with an eleven GiB
+co-tenant; the comment in the test already said so.
+
+### 15.8 The binary, shipped; the swap is the director's
+
+The release binary is at `~/lm-tools/thor-admit`, written to a temp file
+and moved into place, so the live daemon (pid 5464, on the old inode)
+keeps what it opened. **The swap is the director's**, and this round
+*does* change what the box does when the daemon is next restarted:
+
+* **backfill is on by default** (`--no-backfill` turns it off, and
+  `--backfill-max-head-wait` bounds the head's protection). It is the
+  policy the replay measures, and the head-delay guarantee is checked
+  there;
+* **serve asks for the same model now coalesce**, so two seats asking
+  for one model share one promise;
+* **leases can be phased**, and the daemon names the ones that should be.
+
+None of it needs a restart to be *safe* — the old daemon keeps the old
+rule and is not wrong, only stuck. Restart it at a moment with no leases
+to lose.

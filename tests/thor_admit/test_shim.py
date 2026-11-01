@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from thor_admit import LeaseRejected, lease, register_presence, socket_path
+from thor_admit import LeaseRejected, lease, phase, register_presence, socket_path
 
 REPO = Path(__file__).resolve().parents[2]
 CRATE = REPO / "tools" / "thor-admit"
@@ -238,6 +238,36 @@ def test_a_lease_without_a_tier_is_live(daemon: Daemon):
         leases = daemon.status()["leases"]
         assert len(leases) == 1
         assert leases[0]["tier"] == "live"
+
+
+@needs_binary
+def test_a_lease_can_give_memory_back_while_it_runs(daemon: Daemon):
+    # The work changed phase: the lease reserved 8G and now needs 1G, and
+    # the difference goes back to the box at once.
+    with lease("8G", "shim-phase", socket_path_override=daemon.socket) as held:
+        leases = daemon.status()["leases"]
+        assert leases[0]["peak_bytes"] == 8 * 1024**3
+
+        phase(held, "1G", socket_path_override=daemon.socket)
+
+        leases = daemon.status()["leases"]
+        assert leases[0]["peak_bytes"] == 1024**3, "the reservation did not shrink"
+        # The lease is still the lease: the id did not change.
+        assert leases[0]["lease"] == held.lease_id
+
+
+@needs_binary
+def test_a_grow_the_box_has_no_room_for_is_refused(daemon: Daemon):
+    # The box has 122 GiB. A grow to 500 GiB cannot fit, whatever else is
+    # running, so the daemon refuses it and the lease keeps the promise it
+    # has — it does not promise what it cannot keep.
+    with lease("1G", "shim-grow", socket_path_override=daemon.socket) as held:
+        with pytest.raises(LeaseRejected) as refusal:
+            phase(held, "500G", socket_path_override=daemon.socket)
+        assert "room" in str(refusal.value), str(refusal.value)
+
+        leases = daemon.status()["leases"]
+        assert leases[0]["peak_bytes"] == 1024**3, "a refused grow changed the lease"
 
 
 @needs_binary

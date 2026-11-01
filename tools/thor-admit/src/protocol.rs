@@ -103,6 +103,14 @@ pub enum Request {
         #[serde(default)]
         tier: Tier,
         target: TargetSpec,
+        /// The coalescing key, set only by `thor-admit serve`: identical
+        /// serve requests waiting side by side become one waiter (round 11).
+        /// An opaque string — the daemon compares it for equality and
+        /// understands nothing else about it; the serve client builds it
+        /// from the model file and the command's flags, the same key the
+        /// registry uses. `None` (every other client) never coalesces.
+        #[serde(default)]
+        coalesce: Option<String>,
     },
     /// The client holds the lease's lock now.
     Held { lease: u64 },
@@ -124,6 +132,17 @@ pub enum Request {
         /// history nothing (see `PeakRecord::teaches`).
         #[serde(default)]
         exit_code: Option<i32>,
+    },
+    /// Change a running lease's reservation: the work changed phase.
+    ///
+    /// A lease that reserved far above its use may shrink (the freed bytes
+    /// return to the headroom at once), and a lease that knows it needs
+    /// more may grow — but only if the box has the room, so a grow that
+    /// does not fit is refused and the lease keeps the reservation it has
+    /// (`thor-admit phase`, round 11).
+    Phase {
+        lease: u64,
+        peak: PeakArg,
     },
     /// Register a job in the presence queue.
     PresenceAdd {
@@ -177,6 +196,21 @@ pub struct LeaseReport {
     pub age_s: f64,
     pub pid: i32,
     pub pgid: i32,
+    /// The lease is holding far more than it uses: at least four times both
+    /// its label's learned peak and its own measured peak, with 8 GiB of the
+    /// promise still owed. The daemon names such a lease in the log
+    /// (`lease.overreserved`); `thor-admit phase` is the answer, and this
+    /// flag is how the holder learns it without reading the log.
+    ///
+    /// The default keeps a **new client readable against an old daemon**:
+    /// the fields are the round-11 additions, and a client that asks an
+    /// older daemon for its status must still read the answer.
+    #[serde(default)]
+    pub over_reserved: bool,
+    /// The peak the daemon would suggest for an over-reserved lease: the
+    /// larger of the label's learned p95 and the lease's measured peak.
+    #[serde(default)]
+    pub suggested_peak_bytes: u64,
 }
 
 /// One waiter, as the status shows it.
@@ -187,6 +221,12 @@ pub struct QueueReport {
     pub peak_bytes: u64,
     pub priority: i32,
     pub waiting_s: f64,
+    /// How many identical (coalesced) serve requests are waiting behind
+    /// this one waiter. Zero for everything but a coalescing serve waiter;
+    /// the queue's depth counts waiters, not askers, so two seats asking
+    /// for the same server are one waiter with `coalesced: 1` (round 11).
+    #[serde(default)]
+    pub coalesced: usize,
 }
 
 /// Everything the status shows.
@@ -263,6 +303,14 @@ pub enum Response {
         floor_bytes: u64,
         available_bytes: u64,
     },
+    /// The request was coalesced into a lease that is being granted to
+    /// another client: the same server, starting under lease `lease`.
+    ///
+    /// The asker should run nothing and wait for the server it asked for
+    /// to answer (the serve client polls the registry, which the starting
+    /// server's client records the moment its port answers). It arrives
+    /// only to a request that sent a `coalesce` key.
+    Coalesced { lease: u64, label: String },
     /// The request cannot be served.
     Rejected { reason: String },
     /// Something went wrong.
@@ -307,6 +355,7 @@ impl Response {
         match self {
             Response::Queued { .. } => "queued",
             Response::Granted { .. } => "granted",
+            Response::Coalesced { .. } => "coalesced",
             Response::Rejected { .. } => "rejected",
             Response::Error { .. } => "error",
             Response::Status(_) => "status",
@@ -324,6 +373,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_lease_report_from_an_older_daemon_still_reads() {
+        // The shape a daemon that predates the phase op wrote: no
+        // `over_reserved`, no `suggested_peak_bytes`. A new client asking an
+        // older daemon for its status must still read the answer — the
+        // swap window is exactly when that happens.
+        let text = r#"{"lease":6,"label":"trellis","peak_bytes":1024,
+                       "current_rss_bytes":512,"peak_rss_bytes":512,"peak_gpu_bytes":0,
+                       "priority":0,"tier":"live","age_s":3.0,"pid":42,"pgid":42}"#;
+        let report: LeaseReport = serde_json::from_str(text).unwrap();
+        assert!(!report.over_reserved);
+        assert_eq!(report.suggested_peak_bytes, 0);
+    }
+
+    #[test]
     fn a_request_round_trips() {
         let request = Request::Acquire {
             label: "trellis".to_string(),
@@ -331,6 +394,7 @@ mod tests {
             priority: 3,
             tier: Tier::Live,
             target: TargetSpec::Group { pgid: 1234 },
+            coalesce: None,
         };
         let text = serde_json::to_string(&request).unwrap();
         assert!(text.contains("\"op\":\"acquire\""));
@@ -347,12 +411,63 @@ mod tests {
             priority: 0,
             tier: Tier::Study,
             target: TargetSpec::Process { pid: 7 },
+            coalesce: None,
         };
         let text = serde_json::to_string(&request).unwrap();
         assert!(text.contains("\"peak\":\"auto\""));
         assert!(text.contains("\"tier\":\"study\""));
         let back: Request = serde_json::from_str(&text).unwrap();
         assert_eq!(back, request);
+    }
+
+    #[test]
+    fn a_serve_request_carries_its_coalescing_key() {
+        let request = Request::Acquire {
+            label: "serve.glide".to_string(),
+            peak: PeakArg::Bytes(62_277_025_792),
+            priority: 0,
+            tier: Tier::Live,
+            target: TargetSpec::Group { pgid: 9 },
+            coalesce: Some("file:/models/glide.gguf:abc123|--host 127.0.0.1".to_string()),
+        };
+        let text = serde_json::to_string(&request).unwrap();
+        assert!(text.contains("\"coalesce\":\"file:"), "{text}");
+        let back: Request = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, request);
+    }
+
+    #[test]
+    fn a_coalesced_answer_round_trips() {
+        let response = Response::Coalesced {
+            lease: 14,
+            label: "serve.glide".to_string(),
+        };
+        let text = serde_json::to_string(&response).unwrap();
+        assert!(text.contains("\"event\":\"coalesced\""));
+        let back: Response = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, response);
+    }
+
+    #[test]
+    fn a_phase_request_round_trips() {
+        let request = Request::Phase {
+            lease: 11,
+            peak: PeakArg::Bytes(5_000_000_000),
+        };
+        let text = serde_json::to_string(&request).unwrap();
+        assert!(text.contains("\"op\":\"phase\""));
+        let back: Request = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, request);
+    }
+
+    #[test]
+    fn a_queue_report_without_the_coalesced_count_still_reads() {
+        // The shape an older reader of the status wrote: no `coalesced`
+        // field. It reads as zero.
+        let text = r#"{"position":1,"label":"serve.glide","peak_bytes":1,
+                       "priority":0,"waiting_s":12.0}"#;
+        let report: QueueReport = serde_json::from_str(text).unwrap();
+        assert_eq!(report.coalesced, 0);
     }
 
     #[test]

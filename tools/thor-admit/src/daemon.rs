@@ -29,6 +29,7 @@ use std::time::{Duration, Instant};
 use serde_json::json;
 
 use crate::admission::{Admission, LeaseMemory};
+use crate::backfill::{self, Running};
 use crate::clock;
 use crate::flow::{self, FlowSignal};
 use crate::gpu::{GpuProbe, GpuSample};
@@ -102,6 +103,33 @@ pub const DEFAULT_STARTUP_TIMEOUT: Duration = Duration::from_secs(15);
 /// still survived (Hy4's second failure mode: the p95 reserved too little,
 /// the box blew through the emergency floor before the watchdog could act).
 pub const MIN_AUTO_RUNS: usize = 3;
+/// The default bound on the head's wait under backfill: once the head of
+/// the queue has waited this long, nothing more may pass it.
+///
+/// The no-delay rule is only as good as its duration estimates, and the
+/// estimates come from a history that can be wrong by hours — the one
+/// clean `serve.glide` run lasted 2 874 s while the box's real servers
+/// run for days. The bound is the safety valve: whatever was already
+/// admitted inside the window is the worst a wrong estimate can cost the
+/// head, and after it the queue is strict again, so the next room that
+/// appears is the head's. Thirty minutes is twice the daemon's own
+/// idle-exit convention — long enough to drain the 1.5–12 GiB requests
+/// behind the 2026-11-01 head for half an hour of arrivals, short enough
+/// that a starving head is not starved twice over. The replay of that
+/// queue (`examples/replay.rs`) measures the trade.
+pub const DEFAULT_BACKFILL_MAX_HEAD_WAIT: Duration = Duration::from_secs(1800);
+/// How much a running lease must be reserving above both its use and its
+/// label's learned p95 before the over-reservation watch will speak:
+/// `reserved >= factor × max(learned_p95, peak_rss)` and at least
+/// [`OVERRESERVED_MIN_GAP`] of it still owed.
+const OVERRESERVED_FACTOR: u64 = 4;
+/// The least un-promised memory an over-reserved lease must be holding
+/// before the watch speaks: 8 GiB, the size of a real second workload.
+const OVERRESERVED_MIN_GAP: u64 = 8 * 1024 * 1024 * 1024;
+/// How long the over-reservation condition must hold before it is logged:
+/// a lease that reserved 40 GiB and is using 0.2 GiB *for long stretches*
+/// is the cue; a lease ramping up through its first minute is not.
+const OVERRESERVED_AFTER: Duration = Duration::from_secs(300);
 /// How much a running lease must grow beyond what it has already over-run
 /// before another interim peak is written.
 const OVERRUN_WRITE_STEP: u64 = 512 * 1024 * 1024;
@@ -205,6 +233,15 @@ pub struct Config {
     /// changes and records it in the ledger's hour; it computes nothing and
     /// decides nothing from it (see `flow`).
     pub flow_file: PathBuf,
+    /// Run EASY-style backfill: a request may pass the head of the queue
+    /// when it cannot delay the head's earliest possible start, estimated
+    /// from the history's durations (round 11). `--no-backfill` restores
+    /// the strict head-of-line order of §2.2.
+    pub backfill: bool,
+    /// The bound on the head's wait: once the head has waited this long,
+    /// nothing more may pass it (`--backfill-max-head-wait`; 0 disables the
+    /// bound, not the backfill).
+    pub backfill_max_head_wait: Duration,
 }
 
 impl Default for Config {
@@ -236,6 +273,8 @@ impl Default for Config {
             startup_timeout: DEFAULT_STARTUP_TIMEOUT,
             tegrastats_command: None,
             flow_file: default_state_dir().join("flow.json"),
+            backfill: true,
+            backfill_max_head_wait: DEFAULT_BACKFILL_MAX_HEAD_WAIT,
         }
     }
 }
@@ -317,6 +356,19 @@ struct Lease {
     terminated_at: Option<Instant>,
     /// The watchdog has escalated to `SIGKILL` after the grace period.
     killed: bool,
+    /// When the over-reservation condition (§ the phase op, round 11) was
+    /// first seen holding for this lease: the cue is logged only after it
+    /// has held for [`OVERRESERVED_AFTER`], and `None` means the lease is
+    /// not currently far above its use and its learned peak.
+    overreserved_since: Option<Instant>,
+    /// The over-reservation cue has been logged for the current sustained
+    /// stretch (it resets with the condition, so a lease that dips under
+    /// the line and comes back is named again).
+    overreserved_logged: bool,
+    /// The peak the daemon would suggest for this lease if it were asked to
+    /// phase it: the larger of the label's learned p95 and the lease's own
+    /// measured peak. It is only meaningful while the lease is over-reserved.
+    overreserved_reference: u64,
 }
 
 impl Lease {
@@ -343,8 +395,26 @@ struct AcquireRequest {
     priority: i32,
     tier: Tier,
     target: TargetSpec,
+    /// The coalescing key, when the asker is `thor-admit serve` and an
+    /// identical ask is already waiting: identical serve requests side by
+    /// side become one waiter (round 11).
+    coalesce: Option<String>,
     /// The asking client's pid, from the socket's credentials.
     client_pid: i32,
+}
+
+/// A second asker attached to a waiter that carries its coalescing key.
+///
+/// The follower wants the same server the leader wants: it holds no memory
+/// of its own, it is granted nothing, and when the leader's lease is
+/// granted it is told which lease to wait for ([`Response::Coalesced`]). It
+/// carries its own target and pid, because if the leader's client goes away
+/// first, the earliest follower is promoted into the leader's place and its
+/// target is what the granted lease must cover.
+struct Follower {
+    client_pid: i32,
+    target: TargetSpec,
+    reply: Sender<Response>,
 }
 
 /// What a client asked for when it registered a presence job.
@@ -449,6 +519,13 @@ struct State {
     client_pids: HashMap<u64, i32>,
     /// When each waiting request arrived.
     waiting_since: HashMap<u64, Instant>,
+    /// The coalescing key each waiting request arrived with, when it arrived
+    /// with one: only `serve` asks carry a key, and a new ask with the key
+    /// of a waiter already in the queue joins that waiter as a follower
+    /// instead of adding a second waiter (round 11).
+    coalesce_keys: HashMap<u64, String>,
+    /// The followers attached to each coalescing waiter, in arrival order.
+    followers: HashMap<u64, Vec<Follower>>,
     /// Requests that arrived and are not handled yet: the request, the
     /// client that sent it (its pid, from the socket's credentials), and
     /// where the answer goes.
@@ -470,6 +547,9 @@ struct State {
     /// The waiters the GPU's own pool is holding up, so each is logged once
     /// rather than every sample.
     gpu_blocked: std::collections::HashSet<u64>,
+    /// The heads whose wait has crossed the backfill bound and been named
+    /// in the log for it, once each.
+    backfill_bounded: std::collections::HashSet<u64>,
     /// The flow signal as last published, when a publisher is speaking.
     flow: Option<FlowSignal>,
     /// The size and the modification time of the flow file when it was last
@@ -588,6 +668,8 @@ impl Daemon {
             targets: HashMap::new(),
             client_pids: HashMap::new(),
             waiting_since: HashMap::new(),
+            coalesce_keys: HashMap::new(),
+            followers: HashMap::new(),
             inbox: Vec::new(),
             next_id: 1,            mem: MemInfo::read().unwrap_or_default(),
             gpu: GpuSample::default(),
@@ -605,6 +687,7 @@ impl Daemon {
             ledger: Ledger::new(&config.ledger),
             last_cpu_read: Instant::now(),
             gpu_blocked: std::collections::HashSet::new(),
+            backfill_bounded: std::collections::HashSet::new(),
             flow: None,
             flow_stamp: None,
         };
@@ -697,6 +780,8 @@ impl Daemon {
                 "mem_total_bytes": mem_total,
                 "history": self.config.history.display().to_string(),
                 "flow_file": self.config.flow_file.display().to_string(),
+                "backfill": self.config.backfill,
+                "backfill_max_head_wait_s": self.config.backfill_max_head_wait.as_secs_f64(),
             }),
         );
 
@@ -808,6 +893,7 @@ impl Daemon {
                 let terminal = matches!(
                     response,
                     Response::Granted { .. }
+                        | Response::Coalesced { .. }
                         | Response::Rejected { .. }
                         | Response::Error { .. }
                         | Response::Status(_)
@@ -869,6 +955,7 @@ impl Daemon {
                     priority,
                     tier,
                     target,
+                    coalesce,
                 } => self.register_acquire(
                     &mut state,
                     AcquireRequest {
@@ -877,10 +964,15 @@ impl Daemon {
                         priority,
                         tier,
                         target,
+                        coalesce,
                         client_pid: peer,
                     },
                     reply,
                 ),
+                Request::Phase { lease, peak } => {
+                    let answer = self.phase_lease(&mut state, lease, peak);
+                    let _ = reply.send(answer);
+                }
                 Request::Held { lease } => {
                     if let Some(found) = state.leases.iter_mut().find(|l| l.id == lease) {
                         found.state = LeaseState::Active;
@@ -983,7 +1075,16 @@ impl Daemon {
         if has_work && (state.samples % scan_every == 0 || urgent) {
             let procs = procscan::scan();
             let gpu = state.gpu.clone();
+            // The label's learned p95, for the over-reservation watch: a
+            // lease far above both its own use and its label's history is
+            // the cue the phase op exists to answer.
+            let learned: HashMap<u64, Option<u64>> = state
+                .leases
+                .iter()
+                .map(|lease| (lease.id, state.history.p95(&lease.label)))
+                .collect();
             let mut overruns = Vec::new();
+            let mut overreserved = Vec::new();
             for lease in state.leases.iter_mut() {
                 let usage = procscan::usage_for(target_of(lease.target), &procs);
                 lease.current_rss = usage.rss_bytes;
@@ -1009,6 +1110,48 @@ impl Daemon {
                         lease.peak_gpu,
                     ));
                     lease.overrun_written = lease.peak_rss;
+                }
+                // The over-reservation watch, the phase op's cue (round 11):
+                // a lease holding at least four times both its label's
+                // learned p95 and its own measured peak, with 8 GiB of the
+                // promise still owed, for five minutes, is far above its use
+                // — and the freed difference is exactly the room the queue
+                // is waiting for. The daemon does not shrink the lease
+                // itself (the work may legitimately spike later); it names
+                // the lease, the numbers, and the phase peak it would
+                // suggest, and the night runner — or the workload, through
+                // THOR_ADMIT_LEASE — decides.
+                let reference = learned
+                    .get(&lease.id)
+                    .copied()
+                    .flatten()
+                    .unwrap_or(0)
+                    .max(lease.peak_rss);
+                let owed = lease.peak_bytes.saturating_sub(lease.current_rss);
+                let far_above = lease.peak_bytes >= OVERRESERVED_FACTOR * reference.max(1)
+                    && owed >= OVERRESERVED_MIN_GAP;
+                if far_above {
+                    if lease.overreserved_since.is_none() {
+                        lease.overreserved_since = Some(Instant::now());
+                    }
+                    lease.overreserved_reference = reference;
+                } else {
+                    lease.overreserved_since = None;
+                    lease.overreserved_logged = false;
+                    lease.overreserved_reference = 0;
+                }
+                if let Some(since) = lease.overreserved_since {
+                    if since.elapsed() >= OVERRESERVED_AFTER && !lease.overreserved_logged {
+                        lease.overreserved_logged = true;
+                        overreserved.push((
+                            lease.id,
+                            lease.label.clone(),
+                            lease.peak_bytes,
+                            lease.current_rss,
+                            reference,
+                            since.elapsed().as_secs_f64(),
+                        ));
+                    }
                 }
             }
             for job in state.presence.running.iter_mut() {
@@ -1038,6 +1181,27 @@ impl Daemon {
                 if let Err(error) = state.history.append(record) {
                     self.log_event("history.write_failed", json!({"error": error.to_string()}));
                 }
+            }
+            for (id, label, reserved, current, reference, held_s) in overreserved {
+                let runs = state.history.runs(&label);
+                self.log_event(
+                    "lease.overreserved",
+                    json!({
+                        "lease": id,
+                        "label": label,
+                        "reserved_bytes": reserved,
+                        "current_rss_bytes": current,
+                        "owed_bytes": reserved.saturating_sub(current),
+                        "learned_p95_bytes": if runs > 0 { Some(reference) } else { None },
+                        "learned_runs": runs,
+                        "held_s": held_s,
+                        "suggest": format!(
+                            "thor-admit phase {id} --peak {}",
+                            crate::sizes::human(reference.max(current))
+                        ),
+                        "mem_available_bytes": state.mem.mem_available,
+                    }),
+                );
             }
         }
 
@@ -1162,6 +1326,7 @@ impl Daemon {
             priority,
             tier,
             target,
+            coalesce,
             client_pid,
         } = request;
         let peak_bytes = match peak {
@@ -1174,6 +1339,70 @@ impl Daemon {
                 }
             },
         };
+
+        // Identical serve requests waiting side by side become one waiter
+        // (round 11). Two seats asked for the same model within three
+        // minutes on 2026-11-01 and the queue held two 58 GiB promises for
+        // one server; the second ask now joins the first as a follower —
+        // no second waiter, no second promise — and when the leader's lease
+        // is granted the follower is told which lease to wait for.
+        if let Some(key) = coalesce.as_deref() {
+            let leader = state
+                .queue
+                .iter()
+                .find(|waiter| {
+                    state.coalesce_keys.get(&waiter.id).map(String::as_str) == Some(key)
+                })
+                .map(|waiter| waiter.id);
+            if let Some(leader) = leader {
+                // The same command under the same flags asks for the same
+                // peak; if the asks disagree, the larger promise is the
+                // safe one to hold.
+                let (label, position, raised) = {
+                    let waiter = state
+                        .queue
+                        .iter_mut()
+                        .find(|waiter| waiter.id == leader)
+                        .expect("the leader was just found in the queue");
+                    let raised = peak_bytes > waiter.peak_bytes;
+                    waiter.peak_bytes = waiter.peak_bytes.max(peak_bytes);
+                    (
+                        waiter.label.clone(),
+                        state.queue.position(leader).unwrap_or(0),
+                        raised,
+                    )
+                };
+                self.log_event(
+                    "lease.coalesced",
+                    json!({
+                        "lease": leader,
+                        "label": label,
+                        "key": key,
+                        "follower_pid": client_pid,
+                        "peak_bytes": peak_bytes,
+                        "raised": raised,
+                        "position": position,
+                    }),
+                );
+                let queued = reply.send(Response::Queued {
+                    position,
+                    waiting: state.queue.len(),
+                    available_bytes: state.mem.mem_available,
+                });
+                if queued.is_ok() {
+                    state
+                        .followers
+                        .entry(leader)
+                        .or_default()
+                        .push(Follower {
+                            client_pid,
+                            target,
+                            reply,
+                        });
+                }
+                return;
+            }
+        }
 
         let id = state.next_id;
         state.next_id += 1;
@@ -1195,6 +1424,9 @@ impl Daemon {
         state.targets.insert(id, target);
         state.client_pids.insert(id, client_pid);
         state.waiting_since.insert(id, Instant::now());
+        if let Some(key) = coalesce {
+            state.coalesce_keys.insert(id, key);
+        }
         let position = state.queue.position(id).unwrap_or(0);
         self.log_event(
             "lease.queued",
@@ -1216,13 +1448,42 @@ impl Daemon {
             .is_err()
         {
             // The client went away before we could tell it anything.
-            state.queue.remove(id);
-            state.waiters.remove(&id);
-            state.targets.remove(&id);
-            state.client_pids.remove(&id);
-            state.waiting_since.remove(&id);
-            state.gpu_blocked.remove(&id);
+            self.drop_waiter(state, id, "the client was gone before it was queued");
         }
+    }
+
+    /// Take a waiter out of the queue and forget everything attached to it.
+    ///
+    /// A coalescing waiter with followers promotes the earliest follower
+    /// into the leader's place first — the waiter keeps its identity and
+    /// its position, and the promoted follower's target and pid become the
+    /// lease's when the grant comes — so "one waiter" stays true even when
+    /// the seat that asked first goes away.
+    fn drop_waiter(&self, state: &mut State, id: u64, reason: &str) {
+        let followers = state.followers.remove(&id).unwrap_or_default();
+        let mut iter = followers.into_iter();
+        if let Some(promoted) = iter.next() {
+            state.client_pids.insert(id, promoted.client_pid);
+            state.targets.insert(id, promoted.target);
+            state.waiters.insert(id, promoted.reply);
+            let rest: Vec<Follower> = iter.collect();
+            let remaining = rest.len();
+            if !rest.is_empty() {
+                state.followers.insert(id, rest);
+            }
+            self.log_event(
+                "lease.coalesce_promoted",
+                json!({"lease": id, "reason": reason, "remaining": remaining}),
+            );
+            return;
+        }
+        state.queue.remove(id);
+        state.waiters.remove(&id);
+        state.targets.remove(&id);
+        state.client_pids.remove(&id);
+        state.waiting_since.remove(&id);
+        state.coalesce_keys.remove(&id);
+        state.gpu_blocked.remove(&id);
     }
 
     /// The admission rule as it stands right now: the memory rule, plus the
@@ -1248,10 +1509,12 @@ impl Daemon {
         }
     }
 
-    /// Admit whatever fits, in the queue's order.
+    /// Admit whatever fits: the head first, as always, and then — when the
+    /// head cannot fit — whatever behind it can pass the head without
+    /// delaying it (round 11).
     fn admit(&self, state: &mut State) {
         loop {
-            let Some(waiter) = state.queue.peek().cloned() else {
+            let Some(head) = state.queue.peek().cloned() else {
                 return;
             };
             let leases = self.charged_memory(state);
@@ -1259,75 +1522,231 @@ impl Daemon {
             // A waiter that fits the memory rule but not the GPU's own pool
             // is waiting for a *different* thing, and the log should say so
             // once rather than every 250 ms.
-            if admission.admits(&leases, waiter.peak_bytes)
-                && !admission.gpu_admits(waiter.peak_gpu)
-                && state.gpu_blocked.insert(waiter.id)
+            if admission.admits(&leases, head.peak_bytes)
+                && !admission.gpu_admits(head.peak_gpu)
+                && state.gpu_blocked.insert(head.id)
             {
                 self.log_event(
                     "lease.waiting_for_gpu_memory",
                     json!({
-                        "lease": waiter.id,
-                        "label": waiter.label,
+                        "lease": head.id,
+                        "label": head.label,
                         "gpu_free_bytes": state.gpu.largest_free_block,
                         "gpu_floor_bytes": self.config.gpu_floor,
-                        "label_gpu_peak_bytes": waiter.peak_gpu,
+                        "label_gpu_peak_bytes": head.peak_gpu,
                         "gpu_source": state.gpu_source,
                     }),
                 );
             }
-            if !admission.admits_lease(&leases, waiter.peak_bytes, waiter.peak_gpu) {
+            if admission.admits_lease(&leases, head.peak_bytes, head.peak_gpu) {
+                state.gpu_blocked.remove(&head.id);
+                state.backfill_bounded.remove(&head.id);
+                let waiter = state.queue.pop().expect("the queue had a waiter");
+                self.grant_waiter(state, waiter, None);
+                continue;
+            }
+            // The head does not fit. Before round 11 that was the whole
+            // answer — the 2026-11-01 queue held 1.5–12 GiB requests behind
+            // a 58 GiB `serve.glide` promise for about two hours while
+            // ~35 GiB stood above the floor. Now the waiters behind the
+            // head are considered, and one may pass the head when it cannot
+            // delay the head's earliest possible start.
+            if !self.config.backfill {
                 return;
             }
+            self.note_backfill_bound(state, &head);
+            let Some(id) = self.backfill_pass(state, &head) else {
+                return;
+            };
+            let waiter = state.queue.remove(id).expect("the queue held the waiter");
             state.gpu_blocked.remove(&waiter.id);
-            let waiter = state.queue.pop().expect("the queue had a waiter");
-            let reply = state.waiters.remove(&waiter.id);
-            state.waiting_since.remove(&waiter.id);
+            self.grant_waiter(state, waiter, Some(head));
+        }
+    }
+
+    /// Name, once per head, the moment the head's wait bound closes the
+    /// passing window: after it the queue is strict again, and an operator
+    /// reading the log should not have to infer that from the grants
+    /// stopping.
+    fn note_backfill_bound(&self, state: &mut State, head: &Waiter) {
+        let bound = self.config.backfill_max_head_wait;
+        if bound.is_zero() {
+            return;
+        }
+        let Some(since) = state.waiting_since.get(&head.id) else {
+            return;
+        };
+        if since.elapsed() < bound || !state.backfill_bounded.insert(head.id) {
+            return;
+        }
+        self.log_event(
+            "lease.backfill_bounded",
+            json!({
+                "lease": head.id,
+                "label": head.label,
+                "waited_s": since.elapsed().as_secs_f64(),
+                "bound_s": bound.as_secs_f64(),
+                "behind": state.queue.len().saturating_sub(1),
+            }),
+        );
+    }
+
+    /// The first waiter behind the head that may pass it.
+    ///
+    /// A candidate must fit the rules as they stand (the memory rule, and
+    /// the GPU's own pool when the label has held device memory), *and*
+    /// satisfy the no-delay rule with a duration estimate of its own — and
+    /// the head's wait must still be inside the bound. Candidates are read
+    /// in queue order, so a higher-priority waiter is considered before a
+    /// lower one, and the first that may pass is the one that passes: the
+    /// caller grants it and asks again.
+    fn backfill_pass(&self, state: &State, head: &Waiter) -> Option<u64> {
+        if state.queue.len() < 2 {
+            return None;
+        }
+        let head_waited_s = state
+            .waiting_since
+            .get(&head.id)
+            .map(|since| since.elapsed().as_secs_f64())
+            .unwrap_or(0.0);
+        let leases = self.charged_memory(state);
+        let admission = self.admission_now(state);
+        let projected_now = admission.projected_available(&leases);
+        let running = self.running_for_backfill(state);
+        let bound_s = self.config.backfill_max_head_wait.as_secs_f64();
+        for waiter in state.queue.iter().skip(1) {
+            if !admission.admits_lease(&leases, waiter.peak_bytes, waiter.peak_gpu) {
+                // It does not fit at all; a smaller one behind it may.
+                continue;
+            }
+            let remaining_s = state.history.duration_p95(&waiter.label);
+            if backfill::may_backfill(
+                head.peak_bytes,
+                self.config.floor,
+                projected_now,
+                &running,
+                waiter.peak_bytes,
+                remaining_s,
+                head_waited_s,
+                bound_s,
+            ) {
+                return Some(waiter.id);
+            }
+        }
+        None
+    }
+
+    /// What is running, as the backfill rule sees it: each lease's promise
+    /// and its estimated remaining time. The estimate is the label's
+    /// duration p95 minus the time already run — and a lease that has
+    /// **outlasted its estimate** has none: the number was demonstrated
+    /// wrong (`night-v3.heavy` ran two hours against a 74 s p95 on
+    /// 2026-11-01), and the reservation treats such a lease as never
+    /// releasing rather than pretending it ends now. A head blocked by one
+    /// has no start that can be promised, which is precisely the case in
+    /// which a fitting candidate cannot delay it.
+    fn running_for_backfill(&self, state: &State) -> Vec<Running> {
+        let elapsed = |started: Instant| started.elapsed().as_secs_f64();
+        let mut running: Vec<Running> = state
+            .leases
+            .iter()
+            .map(|lease| Running {
+                reserved: lease.peak_bytes,
+                remaining_s: state
+                    .history
+                    .duration_p95(&lease.label)
+                    .filter(|estimate| *estimate > elapsed(lease.granted_at)),
+            })
+            .collect();
+        running.extend(state.presence.running.iter().map(|job| {
+            let (label, reserved) = state
+                .presence
+                .queue
+                .get(job.id)
+                .map(|registered| {
+                    (registered.spec.label.clone(), registered.spec.peak_bytes)
+                })
+                .unwrap_or_default();
+            Running {
+                reserved,
+                remaining_s: state
+                    .history
+                    .duration_p95(&label)
+                    .filter(|estimate| *estimate > elapsed(job.started_at)),
+            }
+        }));
+        running
+    }
+
+    /// Grant a waiter its lease: pop it into existence, tell its client,
+    /// and — when the waiter was coalescing — tell every follower which
+    /// lease holds the server they asked for.
+    ///
+    /// The askers are tried in order (the leader first, then the followers
+    /// in arrival order): the first whose channel still takes the grant is
+    /// the client the lease belongs to, with that asker's target and pid.
+    /// The askers after it are waiting for the same server, and each is
+    /// answered with [`Response::Coalesced`] — they run nothing and wait
+    /// for the port.
+    fn grant_waiter(&self, state: &mut State, waiter: Waiter, passed_head: Option<Waiter>) {
+        let reply = state.waiters.remove(&waiter.id);
+        state.waiting_since.remove(&waiter.id);
+        state.coalesce_keys.remove(&waiter.id);
+        let followers = state.followers.remove(&waiter.id).unwrap_or_default();
+        let lock_path = self
+            .config
+            .state_dir
+            .join("leases")
+            .join(format!("{}.lock", waiter.id));
+
+        if let Some(head) = passed_head.as_ref() {
+            let leases = self.charged_memory(state);
+            let admission = self.admission_now(state);
+            let running = self.running_for_backfill(state);
+            let projected_now = admission.projected_available(&leases);
+            let head_start = backfill::earliest_head_start(
+                projected_now,
+                head.peak_bytes,
+                self.config.floor,
+                &running,
+            );
+            self.log_event(
+                "lease.backfilled",
+                json!({
+                    "lease": waiter.id,
+                    "label": waiter.label,
+                    "peak_bytes": waiter.peak_bytes,
+                    "head_lease": head.id,
+                    "head_label": head.label,
+                    "head_peak_bytes": head.peak_bytes,
+                    "head_earliest_start_s": head_start,
+                    "estimate_s": state.history.duration_p95(&waiter.label),
+                    "mem_available_bytes": state.mem.mem_available,
+                }),
+            );
+        }
+
+        let mut askers: Vec<(TargetSpec, i32, Sender<Response>)> = Vec::new();
+        if let Some(reply) = reply {
             let target = state
                 .targets
                 .remove(&waiter.id)
                 .unwrap_or(TargetSpec::Group { pgid: 0 });
             let client_pid = state.client_pids.remove(&waiter.id).unwrap_or(0);
-            let lock_path = self
-                .config
-                .state_dir
-                .join("leases")
-                .join(format!("{}.lock", waiter.id));
+            askers.push((target, client_pid, reply));
+        } else {
+            state.targets.remove(&waiter.id);
+            state.client_pids.remove(&waiter.id);
+        }
+        let follower_count = followers.len();
+        for follower in followers {
+            askers.push((follower.target, follower.client_pid, follower.reply));
+        }
 
-            let lease = Lease {
-                id: waiter.id,
-                label: waiter.label.clone(),
-                peak_bytes: waiter.peak_bytes,
-                priority: waiter.priority,
-                tier: waiter.tier,
-                target,
-                lock_path: lock_path.clone(),
-                state: LeaseState::Granted,
-                granted_at: Instant::now(),
-                client_pid,
-                last_heartbeat: None,
-                stale_signalled: false,
-                current_rss: 0,
-                peak_rss: 0,
-                peak_gpu: 0,
-                reported_peak: None,
-                reported_exit: None,
-                overrun_written: 0,
-                terminated_at: None,
-                killed: false,
-            };
-
-            self.log_event(
-                "lease.granted",
-                json!({
-                    "lease": waiter.id,
-                    "label": waiter.label,
-                    "peak_bytes": waiter.peak_bytes,
-                    "tier": waiter.tier.as_str(),
-                    "mem_available_bytes": state.mem.mem_available,
-                }),
-            );
-            let granted = reply.map(|reply| {
-                reply.send(Response::Granted {
+        let mut granted_to: Option<usize> = None;
+        for (index, (_, _, asker)) in askers.iter().enumerate() {
+            if asker
+                .send(Response::Granted {
                     lease: waiter.id,
                     label: waiter.label.clone(),
                     peak_bytes: waiter.peak_bytes,
@@ -1335,14 +1754,64 @@ impl Daemon {
                     floor_bytes: self.config.floor,
                     available_bytes: state.mem.mem_available,
                 })
-            });
-            if let Some(Ok(())) = granted {
-                state.leases.push(lease);
-            } else {
-                // The client was gone; the lease never existed.
-                let _ = std::fs::remove_file(&lock_path);
-                state.client_pids.remove(&waiter.id);
+                .is_ok()
+            {
+                granted_to = Some(index);
+                break;
             }
+        }
+        let Some(index) = granted_to else {
+            // Every asker was gone; the lease never existed.
+            let _ = std::fs::remove_file(&lock_path);
+            return;
+        };
+        let (target, client_pid, _) = askers[index];
+        let coalesced_behind = askers.len() - index - 1;
+        let lease = Lease {
+            id: waiter.id,
+            label: waiter.label.clone(),
+            peak_bytes: waiter.peak_bytes,
+            priority: waiter.priority,
+            tier: waiter.tier,
+            target,
+            lock_path: lock_path.clone(),
+            state: LeaseState::Granted,
+            granted_at: Instant::now(),
+            client_pid,
+            last_heartbeat: None,
+            stale_signalled: false,
+            current_rss: 0,
+            peak_rss: 0,
+            peak_gpu: 0,
+            reported_peak: None,
+            reported_exit: None,
+            overrun_written: 0,
+            terminated_at: None,
+            killed: false,
+            overreserved_since: None,
+            overreserved_logged: false,
+            overreserved_reference: 0,
+        };
+        self.log_event(
+            "lease.granted",
+            json!({
+                "lease": waiter.id,
+                "label": waiter.label,
+                "peak_bytes": waiter.peak_bytes,
+                "tier": waiter.tier.as_str(),
+                "mem_available_bytes": state.mem.mem_available,
+                "coalesced_askers": if follower_count > 0 { Some(askers.len()) } else { None },
+                "coalesced_told": coalesced_behind,
+            }),
+        );
+        state.leases.push(lease);
+        // The askers after the granted one are waiting for the same server:
+        // each is told which lease holds it, and runs nothing.
+        for (_, _, asker) in askers.iter().skip(index + 1) {
+            let _ = asker.send(Response::Coalesced {
+                lease: waiter.id,
+                label: waiter.label.clone(),
+            });
         }
     }
 
@@ -1985,6 +2454,46 @@ impl Daemon {
         for id in stale {
             self.evict_silent_client(state, id);
         }
+        // And the waiters whose clients are gone. A client that dies while
+        // queued leaves its waiter behind: the daemon only discovers the
+        // dead reply channel when it *grants*, and a queue whose head never
+        // fits never tries — the 2026-11-01 queue carried two killed hog
+        // probes for hours as waiters 20 and 21 of 21 (the lab record's
+        // "zombie waiters"). The same liveness pass that watches the leases
+        // now watches the queue: a waiter whose client pid is gone is not a
+        // request any more, and — with backfill — a dead waiter would
+        // otherwise be granted room and silently throw it away.
+        let gone: Vec<u64> = state
+            .client_pids
+            .iter()
+            .filter(|(id, pid)| {
+                **pid > 0
+                    && !Path::new(&format!("/proc/{pid}")).exists()
+                    && state.waiting_since.contains_key(id)
+            })
+            .map(|(id, _)| *id)
+            .collect();
+        for id in gone {
+            let label = state
+                .queue
+                .iter()
+                .find(|waiter| waiter.id == id)
+                .map(|waiter| waiter.label.clone())
+                .unwrap_or_default();
+            self.log_event(
+                "lease.waiter_client_gone",
+                json!({
+                    "lease": id,
+                    "label": label,
+                    "waited_s": state
+                        .waiting_since
+                        .get(&id)
+                        .map(|since| since.elapsed().as_secs_f64())
+                        .unwrap_or(0.0),
+                }),
+            );
+            self.drop_waiter(state, id, "the queued client is gone");
+        }
     }
 
     /// A lease whose client has been silent past the grace period.
@@ -2247,6 +2756,123 @@ impl Daemon {
                 "exit": lease.reported_exit,
             }),
         );
+    }
+
+    /// Change a running lease's reservation: the work changed phase
+    /// (round 11).
+    ///
+    /// `night-v3.heavy` reserved 40 GiB and used ~0.2 GiB for long
+    /// stretches on 2026-11-01 — and while it held that promise, a 58 GiB
+    /// `serve.glide` at the head of the queue could not fit for two hours,
+    /// because the rule charges every lease its whole promise. The phase op
+    /// is how a lease that knows its work changed gives the difference
+    /// back:
+    ///
+    /// * **shrink** — always taken, at once: the freed bytes return to the
+    ///   headroom on the next sample, and the queue may drain with them.
+    /// * **grow** — taken only if the box has the room for the larger
+    ///   promise, checked by the same rule that admits a new lease; a grow
+    ///   that does not fit is refused with the numbers, and the lease keeps
+    ///   the reservation it has. A client that must grow and cannot should
+    ///   release and re-queue.
+    ///
+    /// A shrink never goes below what this run has already touched: the
+    /// pages are taken, and a reservation under the run's own peak would
+    /// turn every scan into an over-run. If the phase estimate is wrong and
+    /// the work grows past the shrunken promise anyway, the over-run watch
+    /// catches it — logged, and written to the history while the lease
+    /// still runs — which is the loop teaching the next phase.
+    ///
+    /// `--peak auto` resolves the same way an acquire does (the larger of
+    /// the label's p95 and last run), so a label that names its phases
+    /// (`night-v3.heavy:load`, `night-v3.heavy:train`) learns each phase's
+    /// peak separately.
+    fn phase_lease(&self, state: &mut State, id: u64, peak: PeakArg) -> Response {
+        let Some(index) = state.leases.iter().position(|l| l.id == id) else {
+            return Response::Rejected {
+                reason: format!("there is no lease {id}"),
+            };
+        };
+        let label = state.leases[index].label.clone();
+        let new_peak = match peak {
+            PeakArg::Bytes(bytes) => bytes,
+            PeakArg::Auto => match learned_peak(state, &label) {
+                Ok(learned) => learned,
+                Err(reason) => return Response::Rejected { reason },
+            },
+        };
+        let (old_peak, touched) = {
+            let lease = &state.leases[index];
+            (lease.peak_bytes, lease.peak_rss.max(lease.current_rss))
+        };
+        // Not below what the run has already touched, whatever was asked.
+        let new_peak = new_peak.max(touched);
+        if new_peak == old_peak {
+            return Response::Ok;
+        }
+        if new_peak < old_peak {
+            let freed = old_peak - new_peak;
+            state.leases[index].peak_bytes = new_peak;
+            state.leases[index].overreserved_since = None;
+            state.leases[index].overreserved_logged = false;
+            state.leases[index].overreserved_reference = 0;
+            self.log_event(
+                "lease.phase",
+                json!({
+                    "lease": id,
+                    "label": label,
+                    "direction": "shrink",
+                    "from_bytes": old_peak,
+                    "to_bytes": new_peak,
+                    "freed_bytes": freed,
+                    "touched_bytes": touched,
+                    "mem_available_bytes": state.mem.mem_available,
+                }),
+            );
+            return Response::Ok;
+        }
+        // A grow is a promise the box must have room for, exactly as a new
+        // lease's is: every other charge stays, this lease is replaced at
+        // its larger promise, and the floor must still clear.
+        let mut charged: Vec<LeaseMemory> = state
+            .leases
+            .iter()
+            .enumerate()
+            .filter(|(other, _)| *other != index)
+            .map(|(_, lease)| lease.memory())
+            .collect();
+        charged.extend(state.presence.memory());
+        charged.push(LeaseMemory::new(new_peak, state.leases[index].current_rss));
+        let admission = self.admission_now(state);
+        if admission.projected_available(&charged) < self.config.floor {
+            let headroom = admission.projected_available(&charged);
+            return Response::Rejected {
+                reason: format!(
+                    "the box does not have room to grow {label:?} from {} to {}: the \
+                     projected headroom after the larger promise is {}, under the \
+                     floor {}; release and re-queue, or phase after the box frees",
+                    crate::sizes::human(old_peak),
+                    crate::sizes::human(new_peak),
+                    crate::sizes::human(headroom),
+                    crate::sizes::human(self.config.floor),
+                ),
+            };
+        }
+        let grown = new_peak - old_peak;
+        state.leases[index].peak_bytes = new_peak;
+        self.log_event(
+            "lease.phase",
+            json!({
+                "lease": id,
+                "label": label,
+                "direction": "grow",
+                "from_bytes": old_peak,
+                "to_bytes": new_peak,
+                "grown_bytes": grown,
+                "mem_available_bytes": state.mem.mem_available,
+            }),
+        );
+        Response::Ok
     }
 
     /// Start the children that keep printing the GPU's views.
@@ -2621,6 +3247,8 @@ fn status_report(state: &State, config: &Config) -> StatusReport {
             age_s: lease.granted_at.elapsed().as_secs_f64(),
             pid: lease.target.pid().unwrap_or_else(|| lease.target.pgid().unwrap_or(0)),
             pgid: lease.target.pgid().unwrap_or(0),
+            over_reserved: lease.overreserved_since.is_some(),
+            suggested_peak_bytes: lease.overreserved_reference,
         })
         .collect();
     let queue = state
@@ -2637,6 +3265,11 @@ fn status_report(state: &State, config: &Config) -> StatusReport {
                 .get(&waiter.id)
                 .map(|since| since.elapsed().as_secs_f64())
                 .unwrap_or(0.0),
+            coalesced: state
+                .followers
+                .get(&waiter.id)
+                .map(Vec::len)
+                .unwrap_or(0),
         })
         .collect();
     StatusReport {

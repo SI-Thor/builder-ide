@@ -805,3 +805,92 @@ the box's stopgap lock, and left nothing running behind them.
 **Reproduce:** `cargo test --test integration` (serial is the default);
 the two pool tests bring their own scripted `tegrastats` via
 `--tegrastats-command`, so they touch no GPU.
+
+## 21. Round 11: the queue that could not pass (2026-11-01, ~12:00 AKDT)
+
+**The experiment.** Take the daemon's own log for 2026-11-01 and ask a
+counterfactual question: under a different admission rule, what would
+have happened to the requests that never ran? The tool is
+`tools/thor-admit/examples/replay.rs`; the log is
+`~/.local/state/thor-admit/daemon.log`; the policy is a parameter.
+
+**The window.** Daemon 956421, **14:28:53Z → 17:17:25Z** (local
+05:28 → 08:17 AKDT): **76 arrivals, 52 grants, 49 releases, 1 131
+memory samples.** The queue that never drained is described in the
+design record §15.1; the short version is a 58 GiB head that could not
+fit, two more asks for the same model behind it, a 40 GiB promise that
+was never released, and nineteen waiters behind all of it.
+
+**The model, checked against reality.** The replay simulates strict FIFO
+with the daemon's own cost model (measured peak RSS, rectangular, each
+lease charged its whole promise) and compares the simulated grant times
+with the ones in the log:
+
+    52 grants compared: |simulated − real| median 2s, mean 32s, max 435s;
+    44 of 52 within 30 s
+
+Two seconds of median error on a 10 112 s window is what makes the rest
+of the table worth reading. It is not a proof: the model is the
+daemon's, and the daemon's model is what the numbers are about.
+
+**The policies, measured.**
+
+    policy                      granted  waiting  backfill  coalescd
+    fifo                             52       24         0         0
+    easy-900                         54       22         2         0
+    easy-1800                        54       22         2         0
+    easy-3600                        54       22         2         0
+    easy-1800+coalesce               54       19         2         3
+    fifo+coalesce+phase              68        6         0         2
+    easy-1800+coalesce+phase         68        6         3         2
+
+    the requests of 12 GiB or less (the class behind the blocking head)
+    policy                      granted  waiting       wait p50/p95/max
+    fifo                             48       17            0/1948/2777
+    easy-1800                        50       15            2/1948/2777
+    easy-1800+coalesce               50       14            2/1948/2777
+    fifo+coalesce+phase              59        5          417/3039/3325
+    easy-1800+coalesce+phase         59        5          514/3164/3323
+
+**Three numbers worth keeping.**
+
+*Backfill alone: two grants out of 76.* The rule works — the two small
+requests that fit under the head were admitted while it waited — but on
+this day the head was the largest request on the box, and there was
+little under it to let through. The head-delay guarantee held in every
+policy: no backfilling policy started the head later than FIFO did
+(FIFO never started it at all; the phase policies started it 196 s after
+its arrival).
+
+*Coalescing: three promises for one server, made one.* `#14`, `#17` and
+`#37` were all `serve.glide` at 58 GiB. Under the coalescing policies
+the second and third became followers of the first.
+
+*The phase cue: 52 → 68 grants, 24 → 6 waiting.* The 40 GiB
+`night-v3.heavy` promise (measured peak: 0.2 GiB) shrinks to what the
+label's runs really need, and the 58 GiB head fits at last. **And the
+price is visible in the same table:** the small requests' median wait
+went from 0 s to 514 s and their worst wait from 2 777 s to 3 323 s.
+More work ran (59 of the small class against 48), and the ones that
+waited waited longer, because the head got in and then held the room.
+
+**The limit.** The phase numbers assume the holder answers the cue. On
+2026-11-01 nothing answered it — the cue did not exist then — so the
+win is available, not taken. The cue, the `thor-admit phase` op, the
+status flag and the shim's `phase()` exist now; a seat script has to use
+them.
+
+**Reproduce:**
+
+    cargo run --release --example replay -- \
+      ~/.local/state/thor-admit/daemon.log ~/lm-tools/thor-admit-daemon.log \
+      --history ~/.local/state/thor-admit/peaks.jsonl --pid 956421 --floor 25G
+
+**The box it ran on.** `MemTotal` 128 766 524 kB (122.8 GiB),
+`MemAvailable` ~86 GiB at the start of the session and 71 GiB while the
+suite ran, load average 9.7 from the other seats' work, four live leases
+(a 26 GiB `serve.qwen3-coder-30b`, `infinigen.desert.coarse`,
+`lab-motion.mb-matrix`, `d1dec-native.timing`). **47 GiB of swap is
+present** — the brief says "no swap"; it was added since, and the
+numbers above are `MemAvailable`, which the kernel already accounts for
+the swap against.
