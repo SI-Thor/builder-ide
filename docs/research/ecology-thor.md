@@ -292,14 +292,15 @@ failure, and the veto law ("dead lineages cannot buy GPU-seconds")
 is trust below the floor refusing to transact; and the WHY state
 machine's harvest-to-UNKNOWN → revive-on-parole (bridge
 `LEASE_EVENTS_TO_WHY`, the bake-off's stall law) *is*
-demote-and-earn-back. The genuinely new part of the ladder is not a
-mechanism but a policy: the ecology demotes automatically on harvest,
-but promotion is currently re-request-triggered, not
-evidence-earned — a harvested lineage that asks again gets parole
-regardless of what it did while silent. If the swarm's ladder is
-adopted, the ecology's answer is one rule: *parole requires a
-justification above its pre-harvest level*, which the ledger's own
-evidence can compute. We note the seam; we do not ask for the change.
+demote-and-earn-back. The gap was real but is now closed on our side:
+parole used to be re-request-triggered at a flat first-harvest cap —
+the kernel now prices it by the **harvest ladder** (ecology-thor
+`2339ef6`): each ALIVE→UNKNOWN harvest halves the bid cap (`2^-h`),
+service earns the rungs back one at a time, the path takes its
+weakest paroled link, and a never-harvested population is
+bit-identical to the old formula. "Human-only promotion" stays where
+the ecology always kept it: the importance class is the owner's rung,
+and no kernel arithmetic can climb it.
 
 ### 7.3 Leases on objects: the seam, written down
 
