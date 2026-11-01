@@ -1,0 +1,694 @@
+{
+  "experiment": "judge-recorder-fix",
+  "what": "the cell measured on the fixed recorder's own trace",
+  "models": [
+    "d1-2B",
+    "d1-3B"
+  ],
+  "before": {
+    "d1-2B": {
+      "n": 240,
+      "correct": 126,
+      "accuracy": 0.525,
+      "by_group": {
+        "truth_presented": {
+          "n": 158,
+          "correct": 126,
+          "accuracy": 0.7975
+        },
+        "decoy_presented": {
+          "n": 82,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "auc": {
+        "auc": 0.2815,
+        "low": 0.2167,
+        "high": 0.3474,
+        "resamples": 2000
+      }
+    },
+    "d1-3B": {
+      "n": 240,
+      "correct": 79,
+      "accuracy": 0.3292,
+      "by_group": {
+        "truth_presented": {
+          "n": 158,
+          "correct": 79,
+          "accuracy": 0.5
+        },
+        "decoy_presented": {
+          "n": 82,
+          "correct": 0,
+          "accuracy": 0.0
+        }
+      },
+      "auc": {
+        "auc": 0.2944,
+        "low": 0.2255,
+        "high": 0.3652,
+        "resamples": 2000
+      }
+    }
+  },
+  "fixed": {
+    "d1-2B": {
+      "n": 240,
+      "correct": 116,
+      "accuracy": 0.4833,
+      "wilson": {
+        "low": 0.4209,
+        "high": 0.5463
+      },
+      "by_group": {
+        "truth_presented": {
+          "n": 158,
+          "correct": 73,
+          "accuracy": 0.462,
+          "wilson": {
+            "low": 0.3861,
+            "high": 0.5397
+          }
+        },
+        "decoy_presented": {
+          "n": 82,
+          "correct": 43,
+          "accuracy": 0.5244,
+          "wilson": {
+            "low": 0.4176,
+            "high": 0.629
+          }
+        },
+        "decoy_presented_doubled_october": {
+          "n": 43,
+          "correct": 8,
+          "accuracy": 0.186,
+          "wilson": {
+            "low": 0.0974,
+            "high": 0.3262
+          }
+        }
+      },
+      "auc": {
+        "auc": 0.53,
+        "low": 0.4583,
+        "high": 0.5979,
+        "resamples": 2000
+      },
+      "sweep": [
+        {
+          "tau": 0.1,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.2,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.3,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.4,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.5,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.6,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.7,
+          "escalated": 142,
+          "act_rate": 0.5917,
+          "catch": 0.6129,
+          "tax": 0.569,
+          "caught_all": false
+        },
+        {
+          "tau": 0.8,
+          "escalated": 197,
+          "act_rate": 0.8208,
+          "catch": 0.7984,
+          "tax": 0.8448,
+          "caught_all": false
+        },
+        {
+          "tau": 0.9,
+          "escalated": 197,
+          "act_rate": 0.8208,
+          "catch": 0.7984,
+          "tax": 0.8448,
+          "caught_all": false
+        },
+        {
+          "tau": 0.95,
+          "escalated": 240,
+          "act_rate": 1.0,
+          "catch": 1.0,
+          "tax": 1.0,
+          "caught_all": true
+        }
+      ],
+      "sweep_by_group": {
+        "truth_presented": [
+          {
+            "tau": 0.1,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.2,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.3,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.4,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.5,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.6,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.7,
+            "escalated": 89,
+            "catch": 0.5882,
+            "tax": 0.5342
+          },
+          {
+            "tau": 0.8,
+            "escalated": 132,
+            "catch": 0.8118,
+            "tax": 0.863
+          },
+          {
+            "tau": 0.9,
+            "escalated": 132,
+            "catch": 0.8118,
+            "tax": 0.863
+          },
+          {
+            "tau": 0.95,
+            "escalated": 158,
+            "catch": 1.0,
+            "tax": 1.0
+          }
+        ],
+        "decoy_presented": [
+          {
+            "tau": 0.1,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.2,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.3,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.4,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.5,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.6,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.7,
+            "escalated": 53,
+            "catch": 0.6667,
+            "tax": 0.6279
+          },
+          {
+            "tau": 0.8,
+            "escalated": 65,
+            "catch": 0.7692,
+            "tax": 0.814
+          },
+          {
+            "tau": 0.9,
+            "escalated": 65,
+            "catch": 0.7692,
+            "tax": 0.814
+          },
+          {
+            "tau": 0.95,
+            "escalated": 82,
+            "catch": 1.0,
+            "tax": 1.0
+          }
+        ]
+      },
+      "budgets": {
+        "10%": {
+          "tau": 0.6,
+          "escalated": 0,
+          "share": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "next_tau": 0.605,
+          "next_tau_share": 0.2458
+        },
+        "20%": {
+          "tau": 0.6,
+          "escalated": 0,
+          "share": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "next_tau": 0.605,
+          "next_tau_share": 0.2458
+        },
+        "30%": {
+          "tau": 0.625,
+          "escalated": 59,
+          "share": 0.2458,
+          "catch": 0.2742,
+          "tax": 0.2155,
+          "next_tau": 0.63,
+          "next_tau_share": 0.4
+        }
+      },
+      "positional_tally": {
+        "positional": 203,
+        "content": 37,
+        "third": 0,
+        "n": 240
+      },
+      "latency_ms": {
+        "n": 240,
+        "p50": 31.758,
+        "p95": 34.173,
+        "mean": 32.515
+      },
+      "faulty_prompts": 0,
+      "pair_changes_against_the_recording": {
+        "prompts_that_differ": 158,
+        "of_those_order_only": 119,
+        "of_those_pair_changed": 39,
+        "the_8_arm_pair_differs_from_the_recorders": 39
+      }
+    },
+    "d1-3B": {
+      "n": 240,
+      "correct": 125,
+      "accuracy": 0.5208,
+      "wilson": {
+        "low": 0.4578,
+        "high": 0.5832
+      },
+      "by_group": {
+        "truth_presented": {
+          "n": 158,
+          "correct": 79,
+          "accuracy": 0.5,
+          "wilson": {
+            "low": 0.423,
+            "high": 0.577
+          }
+        },
+        "decoy_presented": {
+          "n": 82,
+          "correct": 46,
+          "accuracy": 0.561,
+          "wilson": {
+            "low": 0.4532,
+            "high": 0.6633
+          }
+        },
+        "decoy_presented_doubled_october": {
+          "n": 43,
+          "correct": 19,
+          "accuracy": 0.4419,
+          "wilson": {
+            "low": 0.3043,
+            "high": 0.5889
+          }
+        }
+      },
+      "auc": {
+        "auc": 0.4797,
+        "low": 0.4091,
+        "high": 0.554,
+        "resamples": 2000
+      },
+      "sweep": [
+        {
+          "tau": 0.1,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.2,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.3,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.4,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.5,
+          "escalated": 0,
+          "act_rate": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "caught_all": false
+        },
+        {
+          "tau": 0.6,
+          "escalated": 55,
+          "act_rate": 0.2292,
+          "catch": 0.2,
+          "tax": 0.256,
+          "caught_all": false
+        },
+        {
+          "tau": 0.7,
+          "escalated": 55,
+          "act_rate": 0.2292,
+          "catch": 0.2,
+          "tax": 0.256,
+          "caught_all": false
+        },
+        {
+          "tau": 0.8,
+          "escalated": 181,
+          "act_rate": 0.7542,
+          "catch": 0.7826,
+          "tax": 0.728,
+          "caught_all": false
+        },
+        {
+          "tau": 0.9,
+          "escalated": 240,
+          "act_rate": 1.0,
+          "catch": 1.0,
+          "tax": 1.0,
+          "caught_all": true
+        },
+        {
+          "tau": 0.95,
+          "escalated": 240,
+          "act_rate": 1.0,
+          "catch": 1.0,
+          "tax": 1.0,
+          "caught_all": true
+        }
+      ],
+      "sweep_by_group": {
+        "truth_presented": [
+          {
+            "tau": 0.1,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.2,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.3,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.4,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.5,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.6,
+            "escalated": 43,
+            "catch": 0.2405,
+            "tax": 0.3038
+          },
+          {
+            "tau": 0.7,
+            "escalated": 43,
+            "catch": 0.2405,
+            "tax": 0.3038
+          },
+          {
+            "tau": 0.8,
+            "escalated": 118,
+            "catch": 0.7848,
+            "tax": 0.7089
+          },
+          {
+            "tau": 0.9,
+            "escalated": 158,
+            "catch": 1.0,
+            "tax": 1.0
+          },
+          {
+            "tau": 0.95,
+            "escalated": 158,
+            "catch": 1.0,
+            "tax": 1.0
+          }
+        ],
+        "decoy_presented": [
+          {
+            "tau": 0.1,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.2,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.3,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.4,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.5,
+            "escalated": 0,
+            "catch": 0.0,
+            "tax": 0.0
+          },
+          {
+            "tau": 0.6,
+            "escalated": 12,
+            "catch": 0.1111,
+            "tax": 0.1739
+          },
+          {
+            "tau": 0.7,
+            "escalated": 12,
+            "catch": 0.1111,
+            "tax": 0.1739
+          },
+          {
+            "tau": 0.8,
+            "escalated": 63,
+            "catch": 0.7778,
+            "tax": 0.7609
+          },
+          {
+            "tau": 0.9,
+            "escalated": 82,
+            "catch": 1.0,
+            "tax": 1.0
+          },
+          {
+            "tau": 0.95,
+            "escalated": 82,
+            "catch": 1.0,
+            "tax": 1.0
+          }
+        ]
+      },
+      "budgets": {
+        "10%": {
+          "tau": 0.55,
+          "escalated": 0,
+          "share": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "next_tau": 0.555,
+          "next_tau_share": 0.2292
+        },
+        "20%": {
+          "tau": 0.55,
+          "escalated": 0,
+          "share": 0.0,
+          "catch": 0.0,
+          "tax": 0.0,
+          "next_tau": 0.555,
+          "next_tau_share": 0.2292
+        },
+        "30%": {
+          "tau": 0.735,
+          "escalated": 55,
+          "share": 0.2292,
+          "catch": 0.2,
+          "tax": 0.256,
+          "next_tau": 0.74,
+          "next_tau_share": 0.4208
+        }
+      },
+      "positional_tally": {
+        "positional": 144,
+        "content": 96,
+        "third": 0,
+        "n": 240
+      },
+      "latency_ms": {
+        "n": 240,
+        "p50": 46.275,
+        "p95": 49.719,
+        "mean": 46.664
+      },
+      "faulty_prompts": 0,
+      "pair_changes_against_the_recording": {
+        "prompts_that_differ": 158,
+        "of_those_order_only": 119,
+        "of_those_pair_changed": 39,
+        "the_8_arm_pair_differs_from_the_recorders": 39
+      }
+    }
+  },
+  "routing": {
+    "d1-2B": {
+      "accuracy": 0.4833,
+      "decoy_presented_accuracy": 0.5244,
+      "auc": 0.53,
+      "gate_at_0_8": {
+        "escalated": 197,
+        "catch": 0.7984,
+        "tax": 0.8448
+      },
+      "latency_p50_ms": 31.758
+    },
+    "d1-3B": {
+      "accuracy": 0.5208,
+      "decoy_presented_accuracy": 0.561,
+      "auc": 0.4797,
+      "gate_at_0_8": {
+        "escalated": 181,
+        "catch": 0.7826,
+        "tax": 0.728
+      },
+      "latency_p50_ms": 46.276
+    },
+    "steps_where_one_is_right": {
+      "both": 91,
+      "the d1-2B only": 25,
+      "the d1-3B only": 34,
+      "neither": 90
+    }
+  },
+  "semantics": {
+    "groups": "the October presentation (shown==truth / shown!=truth); the fixed prompt does not know the group",
+    "confidence": "top probability \u2014 the canonical definition",
+    "gate": "escalates when the confidence is below tau (core.judge.calibration's rule)",
+    "auc": "bootstrap 2000 draws, seed 20261031, ties count a half"
+  }
+}
