@@ -251,6 +251,43 @@ pub struct StatusReport {
     pub samples: u64,
     /// The presence queue: the registered work and what it is doing.
     pub presence: Vec<PresenceReport>,
+    /// What the guard is doing about work that is outside any lease (round
+    /// 12).
+    ///
+    /// It carries a default so that a **new client can read an old daemon's**
+    /// status — which is the swap window, and the live situation on this box
+    /// while the round-12 binary waits to be installed.
+    #[serde(default)]
+    pub guard: GuardReport,
+}
+
+/// What the guard is doing, as the status shows it (round 12).
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct GuardReport {
+    /// Is the guard on?
+    #[serde(default)]
+    pub enabled: bool,
+    /// The last thing the guard did: `SIGTERM` or `SIGKILL`.
+    #[serde(default)]
+    pub last_signal: Option<String>,
+    /// What set the guard off: the emergency floor, or a runaway.
+    #[serde(default)]
+    pub last_trigger: Option<String>,
+    /// The process the guard acted on.
+    #[serde(default)]
+    pub last_pid: Option<i32>,
+    /// Its name.
+    #[serde(default)]
+    pub last_name: Option<String>,
+    /// What it held of the box, in bytes.
+    #[serde(default)]
+    pub last_bytes: Option<u64>,
+    /// How long ago the guard last acted, in seconds.
+    #[serde(default)]
+    pub last_age_s: Option<f64>,
+    /// The operator's protected command lines.
+    #[serde(default)]
+    pub protected: Vec<String>,
 }
 
 /// One presence job, as the status shows it.

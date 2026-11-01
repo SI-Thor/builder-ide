@@ -63,6 +63,55 @@ pub fn read_hwm(pid: i32) -> Option<u64> {
     None
 }
 
+/// The name of a process, as it was invoked.
+///
+/// `/proc/<pid>/comm` is the kernel's name for the thread and is cut at 15
+/// characters — `gdm-session-worker` arrives as `gdm-session-wor` — so it is
+/// only the fallback. `/proc/<pid>/cmdline`'s first token is the program as it
+/// was invoked, and its basename is what an operator recognises.
+///
+/// A kernel thread has an empty command line; for those the `comm` name is
+/// all there is.
+pub fn read_name(pid: i32) -> Option<String> {
+    if let Ok(text) = std::fs::read(format!("/proc/{pid}/cmdline")) {
+        if let Some(first) = text.split(|byte| *byte == 0).find(|part| !part.is_empty()) {
+            let name = String::from_utf8_lossy(first);
+            let base = name.rsplit('/').next().unwrap_or(&name);
+            if !base.is_empty() {
+                return Some(base.to_string());
+            }
+        }
+    }
+    let comm = std::fs::read_to_string(format!("/proc/{pid}/comm")).ok()?;
+    let comm = comm.trim().to_string();
+    if comm.is_empty() {
+        None
+    } else {
+        Some(comm)
+    }
+}
+
+/// The whole command line, as the kernel has it: the arguments separated by
+/// spaces.
+///
+/// The guard's operator list is written against **this**, not against the
+/// program's name: on this box the model server is `python -m glide.server`,
+/// and every other python is `python` too. A name cannot tell them apart; a
+/// command line can.
+pub fn read_command(pid: i32) -> Option<String> {
+    let text = std::fs::read(format!("/proc/{pid}/cmdline")).ok()?;
+    let parts: Vec<String> = text
+        .split(|byte| *byte == 0)
+        .filter(|part| !part.is_empty())
+        .map(|part| String::from_utf8_lossy(part).to_string())
+        .collect();
+    if parts.is_empty() {
+        None
+    } else {
+        Some(parts.join(" "))
+    }
+}
+
 /// Every process the kernel is listing.
 pub fn scan() -> HashMap<i32, ProcInfo> {
     let mut out = HashMap::new();

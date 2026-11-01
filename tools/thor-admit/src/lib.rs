@@ -12,6 +12,8 @@
 //! * [`meminfo`] — the kernel's own memory accounting (`/proc/meminfo`).
 //! * [`gpu`] — the GPU's view, when the Tegra exposes one.
 //! * [`procscan`] — the resident set of a process group, read from `/proc`.
+//! * [`guard`] — the answer to work that is outside any lease (round 12).
+//! * [`prealloc`] — the frameworks that take the box's memory by surprise.
 //! * [`admission`] — the rule: admit only if `available - peak >= floor`.
 //! * [`queue`] — the priority queue the rule drains.
 //! * [`backfill`] — EASY-style backfill: passing the head without delaying
@@ -33,11 +35,13 @@ pub mod clock;
 pub mod daemon;
 pub mod flow;
 pub mod gpu;
+pub mod guard;
 pub mod history;
 pub mod lease;
 pub mod ledger;
 pub mod meminfo;
 pub mod presence;
+pub mod prealloc;
 pub mod procscan;
 pub mod protocol;
 pub mod queue;

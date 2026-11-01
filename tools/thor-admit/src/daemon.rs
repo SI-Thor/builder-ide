@@ -33,14 +33,16 @@ use crate::backfill::{self, Running};
 use crate::clock;
 use crate::flow::{self, FlowSignal};
 use crate::gpu::{GpuProbe, GpuSample};
+use crate::guard;
 use crate::history::{History, PeakRecord};
 use crate::lease::{self, LeaseLock};
 use crate::ledger::{IdleReason, Ledger, Sample};
 use crate::meminfo::MemInfo;
 use crate::presence::{self, JobState, PresenceJob, PresenceQueue, PresenceSpec, PresenceStore};
-use crate::procscan::{self, Target};
+use crate::procscan::{self, ProcInfo, Target};
 use crate::protocol::{
-    LeaseReport, PeakArg, PresenceReport, QueueReport, Request, Response, StatusReport, TargetSpec,
+    GuardReport, LeaseReport, PeakArg, PresenceReport, QueueReport, Request, Response, StatusReport,
+    TargetSpec,
 };
 use crate::queue::{Queue, Waiter};
 use crate::tier::Tier;
@@ -58,6 +60,24 @@ pub const DEFAULT_SCAN_INTERVAL: Duration = Duration::from_millis(1000);
 pub const DEFAULT_MEMINFO: &str = "/proc/meminfo";
 /// The default smallest lease the watchdog will touch.
 pub const DEFAULT_MIN_VICTIM_RSS: u64 = 2 * 1024 * 1024 * 1024;
+/// The default smallest unleased process the guard will touch (round 12).
+///
+/// Four gibibytes of the box's memory, measured as the resident set plus the
+/// bytes the driver says the process holds on the GPU. Every process on this
+/// box that is furniture rather than work — the seat agents, the desktop's
+/// helpers, the tooling — sits below this; the model server (58.9 GiB) and
+/// the incident's runaway (94.5 GB) sit far above it.
+pub const DEFAULT_GUARD_MIN_RSS: u64 = 4 * 1024 * 1024 * 1024;
+/// The default fall in free memory that counts as a runaway (round 12).
+///
+/// Eight gibibytes inside the guard's window: a quarter of the box, taken in
+/// ten seconds, with no lease to explain it. The incident took 94.5 GB in
+/// 20 seconds — about forty times this, and it killed the box.
+pub const DEFAULT_GUARD_DROP_BYTES: u64 = 8 * 1024 * 1024 * 1024;
+/// The default window the guard measures that fall over.
+pub const DEFAULT_GUARD_WINDOW: Duration = Duration::from_secs(10);
+/// The default interval between the guard's looks at the box.
+pub const DEFAULT_GUARD_INTERVAL: Duration = Duration::from_secs(2);
 /// The default grace a client's silence gets before the daemon acts: six
 /// missed heartbeats at the client's one-every-five-seconds, plus slack for
 /// a box under load.
@@ -242,6 +262,50 @@ pub struct Config {
     /// nothing more may pass it (`--backfill-max-head-wait`; 0 disables the
     /// bound, not the backfill).
     pub backfill_max_head_wait: Duration,
+    /// Watch for work that is outside any lease, and act on it (round 12).
+    ///
+    /// The lease watchdog of §4 can only stop work the daemon knows about.
+    /// A process that was never leased is invisible to it, and the
+    /// 2026-11-01 incident was exactly that: a JAX run outside `thor-admit`
+    /// took 94.5 GB of the box's unified memory in 20 seconds while the
+    /// daemon watched its leases and saw nothing. The guard is the answer:
+    /// it looks at every process on the box, and when the box is in trouble
+    /// it can stop the biggest one that no lease owns.
+    pub guard: bool,
+    /// The smallest unleased process the guard will touch, measured as its
+    /// resident set **plus** the bytes the driver says it holds on the GPU.
+    ///
+    /// The floor is what keeps the guard away from the box's furniture: the
+    /// seat agents, the desktop's helpers and the tooling all sit well below
+    /// it, and a process too small to be the cause is not the cause. It is
+    /// the same argument as the lease watchdog's `min_victim_rss`, and it is
+    /// measured the same way — in the memory the process holds of the box.
+    pub guard_min_rss: u64,
+    /// How much the box's free memory must fall inside the guard's window
+    /// before the fall counts as a runaway.
+    ///
+    /// The emergency floor is the line the box cannot cross, but the incident
+    /// happened well above it: the JAX run left 15 GB free, and the desktop
+    /// had already died. So the guard has a second trigger, for the shape the
+    /// incident actually had — memory leaving the box faster than the leases
+    /// can explain it. Eight gibibytes inside ten seconds is a quarter of
+    /// the box, in a tenth of a second.
+    pub guard_drop_bytes: u64,
+    /// The window the guard measures that fall over.
+    pub guard_window: Duration,
+    /// How often the guard looks at the box.
+    ///
+    /// The look is a full read of `/proc`, which on this box costs about
+    /// 9 ms for 597 processes — measured 2026-11-01 — so a two-second clock
+    /// is about half a per cent of one core.
+    pub guard_interval: Duration,
+    /// The operator's list of command lines the guard must never touch.
+    ///
+    /// The built-in list protects the box's furniture by **name**; this one
+    /// is matched against the **command line**, because a name cannot tell
+    /// one `python` from another and the model server and the incident's
+    /// runaway are both `python`.
+    pub guard_protected_file: PathBuf,
 }
 
 impl Default for Config {
@@ -250,7 +314,7 @@ impl Default for Config {
         Config {
             socket: default_socket_path(),
             history: state_dir.join("peaks.jsonl"),
-            state_dir,
+            state_dir: state_dir.clone(),
             meminfo: PathBuf::from(DEFAULT_MEMINFO),
             floor: DEFAULT_FLOOR,
             emergency_floor: DEFAULT_EMERGENCY_FLOOR,
@@ -275,6 +339,12 @@ impl Default for Config {
             flow_file: default_state_dir().join("flow.json"),
             backfill: true,
             backfill_max_head_wait: DEFAULT_BACKFILL_MAX_HEAD_WAIT,
+            guard: true,
+            guard_min_rss: DEFAULT_GUARD_MIN_RSS,
+            guard_drop_bytes: DEFAULT_GUARD_DROP_BYTES,
+            guard_window: DEFAULT_GUARD_WINDOW,
+            guard_interval: DEFAULT_GUARD_INTERVAL,
+            guard_protected_file: state_dir.join("protected.txt"),
         }
     }
 }
@@ -335,6 +405,13 @@ struct Lease {
     /// The daemon has already signalled this lease's silent client.
     stale_signalled: bool,
     current_rss: u64,
+    /// What the lease holds of the GPU right now, in bytes.
+    ///
+    /// The resident set alone is not the lease's size on this box: a lease
+    /// whose work put 20 GiB on the GPU shows 615 MiB of resident set and
+    /// holds a fifth of the box (measured 2026-11-01). The watchdog and the
+    /// guard both rank by the two together.
+    current_gpu: u64,
     peak_rss: u64,
     peak_gpu: u64,
     /// The peak the client measured itself (its `rusage`).
@@ -374,6 +451,19 @@ struct Lease {
 impl Lease {
     fn memory(&self) -> LeaseMemory {
         LeaseMemory::new(self.peak_bytes, self.current_rss)
+    }
+
+    /// What the lease holds of the box: its resident set and the bytes the
+    /// driver says it holds on the GPU.
+    ///
+    /// The resident set alone is not the lease's size on this box. Measured
+    /// on 2026-11-01: `llama-server` held 20 834 MiB of GPU memory with
+    /// 615 MiB of resident set — 34 to 1. A lease that put its work on the
+    /// GPU holds a fifth of the box while its resident set says it is a
+    /// rounding error, and both the watchdog and the guard rank by the two
+    /// together.
+    fn total_bytes(&self) -> u64 {
+        self.current_rss.saturating_add(self.current_gpu)
     }
 
     /// The peak to record: the client's own measurement if it gave one, and
@@ -555,6 +645,56 @@ struct State {
     /// The size and the modification time of the flow file when it was last
     /// read, so the daemon re-reads it only when it changed.
     flow_stamp: Option<(u64, u64)>,
+    /// The guard: what the daemon knows about work that is outside any lease
+    /// (round 12).
+    guard: GuardState,
+}
+
+/// What the guard knows between its looks at the box.
+struct GuardState {
+    /// The guard's short memory of the box: the last few looks, and the fall
+    /// in free memory between the oldest and the newest.
+    history: guard::History,
+    /// The unleased process the guard has asked to leave, and when.
+    victim: Option<GuardVictim>,
+    /// The last thing the guard did, for the status.
+    last: Option<GuardAction>,
+    /// The operator's list of protected processes and command lines.
+    protected: guard::Protection,
+    /// The size and the modification time of the protected list when it was
+    /// last read, so the daemon re-reads it only when it changed.
+    protected_stamp: Option<(u64, u64)>,
+    /// The size of the last unexplained fall the guard logged, so the same
+    /// fall is not logged again on every sample.
+    last_drop_logged: Option<u64>,
+}
+
+/// An unleased process the guard is stopping.
+#[derive(Clone, Debug)]
+struct GuardVictim {
+    pid: i32,
+    pgrp: i32,
+    name: String,
+    command: String,
+    rss_bytes: u64,
+    gpu_bytes: u64,
+    /// When the guard asked it to leave.
+    terminated_at: Instant,
+    /// The guard has escalated to `SIGKILL`.
+    killed: bool,
+}
+
+/// What the guard did, and when.
+struct GuardAction {
+    /// What set the guard off: the floor, or a runaway.
+    trigger: String,
+    pid: i32,
+    name: String,
+    /// What the process held of the box, in bytes.
+    bytes: u64,
+    /// Which signal it was given.
+    signal: String,
+    at: Instant,
 }
 
 /// A child process that keeps printing the GPU's view.
@@ -690,6 +830,14 @@ impl Daemon {
             backfill_bounded: std::collections::HashSet::new(),
             flow: None,
             flow_stamp: None,
+            guard: GuardState {
+                history: guard::History::new(),
+                victim: None,
+                last: None,
+                protected: guard::Protection::default(),
+                protected_stamp: None,
+                last_drop_logged: None,
+            },
         };
         let socket = config.socket.clone();
         let listener = bind_listener(&socket)?;
@@ -1064,16 +1212,29 @@ impl Daemon {
         // so is any decision made from them.
         self.read_flow(&mut state);
 
-        // 3. What each lease is using. The scan reads every process on the
-        // box, so it runs on its own slower clock — unless the box is short
-        // of memory, when the watchdog needs a fresh ranking now.
+        // 3. What each lease is using, and what everything else is using.
+        //
+        // The scan reads every process on the box, so it runs on its own
+        // slower clock — unless the box is short of memory, when the
+        // watchdog needs a fresh ranking now. The guard has a clock of its
+        // own, and it keeps that clock whether there is a lease or not: the
+        // work the guard exists for is work that no lease accounts for, and
+        // on 2026-11-01 the daemon had no lease at all when the box died.
         let scan_every = (self.config.scan_interval.as_millis()
             / self.config.sample_interval.as_millis().max(1))
             .max(1) as u64;
         let urgent = state.mem.mem_available < self.config.emergency_floor;
         let has_work = !state.leases.is_empty() || !state.presence.running.is_empty();
-        if has_work && (state.samples % scan_every == 0 || urgent) {
-            let procs = procscan::scan();
+        let guard_every = (self.config.guard_interval.as_millis()
+            / self.config.sample_interval.as_millis().max(1))
+            .max(1) as u64;
+        let guard_due = self.config.guard && state.samples % guard_every == 0;
+        let procs = if urgent || guard_due || (has_work && state.samples % scan_every == 0) {
+            Some(procscan::scan())
+        } else {
+            None
+        };
+        if let Some(procs) = &procs {
             let gpu = state.gpu.clone();
             // The label's learned p95, for the over-reservation watch: a
             // lease far above both its own use and its label's history is
@@ -1086,8 +1247,9 @@ impl Daemon {
             let mut overruns = Vec::new();
             let mut overreserved = Vec::new();
             for lease in state.leases.iter_mut() {
-                let usage = procscan::usage_for(target_of(lease.target), &procs);
+                let usage = procscan::usage_for(target_of(lease.target), procs);
                 lease.current_rss = usage.rss_bytes;
+                lease.current_gpu = gpu.for_pids(&usage.pids);
                 lease.peak_rss = lease.peak_rss.max(usage.rss_bytes);
                 lease.peak_gpu = lease.peak_gpu.max(gpu.for_pids(&usage.pids));
                 // The over-run watch. A lease past its reservation is the
@@ -1155,7 +1317,7 @@ impl Daemon {
                 }
             }
             for job in state.presence.running.iter_mut() {
-                let usage = procscan::usage_for(Target::Group(job.pgid), &procs);
+                let usage = procscan::usage_for(Target::Group(job.pgid), procs);
                 job.current_rss = usage.rss_bytes;
                 job.peak_rss = job.peak_rss.max(usage.rss_bytes);
             }
@@ -1205,24 +1367,31 @@ impl Daemon {
             }
         }
 
-        // 4. Are the clients still there, and are the presence jobs?
+        // 4. The guard's look: what every process on the box holds, and what
+        // the leases hold. It is a look of its own, because the guard has to
+        // see the work that no lease accounts for.
+        if guard_due {
+            self.guard_look(&mut state, procs.as_ref());
+        }
+
+        // 5. Are the clients still there, and are the presence jobs?
         self.check_liveness(&mut state);
         self.reap_presence(&mut state);
 
-        // 5. The watchdog.
-        self.watchdog(&mut state);
+        // 6. The watchdog.
+        self.watchdog(&mut state, procs.as_ref());
 
-        // 6. The presence queue: pick up a queue that changed, and give the
+        // 7. The presence queue: pick up a queue that changed, and give the
         // box's room back when live work needs it.
         self.presence_tick(&mut state);
 
-        // 7. Admission.
+        // 8. Admission.
         self.admit(&mut state);
 
-        // 8. And the ledger: where the box's time went.
+        // 9. And the ledger: where the box's time went.
         self.ledger_tick(&mut state);
 
-        // 9. And a line in the log, every ten seconds.
+        // 10. And a line in the log, every ten seconds.
         if state.samples % 40 == 0 {
             self.log_event(
                 "daemon.sample",
@@ -1781,6 +1950,7 @@ impl Daemon {
             last_heartbeat: None,
             stale_signalled: false,
             current_rss: 0,
+            current_gpu: 0,
             peak_rss: 0,
             peak_gpu: 0,
             reported_peak: None,
@@ -2583,31 +2753,94 @@ impl Daemon {
     /// still there. The reservation stays charged until the lease is
     /// released, which happens after the client has reaped its child — the
     /// memory is only "back" when the process is.
-    fn watchdog(&self, state: &mut State) {
-        if state.mem.mem_available >= self.config.emergency_floor {
-            return;
+    ///
+    /// **Two questions, two answers (round 12).**
+    ///
+    /// * *Is the box below the emergency floor?* Then something must give the
+    ///   memory back, and the biggest holder is where it is. That may be a
+    ///   lease — the work the daemon knows about — or an unleased process,
+    ///   the work it does not. On 2026-11-01 it was the second: a JAX run
+    ///   outside `thor-admit` took 94.5 GB in 20 seconds while the daemon
+    ///   watched its leases and saw nothing.
+    /// * *Is the box losing memory faster than the leases can explain?*
+    ///   Then something outside the leases is taking the box by surprise,
+    ///   and the box may not live long enough to reach the floor — the
+    ///   incident left 15 GB free, and the desktop was already dead. The
+    ///   floor is too late for that shape of trouble, so the guard watches
+    ///   the fall as well as the floor.
+    fn watchdog(&self, state: &mut State, procs: Option<&HashMap<i32, ProcInfo>>) {
+        if state.mem.mem_available < self.config.emergency_floor {
+            self.watchdog_floor(state, procs);
+        } else if self.config.guard {
+            self.watchdog_runaway(state, procs);
         }
-        // The largest lease, by what it is using right now.
-        let victim = state
+    }
+
+    /// The box is below the emergency floor: something must give the memory
+    /// back.
+    fn watchdog_floor(&self, state: &mut State, procs: Option<&HashMap<i32, ProcInfo>>) {
+        // The largest lease, by what it holds of the box right now: its
+        // resident set **and** the bytes the driver says it holds on the
+        // GPU. A lease whose work put 20 GiB on the GPU holds a fifth of
+        // this box while its resident set says 615 MiB, and ranking it by
+        // the resident set alone would call it a small lease.
+        let lease_victim = state
             .leases
             .iter()
-            .filter(|lease| lease.current_rss >= self.config.min_victim_rss)
-            .max_by_key(|lease| lease.current_rss)
+            .filter(|lease| lease.total_bytes() >= self.config.min_victim_rss)
+            .max_by_key(|lease| lease.total_bytes())
             .map(|lease| lease.id);
 
-        let Some(victim_id) = victim else {
-            // The pressure is not coming from a lease. The box's own services
-            // are not leases, so they are never touched.
+        // The largest unleased process — the work the daemon does not know
+        // about, which is the work it cannot account for and cannot stop.
+        let unleased = procs.and_then(|procs| self.guard_candidate(state, procs));
+
+        // The bigger holder is where the memory is. An unleased process that
+        // holds more than the biggest lease does is the cause of the
+        // pressure, and stopping it gives back more than stopping the lease
+        // would; the lease can wait its turn.
+        let take_the_unleased = match (&unleased, lease_victim) {
+            (Some(candidate), Some(victim_id)) => {
+                let lease_bytes = state
+                    .leases
+                    .iter()
+                    .find(|lease| lease.id == victim_id)
+                    .map(|lease| lease.total_bytes())
+                    .unwrap_or(0);
+                candidate.total_bytes() > lease_bytes
+            }
+            (Some(_), None) => true,
+            _ => false,
+        };
+
+        if take_the_unleased {
+            if let (Some(candidate), Some(procs)) = (unleased, procs) {
+                self.guard_stop(state, &candidate, "floor", procs);
+            }
+            return;
+        }
+
+        let Some(victim_id) = lease_victim else {
+            // The pressure is not coming from a lease, and the guard has
+            // nothing it may touch either: the box's own services are not
+            // candidates, and neither is anything on the operator's list.
             self.log_event(
                 "watchdog.pressure_outside_leases",
                 json!({
                     "mem_available_bytes": state.mem.mem_available,
                     "emergency_floor_bytes": self.config.emergency_floor,
+                    "guard_enabled": self.config.guard,
+                    "guard_min_rss_bytes": self.config.guard_min_rss,
                 }),
             );
             return;
         };
 
+        self.watchdog_lease(state, victim_id);
+    }
+
+    /// Stop a lease: `SIGTERM` now, `SIGKILL` when the grace period passes.
+    fn watchdog_lease(&self, state: &mut State, victim_id: u64) {
         let (target, label, current_rss, reserved, terminated_at, killed) = {
             let lease = state.leases.iter().find(|l| l.id == victim_id).unwrap();
             (
@@ -2665,6 +2898,402 @@ impl Daemon {
         );
         if let Some(lease) = state.leases.iter_mut().find(|l| l.id == victim_id) {
             lease.killed = true;
+        }
+    }
+
+    /// The box is losing memory faster than the leases can explain it.
+    ///
+    /// This is the shape the 2026-11-01 incident had: 94.5 GB in 20 seconds,
+    /// with no lease to say it was that work's fault. The floor is too late
+    /// for it — the box was already losing its desktop with 15 GB free — so
+    /// the guard watches the **fall** as well as the floor.
+    fn watchdog_runaway(&self, state: &mut State, procs: Option<&HashMap<i32, ProcInfo>>) {
+        // The window has to be full enough to mean something.
+        let (lost, span) = state.guard.history.loss();
+        if span + self.config.guard_interval < self.config.guard_window {
+            return;
+        }
+        if lost < self.config.guard_drop_bytes {
+            return;
+        }
+        // The leases explain it? Then it is not a runaway: it is the leases'
+        // own work, and the admission rule is the rule for that.
+        let lease_growth = state.guard.history.lease_growth();
+        if lease_growth.saturating_mul(2) >= lost {
+            return;
+        }
+        // Who grew? The unleased process that grew the most.
+        let Some(procs) = procs else {
+            return;
+        };
+        let candidates = self.guard_candidates(state, procs);
+        let growth = candidates
+            .iter()
+            .map(|candidate| state.guard.history.growth(candidate.pid))
+            .max()
+            .unwrap_or(0);
+        if growth < self.config.guard_drop_bytes {
+            // The memory went somewhere the daemon cannot see: the page
+            // cache, the slab, a process that died. There is nothing here
+            // to stop, and saying so is worth more than silence.
+            if state.guard.last_drop_logged != Some(lost) {
+                state.guard.last_drop_logged = Some(lost);
+                self.log_event(
+                    "guard.unexplained_drop",
+                    json!({
+                        "lost_bytes": lost,
+                        "window_ms": span.as_millis() as u64,
+                        "lease_growth_bytes": lease_growth,
+                        "mem_available_bytes": state.mem.mem_available,
+                    }),
+                );
+            }
+            return;
+        }
+        let candidate = candidates
+            .iter()
+            .max_by_key(|candidate| state.guard.history.growth(candidate.pid))
+            .cloned();
+        if let Some(candidate) = candidate {
+            self.guard_stop(state, &candidate, "runaway", procs);
+        }
+    }
+
+    /// The guard's candidates: the processes big enough to matter, owned by
+    /// no lease, and on neither protection list.
+    ///
+    /// What a lease owns is the lease watchdog's business — it knows how to
+    /// stop that work, how to wait for it, and how to give the memory back
+    /// to the accounting. The guard's business is the work nobody claimed.
+    fn guard_candidates(
+        &self,
+        state: &State,
+        procs: &HashMap<i32, ProcInfo>,
+    ) -> Vec<guard::Candidate> {
+        let me = std::process::id() as i32;
+        let my_group = unsafe { libc::getpgrp() };
+
+        let mut owned: std::collections::HashSet<i32> = std::collections::HashSet::new();
+        for lease in &state.leases {
+            owned.extend(procscan::usage_for(target_of(lease.target), procs).pids);
+        }
+        for job in &state.presence.running {
+            for (pid, info) in procs {
+                if info.pgrp == job.pgid {
+                    owned.insert(*pid);
+                }
+            }
+        }
+
+        let mut candidates = Vec::new();
+        for (pid, info) in procs {
+            // The daemon itself is never a candidate: the guard must not be
+            // able to take itself down. A process that **leads** the daemon's
+            // own group is not a candidate either — stopping that group
+            // would stop the daemon with it. A process that merely shares
+            // the daemon's group is fine: it is signalled on its own, never
+            // on its group.
+            if *pid <= 1 || *pid == me {
+                continue;
+            }
+            if info.pgrp == my_group && info.pgrp == *pid {
+                continue;
+            }
+            if owned.contains(pid) {
+                continue;
+            }
+            // What it holds of the box: the resident set, and the bytes the
+            // driver says it holds on the GPU. On this box the second is
+            // often the larger of the two.
+            let gpu_bytes = state.gpu.for_pid(*pid);
+            if info.rss_bytes.saturating_add(gpu_bytes) < self.config.guard_min_rss {
+                continue;
+            }
+            let Some(name) = procscan::read_name(*pid) else {
+                continue;
+            };
+            if guard::protected_by_name(&name) {
+                continue;
+            }
+            let command = procscan::read_command(*pid).unwrap_or_else(|| name.clone());
+            if state.guard.protected.spares(*pid, &command) {
+                continue;
+            }
+            candidates.push(guard::Candidate {
+                pid: *pid,
+                pgrp: info.pgrp,
+                name,
+                command,
+                rss_bytes: info.rss_bytes,
+                gpu_bytes,
+            });
+        }
+        candidates
+    }
+
+    /// The biggest candidate, if there is one.
+    fn guard_candidate(
+        &self,
+        state: &State,
+        procs: &HashMap<i32, ProcInfo>,
+    ) -> Option<guard::Candidate> {
+        let candidates = self.guard_candidates(state, procs);
+        guard::largest(&candidates).cloned()
+    }
+
+    /// Ask an unleased process to leave, and remember that we did.
+    ///
+    /// One victim at a time. The process already asked to leave is still
+    /// holding its memory, and stopping a second one before the first is
+    /// gone would kill more of the box's work than the emergency needs.
+    fn guard_stop(
+        &self,
+        state: &mut State,
+        candidate: &guard::Candidate,
+        trigger: &str,
+        procs: &HashMap<i32, ProcInfo>,
+    ) {
+        if state.guard.victim.is_some() {
+            return;
+        }
+        let family = guard::descendants(procs, candidate.pid);
+        let signalled = Self::guard_signal(candidate, libc::SIGTERM, procs);
+        self.log_event(
+            "guard.terminated",
+            json!({
+                "pid": candidate.pid,
+                "pgid": candidate.pgrp,
+                "name": candidate.name,
+                "command": candidate.command,
+                "rss_bytes": candidate.rss_bytes,
+                "gpu_bytes": candidate.gpu_bytes,
+                "total_bytes": candidate.total_bytes(),
+                "mem_available_bytes": state.mem.mem_available,
+                "emergency_floor_bytes": self.config.emergency_floor,
+                "trigger": trigger,
+                "signal": "SIGTERM",
+                "signalled": signalled,
+                "family": family,
+            }),
+        );
+        state.guard.victim = Some(GuardVictim {
+            pid: candidate.pid,
+            pgrp: candidate.pgrp,
+            name: candidate.name.clone(),
+            command: candidate.command.clone(),
+            rss_bytes: candidate.rss_bytes,
+            gpu_bytes: candidate.gpu_bytes,
+            terminated_at: Instant::now(),
+            killed: false,
+        });
+        state.guard.last = Some(GuardAction {
+            trigger: trigger.to_string(),
+            pid: candidate.pid,
+            name: candidate.name.clone(),
+            bytes: candidate.total_bytes(),
+            signal: "SIGTERM".to_string(),
+            at: Instant::now(),
+        });
+    }
+
+    /// Signal an unleased process, and the processes it started.
+    ///
+    /// **The group is the right target when the group is the job.** A
+    /// process that leads a group whose other members are all its own
+    /// children is a job, and the job's children hold memory too — so the
+    /// group is signalled as a whole. A process that shares its group with
+    /// something else — a shell's child — is not: the group holds the
+    /// operator's shell, and the guard never takes that with it. So the
+    /// family is signalled process by process instead, which stops the
+    /// children without touching the shell.
+    ///
+    /// The family comes from the kernel's own parent links
+    /// (`guard::descendants`), not from the group: a group is not a family.
+    ///
+    /// The `SIGCONT` is not decoration: a process the GPU pre-emption froze
+    /// never sees its `SIGTERM`, and the memory never comes back (Hy4's
+    /// first failure mode).
+    fn guard_signal(
+        candidate: &guard::Candidate,
+        signal: i32,
+        procs: &HashMap<i32, ProcInfo>,
+    ) -> bool {
+        let me = std::process::id() as i32;
+        let my_group = unsafe { libc::getpgrp() };
+        if candidate.pgrp == candidate.pid
+            && candidate.pgrp > 1
+            && candidate.pgrp != me
+            && candidate.pgrp != my_group
+            && guard::group_is_family(procs, candidate)
+        {
+            let signalled = unsafe { libc::kill(-candidate.pgrp, signal) == 0 };
+            unsafe { libc::kill(-candidate.pgrp, libc::SIGCONT) };
+            return signalled;
+        }
+        if candidate.pid <= 1 || candidate.pid == me {
+            return false;
+        }
+        let mut signalled = unsafe { libc::kill(candidate.pid, signal) == 0 };
+        // The processes it started: a job that forks workers holds the
+        // memory in them, and stopping only the parent leaves the pages
+        // where they are.
+        for child in guard::descendants(procs, candidate.pid) {
+            if child <= 1 || child == me {
+                continue;
+            }
+            if unsafe { libc::kill(child, signal) == 0 } {
+                signalled = true;
+            }
+        }
+        signalled
+    }
+
+    /// The guard's look at the box.
+    ///
+    /// It is a look of its own, because the guard has to see the work that
+    /// no lease accounts for — and on 2026-11-01 the daemon had no lease at
+    /// all when the box died.
+    fn guard_look(&self, state: &mut State, procs: Option<&HashMap<i32, ProcInfo>>) {
+        self.read_protected(state);
+        let Some(procs) = procs else {
+            return;
+        };
+        let mut totals = HashMap::new();
+        for (pid, info) in procs {
+            totals.insert(
+                *pid,
+                info.rss_bytes.saturating_add(state.gpu.for_pid(*pid)),
+            );
+        }
+        let leases: HashMap<u64, u64> = state
+            .leases
+            .iter()
+            .map(|lease| (lease.id, lease.total_bytes()))
+            .collect();
+        state.guard.history.push(
+            guard::Snapshot {
+                at: Instant::now(),
+                available: state.mem.mem_available,
+                totals,
+                leases,
+            },
+            self.config.guard_window,
+        );
+        // The victim: is it gone, and if it is not, has the grace run out?
+        self.guard_check_victim(state, procs);
+    }
+
+    /// Is the process the guard asked to leave still there?
+    fn guard_check_victim(&self, state: &mut State, procs: &HashMap<i32, ProcInfo>) {
+        let Some(victim) = state.guard.victim.clone() else {
+            return;
+        };
+        if !Path::new(&format!("/proc/{}", victim.pid)).exists() {
+            self.log_event(
+                "guard.gone",
+                json!({
+                    "pid": victim.pid,
+                    "name": victim.name,
+                    "killed": victim.killed,
+                    "held_ms": victim.terminated_at.elapsed().as_millis() as u64,
+                    "mem_available_bytes": state.mem.mem_available,
+                }),
+            );
+            state.guard.victim = None;
+            return;
+        }
+        if victim.killed {
+            return;
+        }
+        // It was asked to leave and it has not: the grace is over, and the
+        // memory is still taken.
+        let grace = Duration::from_millis(
+            self.config.sample_interval.as_millis() as u64 * self.config.stop_grace_samples as u64,
+        );
+        let waited = victim.terminated_at.elapsed();
+        if waited < grace {
+            return;
+        }
+        let candidate = guard::Candidate {
+            pid: victim.pid,
+            pgrp: victim.pgrp,
+            name: victim.name.clone(),
+            command: victim.command.clone(),
+            rss_bytes: victim.rss_bytes,
+            gpu_bytes: victim.gpu_bytes,
+        };
+        let signalled = Self::guard_signal(&candidate, libc::SIGKILL, procs);
+        self.log_event(
+            "guard.killed",
+            json!({
+                "pid": victim.pid,
+                "name": victim.name,
+                "command": victim.command,
+                "total_bytes": candidate.total_bytes(),
+                "waited_ms": waited.as_millis() as u64,
+                "signal": "SIGKILL",
+                "signalled": signalled,
+                "mem_available_bytes": state.mem.mem_available,
+            }),
+        );
+        if let Some(victim) = state.guard.victim.as_mut() {
+            victim.killed = true;
+        }
+        state.guard.last = Some(GuardAction {
+            trigger: state
+                .guard
+                .last
+                .as_ref()
+                .map(|action| action.trigger.clone())
+                .unwrap_or_else(|| "floor".to_string()),
+            pid: victim.pid,
+            name: victim.name.clone(),
+            bytes: candidate.total_bytes(),
+            signal: "SIGKILL".to_string(),
+            at: Instant::now(),
+        });
+    }
+
+    /// Re-read the operator's protected list when it changed.
+    fn read_protected(&self, state: &mut State) {
+        let stamp = std::fs::metadata(&self.config.guard_protected_file).ok().map(|meta| {
+            let modified = meta
+                .modified()
+                .ok()
+                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|duration| duration.as_nanos() as u64)
+                .unwrap_or(0);
+            (meta.len(), modified)
+        });
+        if stamp == state.guard.protected_stamp {
+            return;
+        }
+        state.guard.protected_stamp = stamp;
+        let protection = guard::read_protected_list(&self.config.guard_protected_file);
+        // The pid list **churns**: a process starts, a process ends, and the
+        // list changes with it. Writing the whole list each time would put
+        // a thousand pids in the log every time a seat started something,
+        // so the line is written when the operator's own decisions change —
+        // the patterns, and the pids that were **added** — and the rest of
+        // the churn is counted and left alone.
+        let patterns_changed = protection.patterns != state.guard.protected.patterns;
+        let added: Vec<i32> = protection
+            .pids
+            .iter()
+            .filter(|pid| !state.guard.protected.pids.contains(pid))
+            .copied()
+            .collect();
+        state.guard.protected = protection;
+        if patterns_changed || !added.is_empty() {
+            self.log_event(
+                "guard.protection",
+                json!({
+                    "patterns": state.guard.protected.patterns,
+                    "pids_added": added,
+                    "pid_count": state.guard.protected.pids.len(),
+                    "file": self.config.guard_protected_file.display().to_string(),
+                }),
+            );
         }
     }
 
@@ -3287,6 +3916,20 @@ fn status_report(state: &State, config: &Config) -> StatusReport {
         uptime_s: state.started.elapsed().as_secs_f64(),
         samples: state.samples,
         presence: presence_reports(state),
+        guard: GuardReport {
+            enabled: config.guard,
+            last_signal: state.guard.last.as_ref().map(|action| action.signal.clone()),
+            last_trigger: state.guard.last.as_ref().map(|action| action.trigger.clone()),
+            last_pid: state.guard.last.as_ref().map(|action| action.pid),
+            last_name: state.guard.last.as_ref().map(|action| action.name.clone()),
+            last_bytes: state.guard.last.as_ref().map(|action| action.bytes),
+            last_age_s: state
+                .guard
+                .last
+                .as_ref()
+                .map(|action| action.at.elapsed().as_secs_f64()),
+            protected: state.guard.protected.patterns.clone(),
+        },
     }
 }
 

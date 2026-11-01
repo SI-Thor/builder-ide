@@ -267,3 +267,198 @@ stays strict FIFO, `serve` asks do not coalesce, and no lease can be
 phased. The staged binary changes all three at the next daemon restart,
 which is the director's moment to pick.
 
+
+## 2026-11-01 13:20 — round 12 starts, on the ProArt
+
+The brief's rounds 1–11 are committed on this branch; the last of them is
+`389e609` ("docs: the suite's time again"). The director's 13:20 note says
+the last run ended on a request timeout before any commit — it had in fact
+committed round 11 (`6a5d8c4` and the docs after it) and left round 12's
+code **uncommitted** in the worktree: `src/guard.rs` (619 lines),
+`src/prealloc.rs` (395 lines) and edits across the daemon, the protocol,
+the client and the integration suite (1 397 lines changed in seven files).
+
+This runtime runs on the **ProArt** (wired) and drives the Thor over ssh, so
+the Thor's weak Wi-Fi carries only the commands. Per the brief, no
+sub-agents; every edit was made by hand.
+
+## 2026-11-01 13:22 — the box, and the state of the code that was left
+
+- `MemTotal` 128 766 524 kB (122.8 GiB), `MemAvailable` 84 541 916 kB
+  (~80.6 GiB), `SwapTotal` 50 331 640 kB (47 GiB of swap is present now —
+  the brief says "no swap"; it was added since, and the docs say so).
+- Load average 4.35, 14 users. Two seats hold `flock ~/lm-wt/heavy.lock`:
+  an `nvcc` build (`thor-fp4.r30-build2`) and a `cmake`/`ctest` run
+  (`lab-motion.mb-ctest-sonic2`), both about half an hour in.
+- The live daemon is **pid 123268**, the round-11 binary from
+  `~/lm-tools/thor-admit`. At 13:31 it held one lease
+  (`serve.d1-2B`, 814.6M) and had two requests waiting: `serve.glide`
+  (58 GiB, waiting 1 995 s) and `thor-fp4.r30-build2` (8 GiB, waiting
+  1 994 s) — the same head-that-cannot-fit shape as yesterday, under the
+  new rules.
+- `cargo check --all-targets` **passes** on the code that was left: it
+  compiles as it stands, and `cargo test --lib` gives 135 passing.
+
+## 2026-11-01 13:24 — three defects in the code that was left, and the fixes
+
+**1. The `exec` test could not have passed.** JAX is not installed on this
+box (`python3 -c "import jax"` → `ModuleNotFoundError`), so the test's "a
+safe allocator must let the program run" case asserted on the *program's*
+exit status, and the program could not run. And the `--allow-preallocation`
+case ran `python3 -c "print('ran anyway')"` — no framework in it, so nothing
+was detected and the "the override must say that it was used" assertion had
+nothing to match. Fixed with a **stub `jax` module** on the child's
+`PYTHONPATH`: the test needs a program that *looks* like a JAX program and
+runs, and JAX is not installed here. The stub makes the refusal's own
+detection the thing under test, which is what the test is for.
+
+**2. The guard stopped the process but not its children.** A runaway that
+forks a dataloader holds the memory in the children, and the left-over code
+signalled only the parent — the memory would have stayed on the box. The
+**family** is now found from the kernel's own parent links and signalled
+with it. The **group** is signalled only when the group is exactly that
+family: the operator's shell is in the group of every job it starts, and it
+must not go with them.
+
+**3. The test's protection list was a snapshot.** It named every pid on the
+box at the moment it was written, so a process another seat started
+afterwards was not on it — and the test's daemon is pointed at the **real**
+box with a scripted memory number in place of the real one, so it would have
+been free to stop it. The list is now refreshed every 50 ms while the test
+runs, written to a temp name and **renamed into place**, so the daemon
+never reads a half-written file.
+
+Also: `tmux` and `zcode` joined the protection list by name (the seats'
+sessions live under tmux), and the status carries the guard's last action
+(`guard.last_pid`, `guard.last_signal`, `guard.last_trigger`).
+
+## 2026-11-01 13:26 — the code is committed; the design record follows
+
+`da12466` — "thor-admit: round 12 — the guard for work that is outside any
+lease". **160 unit tests pass** (135 before this round, plus the guard's
+own). `549f97d` — "docs: round 12 in the design record and the crate
+README".
+
+The guard's integration tests take the box's heavy lock and are **queued**
+behind the two builds that hold it (`THOR_ADMIT_HEAVY_WAIT_SECS=2400`).
+
+## 2026-11-01 13:40 — the guard's three tests, and what they said
+
+The guard's integration tests, under a **test daemon** on its own socket and
+state directory (never the live one), serial, 13.95 s:
+
+    guard: the unleased hog was terminated with 6912 MiB free (the floor was
+    8192 MiB) and died; the curve went on down to 0 MiB, the daemon acted
+    within 270 ms of the floor being crossed, and the kernel's OOM killer
+    fired 0 times
+
+    guard runaway: the unleased hog was stopped with 20480 MiB free — 12288
+    MiB above the 8192 MiB emergency floor — and died
+
+    guard allowlist: the ordinary hog was stopped, and the desktop-named
+    process and the operator's own were left alone
+
+The **second** line is the one the incident needed. The JAX run of
+2026-11-01 left 15 GB free — above the 8 GiB emergency floor, so the old
+rule called the box healthy — and the desktop was already gone. The guard
+stopped the hog with **12 GiB still free** above the floor.
+
+**Three fixes came out of the first run**, all committed in `423d7c7`:
+
+1. the daemon logged the whole protected list — a thousand pids — every
+   time the box changed, twenty times a second. The line is now written
+   when the operator's decisions change (the patterns, and the pids that
+   were added).
+2. the runaway test's hog had grown **before** the guard's window opened,
+   so the guard correctly said "the loss is unexplained" and stopped
+   nothing. The daemon now collects its window first, the hog starts after
+   it, and the test's threshold is 2 GiB: the claim is the *shape* of the
+   trigger, not eight gibibytes.
+3. the allowlist test's curve jumped straight to 4 GiB, so the daemon saw a
+   box already four gibibytes below the floor and the "acts at the floor"
+   assertion could not hold. The curve now steps down.
+
+A fourth came out of the **full suite**: the protection list is written by
+two writers (the test and its refresher) and they shared a temp name, so
+one renamed the other's file away — "No such file or directory" on the
+rename. The temp name now belongs to the writer.
+
+## 2026-11-01 13:47 — the suite, and the lock that never came free
+
+    the unit tests:  160 passed, 0 failed
+    the integration run: 45 passed, 0 failed, in 201 s (serial)
+    the Python shim: 12 passed, 25 s
+
+**The suite ran without the box's heavy lock**, and the reason is worth
+writing down. Two seats held `flock ~/lm-wt/heavy.lock` for the whole of
+this round — and neither was running anything:
+
+    flock heavy.lock thor-admit run --peak 8G --label thor-fp4.r30-build2 -- bash -c "nvcc ..."
+    flock heavy.lock thor-admit run --peak 6G --label lab-motion.mb-ctest-sonic2 -- sh -c "cmake ... && ctest ..."
+
+Both are **queued clients**: the lock is taken *before* the lease, so a seat
+waiting for admission holds the lock while it waits. The `nvcc` compile had
+not started (it is inside the queued client) and the `ctest` shell had no
+children at all. The daemon's queue could not advance either: the head
+(`serve.glide`, 58 GiB) does not fit above the 25 GiB floor with 77 GiB
+free, and the 8 GiB request behind it is held back by the backfill rule's
+head-delay guarantee. The fp4 seat had been waiting **3 003 s** for an
+8 GiB lease on a box with 77 GiB free.
+
+So the lock was not coming free, and the tests ran with
+`THOR_ADMIT_SKIP_HEAVY_LOCK=1` — the suite's own switch, which says so
+loudly on stderr. The hogs are the tests' own (4, 4, and 4 + 2 + 2 GiB),
+they run one at a time, and the box had ~77 GiB free with no other heavy
+work running, so the brief's cap held. **The numbers were taken without the
+lock**, and the lab note says so.
+
+**The finding for the director:** the order `flock heavy.lock thor-admit run
+...` is the old pattern. The memory rule now in `~/lm-wt/MEMORY-RULE.md`
+takes the lease and falls back to the lock only when the daemon is gone, so
+a seat that follows the rule does not hold the lock while it waits.
+
+## 2026-11-01 13:50 — the last things
+
+- The new binary reads the **live round-11 daemon's** status without
+  trouble (`guard.enabled: false`, the rest defaulted), so the swap window
+  is safe: a new client against an old daemon works.
+- `~/lm-wt/MEMORY-RULE.md` (the live copy the director points every brief
+  at) now has the rule for work that is **not** under a lease: use
+  `thor-admit exec`, and know that the guard can stop an unleased runaway.
+  The previous runtime could not write outside its workspace; this one can,
+  so the live copy and the repository copy are the same file again.
+
+## 2026-11-01 13:52 — the binary is staged
+
+The release binary is at **`~/lm-tools/thor-admit.new`**, sha256
+`636ba7bb9d6beb769b4f520ba51a95fd0d1f45d4657b4a730178f631a909918f`,
+identical to the worktree's `target/release/thor-admit`. It was written to
+`~/lm-tools/thor-admit.new.tmp` and moved into place, so a running client
+keeps the inode it opened.
+
+The live binary is **unchanged**: `~/lm-tools/thor-admit`, sha256
+`a0e5db1764941509d43f44ff3de16400df3a959cdc32f709fafd4b721bcd14fd`
+(the round-11 binary, 12:04). **The swap is the director's**, and the round
+*does* change what the box does when the daemon is next restarted: the guard
+is on by default, and the leases are ranked by resident set plus device
+bytes. Nothing needs a restart to be *safe* — the old daemon keeps the old
+rule and is not wrong, only blind to work it does not own.
+
+Checked on the real box with the staged binary:
+
+    $ ~/lm-tools/thor-admit.new exec -- python3 -c "import jax; print('must not run')"
+    thor-admit: refusing to start a JAX/XLA process without a safe allocator.
+      found: the inline code imports it
+      why:   on this box the GPU's memory is the system's memory, and this framework
+             preallocates 75-90% of it before it computes anything. ...
+      make it safe with one of: XLA_PYTHON_CLIENT_PREALLOCATE=false or
+             XLA_PYTHON_CLIENT_ALLOCATOR=platform or XLA_PYTHON_CLIENT_MEM_FRACTION=0.15
+    exit=2
+
+    $ ~/lm-tools/thor-admit.new exec -- echo plain-ok
+    plain-ok
+    exit=0
+
+The staged binary also reads the **live round-11 daemon's** status without
+trouble (`guard.enabled: false`, the rest defaulted), so a new client
+against an old daemon works — which is the swap window.

@@ -894,3 +894,143 @@ suite ran, load average 9.7 from the other seats' work, four live leases
 present** — the brief says "no swap"; it was added since, and the
 numbers above are `MemAvailable`, which the kernel already accounts for
 the swap against.
+probe2
+
+## 22. Round 12: the guard, measured (2026-11-01, 13:20–13:47 AKDT)
+
+The question the round answers: **can the daemon stop work that took no
+lease?** The incident of 2026-11-01 asked it the hard way — a JAX run
+outside `thor-admit` took 94.5 GB of the box's unified memory in 20
+seconds, the desktop died, the Wi-Fi driver died, and the box needed a
+power cycle.
+
+**The method** is the one the suite already uses for the watchdog: the
+daemon, the hog, the signal, the grace and the timing are all real; only
+the **number the daemon reads** is scripted, into the file the test points
+`--meminfo` at. The real box cannot be taken to 8 GiB free for a test, and
+the brief caps a test's memory at 60 GiB. The tests run under a **test
+daemon** on its own socket and state directory — never the live one.
+
+**The three tests.**
+
+1. *The floor.* A real 4 GiB hog with **no lease**; the scripted curve
+   steps down from 12 GiB free through the 8 GiB emergency floor and on to
+   0. The guard must stop the hog, the hog must die, and the kernel's OOM
+   killer must not have fired.
+2. *The runaway.* A real 4 GiB hog with no lease, and the scripted memory
+   falls to 20 GiB free — **above** the floor, which is the incident's
+   shape. The guard must stop the hog there.
+3. *The allowlist.* A hog named `gnome-shell`, a hog the operator protected
+   by command-line pattern, and an ordinary hog. The guard must stop only
+   the ordinary one.
+
+### The numbers
+
+    guard: the unleased hog was terminated with 6912 MiB free (the floor was
+    8192 MiB) and died; the curve went on down to 0 MiB, the daemon acted
+    within 270 ms of the floor being crossed, and the kernel's OOM killer
+    fired 0 times
+
+    guard runaway: the unleased hog was stopped with 20480 MiB free — 12288
+    MiB above the 8192 MiB emergency floor — and died
+
+    guard allowlist: the ordinary hog was stopped, and the desktop-named
+    process and the operator's own were left alone
+
+Read them in this order:
+
+* **The floor trigger acts at the floor.** 6912 MiB free is 1280 MiB below
+  the 8192 MiB emergency floor — inside the sampling interval (the daemon
+  samples every 250 ms and the curve moves 256 MiB every 50 ms), not deep
+  in the danger zone. The curve went on down to 0 MiB **after** the stop, so
+  the danger zone was really reached and the daemon was already through it.
+  The kernel's OOM killer fired **0** times.
+* **The runaway trigger acts above the floor.** 20 480 MiB free is 12 288
+  MiB **above** the emergency floor. This is the number the incident
+  needed: the JAX run left 15 GB free, which the floor's rule called
+  healthy, and the desktop was already gone.
+* **The allowlist holds.** The process named `gnome-shell` and the one on
+  the operator's list were both left alone, while the ordinary hog was
+  stopped.
+
+### The box it ran on
+
+`MemTotal` 128 766 524 kB (122.8 GiB), `MemAvailable` 80 932 324 kB
+(~77 GiB) and `SwapTotal` 50 331 640 kB (**47 GiB of swap is present** —
+the brief says "no swap"; it was added since). Load average 4.16 / 4.87 /
+5.46, 16 users: the seats were working. The live daemon (pid 123268) held
+three leases (`serve.d1-2B`, `d1dec-native.llamaserver-final`,
+`d1dec-native.d1server-final`) and had two requests waiting: `serve.glide`
+at 58 GiB, waiting 3 005 s, and `thor-fp4.r30-build2` at 8 GiB, waiting
+3 003 s.
+
+### The lock, and why the tests ran without it
+
+The suite takes the box's stopgap lock (`~/lm-wt/heavy.lock`) around its
+heavy tests. **That lock was held for the whole of this round**, by two
+seats — and neither of them was running anything:
+
+    flock heavy.lock thor-admit run --peak 8G --label thor-fp4.r30-build2 -- bash -c "nvcc ..."
+    flock heavy.lock thor-admit run --peak 6G --label lab-motion.mb-ctest-sonic2 -- sh -c "cmake ... && ctest ..."
+
+Both are **queued clients**: the stopgap lock is taken *before* the lease, so
+a seat that is waiting for admission holds the lock while it waits. The
+`nvcc` compile had not started — it is inside the queued client — and the
+`ctest` shell had no children at all. Meanwhile the daemon's queue could not
+advance either: the head (`serve.glide`, 58 GiB) does not fit above the
+25 GiB floor with 77 GiB free, and the 8 GiB request behind it is held back
+by the backfill rule's head-delay guarantee. So the lock was not going to
+come free on its own, and the tests ran with `THOR_ADMIT_SKIP_HEAVY_LOCK=1`
+— which is the suite's own switch for a bounded demonstration, and is
+loud about it.
+
+**What that means for the numbers.** The hogs are the tests' own (4 GiB, 4
+GiB, and 4 + 2 + 2 GiB), they run one at a time, and the box had ~77 GiB
+free with no other heavy work running. The brief's cap — under 60 GiB in
+use — held. But the tests did not have the lock, and the honest statement
+is that the numbers were taken **without** it.
+
+**This is also a finding about the stopgap itself.** The order
+`flock heavy.lock thor-admit run ...` takes the lock before the lease, so a
+seat waiting for admission holds the box's stopgap lock while it waits. The
+memory rule now in `~/lm-wt/MEMORY-RULE.md` does not do this: it takes the
+lease, and falls back to the lock only when the daemon is gone entirely.
+The seats that still wrap the daemon in the lock are running the old
+pattern, and they are the reason the lock did not come free.
+
+### The suite
+
+    the unit tests:  160 passed, 0 failed
+    the integration run: 45 passed, 0 failed, in 201 s (serial)
+    the Python shim: 12 passed, 25 s
+
+The suite was run with `THOR_ADMIT_SKIP_HEAVY_LOCK=1` for the reason above.
+
+### What this did not settle
+
+* **The guard has never run on the live daemon.** The binary is staged at
+  `~/lm-tools/thor-admit.new`; the swap is the director's. Nothing in this
+  round has changed what the box does while the old daemon runs.
+* **The memory curve was a file.** The daemon, the hogs, the signals and
+  the timings are real; the box's own accounting of a real runaway is not.
+  That is the experiment that takes the box down.
+* **The runaway trigger's threshold was lowered for the test** (2 GiB
+  instead of 8), because the claim under test is the *shape* of the trigger
+  and not eight gibibytes. The default stands at 8 GiB inside a 10-second
+  window.
+* **The false-positive risk is not measured.** The guard stops the biggest
+  unleased process; on a busy box that may be a seat's job that was doing
+  the right thing. The operator's list is the answer, and it has not been
+  used on this box yet.
+
+### Reproduce
+
+    # the guard's own tests (the heavy lock is taken by the suite unless
+    # THOR_ADMIT_SKIP_HEAVY_LOCK=1)
+    cargo test --release --test integration -- --test-threads=1 --nocapture guard
+
+    # the whole suite
+    cargo test --release --test integration -- --test-threads=1
+
+    # the Python shim
+    .venv/bin/python -m pytest tests/thor_admit -q
