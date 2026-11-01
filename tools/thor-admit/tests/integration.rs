@@ -1066,3 +1066,232 @@ fn the_watchdog_leaves_small_leases_alone() {
     let _ = small.kill();
     let _ = small.wait();
 }
+
+// ---------------------------------------------------------------------------
+// The presence queue: the work the box does when it has room.
+// ---------------------------------------------------------------------------
+
+/// Register a job in the presence queue and return its id.
+fn presence_add(daemon: &DaemonUnderTest, tier: &str, peak: &str, label: &str, command: &[&str]) -> u64 {
+    let output = Command::new(BIN)
+        .arg("presence")
+        .arg("add")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .arg("--tier")
+        .arg(tier)
+        .arg("--peak")
+        .arg(peak)
+        .arg("--label")
+        .arg(label)
+        .arg("--")
+        .args(command)
+        .output()
+        .expect("the presence add runs");
+    let text = String::from_utf8_lossy(&output.stdout);
+    // "thor-admit: registered #1 \"label\" as study"
+    let id = text
+        .split('#')
+        .nth(1)
+        .and_then(|rest| rest.split_whitespace().next())
+        .and_then(|text| text.parse::<u64>().ok())
+        .unwrap_or_else(|| panic!("cannot read the job id out of {text:?}"));
+    id
+}
+
+/// The presence queue, as the status shows it.
+fn presence_jobs(daemon: &DaemonUnderTest) -> Vec<Value> {
+    daemon.status()["presence"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+}
+
+/// The ledger, as the CLI shows it.
+fn ledger(daemon: &DaemonUnderTest) -> Vec<Value> {
+    let output = Command::new(BIN)
+        .arg("ledger")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .arg("--json")
+        .output()
+        .expect("the ledger runs");
+    let value: Value = serde_json::from_slice(&output.stdout).expect("the ledger is JSON");
+    value["ledger"].as_array().cloned().unwrap_or_default()
+}
+
+/// Wait until the predicate holds, or give up.
+fn wait_until(seconds: u64, mut predicate: impl FnMut() -> bool) -> bool {
+    let deadline = Instant::now() + Duration::from_secs(seconds);
+    while Instant::now() < deadline {
+        if predicate() {
+            return true;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    predicate()
+}
+
+/// The registered work runs when the box has room for it.
+#[test]
+fn a_presence_job_runs_when_the_box_has_room() {
+    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let marker = daemon.state_dir.join("ran");
+    let _ = std::fs::remove_file(&marker);
+
+    let id = presence_add(
+        &daemon,
+        "study",
+        "1G",
+        "presence.test",
+        &["sh", "-c", &format!("sleep 1; touch {}", marker.display())],
+    );
+
+    let ran = wait_until(20, || marker.exists());
+    assert!(ran, "the presence job did not run: {}", daemon.log());
+
+    let jobs = presence_jobs(&daemon);
+    let job = jobs.iter().find(|job| job["id"].as_u64() == Some(id));
+    assert!(job.is_some(), "the job is still registered");
+    let state = job.unwrap()["state"].as_str().unwrap_or("");
+    assert!(
+        state == "done" || state == "running",
+        "the job's state is {state:?}: {}",
+        daemon.log()
+    );
+}
+
+/// Live work takes the memory back from the presence queue.
+#[test]
+fn a_live_lease_preempts_a_presence_job() {
+    // The floor is set so that the presence job's reservation is exactly
+    // what stands between the live lease and the box's room: the presence
+    // job promised 4 GiB it has not used, and the live lease needs 2 GiB.
+    let available = mem_available();
+    let presence_peak = 4 * GIB;
+    let live_peak = 2 * GIB;
+    let floor = available
+        .saturating_sub(presence_peak)
+        .saturating_sub(live_peak)
+        .saturating_add(GIB);
+    let daemon = DaemonUnderTest::start(&[
+        "--floor",
+        &floor.to_string(),
+        "--emergency-floor",
+        &available.saturating_sub(GIB).to_string(),
+    ]);
+
+    // A presence job that reserves memory it does not use yet.
+    let id = presence_add(
+        &daemon,
+        "study",
+        "4G",
+        "presence.test",
+        &["sleep", "120"],
+    );
+    let running = wait_until(20, || {
+        presence_jobs(&daemon)
+            .iter()
+            .any(|job| job["id"].as_u64() == Some(id) && job["state"] == "running")
+    });
+    assert!(running, "the presence job never started: {}", daemon.log());
+
+    // A live lease arrives. It does not fit while the presence job holds
+    // its reservation, so the daemon must take the memory back.
+    let mut live = leased(&daemon, "live.test", "2G", &["sleep", "20"]);
+    let granted = wait_until(20, || {
+        daemon
+            .log()
+            .contains("\"label\":\"live.test\"")
+            && daemon.log().contains("lease.granted")
+    });
+    assert!(granted, "the live lease was never granted: {}", daemon.log());
+
+    let log = daemon.log();
+    let preempted = log.find("presence.preempted").unwrap_or_else(|| {
+        panic!("the presence job was not pre-empted: {log}");
+    });
+    let granted_at = log.find("lease.granted").unwrap_or_else(|| {
+        panic!("the live lease was never granted: {log}");
+    });
+    assert!(
+        preempted < granted_at,
+        "the pre-emption came after the grant: {log}"
+    );
+
+    // The pre-empted job is stopped, and it is resumable, so it goes back
+    // in the queue rather than being lost.
+    let jobs = presence_jobs(&daemon);
+    let job = jobs.iter().find(|job| job["id"].as_u64() == Some(id)).unwrap();
+    assert!(
+        job["preemptions"].as_u64().unwrap_or(0) >= 1,
+        "the job was not counted as pre-empted: {job}"
+    );
+
+    let _ = live.kill();
+    let _ = live.wait();
+}
+
+/// The ledger books the box's time to the tiers, and explains its idleness.
+#[test]
+fn the_ledger_books_the_time_by_tier() {
+    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+
+    // A live lease, and a presence job, running together.
+    let mut live = leased(&daemon, "live.test", "1G", &["sleep", "4"]);
+    let id = presence_add(
+        &daemon,
+        "study",
+        "1G",
+        "presence.test",
+        &["sleep", "4"],
+    );
+    assert!(
+        wait_until(20, || {
+            presence_jobs(&daemon)
+                .iter()
+                .any(|job| job["id"].as_u64() == Some(id) && job["state"] == "running")
+        }),
+        "the presence job never started: {}",
+        daemon.log()
+    );
+    std::thread::sleep(Duration::from_secs(5));
+
+    let buckets = ledger(&daemon);
+    let bucket = buckets.last().expect("there is an hour");
+    let live_s = bucket["tiers"]["live"]["running_s"].as_f64().unwrap_or(0.0);
+    let study_s = bucket["tiers"]["study"]["running_s"].as_f64().unwrap_or(0.0);
+    assert!(live_s > 0.0, "the live tier was not booked: {bucket}");
+    assert!(study_s > 0.0, "the study tier was not booked: {bucket}");
+
+    // The idle time has a cause: nothing was registered at the start, and
+    // the ledger says so rather than leaving it unexplained.
+    let unattributed = bucket["idle"]["unattributed_s"].as_f64().unwrap_or(-1.0);
+    assert_eq!(
+        unattributed, 0.0,
+        "some idle time had no cause the ledger could name: {bucket}"
+    );
+
+    let _ = live.kill();
+    let _ = live.wait();
+}
+
+/// With nothing registered, the box's idleness is named.
+#[test]
+fn the_ledger_names_the_idleness() {
+    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    std::thread::sleep(Duration::from_secs(3));
+
+    let buckets = ledger(&daemon);
+    let bucket = buckets.last().expect("there is an hour");
+    let reasons = bucket["idle"]["by_reason"].as_object().cloned().unwrap_or_default();
+    assert!(
+        reasons.contains_key("no_work_registered"),
+        "the ledger did not say why the box was idle: {bucket}"
+    );
+    assert_eq!(
+        bucket["idle"]["unattributed_s"].as_f64().unwrap_or(-1.0),
+        0.0,
+        "some idle time had no cause the ledger could name: {bucket}"
+    );
+}
