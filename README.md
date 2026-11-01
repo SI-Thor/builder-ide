@@ -168,6 +168,7 @@ seat you work from.
 | [Solver batch](docs/lab/exp-solver-batch.md) | **Killed by its own gate**: batching the Architect's proposals and accepting the best changes the annealer's output distribution (KS p ≤ 0.002 at N ≥ 64) and is slower (invalid applies burn the batch); the patch ships as an inert knob |
 | [FP4 path](docs/lab/exp-fp4-path.md) | The tensor cores take NVFP4 (e2m1 + a UE4M3 scale per 16) directly; torchao had dequantised to BF16 first and never used them. cuBLASLt's block-scaled path reaches **371–456 TFLOPS** (1.6–2.2× FP8, 2.5–4.3× BF16) when K ≥ ~2048, at half FP8's joules and 3.55× smaller weights; at small K the current kernels are slower than BF16. CUTLASS on sm_110a runs mixed MXFP8 × MXFP4, which cuBLASLt refuses |
 | [FP4 models](docs/lab/exp-fp4-models.md) | PTQ and QAT of a decision MLP in real FP4 (top-1 kept 71 % vs its BF16 self, QAT 47 % vs teacher); which model shapes belong in FP4 and which stay BF16/FP8 |
+| [First mile](docs/lab/exp-first-mile.md) | LFM3-Audio-2B (Q4) on the ProArt's RTX 4050: **51 ms** to the first audio, 5.8× faster than real time, ~2 GB VRAM; spoken tool-calling 15/18 from voice (6/18 from text alone: hearing the voice directly beats transcribing first); cached acknowledgements answer while you are still talking. Chrome's viewer runs on the integrated Radeon, so the 4050 is the first mile's alone ([design](docs/design/first-mile.md)) |
 | [IDEAS.md](docs/lab/IDEAS.md) | The mined candidates, what's next, and the killed-by-fact list |
 
 ## The code
