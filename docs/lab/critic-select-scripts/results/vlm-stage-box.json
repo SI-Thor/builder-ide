@@ -78,7 +78,7 @@
  },
  "peak_used_mib": 42968,
  "min_available_mib": 82780,
- "window_s": 0.0,
+ "window_s": 486.0,
  "whole_box_joules": {
   "VDD_GPU": 16384.7,
   "VDD_CPU_SOC_MSS": 8532.9,
@@ -90,5 +90,6 @@
   "VDD_CPU_SOC_MSS": 17.56,
   "VIN_SYS_5V0": 15.05,
   "VIN": 76.91
- }
+ },
+ "window_s_source": "Derived from this file's own before/after timestamps (14:00:26 -> 14:08:32). The sampler wrote 0.0 because it read its own clock before the sampler stopped; the number was recovered from the recorded timestamps and is corroborated independently by joules / mean watts = 485.9 s on VDD_GPU, 485.9 s on VDD_CPU_SOC_MSS, 485.9 s on VIN_SYS_5V0, 485.9 s on VIN."
 }
