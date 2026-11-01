@@ -372,3 +372,153 @@ for the 12 GiB run that nobody had recorded.
 The judge's cost is a rounding error next to the box's: one heavy test
 moves 30 GiB of the Thor's memory, and four judge calls cost one and a
 half cents.
+
+---
+
+# Round 7 — the presence scheduler (2026-10-31, 21:26–21:29 AKDT)
+
+The second half of the brief. Round 6 answered "may this heavy thing
+start?"; round 7 answers "what should the box be doing with the time
+nobody is using?" — and measures the answer.
+
+**The question.** At 20:38 the GPU sat at idle power (VDD_GPU 3.1 W), 12 of
+14 cores were near 0 %, and about 80 GB were free, while the seats waited
+on cloud LLMs. The box was mostly waiting, and nothing in the system said
+so, because nothing in the system knew what the box could have been doing.
+
+**What was built.** A **presence queue** of registered work (a command, a
+tier, an estimated peak, a resumability flag), and a **ledger** that books
+the box's time by tier and names the cause of every idle second.
+
+**Verdict: useful — the queue runs the box's own work, live work takes it
+back in 0.28 s, and the ledger explains 100 % of the idle time it saw.**
+
+## 10. The setup
+
+| | |
+|---|---|
+| Box | Thor, Linux 6.8.12-1021-tegra, aarch64, 122.8 GiB unified, no swap |
+| Load during the run | 15.87 / 16.05 / 16.40 (the box was busy with a seat's work) |
+| `MemAvailable` | 72.1 GiB at 21:26, 67.4 GiB at 21:28 |
+| Build | release (`cargo build --release`) |
+| Memory used by the test | **none**: the presence job was a `sleep`, the leases were `sleep`s |
+
+The script is `tools/thor-admit/measure-presence.py`; it starts a daemon
+in a temporary state directory, registers work, takes a lease, reads the
+ledger and prints the daemon's own log.
+
+## 11. The daemon's cost, with the ledger on
+
+30 s windows, the release build:
+
+| | idle | one lease and one presence job |
+|---|---|---|
+| Resident memory | 2 304 KiB (2.25 MiB) | 2 688 KiB (2.63 MiB) |
+| CPU, its own | 0.17 % of one core | 0.83 % of one core |
+
+Round 6 measured 2 MiB and 0.03 % of a core idle on the same box. The
+extra is the ledger: a sample every 250 ms, `/proc/stat` once a second,
+and the GPU's children read every tick instead of every eighth one. The
+ledger wants the GPU's power and busy share **when the box is doing
+nothing** — "the GPU was idle at 3.2 W" is one of the numbers it exists to
+keep, and it cannot be read after the fact.
+
+## 12. The ledger, one window
+
+51.5 s, 206 samples (21:27–21:28 AKDT):
+
+| | |
+|---|---|
+| live tier | 44.75 s running |
+| study tier | 45.5 s running, 1 run |
+| idle | 6.0 s — all `no_work_registered` |
+| **unattributed** | **0.0 s (0 %)** |
+| GPU power | 3 201.6 mW mean, 5 116 mW max (`tegrastats`, 206 samples) |
+| GPU busy share | 0 % (206 samples, `nvidia-smi`) |
+| CPU busy share | 0.667 of the box; 14 cores |
+| Free memory | 67.4 GiB lowest, 72.4 GiB highest |
+
+Two things worth keeping:
+
+* The GPU's **3.2 W** is the same reading as the 20:38 note (3.1 W), two
+  hours and a half later, and now it is in a record rather than in
+  somebody's memory. The GPU was idle while the CPU was busy: the box's
+  work was not GPU work.
+* The idle time was **6.0 s, all of it `no_work_registered`**, and
+  **nothing unattributed**. The first six seconds were the window before
+  the work was registered; after that the box had something to do.
+
+## 13. The pre-emption, on the real box
+
+The presence job was registered with a 4 GiB peak and held none of it; the
+live lease asked for 2 GiB; the floor was 62.5 GiB — the number that makes
+the presence job's reservation exactly what stands between the live lease
+and the room.
+
+```
+21:28:11  presence.started    measure.preempt  peak 4 GiB   mem_available 72 417 284 096
+21:28:11  presence.preempted  measure.preempt  live_label measure.live2
+21:28:12  presence.finished   measure.preempt  exit 143 (SIGTERM)  state preempted
+21:28:12  lease.granted       measure.live2    peak 2 GiB
+21:28:17  presence.started    measure.preempt  peak 4 GiB      ← it resumed
+```
+
+| | |
+|---|---|
+| The live lease was admitted after | **0.280 s** (the client's own measurement) |
+| The pre-emption was logged | in the same second as the request |
+| The job's exit | 143 — 128 + SIGTERM, the signal the daemon sent |
+| The job's state afterwards | `preempted`, and resumable, so it was not lost |
+| The kernel's OOM killer | 0 times |
+
+**And it resumed five seconds later, and the arithmetic says why.** While
+the live lease ran, the presence job's 4 GiB did not fit beside the live
+lease's 2 GiB promise:
+
+```
+available          72 415 502 336   (67.44 GiB)
+- live lease owes    2 145 700 000   (2 GiB promised, 1.8 MB used)
+- presence job peak  4 294 967 296   (4 GiB)
+= headroom          65 974 835 040   (61.45 GiB)   <  floor 62.5 GiB  → no
+```
+
+When the live lease ended, its 2 GiB came back, the headroom became
+63.47 GiB, and the job started again. That is the rule working, not the
+rule being slow.
+
+## 14. A bug the measurements found
+
+The first ledger had **no GPU busy share** (`busy_samples: 0`) even though
+the daemon was reading the driver's own line every tick. The reason: the
+daemon's query asks for `nounits`, so the line is `0, 3.15`, and the
+parser was looking for the `%` and `W` suffixes that `nounits` removes. The
+parser now reads a unit-less line positionally, in the order the query
+asked for, and the unit test says so.
+
+It is worth recording because the number was *missing*, not *wrong*: a
+ledger that quietly drops a column looks exactly like a ledger whose column
+is zero.
+
+## 15. How to reproduce
+
+```bash
+cd tools/thor-admit
+cargo build --release
+python3 measure-presence.py          # about four minutes
+```
+
+The heavy tests still take the box's own lock; these do not need it,
+because they allocate nothing.
+
+## 16. What this did not settle
+
+* **What should be in the presence queue.** The queue is a file, and the
+  file is empty until somebody puts something in it. The ledger can say
+  how much time went to `no_work_registered`; it cannot say what *should*
+  have been there. That is a question for the night runner and the seats.
+* **Whether `SIGSTOP` is the right way to give the GPU back.** It stops the
+  whole process group, so the job's CPU work stops too. The driver's CUDA
+  stream priorities would be finer; they were not measured here.
+* **A full hour.** The ledger's unit is the hour and the run above is 51
+  seconds of one. The hour rollover is unit-tested; a real hour of the
+  box's own time has not been watched yet.

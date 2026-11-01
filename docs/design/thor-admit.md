@@ -185,9 +185,13 @@ dependency, and readable with `nc -U`.
 
 | Request | Meaning |
 |---|---|
-| `{"op":"acquire","label":"trellis","peak":42949672960,"priority":0,"target":{"group":{"pgid":1234}}}` | take a lease (`peak` may be `"auto"`) |
+| `{"op":"acquire","label":"trellis","peak":42949672960,"priority":0,"tier":"live","target":{"group":{"pgid":1234}}}` | take a lease (`peak` may be `"auto"`, `tier` may be absent — it is `live`) |
 | `{"op":"held","lease":7}` | the client holds the lock now: the lease is real |
 | `{"op":"release","lease":7,"peak_rss_bytes":123456}` | the lease is over |
+| `{"op":"presence_add","label":"sweep","tier":"study","peak":8589934592,"resumable":true,"command":["python3","sweep.py"]}` | register work in the presence queue |
+| `{"op":"presence_remove","id":3}` | take a job out of the presence queue |
+| `{"op":"presence_list"}` | what is registered, and what it is doing |
+| `{"op":"ledger"}` | the hours, and the hour being kept now |
 | `{"op":"status"}` / `{"op":"ping"}` | what is going on / is the daemon alive |
 
 **Daemon → client**
@@ -196,6 +200,9 @@ dependency, and readable with `nc -U`.
 |---|---|
 | `{"event":"queued","position":1,"waiting":1,...}` | in the queue, waiting for room |
 | `{"event":"granted","lease":7,"peak_bytes":...,"lock_path":"...","floor_bytes":...}` | the lease is granted; lock the file |
+| `{"event":"presence_added","id":3,"label":"sweep","tier":"study"}` | the job is registered |
+| `{"event":"presence","jobs":[...]}` | the presence queue |
+| `{"event":"ledger","buckets":[...],"current":{...}}` | the closed hours and the hour being kept |
 | `{"event":"rejected","reason":"..."}` | no lease (e.g. no history for `--peak auto`) |
 | `{"event":"status", ...}` | the status report |
 | `{"event":"ok"}` / `{"event":"error","message":"..."}` | answers to `held`/`release`/`ping` |
@@ -229,6 +236,13 @@ Every knob is a parameter with a default; nothing is hard-coded.
 | `--no-stop-on-client-gone` | off | leave a dead client's command running |
 | `--priority` | 0 | the client's priority in the queue |
 | `--peak` | — | a size, or `auto` for the learned p95 |
+| `--tier` | `live` | the tier of work a lease is (see §8.1) |
+| `--no-presence` | off | do not run the presence queue |
+| `--presence-file` | `<state-dir>/presence.json` | where the presence queue is kept |
+| `--ledger` | `<state-dir>/ledger.jsonl` | where the ledger's hours are written |
+| `--ledger-interval-ms` | 1000 | how often the CPU's counters are read |
+| `--gpu-busy-threshold` | 50 | the GPU's busy share (per cent) at which live work takes the GPU from the presence queue |
+| `--no-gpu-preempt` | off | never stop the presence work for the GPU |
 
 ## 6. What the GPU exposes (measured on this box)
 
@@ -492,7 +506,208 @@ lease is admitted when `projected - peak >= floor`. Worked through:
 | with a lease that has not grown | 100 GiB | 40 GiB reserved, 2 GiB used | 38 GiB | 62 GiB | **no** — 24 GiB left, one short of the floor |
 | with a lease that overshot | 100 GiB | 10 GiB reserved, 30 GiB used | 65 GiB | 120 GiB | **yes** — 55 GiB left; the lease owes nothing more, so the memory it took past its promise is given back |
 
-## 8. The daemon as a service
+## 8. The presence scheduler: the box's own useful work
+
+The admission controller answers "may this heavy thing start?". It does not
+answer "what should the box be doing with the hours nobody is using?".
+
+Measured at 20:38 on 2026-10-31: the GPU at idle power (VDD_GPU 3.1 W),
+12 of 14 cores near 0 %, about 80 GB free, while the seats waited on cloud
+LLMs. The box was mostly waiting — and nothing in the system said so,
+because nothing in the system *knew* what the box could have been doing.
+
+This section is the answer: a queue of the box's own work, and a ledger that
+says where the box's time went.
+
+### 8.1 The tiers
+
+Every lease says what kind of work it is. The tier does two things: it is
+the accounting band the ledger books the seconds to, and it is the
+permission to pre-empt. Only **live** work may take the box back from the
+presence queue.
+
+| Tier | What it is | May pre-empt? |
+|---|---|---|
+| **live** | nights, previews, first-mile requests | **yes** |
+| **preparation** | pre-generating likely-needed assets, refreshing keyframes | no |
+| **practice** | retraining choosers, recalibrating confidence, FP4-aware training, replaying proposed changes against recorded inputs | no |
+| **study** | the Infinigen sweep, hardware experiment batches, parity and benchmark suites | no |
+
+A lease that does not say is **live**. That is the safe default — an
+unlabelled request is somebody's work happening now — and it keeps every
+client that predates the tiers working unchanged.
+
+### 8.2 The presence queue
+
+Registered work: **a command, a tier, an estimated peak and a resumability
+flag**. It is a file (`<state-dir>/presence.json`), so it survives the
+daemon and can be edited by hand; the daemon re-reads it when the file
+changes.
+
+The rules are three, and each one is a consequence of the others:
+
+1. **A presence job runs only when no live request is waiting.** The live
+   queue has head-of-line blocking: a live request that does not fit blocks
+   everything behind it. The presence queue is behind everything, so
+   background work can never make a live request's wait longer.
+2. **Its memory is charged like any lease.** A job that promised 30 GiB
+   and has used 2 GiB so far still owes 28 GiB. The headroom is
+   `available - Σ (reserved - current)`, and the presence jobs are in that
+   sum.
+3. **It gives way when live work arrives** — in two different ways, because
+   memory and GPU time are different things.
+
+| | the trigger | the signal | what it costs the job |
+|---|---|---|---|
+| **memory** | a live lease is waiting and does not fit, and it *would* fit if the presence jobs were not charged | `SIGTERM` | the job stops; a resumable one goes back in the queue and runs again |
+| **GPU** | a live lease is running and the GPU's busy share is at or above `--gpu-busy-threshold` (50 %) | `SIGSTOP` | the job pauses, keeping its memory and giving up the GPU's streams; it is continued when the live work is done |
+
+The two are different on purpose. **A stopped process still holds its
+memory**, so `SIGSTOP` cannot answer a memory shortage — only `SIGTERM`
+can, because the process has to be gone. And a `SIGSTOP` is free of
+consequence: the work resumes exactly where it left off, which is why the
+GPU pre-emption is the gentler of the two.
+
+### 8.3 The rule that decides the pre-emption
+
+The memory pre-emption is not a guess. It fires only when all three of
+these hold:
+
+1. a **live** lease is at the head of the queue, and
+2. it does **not** fit under the rule, and
+3. it **would** fit if the presence jobs were not charged.
+
+Condition 3 is what makes the pre-emption exact rather than brutal: if the
+clients themselves are using the room, the presence queue is not what is in
+the way, and the daemon does nothing (that case is the watchdog's
+business). If the presence queue *is* what is in the way, the least urgent
+running job is asked to stop — the *least* urgent, so the most useful
+presence work keeps running as long as it can.
+
+### 8.4 The ledger
+
+One JSON line per hour, in `<state-dir>/ledger.jsonl`:
+
+```json
+{"hour":"2026-11-01T05","window_s":51.5,"samples":206,
+ "tiers":{"live":{"running_s":44.75,"runs":0,"preemptions":0,"preempted_s":0.0},
+          "study":{"running_s":45.5,"runs":1,"preemptions":0,"preempted_s":0.0}},
+ "gpu":{"power_mw_mean":3201.55,"power_mw_max":5116,"power_samples":206,
+        "busy_pct_mean":0.0,"busy_samples":206,"source":"tegrastats"},
+ "cpu":{"cores":14,"busy_share_mean":0.667,"per_core_busy_share":[...],"samples":49},
+ "idle":{"total_s":6.0,"by_reason":{"no_work_registered":6.0},
+         "unattributed_s":0.0,"no_work_s":6.0},
+ "memory":{"available_min":72416206848,"available_max":77713555456,
+           "available_sum":15644676214784,"samples":206}}
+```
+
+**The idle time is broken into causes**, because "the box was idle" is not
+a measurement — it is a shrug:
+
+| Cause | What it means |
+|---|---|
+| `no_work_registered` | nothing was registered to do, and nothing was asked for |
+| `waiting_for_memory` | work was ready, but the box had no room for it |
+| `waiting_for_gpu` | work was ready, but the GPU was busy with higher-priority work |
+| `preempted_for_live_work` | work was stopped so live work could run |
+| `unattributed` | the ledger cannot say — **this is the number that should be zero** |
+
+`no_work_registered` is a cause but not a good one: it is the presence gap
+itself. It is reported on its own, so that "the ledger explains
+everything" and "the box had nothing to do" stay two different sentences.
+The brief's target — the share of time idle **without a reason** — is the
+`unattributed` share, and the classifier is total: every idle sample gets
+exactly one cause, and the last case (`unattributed`) is reachable only
+when registered work fits, is not running, and is not stopped.
+
+**Where the figures come from.** The GPU's **power** is `tegrastats`' own
+`VDD_GPU` rail — the Tegra's number for the GPU's rail — read by the child
+that was already printing the box's memory view. The GPU's **busy share**
+is `nvidia-smi --query-gpu=utilization.gpu`: this Thor's `tegrastats`
+prints no 3D busy percentage, so the driver answers that one. The
+**CPU**'s share per core comes from `/proc/stat`'s per-core lines: the busy
+share of each core is Δ(busy) / Δ(total) over the window. The ledger
+records the source of the GPU figures, so a reader never has to guess
+which tool answered what.
+
+### 8.5 What it measured, on this box
+
+**The box, beside the numbers:** `MemTotal: 128 766 532 kB` (122.8 GiB, no
+swap), `MemAvailable` 72.1 GiB, load average 15.87 / 16.05 / 16.40, at
+21:26 AKDT on 2026-10-31 (the box's own clock, UTC-8). The box was busy
+with a seat's work; the daemon's own cost was measured in that state, not
+on an idle box.
+
+**The daemon's cost, with the presence scheduler and the ledger on** (the
+release build, 30 s windows):
+
+| | idle | one lease and one presence job |
+|---|---|---|
+| Resident memory | **2 304 KiB** (2.25 MiB) | **2 688 KiB** (2.63 MiB) |
+| CPU, its own | **0.17 % of one core** | **0.83 % of one core** |
+
+The extra work over §7.1 is the ledger: a sample every 250 ms, the CPU's
+counters once a second, and the GPU's children read every tick instead of
+every eighth one (the ledger wants the GPU's power and busy share even
+when the box is doing nothing — "the GPU was idle at 3.2 W" is one of the
+numbers the ledger exists to keep).
+
+**The ledger, one window** (51.5 s, 206 samples, 21:27–21:28 AKDT):
+
+| | |
+|---|---|
+| live tier | **44.75 s** running |
+| study tier | **45.5 s** running, 1 run |
+| idle | **6.0 s**, all of it `no_work_registered` |
+| **unattributed** | **0.0 s — 0 %** |
+| GPU power | **3 201.6 mW mean**, 5 116 mW max (`tegrastats`) |
+| GPU busy share | **0 %** (206 samples) |
+| CPU busy share | **0.667** of the box, 14 cores (per-core shares in the record) |
+| Free memory | 67.4 GiB at the lowest, 72.4 GiB at the highest |
+
+The GPU was idle at **3.2 W** throughout, with the seats' work on the CPU
+side — the same reading as the 20:38 measurement in the brief (3.1 W), two
+hours and a half later, now in the ledger rather than in a note.
+
+**The memory pre-emption, on the real box** (21:28 AKDT). The presence job
+was registered with a 4 GiB peak and was holding none of it; the live
+lease asked for 2 GiB; the floor was 62.5 GiB, which is
+`available - 4 GiB - 2 GiB + 1 GiB` — the number that makes the presence
+job's reservation exactly what stands between the live lease and the room.
+
+```
+21:28:11  presence.started    measure.preempt  peak 4 GiB   mem_available 72 417 284 096
+21:28:11  presence.preempted  measure.preempt  live_label measure.live2
+21:28:12  presence.finished   measure.preempt  exit 143 (SIGTERM)  state preempted
+21:28:12  lease.granted       measure.live2    peak 2 GiB
+21:28:17  presence.started    measure.preempt  peak 4 GiB     ← it resumed
+```
+
+| | |
+|---|---|
+| The live lease was admitted after | **0.280 s** (the client's own measurement) |
+| The pre-emption was logged | in the **same second** as the request |
+| The job's exit | **143** — 128 + SIGTERM, the signal the daemon sent |
+| The job's state afterwards | `preempted` — and it was **resumable**, so it was not lost |
+| The kernel's OOM killer | **0 times** |
+
+**And it resumed five seconds later, not sooner** — and the arithmetic
+says why. While the live lease was running, the presence job's 4 GiB did
+not fit beside the live lease's 2 GiB promise:
+
+```
+available          72 415 502 336   (67.44 GiB)
+- live lease owes    2 145 700 000   (2 GiB promised, 1.8 MB used)
+- presence job peak  4 294 967 296   (4 GiB)
+= headroom          65 974 835 040   (61.45 GiB)   <  floor 62.5 GiB  → no
+```
+
+When the live lease ended, its 2 GiB came back and the headroom became
+63.47 GiB — above the floor — and the job started again at 21:28:17. That
+is the rule working, not the rule being slow: the presence work waits
+until the box really has the room for it.
+
+## 9. The daemon as a service
 
 **No systemd unit is installed or enabled.** The daemon is a user-level
 process; the crate's README says how to start it. Checked on this box
@@ -534,15 +749,17 @@ systemctl --user enable --now thor-admit.service
 It is a *user* unit on purpose: the daemon runs as the user whose seats run
 under, it needs no root, and it cannot outlive the session.
 
-## 9. What it does not do
+## 10. What it does not do
 
 * **It does not install anything** — no unit, no packages, no root.
 * **It does not touch the box's services.** They are not leases.
 * **It does not know about swap.** There is none; the floor is the whole
   story.
-* **It does not preempt.** A lease that is running is not interrupted for
-  anything but the emergency floor; the queue's priorities decide what waits,
-  not what dies.
+* **It does not preempt a lease.** A lease that is running is not
+  interrupted for anything but the emergency floor; the queue's priorities
+  decide what waits, not what dies. What the daemon *does* pre-empt is its
+  own presence queue (§8.2) — the work it started itself, for which it
+  holds the lease.
 * **It does not model the kernel's reclaim.** The floor is a number; how
   much of it the kernel would actually give back is the kernel's business.
 * **It does not replace the core's per-model load cap** (S §1.9). That is
@@ -559,7 +776,7 @@ under, it needs no root, and it cannot outlive the session.
   handled: the release path sends `SIGTERM` and then `SIGCONT`, so
   nothing is left frozen.)
 
-## 10. Open questions
+## 11. Open questions
 
 1. **What is the right floor?** 25 GiB is the stopgap's number, carried
    forward. The box's own use (the desktop, the seats' tooling, the
@@ -568,10 +785,24 @@ under, it needs no root, and it cannot outlive the session.
    killer fires at zero. 8 GiB is a guess with a margin; the honest
    measurement is what the watchdog test showed.
 3. **Should a lease be preemptible?** Today a lease runs to the end. The
-   night runner might rather stop a batch and resume it than wait.
+   night runner might rather stop a batch and resume it than wait. The
+   presence queue's pre-emption (§8.2) is the same question asked of the
+   daemon's *own* work, and it has an answer for that case: `SIGSTOP` for
+   the GPU, `SIGTERM` for the memory. A client-held lease is different,
+   because the client would have to agree to be stopped.
 4. **Does the GPU's per-process figure deserve more than the peak?** The
    driver answers it every 2 s, and it is the only per-lease GPU number
    there is.
 5. **Should the history be a table and not a log?** A log is easy to
    append and easy to replay; a table would answer "what did this label
    cost on Tuesday" faster.
+6. **What should be in the presence queue?** The queue is a file, and the
+   file is empty until somebody puts something in it. The ledger can now
+   say how much of the box's time went to `no_work_registered` — the
+   presence gap — but it cannot say what *should* have been there. That is
+   a question for the night runner and the seats, not for the daemon.
+7. **Is `SIGSTOP` the right way to give the GPU back?** It stops the
+   whole process group, so the job's CPU work stops too. A finer
+   mechanism — the CUDA stream priority the driver already exposes — would
+   keep the job's CPU work running and only take its GPU streams. It was
+   not measured here.
