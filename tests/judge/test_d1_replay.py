@@ -244,17 +244,32 @@ def test_the_rebuild_replays_the_whole_first_half_without_divergence():
 # --- the null-confidence rule -------------------------------------------------
 
 
-def test_a_null_confidence_tick_takes_no_reading_and_moves_no_standing():
+def test_a_backend_with_no_confidence_of_its_own_still_gates_on_the_distribution():
+    """A tick whose backend reported no confidence of its own still moves
+    the standing — on the number the distribution gave.
+
+    The confidence is read from the distribution under one definition,
+    for every backend (``core.judge.calibration``), so blanking the
+    backend's own number changes nothing about the gate: the words are
+    the control's words, tick for tick. The old rule — a tick with **no
+    confidence at all** moves nothing — still holds where it can still
+    happen: a row folded from a log written before the definition was
+    stated (``tests/judge/test_standing_durable.py``) and the policy's
+    own rule that a judgment with no confidence never passes
+    (``tests/judge/test_gate.py``).
+    """
     ticks = _ticks()
     control_words, _ = _replay(ticks[:8])
 
     blank_at = 4  # the fifth tick of the first trial
-    words, _ = _replay(ticks[:8], blank_confidence_at=blank_at)
+    words, ledger = _replay(ticks[:8], blank_confidence_at=blank_at)
 
-    series = words[0]
-    control = control_words[0]
-    # the tick took no reading …
-    assert series[blank_at] is None
-    # … and moved nothing: the next word is the control's next word
-    assert series[blank_at + 1] == control[blank_at + 1]
-    assert series[:blank_at] == control[:blank_at]
+    # the blanked tick reads the same, because the distribution is the
+    # confidence's source
+    assert words[0] == control_words[0]
+    # and the row says which is which: the canonical number is there, the
+    # backend's own is null
+    row = fold_judgments(ledger.events())[blank_at]
+    assert row["judgment"].backend_confidence is None
+    assert row["judgment"].confidence is not None
+    assert row["judgment"].confidence_definition == "top_probability"

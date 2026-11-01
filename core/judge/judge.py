@@ -44,6 +44,7 @@ from core.night.ledger import MAX_PAYLOAD_BYTES, canonical_bytes
 from core.records import Actor
 
 from .backends import BackendReply, FakeBackend, JudgeBackend, JudgeRefusal
+from .calibration import CANONICAL_CONFIDENCE, CalibrationScale, ConfidenceDefinition
 from .events import JUDGE_EVENT_TYPE
 from .gate import (
     DEFAULT_BAND,
@@ -150,6 +151,8 @@ class Judge:
         standing: StandingGate | None = None,
         ledger: LedgerPort,
         clock=now_utc,
+        confidence_definition: ConfidenceDefinition = CANONICAL_CONFIDENCE,
+        scales: Mapping[tuple[str, str, str], CalibrationScale] | None = None,
     ) -> None:
         rungs: list[tuple[str, JudgeBackend]] = []
         if backend is not None:
@@ -165,6 +168,11 @@ class Judge:
         self.standing = standing
         self.ledger = ledger
         self._clock = clock
+        #: The one definition every backend's confidence is computed under.
+        self.confidence_definition = confidence_definition
+        #: The recalibrations, per (backend, model, task). Where one is
+        #: fitted, the gate's τ is read in the calibrated space.
+        self.scales = dict(scales or {})
 
     # -- the ask ---------------------------------------------------------------
 
@@ -176,6 +184,7 @@ class Judge:
         *,
         at: str | None = None,
         now: float | None = None,
+        scope: str | None = None,
         state_reader: Callable[[], str] | None = None,
         deadline_seconds: float | None = None,
     ) -> JudgeAnswer:
@@ -201,6 +210,13 @@ class Judge:
         as a **supersede** beside the committed answer without changing
         it. With nothing at all to commit, the refusal is loud, not a
         stall.
+
+        ``scope`` names the thing being judged — the bucket, the artifact,
+        the job. It rides on the row, and it is the join key the
+        calibration fold uses to find the outcome that answers this
+        judgment (the tiles' play, the critic's verdict, the owner's
+        keep). A judgment with no scope is still judged and still
+        recorded; it is simply not scored, because nothing names it.
         """
         if self.standing is not None and now is None:
             raise ValueError(
@@ -319,15 +335,9 @@ class Judge:
                             refusal_error=None,
                             standing_words={},
                             judgments={
-                                question.qid: judgment_from_distribution(
-                                    question=question,
-                                    backend=backend.name,
-                                    model=backend.model,
-                                    distribution=reply.distributions.get(
-                                        question.qid, {}
-                                    ),
-                                    confidence=reply.confidences.get(question.qid),
-                                ).model_copy(update={"tau": tau})
+                                question.qid: self._judged(
+                                    backend, task, question, reply, tau
+                                )
                                 for question in sub_pack
                             },
                             supersede=True,
@@ -343,21 +353,20 @@ class Judge:
                     break
 
                 judged = {
-                    question.qid: judgment_from_distribution(
-                        question=question,
-                        backend=backend.name,
-                        model=backend.model,
-                        distribution=reply.distributions.get(question.qid, {}),
-                        confidence=reply.confidences.get(question.qid),
-                    ).model_copy(update={"tau": tau})
+                    question.qid: self._judged(backend, task, question, reply, tau)
                     for question in sub_pack
                 }
                 still_pending: list[Question] = []
                 standing_words = {}
                 for question in sub_pack:
                     judgment = judged[question.qid]
+                    # the gate reads the **gated** confidence: the
+                    # calibrated one where a recalibration is fitted for
+                    # this cell, so τ is read in the calibrated space, and
+                    # the canonical one otherwise
+                    signal = judgment.gated_confidence
                     if standing_governs:
-                        if judgment.confidence is None:
+                        if signal is None:
                             # a judgment with no confidence cannot feed a
                             # continuous gate: it never passes (the policy's
                             # own rule), and the standing takes no reading
@@ -365,13 +374,13 @@ class Judge:
                             standing_words[question.qid] = None
                         else:
                             word = self.standing.step_for(
-                                question.qid, judgment.confidence, now
+                                question.qid, signal, now
                             ).state
                             standing_words[question.qid] = word
                             acts = word == "act"
                     else:
                         acts = (
-                            self.policy.decision(confidence=judgment.confidence, tau=tau)
+                            self.policy.decision(confidence=signal, tau=tau)
                             == "act"
                         )
                     if acts:
@@ -447,6 +456,7 @@ class Judge:
                     refusal=record["refusal_error"],
                     at=moment,
                     standing_words=record["standing_words"],
+                    scope=scope,
                     tau_source=tau_source,
                     standing_governed=standing_governs,
                     tick=now if standing_governs else None,
@@ -490,6 +500,7 @@ class Judge:
                     escalated_from=prev_backend,
                     refusal=None,
                     at=moment,
+                    scope=scope,
                     tau_source=tau_source,
                     deadline_committed=True,
                     committed_qids=committed,
@@ -525,6 +536,38 @@ class Judge:
 
     # -- the record ------------------------------------------------------------
 
+    def _judged(
+        self,
+        backend: JudgeBackend,
+        task: str,
+        question: Question,
+        reply: BackendReply,
+        tau: float,
+    ) -> Judgment:
+        """One question's judgment: the confidence, the τ and the scale.
+
+        The confidence is computed from the distribution under the judge's
+        **one** definition, so every backend's confidence is the same kind
+        of number; the backend's own number rides beside it on the row.
+        Where a recalibration is fitted for this cell, the calibrated
+        confidence is computed as well and the gate reads that one, so τ is
+        read in the calibrated space.
+        """
+        judgment = judgment_from_distribution(
+            question=question,
+            backend=backend.name,
+            model=backend.model,
+            distribution=reply.distributions.get(question.qid, {}),
+            confidence=reply.confidences.get(question.qid),
+            definition=self.confidence_definition,
+        ).model_copy(update={"tau": tau})
+        scale = self.scales.get((backend.name, backend.model, task))
+        if scale is None:
+            return judgment
+        return judgment.model_copy(
+            update={"calibrated_confidence": scale.calibrated_confidence(judgment.distribution)}
+        )
+
     def _record(
         self,
         *,
@@ -540,6 +583,7 @@ class Judge:
         refusal: JudgeRefusal | None,
         at: str,
         standing_words: Mapping[str, str | None] | None = None,
+        scope: str | None = None,
         tau_source: str = "default",
         standing_governed: bool = False,
         tick: float | None = None,
@@ -569,6 +613,12 @@ class Judge:
         edges. A superseded row (asked within the deadline, returned
         past it) says so, with ``late_by_seconds``; a deadline commit
         row says what it committed.
+
+        ``scope`` names the thing judged; the calibration fold joins the
+        row to the outcome that answers it by that name. And
+        ``confidence_definition`` names the definition the row's
+        confidences were computed under, so every backend's confidence is
+        the same kind of number and the log says which one it is.
         """
         standing_words = standing_words or {}
         payload = _verdict_payload(
@@ -596,6 +646,8 @@ class Judge:
             escalated_to=escalated_to,
             deadline_committed=deadline_committed,
             committed_qids=committed_qids,
+            scope=scope,
+            confidence_definition=self.confidence_definition,
         )
         try:
             self.ledger.append(
@@ -641,6 +693,8 @@ def _verdict_payload(
     escalated_to: str | None = None,
     deadline_committed: bool = False,
     committed_qids: Sequence[str] | None = None,
+    scope: str | None = None,
+    confidence_definition: ConfidenceDefinition = CANONICAL_CONFIDENCE,
 ) -> dict[str, object]:
     """The ``judge.verdict`` row's payload, in its one canonical shape.
 
@@ -657,6 +711,15 @@ def _verdict_payload(
         "model": model,
         "author": f"judge@{backend_name}:{model}",
         "n_questions": n_questions,
+        # the thing judged, named by the caller — the join key the
+        # calibration fold uses to find the outcome that answers the
+        # judgment. ``None`` when the caller named nothing: the judgment
+        # is recorded, and nothing can score it.
+        "scope": scope,
+        # the definition the confidences on this row were computed under
+        # — every backend's confidence is the same kind of number, and
+        # the row says which one it is
+        "confidence_definition": confidence_definition,
         # the gate decision is derived (confidence, τ, escalated), but the
         # row carries it anyway: a log that needs a computation to say
         # what was acted on is a log that lies by omission — and the
@@ -916,7 +979,11 @@ def standing_from_rows(rows) -> StandingGate:
         judgment = row["judgment"]
         word = row.get("standing")
         tau = row["tau"]
-        if judgment.confidence is None:
+        # the replay must read the signal the live gate read: the
+        # calibrated confidence where a recalibration was fitted for the
+        # cell, the canonical one otherwise
+        signal = judgment.gated_confidence
+        if signal is None:
             if word is not None:
                 raise ValueError(
                     f"seq {row.get('seq')}: a null-confidence tick moved "
@@ -925,7 +992,7 @@ def standing_from_rows(rows) -> StandingGate:
                 )
             continue
         standing.bind_subject(subject, tau)
-        transition = standing.step_for(subject, judgment.confidence, row["tick"])
+        transition = standing.step_for(subject, signal, row["tick"])
         if transition.state != word:
             raise ValueError(
                 f"seq {row.get('seq')}: {subject!r}'s row says {word!r}; "

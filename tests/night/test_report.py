@@ -76,6 +76,103 @@ def section_positions(html: str) -> dict[str, int]:
     }
 
 
+def a_judged_night(*, window: int = 50) -> list:
+    """A night whose judge confidence stops separating right from wrong.
+
+    Two windows of judgments on one scope each. The first window is the
+    model at its best — the right judgments carry the higher confidence;
+    the second is the model at its worst, with the confident ones wrong.
+    That is the **separability lost** drift: the AUC of the newest window
+    has fallen to the coin-flip line.
+    """
+    from core.judge.backends import BackendReply, FakeBackend
+    from core.judge.judge import Judge
+    from core.judge.models import Question
+
+    class Scripted(FakeBackend):
+        def __init__(self, responder):
+            super().__init__()
+            self.name = "d1"
+            self.model = "d1-2B"
+            self._responder = responder
+
+        def ask(self, state, questions):
+            distributions = {}
+            confidences = {}
+            for question in questions:
+                distributions[question.qid] = self._responder(question)
+                confidences[question.qid] = max(distributions[question.qid].values())
+            return BackendReply(
+                backend=self.name,
+                model=self.model,
+                distributions=distributions,
+                confidences=confidences,
+                input_tokens=1,
+                wall_seconds=0.001,
+            )
+
+    ledger = InMemoryLedger()
+    question = Question(qid="alive", kind="noul", instructions="The root is alive.")
+    index = {"n": 0}
+
+    def respond(_question):
+        index["n"] += 1
+        # the confident answers and the unsure ones alternate; which of
+        # them is right flips between the windows
+        confident = index["n"] % 2 == 1
+        value = 0.95 if confident else 0.55
+        return {"true": value, "false": round(1.0 - value, 10)}
+
+    judge = Judge(Scripted(respond), ledger=ledger)
+    for step in range(window * 2):
+        scope = f"scope-{step}"
+        judge.judge(task="alive", state="s", questions=[question], scope=scope)
+        # the first window is right when it is confident; the second is
+        # right when it is unsure — the confidence stops ordering them
+        confident = step % 2 == 0
+        right = confident if step < window else not confident
+        ledger.append(
+            type="critic.verdict",
+            actor=Actor(kind="core", id="critic", via="critic"),
+            subject={"entity_kind": "artifact", "entity_id": scope},
+            payload={"verdict": "keep" if right else "fix", "scope": scope},
+            at=f"2026-10-30T22:{step // 60:02d}:{step % 60:02d}Z",
+        )
+    return ledger.events()
+
+
+def test_the_morning_carries_one_line_per_drifting_model():
+    report = build_report(a_judged_night())
+    assert report.calibration.n_judgments == 100
+    assert report.calibration.n_scored == 100
+    assert report.calibration.drifting, "the confidence stopped separating; the morning says so"
+    line = report.calibration.drifting[0]
+    assert line.model == "d1:d1-2B"
+    assert line.task == "alive"
+    assert line.kind == "separability_lost"
+    assert line.retune
+    # one line per drifting model, not one per reason
+    models = [card.model for card in report.calibration.drifting]
+    assert len(models) == len(set(models))
+
+
+def test_the_drifting_models_are_on_the_page_and_in_the_text():
+    report = build_report(a_judged_night())
+    html = render_html(report)
+    assert "d1:d1-2B" in html
+    assert "separability" in html
+    text = render_text(report)
+    assert "d1:d1-2B" in text
+    assert "alive" in text
+
+
+def test_a_night_with_no_judgments_says_the_calibration_is_empty():
+    report = build_report(run_a_night())
+    assert report.calibration.n_judgments == 0
+    assert report.calibration.drifting == []
+    assert "calibration" in render_html(report).lower()
+
+
 def test_the_status_line_is_the_first_thing_on_the_page():
     html = render_html(build_report(run_a_night()))
     assert html.index("ran as planned") < html.index("Nothing failed")

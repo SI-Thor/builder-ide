@@ -337,6 +337,12 @@ class PlayRecord(BaseModel):
     #: probability has to normalise over the same set, so this travels with
     #: the play.
     candidates: tuple[str, ...] = ()
+    #: The name of the decision this play answers — the bucket, usually.
+    #: It is the join key the calibration fold uses to pair a judgment with
+    #: the play that answers it (``core.judge.tracking``). ``None`` when the
+    #: caller did not name one: the play is still recorded, it is just not
+    #: scored.
+    scope: str | None = None
 
     @property
     def reward(self) -> float:
@@ -422,6 +428,7 @@ def build_play_record(
     night: str | None = None,
     propensity: float | None = None,
     candidates: Sequence[str] = (),
+    scope: str | None = None,
 ) -> PlayRecord:
     """Build a play record. Its id is derived from the play itself (§3).
 
@@ -440,6 +447,7 @@ def build_play_record(
         "night": night,
         "propensity": propensity,
         "candidates": list(candidates),
+        "scope": scope,
     }
     return PlayRecord(
         id=f"play_{short_hash(payload, 12)}",
@@ -454,6 +462,7 @@ def build_play_record(
         night=night,
         propensity=propensity,
         candidates=tuple(candidates),
+        scope=scope,
     )
 
 

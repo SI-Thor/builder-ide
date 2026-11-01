@@ -90,11 +90,31 @@ class SeriesBackend:
 
 def test_the_shipped_calibration_is_the_sweep_s_tau_star():
     """The table is the measurement: one entry per (backend, model, task)
-    the sweep calibrated, at exactly the τ* the committed results name."""
+    the sweep calibrated, at the τ* the committed results name — read in
+    the space the gate compares in.
+
+    The gate reads the confidence under one definition (the top
+    probability, ``core.judge.calibration``), and the two d1 sizes report
+    their confidence by different formulas: the 2B reports the top
+    probability (240/240 of its recorded judgments), the 3B the
+    normalised margin (240/240). A τ measured in one model's space is
+    not the same number in the other's, so the 3B's τ* is **restated**:
+    on a five-way question the margin 0.7 is the top probability 0.76
+    (``1/K + m·(1 − 1/K)``), and the two thresholds make identical
+    decisions on all 240 recorded judgments — the same gate, named in
+    the space the gate reads.
+    """
     sweep = json.loads(SWEEP.read_text())
     for model in ("d1-2B", "d1-3B"):
         tau_star = sweep["models"][model]["chosen"]["tau_star"]
-        assert CALIBRATED_TAUS[("d1", model, SEA_STATE_TASK)] == tau_star
+        shipped = CALIBRATED_TAUS[("d1", model, SEA_STATE_TASK)]
+        if model == "d1-2B":
+            # the 2B reports the top probability: its τ* is already in
+            # the canonical space
+            assert shipped == tau_star
+        else:
+            # the 3B reports the normalised margin: restate it
+            assert shipped == pytest.approx(1 / 5 + tau_star * (1 - 1 / 5))
 
 
 def test_the_default_standing_resolves_the_tau_per_pair():
@@ -219,30 +239,32 @@ def test_the_rebuild_replays_every_row_and_refuses_a_divergence(ledger):
 
 
 def test_the_rebuild_refuses_a_null_confidence_tick_that_moved_the_standing(ledger):
-    class NoConfidenceBackend(SeriesBackend):
-        def ask(self, state, questions):
-            reply = super().ask(state, questions)
-            return BackendReply(
-                backend=self.name,
-                model=self.model,
-                distributions=reply.distributions,
-                confidences={q.qid: None for q in questions},
-                input_tokens=1,
-                wall_seconds=reply.wall_seconds,
-            )
+    """A judgment that carries **no confidence at all** must not be able to
+    move the standing in the rebuild.
 
+    The live judge cannot produce such a judgment any more: the
+    confidence is computed from the distribution under one definition, so
+    it is there even when the backend reported nothing of its own
+    (``tests/judge/test_d1_replay.py``). The row is therefore an **old**
+    one — written before the definition was stated, when ``confidence``
+    was the backend's own number and could be null — and the rebuild
+    still refuses a standing word it cannot reproduce.
+    """
     judge = Judge(
-        backend=NoConfidenceBackend([0.9, 0.9, 0.9]),
+        backend=SeriesBackend([0.9, 0.9, 0.9]),
         standing=StandingGate(),
         ledger=ledger,
     )
     judge.judge(SEA_STATE_TASK, "state", (SEA_STATE,), now=0)
     rows = fold_judgments(ledger.events())
-    assert rows[0]["standing"] is None  # the standing took no reading
-    tampered = [dict(row) for row in rows]
-    tampered[0]["standing"] = "act"
+    assert rows[0]["judgment"] is not None
+    # the row as an older log wrote it: the judgment carries no confidence
+    old = [dict(row) for row in rows]
+    old[0]["judgment"] = old[0]["judgment"].model_copy(update={"confidence": None})
+    # … and it claims a standing word
+    old[0]["standing"] = "act"
     with pytest.raises(ValueError, match="null-confidence"):
-        standing_from_rows(tampered)
+        standing_from_rows(old)
 
 
 def test_the_rebuild_carries_the_bound_tau_per_question(ledger):

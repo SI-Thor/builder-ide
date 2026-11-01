@@ -45,6 +45,7 @@ def record_play(
     at: str | None = None,
     propensity: float | None = None,
     candidates: Sequence[str] = (),
+    scope: str | None = None,
 ) -> PlayRecord:
     """Record one use of a tile and write it to the log.
 
@@ -74,6 +75,7 @@ def record_play(
         night=night,
         propensity=propensity,
         candidates=candidates,
+        scope=scope,
     )
 
     payload = _play_payload(record)
@@ -124,6 +126,7 @@ def _play_payload(record: PlayRecord) -> dict[str, Any]:
         "night": record.night,
         "propensity": record.propensity,
         "candidates": list(record.candidates),
+        "scope": record.scope,
     }
 
 
@@ -147,6 +150,7 @@ def _play_from_payload(payload: Mapping[str, Any], at: str) -> PlayRecord:
                 else float(payload["propensity"])
             ),
             candidates=tuple(str(t) for t in (payload.get("candidates") or ())),
+            scope=None if payload.get("scope") is None else str(payload.get("scope")),
         )
     except (KeyError, TypeError, ValueError) as exc:
         raise TileRefusal(

@@ -30,7 +30,7 @@ import time
 import pytest
 
 from core.judge.backends import BackendReply, FakeBackend, JudgeRefusal
-from core.judge.gate import EscalationLadder
+from core.judge.gate import ConfidencePolicy, EscalationLadder
 from core.judge.judge import Judge, fold_judgments
 from core.judge.models import (
     JudgeCost,
@@ -104,8 +104,11 @@ def test_each_rung_re_reads_the_state_and_records_its_own_hashes(ledger):
     def d1_reply(question):
         if question.qid == "tile":
             return UNCERTAIN  # top probability 0.34, below τ
-        # a noul's confidence is its top raw reading: keep it below τ
-        return {"true": 0.35, "false": 0.34}
+        # a noul's confidence is the probability of the answer the model
+        # gave: one of two options always holds at least a half, so the
+        # τ that escalates an undecided noul is above a half. Hence the
+        # policy's 0.6 below, and the undecided vector here.
+        return {"true": 0.5, "false": 0.5}
 
     def jev_reply(question):
         return CONFIDENT if question.qid == "tile" else {"true": 0.9, "false": 0.1}
@@ -116,6 +119,7 @@ def test_each_rung_re_reads_the_state_and_records_its_own_hashes(ledger):
         backend=d1,
         ladder=EscalationLadder([("jev", jev)]),
         ledger=ledger,
+        policy=ConfidencePolicy(default=0.6),
     )
     answer = judge.judge(
         "tiles.shortlist",

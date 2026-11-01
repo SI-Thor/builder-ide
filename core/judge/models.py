@@ -39,6 +39,8 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from core.canon import content_hash
 
+from .calibration import CANONICAL_CONFIDENCE, ConfidenceDefinition, confidence_of
+
 __all__ = [
     "QuestionKind",
     "Question",
@@ -46,6 +48,7 @@ __all__ = [
     "JudgeCost",
     "state_hash",
     "question_set_hash",
+    "judgment_from_distribution",
     "pack_hash",
 ]
 
@@ -203,6 +206,22 @@ class Judgment(BaseModel):
     form ``judge@<backend>:<model>``. ``tau`` and ``gate`` are the
     confidence policy's decision on this judgment at the moment it was
     made; a judgment recorded without them was gated by no policy.
+
+    **The confidence is one definition, not the backend's own number.** The
+    three d1 sizes report confidence by three different formulas (the
+    liquid study's L7), so the judge computes the confidence from the
+    distribution the backend returned — the same way for every backend —
+    and records which definition it used in ``confidence_definition``. The
+    backend's own number is kept beside it in ``backend_confidence``,
+    because the edge between the two is worth having on the log.
+
+    **A backend that reports no confidence of its own still has one.** The
+    distribution gave the judge a number, and that is the number the gate
+    reads; a backend's silence is not the judge guessing. The old rule —
+    a judgment with no confidence at all never passes a gate — still
+    holds for a judgment that has none, which is a row folded from an
+    older log: it was written before the definition was stated, and it
+    carries the number that log meant.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -214,11 +233,22 @@ class Judgment(BaseModel):
     distribution: dict[str, float]
     confidence: float | None = None
     tau: float | None = None
+    #: Which definition the confidence was computed under — ``top_probability``
+    #: for every judgment this package makes. ``None`` on a row folded from
+    #: an older log, which was written before the definition was stated.
+    confidence_definition: str | None = None
+    #: The number the backend itself reported, when it reported one. Kept
+    #: beside the canonical confidence, never used for the gate.
+    backend_confidence: float | None = None
+    #: The confidence after the cell's recalibration, when one is fitted.
+    #: The gate reads this when it is there, so τ is read in the calibrated
+    #: space.
+    calibrated_confidence: float | None = None
     #: Set when this judgment was escalated away from: a later rung's
     #: judgment governs. The row stays on the log — the edges are the story.
     escalated: bool = False
 
-    @field_validator("confidence", "tau")
+    @field_validator("confidence", "tau", "backend_confidence", "calibrated_confidence")
     @classmethod
     def _a_rate_is_a_rate(cls, value: float | None) -> float | None:
         if value is not None and not 0.0 <= value <= 1.0:
@@ -256,12 +286,39 @@ class Judgment(BaseModel):
         the ladder was exhausted it reads ``surfaced``, which is the
         record of an answer a human or a bigger system must look at
         before anything acts on it. ``None`` when no policy gated it.
+
+        The number compared with τ is the **gated** confidence: the
+        recalibrated one when a scale is fitted for the cell, the
+        canonical one otherwise.
         """
-        if self.tau is None or self.confidence is None:
+        if self.tau is None or self.gated_confidence is None:
             return None
-        if self.confidence >= self.tau:
+        if self.gated_confidence >= self.tau:
             return "act"
         return "escalate" if self.escalated else "surfaced"
+
+    @property
+    def gated_confidence(self) -> float | None:
+        """The number the gate compares with τ — ``None`` when there is none.
+
+        The calibrated confidence where a recalibration is fitted for the
+        cell — so τ is read in the calibrated space — and the canonical
+        confidence otherwise.
+
+        ``None`` means the judgment carries **no confidence at all**, and
+        the rule is the old one: a judgment with no confidence never
+        passes a gate. A judgment this package makes always has one — the
+        confidence is computed from the vector the backend returned, so it
+        is there even when the backend reported nothing of its own — so
+        the ``None`` case is a row folded from an older log, which was
+        written before the definition was stated and meant its
+        ``confidence`` the way the old code meant it.
+        """
+        if self.confidence is None:
+            return None
+        if self.calibrated_confidence is not None:
+            return self.calibrated_confidence
+        return self.confidence
 
     @property
     def answer(self) -> str | bool:
@@ -308,7 +365,8 @@ def judgment_from_distribution(
     backend: str,
     model: str,
     distribution: Mapping[str, float],
-    confidence: float | None,
+    confidence: float | None = None,
+    definition: ConfidenceDefinition = CANONICAL_CONFIDENCE,
 ) -> Judgment:
     """Build a judgment, renormalising against the question's own keys.
 
@@ -316,6 +374,11 @@ def judgment_from_distribution(
     as argmax still assigns it its probability) gets it at 0.0; the
     vector is completed and renormalised so the sum-to-one rule holds of
     everything that reaches the ledger.
+
+    ``confidence`` is the number the **backend** reported; the judgment's
+    own confidence is computed from the finished distribution under
+    ``definition``, so every backend's confidence is the same kind of
+    number (see :mod:`core.judge.calibration`).
     """
     keys = question.option_keys
     missing = [key for key in keys if key not in distribution]
@@ -328,11 +391,14 @@ def judgment_from_distribution(
     total = sum(vector.values())
     if total <= 0.0:
         raise ValueError(f"backend {backend} returned a non-positive distribution")
+    vector = {key: value / total for key, value in vector.items()}
     return Judgment(
         qid=question.qid,
         kind=question.kind,
         backend=backend,
         model=model,
-        distribution={key: value / total for key, value in vector.items()},
-        confidence=None if confidence is None else float(confidence),
+        distribution=vector,
+        confidence=confidence_of(vector, definition),
+        confidence_definition=definition,
+        backend_confidence=None if confidence is None else float(confidence),
     )

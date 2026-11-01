@@ -30,6 +30,8 @@ cites.
 | `backends.py` | the wire and the four backends (below); `JudgeRefusal` with a closed reason code |
 | `gate.py` | the confidence gate as policy: `ConfidencePolicy` (τ, with the shipped `CALIBRATED_TAUS`), `EscalationLadder`, `StandingGate` and its `StandingConfig` |
 | `judge.py` | the `Judge` service: ask a pack, pre-flight its size, walk the ladder, record every attempt; `fold_judgments`; `standing_from_rows` (the standing, rebuilt from the log); `plan_pack` |
+| `calibration.py` | **one definition of confidence** and the calibration tracked against it: the Brier score, the expected calibration error, the reliability curve, the escalation sweep, the bootstrap intervals, the recalibration scales and the drift |
+| `tracking.py` | the fold that pairs a judgment with the outcome that answers it, and the report the nightly job writes |
 | `shortlist.py` | the first caller: `JudgePriorChooser`, the tiles shortlist |
 | `events.py` | the seat's one audit type, `judge.verdict` |
 | `ports.py` | the ledger protocol (the same shape `core.night.ledger` implements) |
@@ -96,6 +98,17 @@ pair until its own calibration lands in the table; an explicitly bound
 row says so — `tau_source` is `calibrated`, `configured` or `default`
 on every `judge.verdict` row.
 
+**The table's τ is read in the canonical space** — the top probability of
+the distribution, the one definition every backend's confidence is computed
+under — and the sweep measured each model in the space *that model*
+reports. The two d1 sizes report differently (the 2B the top probability,
+240/240 of its recorded judgments; the 3B the normalised margin, 240/240),
+so a τ measured in one model's space is not the same number in the
+other's: the 3B's 0.7 is restated as the top probability **0.76** on a
+five-way question (`1/K + m·(1 − 1/K)`), and the two thresholds make
+identical decisions on all 240 recorded judgments — the same gate, named in
+the space the gate reads.
+
 **The standing is durable, and the ledger is its memory.** A
 standing-governed row carries everything the gate consumed — the
 confidence (in the judgment), the `tick`, the `tau`, and the
@@ -125,19 +138,117 @@ The standing's word rides on every `judge.verdict` row and on
 `JudgeAnswer.standing_words`, and `surfaced` follows the standing where
 it governed — the raw gate word and the standing's can differ (a sub-τ
 tick the band holds is acted on; a confident tick during warm-up is
-escalated), so the row carries both. A judgment with no confidence
-never passes and leaves the standing untouched: a continuous gate takes
-no reading from a null.
+escalated), so the row carries both. A judgment with **no confidence at
+all** never passes and leaves the standing untouched: a continuous gate
+takes no reading from a null. That case is a row folded from an older
+log — the confidence is computed from the distribution now, so a judgment
+this package makes always has one, even when the backend reported none
+of its own.
+
+## One definition of confidence, and the calibration tracked against it
+
+The three d1 sizes answer the same shape and report confidence by three
+different formulas — the normalised margin (LFM2), the raw top probability
+(LFM3), a third for `score` (the liquid study's L7). A threshold on
+"confidence" was therefore not the same quantity from one model to the
+next, and no log said which number a row's confidence was.
+
+**The judge does not trust the backend's number.** It computes the
+confidence from the distribution the backend returned, the same way for
+every backend, and the row says which definition it used
+(`confidence_definition`). The backend's own number rides beside it as
+`backend_confidence`, because the edge between the two is worth keeping.
+A backend that reports no confidence of its own still has one — the
+distribution gave the judge a number, and that is the number the gate
+reads; a backend's silence is not the judge guessing.
+
+Three definitions are computed, all from the returned distribution over K
+options:
+
+| definition | formula |
+|---|---|
+| `top_probability` | `p_max` — the probability the backend gave its own answer |
+| `normalised_margin` | `(p_max − 1/K) / (1 − 1/K)` — the LFM2 formula |
+| `entropy_normalised` | `1 − H(p) / log K` |
+
+**The canonical one is `top_probability`**, for three reasons that are
+mechanisms rather than tastes: it is a probability *of the answer*, so a τ
+on it reads "act when the backend's own answer holds at least this much";
+it is the number the existing measurements are in (E1's τ = 0.5 was
+measured on the d1-2B's `max(probs)`), so the default keeps its meaning;
+and it is the quantity the Brier score is computed against. The other two
+stay in the code because the seed asked for the comparison.
+
+**The calibration is tracked per (backend, model, task).** `calibration.py`
+computes, per cell: the accuracy, the **Brier score** (over the whole
+vector, so it does not depend on the definition), the **expected
+calibration error** over reliability bins (which does), the **reliability
+curve**, and the **escalation sweep** — at each τ, the share of the wrong
+judgments the gate would have caught and the share of the right ones it
+would have taxed.
+
+**Recalibration is a parameter, not a hand.** A temperature
+(`p'_i ∝ p_i^(1/T)`) or an isotonic map (confidence → accuracy, keeping
+the ranking) is fitted per cell on one split of the outcomes and read on
+another; it is **kept only if it improves the held-out Brier score** —
+a fit that does not is a curve through noise. The split is **time-ordered**:
+the judgments are kept in the order the recording made them and the cut is a
+prefix/suffix cut, so the half that was fitted always precedes the half that
+is scored. Where a scale is fitted, the judge computes the calibrated
+confidence too and **the gate reads that one**, so τ is read in the
+calibrated space: "act when the calibrated probability of being right is at
+least τ".
+
+**The numbers carry their error bars.** Each cell's separability is
+published with a bootstrap interval (the judgments resampled, 2,000 seeded
+draws) and each cell's improvement with a **paired** one — the same
+judgments scored with and without the scale, so the interval is over the
+difference. A cell whose AUC's interval straddles the coin-flip line is a
+cell whose confidence carries no measured signal, and the report says so
+rather than leaving a bare 0.5115 to be read as "a little signal".
+
+**Drift is measured, not declared.** Nothing carries an invented
+threshold. A cell drifts when its confidence stops separating (the AUC of
+the newest window has fallen to the coin-flip line), when its ECE moves
+further than that cell has ever moved (the noise floor is the cell's own
+history), or when a scale fitted on the older window no longer improves
+the newer one. What is retuned is stated with the line: the cell's
+recalibration is refitted on the newest outcomes and τ is read from it
+again.
+
+**Two facts the threshold has to respect, both measured on real traces.**
+A binary question's confidence is never below a half — one of two options
+always holds at least that mass — so **a gate at τ = 0.5 on a binary
+escalates nothing at all**, and the τ that catches an undecided noul is
+above a half. And a confidence can be *anti*-correlated with being right:
+on the liquid study's sea-state task the d1-2B's AUC is 0.2815, because
+the model is confident about which condition the *prompt* named and the
+prompt names the decoy first in 35 % of the steps. On that task the gate's
+**sign** is wrong — its escalations land on the right answers and its acts
+on the wrong ones — and no τ fixes it; the fix is upstream, in the prompt,
+or a both-order protocol that makes the leak visible instead of routing on
+it. The measurement, the mechanisms and the numbers:
+[`docs/lab/exp-judge-calibration.md`](../../docs/lab/exp-judge-calibration.md).
+
+**The fold that makes the tracking possible.** A judgment is only worth
+scoring once something has happened, so `tracking.py` pairs a judgment
+with the outcome that answers it — the tiles' play, the critic's verdict,
+the owner's keep — through the **scope** the caller names on the row
+(`judge.judge(..., scope="wanted_style=plain")`). The outcome has to come
+*after* the judgment. A judgment nobody answered stays unscored, and the
+report counts it, because "unmeasured" and "measured and badly
+calibrated" are different facts.
 
 ## Every judgment is recorded
 
 One `judge.verdict` row per **attempt**: the author
 (`judge@<backend>:<model>` — every row records its author), the
-distribution, the confidence, τ and where the τ came from, the gate
-decision, the cost (wall seconds, GPU minutes, hosted cents, input
-tokens), the latency, the hashes of what the attempt actually asked
-over — the state, the questions, and the pack (state **and**
-questions, one hash) — and the rung the attempt was escalated from.
+distribution, the confidence **and the definition it was computed under**,
+the backend's own number beside it, the scope the caller named, τ and where
+the τ came from, the gate decision, the cost (wall seconds, GPU minutes,
+hosted cents, input tokens), the latency, the hashes of what the attempt
+actually asked over — the state, the questions, and the pack (state
+**and** questions, one hash) — and the rung the attempt was escalated from.
 **Refused attempts are rows too** — the edges are the story, and a
 refusal row says whether the ladder moved on after it
 (`refusal_then_escalate`, and the rung it was `escalated_to`): a
@@ -201,7 +312,7 @@ The play keeps the propensity the chooser measured at the choice
 ## Running it
 
 ```bash
-.venv/bin/python -m pytest -q tests/judge    # 110 tests, no network, no GPU, no LLM
+.venv/bin/python -m pytest -q tests/judge    # no network, no GPU, no LLM
 .venv/bin/python -m pytest -q                # the whole core
 ```
 
@@ -210,6 +321,12 @@ memory): [`docs/lab/exp-judge-tiles-coldstart.md`](../../docs/lab/exp-judge-tile
 The standing gate's configuration, measured on the recorded d1 traces
 (the sweep, the guarded choice rule, and the wiring's two behaviours):
 [`docs/lab/exp-hysteresis-d1.md`](../../docs/lab/exp-hysteresis-d1.md).
+The confidence's calibration, measured on 1,470 recorded judgments (the
+per-cell Brier and ECE, the escalation sweeps under all three
+definitions, the recalibrations, and the two cells whose confidence turned
+out to be anti-correlated with being right):
+[`docs/lab/exp-judge-calibration.md`](../../docs/lab/exp-judge-calibration.md).
+
 The replay test that holds the defaults to that measurement — the
 240-tick d1-2B trace through the wired judge, restart included — is
 `tests/judge/test_d1_replay.py`, on the distilled recording beside the
@@ -224,3 +341,14 @@ speaks), the night executor as a second caller, and the work-order rung
 *as a work order* — the ladder's end is surfaced rows now; filing the
 order belongs to the work-order seat. Each is a small step on a seam
 that already records everything.
+
+On the calibration side: the nightly job writes the calibration report —
+`NightsService.stop()` folds the night's judgments against the outcomes
+that answered them and puts the report in the artifact store beside the
+morning — and the morning report carries **one line per drifting model**
+(`core/night/report.py`'s `CalibrationCard`). What is not wired yet is a
+judge that writes into the core's own store: the judge package still
+talks to the ledger through its port, and the door from the core's store
+onto that port has to be built by whoever owns the store. The critic's
+and the owner's outcome sources are contracts the fold asks for; only the
+tiles' source is exercised by real rows today.

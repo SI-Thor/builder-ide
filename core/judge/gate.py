@@ -70,9 +70,21 @@ SEA_STATE_TASK = "sea-state.v1"
 #: times in 240 ticks. This table ships as the default: a calibrated
 #: pair is judged at its measured τ, an uncalibrated pair falls back to
 #: :data:`DEFAULT_TAU` until its own calibration lands here.
+#:
+#: **The τ here is read in the canonical space** — the top probability of
+#: the distribution, the one definition every backend's confidence is
+#: computed under (``core.judge.calibration``) — and the sweep measured
+#: each model in the space *that model* reports. The two d1 sizes report
+#: differently: the 2B reports the top probability (240/240 of its
+#: recorded judgments), the 3B the normalised margin (240/240). A τ
+#: measured in one model's space is not the same number in the other's,
+#: so the 3B's τ* is **restated**: on a five-way question the margin
+#: 0.7 is the top probability 0.76 (``1/K + m·(1 − 1/K)``), and the two
+#: thresholds make identical decisions on all 240 recorded judgments —
+#: the restatement is the same gate, not a new one.
 CALIBRATED_TAUS: dict[tuple[str, str, str], float] = {
     ("d1", "d1-2B", SEA_STATE_TASK): 0.7,
-    ("d1", "d1-3B", SEA_STATE_TASK): 0.7,
+    ("d1", "d1-3B", SEA_STATE_TASK): 0.76,
 }
 
 #: The adopted standing configuration, from the replay of the real d1

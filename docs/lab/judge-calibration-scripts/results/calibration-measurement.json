@@ -1,0 +1,6265 @@
+{
+  "backend_confidence_formulas": {
+    "d1-2B": {
+      "backend_mean": 0.7478336678907664,
+      "canonical_mean": 0.7478336678907664,
+      "matches_by_definition": {
+        "entropy_normalised": 0,
+        "normalised_margin": 0,
+        "top_probability": 240
+      },
+      "n": 240,
+      "prompt_breakdown": {
+        "prompt_named_the_decoy_first": {
+          "accuracy": 0.0,
+          "mean_confidence": 0.8735,
+          "n": 82
+        },
+        "prompt_named_the_truth_first": {
+          "accuracy": 0.7975,
+          "mean_confidence": 0.6826,
+          "n": 158
+        }
+      },
+      "tau_means": {
+        "entropy_normalised": {
+          "at_tau_0.5": 0.7882499806582928,
+          "at_tau_0.7": 0.8938955599442124
+        },
+        "normalised_margin": {
+          "at_tau_0.5": 0.6000000005587935,
+          "at_tau_0.7": 0.7600000007078052
+        },
+        "top_probability": {
+          "at_tau_0.5": 0.5,
+          "at_tau_0.7": 0.7000000001862645
+        }
+      }
+    },
+    "d1-3B": {
+      "backend_mean": 0.7252366050837095,
+      "canonical_mean": 0.7801892840669676,
+      "matches_by_definition": {
+        "entropy_normalised": 0,
+        "normalised_margin": 240,
+        "top_probability": 0
+      },
+      "n": 240,
+      "prompt_breakdown": {
+        "prompt_named_the_decoy_first": {
+          "accuracy": 0.0,
+          "mean_confidence": 0.8491,
+          "n": 82
+        },
+        "prompt_named_the_truth_first": {
+          "accuracy": 0.5,
+          "mean_confidence": 0.7444,
+          "n": 158
+        }
+      },
+      "tau_means": {
+        "entropy_normalised": {
+          "at_tau_0.5": 0.7880834322422743,
+          "at_tau_0.7": 0.8938316348940134
+        },
+        "normalised_margin": {
+          "at_tau_0.5": 0.6000000005587935,
+          "at_tau_0.7": 0.7600000007078052
+        },
+        "top_probability": {
+          "at_tau_0.5": 0.5,
+          "at_tau_0.7": 0.7000000001862645
+        }
+      }
+    }
+  },
+  "bins": 10,
+  "brief": "seed bank #2 (B15)",
+  "canonical_definition": "top_probability",
+  "clef_student_lopsidedness": {
+    "scene.beacon_reachable": {
+      "histogram": {
+        "0.6": 3,
+        "0.7": 33,
+        "0.8": 24,
+        "0.9": 1
+      },
+      "max": 0.9173,
+      "mean": 0.7911,
+      "min": 0.6678,
+      "n": 61,
+      "widest_empty_band": [
+        0.0,
+        0.6
+      ]
+    },
+    "scene.enemy_visible": {
+      "histogram": {
+        "0.0": 43,
+        "0.1": 3,
+        "0.5": 2,
+        "0.6": 2,
+        "0.7": 2,
+        "0.8": 5,
+        "0.9": 4
+      },
+      "max": 0.9417,
+      "mean": 0.226,
+      "min": 0.0114,
+      "n": 61,
+      "widest_empty_band": [
+        0.2,
+        0.5
+      ]
+    }
+  },
+  "datasets": {
+    "clef student \u00b7 scene.beacon_reachable": {
+      "cell": {
+        "auc": null,
+        "auc_interval": null,
+        "best_tau": {
+          "entropy_normalised": null,
+          "normalised_margin": null,
+          "top_probability": null
+        },
+        "cell": {
+          "accuracy": 1.0,
+          "backend": "clef",
+          "brier": 0.04697,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.3263,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.6737,
+              "n": 3
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.241,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.759,
+              "n": 33
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.1554,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8446,
+              "n": 24
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.0827,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9173,
+              "n": 1
+            }
+          ],
+          "ece": 0.2089,
+          "mean_confidence": 0.7911,
+          "model": "clef-flash",
+          "n": 61,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 1.0,
+              "brier": 0.04697,
+              "ece": 0.724481,
+              "mean_confidence": 0.275519
+            },
+            "normalised_margin": {
+              "accuracy": 1.0,
+              "brier": 0.04697,
+              "ece": 0.4178,
+              "mean_confidence": 0.5822
+            },
+            "top_probability": {
+              "accuracy": 1.0,
+              "brier": 0.04697,
+              "ece": 0.2089,
+              "mean_confidence": 0.7911
+            }
+          },
+          "task": "scene.beacon_reachable"
+        },
+        "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
+          "brier_after": 0.0,
+          "brier_before": 0.044846,
+          "brier_improvement": {
+            "high": 0.053017,
+            "low": 0.037238,
+            "point": 0.044846,
+            "resamples": 2000
+          },
+          "ece_after": 0.0,
+          "ece_before": 0.205352,
+          "mean_confidence_after": 1.0,
+          "mean_confidence_before": 0.794648,
+          "n": 31,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.5,
+          "0.6": 0.5,
+          "0.7": 0.5
+        },
+        "recalibration": {
+          "brier_after": 0.0,
+          "brier_before": 0.049165,
+          "held_out_brier_after": 0.0,
+          "held_out_brier_before": 0.044846,
+          "kept": true,
+          "kind": "isotonic",
+          "reason": "isotonic improves the held-out Brier (0.0448 \u2192 0.0000)",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.6678,
+                  1.0
+                ],
+                [
+                  0.6824,
+                  1.0
+                ],
+                [
+                  0.7031,
+                  1.0
+                ],
+                [
+                  0.7043,
+                  1.0
+                ],
+                [
+                  0.7057,
+                  1.0
+                ],
+                [
+                  0.7285,
+                  1.0
+                ],
+                [
+                  0.7429,
+                  1.0
+                ],
+                [
+                  0.7438,
+                  1.0
+                ],
+                [
+                  0.7539,
+                  1.0
+                ],
+                [
+                  0.7592,
+                  1.0
+                ],
+                [
+                  0.7671,
+                  1.0
+                ],
+                [
+                  0.7724,
+                  1.0
+                ],
+                [
+                  0.774,
+                  1.0
+                ],
+                [
+                  0.7767,
+                  1.0
+                ],
+                [
+                  0.778,
+                  1.0
+                ],
+                [
+                  0.7792,
+                  1.0
+                ],
+                [
+                  0.7795,
+                  1.0
+                ],
+                [
+                  0.7966,
+                  1.0
+                ],
+                [
+                  0.7968,
+                  1.0
+                ],
+                [
+                  0.8002,
+                  1.0
+                ],
+                [
+                  0.8281,
+                  1.0
+                ],
+                [
+                  0.8315,
+                  1.0
+                ],
+                [
+                  0.8356,
+                  1.0
+                ],
+                [
+                  0.8361,
+                  1.0
+                ],
+                [
+                  0.8433,
+                  1.0
+                ],
+                [
+                  0.8685,
+                  1.0
+                ],
+                [
+                  0.8791,
+                  1.0
+                ],
+                [
+                  0.8816,
+                  1.0
+                ],
+                [
+                  0.8898,
+                  1.0
+                ],
+                [
+                  0.9173,
+                  1.0
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 0.9508,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 3,
+              "tau": 0.1,
+              "tax": 0.0492
+            },
+            {
+              "act_rate": 0.7213,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 17,
+              "tau": 0.2,
+              "tax": 0.2787
+            },
+            {
+              "act_rate": 0.3607,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 39,
+              "tau": 0.3,
+              "tax": 0.6393
+            },
+            {
+              "act_rate": 0.1639,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 51,
+              "tau": 0.4,
+              "tax": 0.8361
+            },
+            {
+              "act_rate": 0.0164,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 60,
+              "tau": 0.5,
+              "tax": 0.9836
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.6,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.7,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.8,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9508,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 3,
+              "tau": 0.4,
+              "tax": 0.0492
+            },
+            {
+              "act_rate": 0.7705,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 14,
+              "tau": 0.5,
+              "tax": 0.2295
+            },
+            {
+              "act_rate": 0.4098,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 36,
+              "tau": 0.6,
+              "tax": 0.5902
+            },
+            {
+              "act_rate": 0.1803,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 50,
+              "tau": 0.7,
+              "tax": 0.8197
+            },
+            {
+              "act_rate": 0.0164,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 60,
+              "tau": 0.8,
+              "tax": 0.9836
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.6,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9508,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 3,
+              "tau": 0.7,
+              "tax": 0.0492
+            },
+            {
+              "act_rate": 0.4098,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 36,
+              "tau": 0.8,
+              "tax": 0.5902
+            },
+            {
+              "act_rate": 0.0164,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 60,
+              "tau": 0.9,
+              "tax": 0.9836
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ]
+        }
+      },
+      "n": 61
+    },
+    "clef student \u00b7 scene.enemy_visible": {
+      "cell": {
+        "auc": null,
+        "auc_interval": null,
+        "best_tau": {
+          "entropy_normalised": null,
+          "normalised_margin": null,
+          "top_probability": null
+        },
+        "cell": {
+          "accuracy": 1.0,
+          "backend": "clef",
+          "brier": 0.015957,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.4396,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.5604,
+              "n": 2
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.3591,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.6409,
+              "n": 2
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.2113,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.7887,
+              "n": 2
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.1371,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8629,
+              "n": 8
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.0356,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9644,
+              "n": 47
+            }
+          ],
+          "ece": 0.078546,
+          "mean_confidence": 0.921454,
+          "model": "clef-flash",
+          "n": 61,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 1.0,
+              "brier": 0.015957,
+              "ece": 0.327573,
+              "mean_confidence": 0.672427
+            },
+            "normalised_margin": {
+              "accuracy": 1.0,
+              "brier": 0.015957,
+              "ece": 0.157092,
+              "mean_confidence": 0.842908
+            },
+            "top_probability": {
+              "accuracy": 1.0,
+              "brier": 0.015957,
+              "ece": 0.078546,
+              "mean_confidence": 0.921454
+            }
+          },
+          "task": "scene.enemy_visible"
+        },
+        "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
+          "brier_after": 0.0,
+          "brier_before": 0.015952,
+          "brier_improvement": {
+            "high": 0.035544,
+            "low": 0.002521,
+            "point": 0.015952,
+            "resamples": 2000
+          },
+          "ece_after": 0.0,
+          "ece_before": 0.07041,
+          "mean_confidence_after": 1.0,
+          "mean_confidence_before": 0.92959,
+          "n": 31,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.5,
+          "0.6": 0.5,
+          "0.7": 0.5
+        },
+        "recalibration": {
+          "brier_after": 0.0,
+          "brier_before": 0.015962,
+          "held_out_brier_after": 0.0,
+          "held_out_brier_before": 0.015952,
+          "kept": true,
+          "kind": "isotonic",
+          "reason": "isotonic improves the held-out Brier (0.0160 \u2192 0.0000)",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.5944,
+                  1.0
+                ],
+                [
+                  0.6699,
+                  1.0
+                ],
+                [
+                  0.7883,
+                  1.0
+                ],
+                [
+                  0.8304,
+                  1.0
+                ],
+                [
+                  0.8489,
+                  1.0
+                ],
+                [
+                  0.8562,
+                  1.0
+                ],
+                [
+                  0.8679,
+                  1.0
+                ],
+                [
+                  0.8842,
+                  1.0
+                ],
+                [
+                  0.8981,
+                  1.0
+                ],
+                [
+                  0.8992,
+                  1.0
+                ],
+                [
+                  0.9058,
+                  1.0
+                ],
+                [
+                  0.9259,
+                  1.0
+                ],
+                [
+                  0.9343,
+                  1.0
+                ],
+                [
+                  0.9389,
+                  1.0
+                ],
+                [
+                  0.9417,
+                  1.0
+                ],
+                [
+                  0.9617,
+                  1.0
+                ],
+                [
+                  0.963,
+                  1.0
+                ],
+                [
+                  0.9655,
+                  1.0
+                ],
+                [
+                  0.9677,
+                  1.0
+                ],
+                [
+                  0.9702,
+                  1.0
+                ],
+                [
+                  0.9707,
+                  1.0
+                ],
+                [
+                  0.9723,
+                  1.0
+                ],
+                [
+                  0.9746,
+                  1.0
+                ],
+                [
+                  0.9756,
+                  1.0
+                ],
+                [
+                  0.9786,
+                  1.0
+                ],
+                [
+                  0.9802,
+                  1.0
+                ],
+                [
+                  0.9811,
+                  1.0
+                ],
+                [
+                  0.9837,
+                  1.0
+                ],
+                [
+                  0.9868,
+                  1.0
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 0.9344,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.1,
+              "tax": 0.0656
+            },
+            {
+              "act_rate": 0.9344,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.2,
+              "tax": 0.0656
+            },
+            {
+              "act_rate": 0.9016,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 6,
+              "tau": 0.3,
+              "tax": 0.0984
+            },
+            {
+              "act_rate": 0.8525,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 9,
+              "tau": 0.4,
+              "tax": 0.1475
+            },
+            {
+              "act_rate": 0.8033,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 12,
+              "tau": 0.5,
+              "tax": 0.1967
+            },
+            {
+              "act_rate": 0.7213,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 17,
+              "tau": 0.6,
+              "tax": 0.2787
+            },
+            {
+              "act_rate": 0.623,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 23,
+              "tau": 0.7,
+              "tax": 0.377
+            },
+            {
+              "act_rate": 0.4262,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 35,
+              "tau": 0.8,
+              "tax": 0.5738
+            },
+            {
+              "act_rate": 0.0164,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 60,
+              "tau": 0.9,
+              "tax": 0.9836
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 61,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 0.9836,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.1,
+              "tax": 0.0164
+            },
+            {
+              "act_rate": 0.9672,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.2,
+              "tax": 0.0328
+            },
+            {
+              "act_rate": 0.9508,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 3,
+              "tau": 0.3,
+              "tax": 0.0492
+            },
+            {
+              "act_rate": 0.9344,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.4,
+              "tax": 0.0656
+            },
+            {
+              "act_rate": 0.9344,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.5,
+              "tax": 0.0656
+            },
+            {
+              "act_rate": 0.9016,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 6,
+              "tau": 0.6,
+              "tax": 0.0984
+            },
+            {
+              "act_rate": 0.8525,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 9,
+              "tau": 0.7,
+              "tax": 0.1475
+            },
+            {
+              "act_rate": 0.7705,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 14,
+              "tau": 0.8,
+              "tax": 0.2295
+            },
+            {
+              "act_rate": 0.5902,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 25,
+              "tau": 0.9,
+              "tax": 0.4098
+            },
+            {
+              "act_rate": 0.2623,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 45,
+              "tau": 0.95,
+              "tax": 0.7377
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9672,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.6,
+              "tax": 0.0328
+            },
+            {
+              "act_rate": 0.9344,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.7,
+              "tax": 0.0656
+            },
+            {
+              "act_rate": 0.9016,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 6,
+              "tau": 0.8,
+              "tax": 0.0984
+            },
+            {
+              "act_rate": 0.7705,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 14,
+              "tau": 0.9,
+              "tax": 0.2295
+            },
+            {
+              "act_rate": 0.5902,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 25,
+              "tau": 0.95,
+              "tax": 0.4098
+            }
+          ]
+        }
+      },
+      "n": 61
+    },
+    "clef teacher \u00b7 defect.defect_class": {
+      "cell": {
+        "auc": 1.0,
+        "auc_interval": {
+          "high": 1.0,
+          "low": 1.0,
+          "point": 1.0,
+          "resamples": 1270
+        },
+        "best_tau": {
+          "entropy_normalised": {
+            "act_rate": 0.4833,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 31,
+            "tau": 0.4,
+            "tax": 0.5085
+          },
+          "normalised_margin": {
+            "act_rate": 0.95,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 3,
+            "tau": 0.4,
+            "tax": 0.0339
+          },
+          "top_probability": {
+            "act_rate": 0.9833,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 1,
+            "tau": 0.4,
+            "tax": 0.0
+          }
+        },
+        "cell": {
+          "accuracy": 0.983333,
+          "backend": "clef",
+          "brier": 0.014015,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": -0.3938,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.3938,
+              "n": 1
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.5308,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.4692,
+              "n": 5
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.4421,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.5579,
+              "n": 18
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.3724,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.6276,
+              "n": 10
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.2727,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.7273,
+              "n": 2
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.1385,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8615,
+              "n": 3
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.0436,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9564,
+              "n": 21
+            }
+          ],
+          "ece": 0.27676,
+          "mean_confidence": 0.7197,
+          "model": "clef-27B",
+          "n": 60,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 0.983333,
+              "brier": 0.014015,
+              "ece": 0.430346,
+              "mean_confidence": 0.552987
+            },
+            "normalised_margin": {
+              "accuracy": 0.983333,
+              "brier": 0.014015,
+              "ece": 0.294778,
+              "mean_confidence": 0.688556
+            },
+            "top_probability": {
+              "accuracy": 0.983333,
+              "brier": 0.014015,
+              "ece": 0.27676,
+              "mean_confidence": 0.7197
+            }
+          },
+          "task": "defect.defect_class"
+        },
+        "held_out": {
+          "accuracy_after": 0.966667,
+          "accuracy_before": 0.966667,
+          "brier_after": 0.005724,
+          "brier_before": 0.024054,
+          "brier_improvement": {
+            "high": 0.024615,
+            "low": 0.00715,
+            "point": 0.018329,
+            "resamples": 2000
+          },
+          "ece_after": 0.030887,
+          "ece_before": 0.434367,
+          "mean_confidence_after": 0.997554,
+          "mean_confidence_before": 0.558553,
+          "n": 30,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.1588,
+          "0.6": 0.1615,
+          "0.7": 0.1645
+        },
+        "recalibration": {
+          "brier_after": 0.0,
+          "brier_before": 0.003977,
+          "held_out_brier_after": 0.005724,
+          "held_out_brier_before": 0.024054,
+          "kept": true,
+          "kind": "temperature",
+          "reason": "temperature improves the held-out Brier (0.0241 \u2192 0.0057)",
+          "scale": {
+            "kind": "temperature",
+            "params": {
+              "temperature": 0.05
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.8667,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 8,
+              "tau": 0.3,
+              "tax": 0.1356
+            },
+            {
+              "act_rate": 0.4833,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 31,
+              "tau": 0.4,
+              "tax": 0.5085
+            },
+            {
+              "act_rate": 0.4167,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 35,
+              "tau": 0.5,
+              "tax": 0.5763
+            },
+            {
+              "act_rate": 0.4,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 36,
+              "tau": 0.6,
+              "tax": 0.5932
+            },
+            {
+              "act_rate": 0.3833,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 37,
+              "tau": 0.7,
+              "tax": 0.6102
+            },
+            {
+              "act_rate": 0.3333,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 40,
+              "tau": 0.8,
+              "tax": 0.661
+            },
+            {
+              "act_rate": 0.1833,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 49,
+              "tau": 0.9,
+              "tax": 0.8136
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 60,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.95,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 3,
+              "tau": 0.4,
+              "tax": 0.0339
+            },
+            {
+              "act_rate": 0.7833,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 13,
+              "tau": 0.5,
+              "tax": 0.2034
+            },
+            {
+              "act_rate": 0.4833,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 31,
+              "tau": 0.6,
+              "tax": 0.5085
+            },
+            {
+              "act_rate": 0.4167,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 35,
+              "tau": 0.7,
+              "tax": 0.5763
+            },
+            {
+              "act_rate": 0.4,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 36,
+              "tau": 0.8,
+              "tax": 0.5932
+            },
+            {
+              "act_rate": 0.3333,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 40,
+              "tau": 0.9,
+              "tax": 0.661
+            },
+            {
+              "act_rate": 0.2,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 48,
+              "tau": 0.95,
+              "tax": 0.7966
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9833,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 1,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 6,
+              "tau": 0.5,
+              "tax": 0.0847
+            },
+            {
+              "act_rate": 0.6,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 24,
+              "tau": 0.6,
+              "tax": 0.3898
+            },
+            {
+              "act_rate": 0.4333,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 34,
+              "tau": 0.7,
+              "tax": 0.5593
+            },
+            {
+              "act_rate": 0.4,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 36,
+              "tau": 0.8,
+              "tax": 0.5932
+            },
+            {
+              "act_rate": 0.35,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 39,
+              "tau": 0.9,
+              "tax": 0.6441
+            },
+            {
+              "act_rate": 0.2,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 48,
+              "tau": 0.95,
+              "tax": 0.7966
+            }
+          ]
+        }
+      },
+      "n": 60
+    },
+    "clef teacher \u00b7 scene.action": {
+      "cell": {
+        "auc": null,
+        "auc_interval": null,
+        "best_tau": {
+          "entropy_normalised": null,
+          "normalised_margin": null,
+          "top_probability": null
+        },
+        "cell": {
+          "accuracy": 1.0,
+          "backend": "clef",
+          "brier": 0.007038,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.34,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.66,
+              "n": 2
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.246,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.754,
+              "n": 7
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.1479,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8521,
+              "n": 11
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.0208,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9792,
+              "n": 60
+            }
+          ],
+          "ece": 0.065985,
+          "mean_confidence": 0.934015,
+          "model": "clef-27B",
+          "n": 80,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 1.0,
+              "brier": 0.007038,
+              "ece": 0.203147,
+              "mean_confidence": 0.796853
+            },
+            "normalised_margin": {
+              "accuracy": 1.0,
+              "brier": 0.007038,
+              "ece": 0.098978,
+              "mean_confidence": 0.901022
+            },
+            "top_probability": {
+              "accuracy": 1.0,
+              "brier": 0.007038,
+              "ece": 0.065985,
+              "mean_confidence": 0.934015
+            }
+          },
+          "task": "scene.action"
+        },
+        "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
+          "brier_after": 0.0,
+          "brier_before": 0.008915,
+          "brier_improvement": {
+            "high": 0.014522,
+            "low": 0.003846,
+            "point": 0.008915,
+            "resamples": 2000
+          },
+          "ece_after": 0.0,
+          "ece_before": 0.07471,
+          "mean_confidence_after": 1.0,
+          "mean_confidence_before": 0.92529,
+          "n": 40,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.3724,
+          "0.6": 0.3724,
+          "0.7": 0.3724
+        },
+        "recalibration": {
+          "brier_after": 0.0,
+          "brier_before": 0.00516,
+          "held_out_brier_after": 0.0,
+          "held_out_brier_before": 0.008915,
+          "kept": true,
+          "kind": "isotonic",
+          "reason": "isotonic improves the held-out Brier (0.0089 \u2192 0.0000)",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.7137,
+                  1.0
+                ],
+                [
+                  0.7673,
+                  1.0
+                ],
+                [
+                  0.785,
+                  1.0
+                ],
+                [
+                  0.8005,
+                  1.0
+                ],
+                [
+                  0.8225,
+                  1.0
+                ],
+                [
+                  0.8463,
+                  1.0
+                ],
+                [
+                  0.8472,
+                  1.0
+                ],
+                [
+                  0.8852,
+                  1.0
+                ],
+                [
+                  0.893,
+                  1.0
+                ],
+                [
+                  0.9566,
+                  1.0
+                ],
+                [
+                  0.9631,
+                  1.0
+                ],
+                [
+                  0.9665,
+                  1.0
+                ],
+                [
+                  0.9667,
+                  1.0
+                ],
+                [
+                  0.9699,
+                  1.0
+                ],
+                [
+                  0.9701,
+                  1.0
+                ],
+                [
+                  0.9709,
+                  1.0
+                ],
+                [
+                  0.9742,
+                  1.0
+                ],
+                [
+                  0.9746,
+                  1.0
+                ],
+                [
+                  0.9755,
+                  1.0
+                ],
+                [
+                  0.9764,
+                  1.0
+                ],
+                [
+                  0.9769,
+                  1.0
+                ],
+                [
+                  0.9778,
+                  1.0
+                ],
+                [
+                  0.9781,
+                  1.0
+                ],
+                [
+                  0.9808,
+                  1.0
+                ],
+                [
+                  0.9809,
+                  1.0
+                ],
+                [
+                  0.982,
+                  1.0
+                ],
+                [
+                  0.9831,
+                  1.0
+                ],
+                [
+                  0.9832,
+                  1.0
+                ],
+                [
+                  0.9833,
+                  1.0
+                ],
+                [
+                  0.9839,
+                  1.0
+                ],
+                [
+                  0.9851,
+                  1.0
+                ],
+                [
+                  0.9853,
+                  1.0
+                ],
+                [
+                  0.9864,
+                  1.0
+                ],
+                [
+                  0.9869,
+                  1.0
+                ],
+                [
+                  0.987,
+                  1.0
+                ],
+                [
+                  0.9871,
+                  1.0
+                ],
+                [
+                  0.9873,
+                  1.0
+                ],
+                [
+                  0.9881,
+                  1.0
+                ],
+                [
+                  0.9895,
+                  1.0
+                ],
+                [
+                  0.9917,
+                  1.0
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.3,
+              "tax": 0.0125
+            },
+            {
+              "act_rate": 0.95,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.4,
+              "tax": 0.05
+            },
+            {
+              "act_rate": 0.875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 10,
+              "tau": 0.5,
+              "tax": 0.125
+            },
+            {
+              "act_rate": 0.7875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 17,
+              "tau": 0.6,
+              "tax": 0.2125
+            },
+            {
+              "act_rate": 0.75,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 20,
+              "tau": 0.7,
+              "tax": 0.25
+            },
+            {
+              "act_rate": 0.7375,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 21,
+              "tau": 0.8,
+              "tax": 0.2625
+            },
+            {
+              "act_rate": 0.45,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 44,
+              "tau": 0.9,
+              "tax": 0.55
+            },
+            {
+              "act_rate": 0.025,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 78,
+              "tau": 0.95,
+              "tax": 0.975
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.975,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.5,
+              "tax": 0.025
+            },
+            {
+              "act_rate": 0.95,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.6,
+              "tax": 0.05
+            },
+            {
+              "act_rate": 0.8875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 9,
+              "tau": 0.7,
+              "tax": 0.1125
+            },
+            {
+              "act_rate": 0.7875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 17,
+              "tau": 0.8,
+              "tax": 0.2125
+            },
+            {
+              "act_rate": 0.75,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 20,
+              "tau": 0.9,
+              "tax": 0.25
+            },
+            {
+              "act_rate": 0.675,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 26,
+              "tau": 0.95,
+              "tax": 0.325
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.6,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.975,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.7,
+              "tax": 0.025
+            },
+            {
+              "act_rate": 0.8875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 9,
+              "tau": 0.8,
+              "tax": 0.1125
+            },
+            {
+              "act_rate": 0.75,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 20,
+              "tau": 0.9,
+              "tax": 0.25
+            },
+            {
+              "act_rate": 0.7375,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 21,
+              "tau": 0.95,
+              "tax": 0.2625
+            }
+          ]
+        }
+      },
+      "n": 80
+    },
+    "clef teacher \u00b7 scene.beacon_bearing": {
+      "cell": {
+        "auc": 0.748044,
+        "auc_interval": {
+          "high": 0.871531,
+          "low": 0.595714,
+          "point": 0.748044,
+          "resamples": 2000
+        },
+        "best_tau": {
+          "entropy_normalised": {
+            "act_rate": 0.1625,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 67,
+            "tau": 0.9,
+            "tax": 0.8169
+          },
+          "normalised_margin": {
+            "act_rate": 0.275,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 58,
+            "tau": 0.95,
+            "tax": 0.6901
+          },
+          "top_probability": {
+            "act_rate": 0.3875,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 49,
+            "tau": 0.95,
+            "tax": 0.5634
+          }
+        },
+        "cell": {
+          "accuracy": 0.8875,
+          "backend": "clef",
+          "brier": 0.048722,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.5,
+              "gap": -0.0455,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.5455,
+              "n": 2
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.3331,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.6669,
+              "n": 7
+            },
+            {
+              "accuracy": 0.5,
+              "gap": -0.268,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.768,
+              "n": 4
+            },
+            {
+              "accuracy": 0.8667,
+              "gap": 0.0083,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8584,
+              "n": 15
+            },
+            {
+              "accuracy": 0.9231,
+              "gap": -0.0314,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9545,
+              "n": 52
+            }
+          ],
+          "ece": 0.065657,
+          "mean_confidence": 0.891752,
+          "model": "clef-27B",
+          "n": 80,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 0.8875,
+              "brier": 0.048722,
+              "ece": 0.147208,
+              "mean_confidence": 0.740292
+            },
+            "normalised_margin": {
+              "accuracy": 0.8875,
+              "brier": 0.048722,
+              "ece": 0.08679,
+              "mean_confidence": 0.85567
+            },
+            "top_probability": {
+              "accuracy": 0.8875,
+              "brier": 0.048722,
+              "ece": 0.065657,
+              "mean_confidence": 0.891752
+            }
+          },
+          "task": "scene.beacon_bearing"
+        },
+        "held_out": {
+          "accuracy_after": 0.925,
+          "accuracy_before": 0.925,
+          "brier_after": 0.035918,
+          "brier_before": 0.03273,
+          "brier_improvement": {
+            "high": 0.005479,
+            "low": -0.010399,
+            "point": -0.003187,
+            "resamples": 2000
+          },
+          "ece_after": 0.089368,
+          "ece_before": 0.06393,
+          "mean_confidence_after": 0.835632,
+          "mean_confidence_before": 0.879725,
+          "n": 40,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.281,
+          "0.6": 0.281,
+          "0.7": 0.8123
+        },
+        "recalibration": {
+          "brier_after": 0.056456,
+          "brier_before": 0.064713,
+          "held_out_brier_after": 0.035918,
+          "held_out_brier_before": 0.03273,
+          "kept": false,
+          "kind": "isotonic",
+          "reason": "no scale improved the held-out Brier (0.0327); the raw confidence is kept",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.6676,
+                  0.6
+                ],
+                [
+                  0.8036,
+                  0.6
+                ],
+                [
+                  0.8198,
+                  0.7857142857142857
+                ],
+                [
+                  0.9131,
+                  0.7857142857142857
+                ],
+                [
+                  0.9247,
+                  0.8333333333333334
+                ],
+                [
+                  0.9487,
+                  0.8333333333333334
+                ],
+                [
+                  0.9506,
+                  1.0
+                ],
+                [
+                  0.9537,
+                  1.0
+                ],
+                [
+                  0.9547,
+                  1.0
+                ],
+                [
+                  0.9588,
+                  1.0
+                ],
+                [
+                  0.9603,
+                  1.0
+                ],
+                [
+                  0.9623,
+                  1.0
+                ],
+                [
+                  0.976,
+                  1.0
+                ],
+                [
+                  0.9777,
+                  1.0
+                ],
+                [
+                  0.978,
+                  1.0
+                ],
+                [
+                  0.9806,
+                  1.0
+                ],
+                [
+                  0.9815,
+                  1.0
+                ],
+                [
+                  0.9857,
+                  1.0
+                ],
+                [
+                  0.9861,
+                  1.0
+                ],
+                [
+                  0.9867,
+                  1.0
+                ],
+                [
+                  0.9892,
+                  1.0
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.3,
+              "tax": 0.0141
+            },
+            {
+              "act_rate": 0.975,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.4,
+              "tax": 0.0282
+            },
+            {
+              "act_rate": 0.875,
+              "catch": 0.2222,
+              "caught_all": false,
+              "escalated": 10,
+              "tau": 0.5,
+              "tax": 0.1127
+            },
+            {
+              "act_rate": 0.8,
+              "catch": 0.4444,
+              "caught_all": false,
+              "escalated": 16,
+              "tau": 0.6,
+              "tax": 0.169
+            },
+            {
+              "act_rate": 0.65,
+              "catch": 0.5556,
+              "caught_all": false,
+              "escalated": 28,
+              "tau": 0.7,
+              "tax": 0.3239
+            },
+            {
+              "act_rate": 0.4625,
+              "catch": 0.8889,
+              "caught_all": false,
+              "escalated": 43,
+              "tau": 0.8,
+              "tax": 0.493
+            },
+            {
+              "act_rate": 0.1625,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 67,
+              "tau": 0.9,
+              "tax": 0.8169
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 80,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.4,
+              "tax": 0.0141
+            },
+            {
+              "act_rate": 0.975,
+              "catch": 0.1111,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.5,
+              "tax": 0.0141
+            },
+            {
+              "act_rate": 0.8875,
+              "catch": 0.1111,
+              "caught_all": false,
+              "escalated": 9,
+              "tau": 0.6,
+              "tax": 0.1127
+            },
+            {
+              "act_rate": 0.8625,
+              "catch": 0.2222,
+              "caught_all": false,
+              "escalated": 11,
+              "tau": 0.7,
+              "tax": 0.1268
+            },
+            {
+              "act_rate": 0.7875,
+              "catch": 0.4444,
+              "caught_all": false,
+              "escalated": 17,
+              "tau": 0.8,
+              "tax": 0.1831
+            },
+            {
+              "act_rate": 0.525,
+              "catch": 0.8889,
+              "caught_all": false,
+              "escalated": 38,
+              "tau": 0.9,
+              "tax": 0.4225
+            },
+            {
+              "act_rate": 0.275,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 58,
+              "tau": 0.95,
+              "tax": 0.6901
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.975,
+              "catch": 0.1111,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.6,
+              "tax": 0.0141
+            },
+            {
+              "act_rate": 0.8875,
+              "catch": 0.1111,
+              "caught_all": false,
+              "escalated": 9,
+              "tau": 0.7,
+              "tax": 0.1127
+            },
+            {
+              "act_rate": 0.8375,
+              "catch": 0.3333,
+              "caught_all": false,
+              "escalated": 13,
+              "tau": 0.8,
+              "tax": 0.1408
+            },
+            {
+              "act_rate": 0.65,
+              "catch": 0.5556,
+              "caught_all": false,
+              "escalated": 28,
+              "tau": 0.9,
+              "tax": 0.3239
+            },
+            {
+              "act_rate": 0.3875,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 49,
+              "tau": 0.95,
+              "tax": 0.5634
+            }
+          ]
+        }
+      },
+      "n": 80
+    },
+    "clef teacher \u00b7 scene.beacon_reachable": {
+      "cell": {
+        "auc": null,
+        "auc_interval": null,
+        "best_tau": {
+          "entropy_normalised": null,
+          "normalised_margin": null,
+          "top_probability": null
+        },
+        "cell": {
+          "accuracy": 1.0,
+          "backend": "clef",
+          "brier": 0.002113,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.1055,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8945,
+              "n": 3
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.0372,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9628,
+              "n": 77
+            }
+          ],
+          "ece": 0.039781,
+          "mean_confidence": 0.960219,
+          "model": "clef-27B",
+          "n": 80,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 1.0,
+              "brier": 0.002113,
+              "ece": 0.232601,
+              "mean_confidence": 0.767399
+            },
+            "normalised_margin": {
+              "accuracy": 1.0,
+              "brier": 0.002113,
+              "ece": 0.079562,
+              "mean_confidence": 0.920438
+            },
+            "top_probability": {
+              "accuracy": 1.0,
+              "brier": 0.002113,
+              "ece": 0.039781,
+              "mean_confidence": 0.960219
+            }
+          },
+          "task": "scene.beacon_reachable"
+        },
+        "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
+          "brier_after": 0.0,
+          "brier_before": 0.002202,
+          "brier_improvement": {
+            "high": 0.003188,
+            "low": 0.001387,
+            "point": 0.002202,
+            "resamples": 2000
+          },
+          "ece_after": 0.0,
+          "ece_before": 0.040392,
+          "mean_confidence_after": 1.0,
+          "mean_confidence_before": 0.959608,
+          "n": 40,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.5,
+          "0.6": 0.5,
+          "0.7": 0.5
+        },
+        "recalibration": {
+          "brier_after": 0.0,
+          "brier_before": 0.002023,
+          "held_out_brier_after": 0.0,
+          "held_out_brier_before": 0.002202,
+          "kept": true,
+          "kind": "isotonic",
+          "reason": "isotonic improves the held-out Brier (0.0022 \u2192 0.0000)",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.8985,
+                  1.0
+                ],
+                [
+                  0.9097,
+                  1.0
+                ],
+                [
+                  0.9122,
+                  1.0
+                ],
+                [
+                  0.9211,
+                  1.0
+                ],
+                [
+                  0.9265,
+                  1.0
+                ],
+                [
+                  0.9308,
+                  1.0
+                ],
+                [
+                  0.9335,
+                  1.0
+                ],
+                [
+                  0.937,
+                  1.0
+                ],
+                [
+                  0.9481,
+                  1.0
+                ],
+                [
+                  0.9482,
+                  1.0
+                ],
+                [
+                  0.957,
+                  1.0
+                ],
+                [
+                  0.9601,
+                  1.0
+                ],
+                [
+                  0.9602,
+                  1.0
+                ],
+                [
+                  0.9605,
+                  1.0
+                ],
+                [
+                  0.9625,
+                  1.0
+                ],
+                [
+                  0.9635,
+                  1.0
+                ],
+                [
+                  0.9661,
+                  1.0
+                ],
+                [
+                  0.9702,
+                  1.0
+                ],
+                [
+                  0.9707,
+                  1.0
+                ],
+                [
+                  0.9713,
+                  1.0
+                ],
+                [
+                  0.9726,
+                  1.0
+                ],
+                [
+                  0.9728,
+                  1.0
+                ],
+                [
+                  0.9729,
+                  1.0
+                ],
+                [
+                  0.9734,
+                  1.0
+                ],
+                [
+                  0.9738,
+                  1.0
+                ],
+                [
+                  0.9744,
+                  1.0
+                ],
+                [
+                  0.9746,
+                  1.0
+                ],
+                [
+                  0.9747,
+                  1.0
+                ],
+                [
+                  0.9749,
+                  1.0
+                ],
+                [
+                  0.9754,
+                  1.0
+                ],
+                [
+                  0.9757,
+                  1.0
+                ],
+                [
+                  0.9758,
+                  1.0
+                ],
+                [
+                  0.9759,
+                  1.0
+                ],
+                [
+                  0.9762,
+                  1.0
+                ],
+                [
+                  0.9776,
+                  1.0
+                ],
+                [
+                  0.9786,
+                  1.0
+                ],
+                [
+                  0.9804,
+                  1.0
+                ],
+                [
+                  0.9819,
+                  1.0
+                ],
+                [
+                  0.9881,
+                  1.0
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.925,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 6,
+              "tau": 0.6,
+              "tax": 0.075
+            },
+            {
+              "act_rate": 0.7875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 17,
+              "tau": 0.7,
+              "tax": 0.2125
+            },
+            {
+              "act_rate": 0.575,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 34,
+              "tau": 0.8,
+              "tax": 0.425
+            },
+            {
+              "act_rate": 0.0125,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 79,
+              "tau": 0.9,
+              "tax": 0.9875
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 80,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.6,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.7,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9625,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 3,
+              "tau": 0.8,
+              "tax": 0.0375
+            },
+            {
+              "act_rate": 0.75,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 20,
+              "tau": 0.9,
+              "tax": 0.25
+            },
+            {
+              "act_rate": 0.3,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 56,
+              "tau": 0.95,
+              "tax": 0.7
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.6,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.7,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.8,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9625,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 3,
+              "tau": 0.9,
+              "tax": 0.0375
+            },
+            {
+              "act_rate": 0.75,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 20,
+              "tau": 0.95,
+              "tax": 0.25
+            }
+          ]
+        }
+      },
+      "n": 80
+    },
+    "clef teacher \u00b7 scene.enemy_visible": {
+      "cell": {
+        "auc": null,
+        "auc_interval": null,
+        "best_tau": {
+          "entropy_normalised": null,
+          "normalised_margin": null,
+          "top_probability": null
+        },
+        "cell": {
+          "accuracy": 1.0,
+          "backend": "clef",
+          "brier": 0.000528,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.1453,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8547,
+              "n": 1
+            },
+            {
+              "accuracy": 1.0,
+              "gap": 0.0155,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9845,
+              "n": 79
+            }
+          ],
+          "ece": 0.017153,
+          "mean_confidence": 0.982847,
+          "model": "clef-27B",
+          "n": 80,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 1.0,
+              "brier": 0.000528,
+              "ece": 0.1205,
+              "mean_confidence": 0.8795
+            },
+            "normalised_margin": {
+              "accuracy": 1.0,
+              "brier": 0.000528,
+              "ece": 0.034305,
+              "mean_confidence": 0.965695
+            },
+            "top_probability": {
+              "accuracy": 1.0,
+              "brier": 0.000528,
+              "ece": 0.017153,
+              "mean_confidence": 0.982847
+            }
+          },
+          "task": "scene.enemy_visible"
+        },
+        "held_out": {
+          "accuracy_after": 1.0,
+          "accuracy_before": 1.0,
+          "brier_after": 0.0,
+          "brier_before": 0.000795,
+          "brier_improvement": {
+            "high": 0.001878,
+            "low": 0.000225,
+            "point": 0.000795,
+            "resamples": 2000
+          },
+          "ece_after": 0.0,
+          "ece_before": 0.018948,
+          "mean_confidence_after": 1.0,
+          "mean_confidence_before": 0.981052,
+          "n": 40,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.5,
+          "0.6": 0.5,
+          "0.7": 0.5
+        },
+        "recalibration": {
+          "brier_after": 0.0,
+          "brier_before": 0.000261,
+          "held_out_brier_after": 0.0,
+          "held_out_brier_before": 0.000795,
+          "kept": true,
+          "kind": "isotonic",
+          "reason": "isotonic improves the held-out Brier (0.0008 \u2192 0.0000)",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.9699,
+                  1.0
+                ],
+                [
+                  0.9712,
+                  1.0
+                ],
+                [
+                  0.9757,
+                  1.0
+                ],
+                [
+                  0.9759,
+                  1.0
+                ],
+                [
+                  0.9782,
+                  1.0
+                ],
+                [
+                  0.9789,
+                  1.0
+                ],
+                [
+                  0.9799,
+                  1.0
+                ],
+                [
+                  0.9821,
+                  1.0
+                ],
+                [
+                  0.9825,
+                  1.0
+                ],
+                [
+                  0.9827,
+                  1.0
+                ],
+                [
+                  0.9828,
+                  1.0
+                ],
+                [
+                  0.9834,
+                  1.0
+                ],
+                [
+                  0.9846,
+                  1.0
+                ],
+                [
+                  0.985,
+                  1.0
+                ],
+                [
+                  0.9851,
+                  1.0
+                ],
+                [
+                  0.9852,
+                  1.0
+                ],
+                [
+                  0.9854,
+                  1.0
+                ],
+                [
+                  0.9855,
+                  1.0
+                ],
+                [
+                  0.9857,
+                  1.0
+                ],
+                [
+                  0.9858,
+                  1.0
+                ],
+                [
+                  0.986,
+                  1.0
+                ],
+                [
+                  0.9863,
+                  1.0
+                ],
+                [
+                  0.9868,
+                  1.0
+                ],
+                [
+                  0.9869,
+                  1.0
+                ],
+                [
+                  0.987,
+                  1.0
+                ],
+                [
+                  0.9871,
+                  1.0
+                ],
+                [
+                  0.9874,
+                  1.0
+                ],
+                [
+                  0.9878,
+                  1.0
+                ],
+                [
+                  0.9889,
+                  1.0
+                ],
+                [
+                  0.9891,
+                  1.0
+                ],
+                [
+                  0.9893,
+                  1.0
+                ],
+                [
+                  0.9894,
+                  1.0
+                ],
+                [
+                  0.9902,
+                  1.0
+                ],
+                [
+                  0.9907,
+                  1.0
+                ],
+                [
+                  0.9913,
+                  1.0
+                ],
+                [
+                  0.9922,
+                  1.0
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.5,
+              "tax": 0.0125
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.6,
+              "tax": 0.0125
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.7,
+              "tax": 0.0125
+            },
+            {
+              "act_rate": 0.975,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.8,
+              "tax": 0.025
+            },
+            {
+              "act_rate": 0.3,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 56,
+              "tau": 0.9,
+              "tax": 0.7
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 80,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.6,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.7,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.8,
+              "tax": 0.0125
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.9,
+              "tax": 0.0125
+            },
+            {
+              "act_rate": 0.9375,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 5,
+              "tau": 0.95,
+              "tax": 0.0625
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.6,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.7,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.8,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.9,
+              "tax": 0.0125
+            },
+            {
+              "act_rate": 0.9875,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 1,
+              "tau": 0.95,
+              "tax": 0.0125
+            }
+          ]
+        }
+      },
+      "n": 80
+    },
+    "clef teacher \u00b7 tile.tile": {
+      "cell": {
+        "auc": 0.614857,
+        "auc_interval": {
+          "high": 0.755656,
+          "low": 0.462985,
+          "point": 0.614857,
+          "resamples": 2000
+        },
+        "best_tau": {
+          "entropy_normalised": {
+            "act_rate": 0.0167,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 59,
+            "tau": 0.9,
+            "tax": 0.9714
+          },
+          "normalised_margin": {
+            "act_rate": 0.05,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 57,
+            "tau": 0.95,
+            "tax": 0.9143
+          },
+          "top_probability": {
+            "act_rate": 0.05,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 57,
+            "tau": 0.95,
+            "tax": 0.9143
+          }
+        },
+        "cell": {
+          "accuracy": 0.583333,
+          "backend": "clef",
+          "brier": 0.118526,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.5,
+              "gap": 0.1071,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.3929,
+              "n": 2
+            },
+            {
+              "accuracy": 0.6,
+              "gap": 0.1552,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.4448,
+              "n": 5
+            },
+            {
+              "accuracy": 0.4444,
+              "gap": -0.1085,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.553,
+              "n": 9
+            },
+            {
+              "accuracy": 0.3333,
+              "gap": -0.2935,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.6268,
+              "n": 9
+            },
+            {
+              "accuracy": 0.625,
+              "gap": -0.1391,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.7641,
+              "n": 8
+            },
+            {
+              "accuracy": 0.75,
+              "gap": -0.1135,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8635,
+              "n": 16
+            },
+            {
+              "accuracy": 0.6364,
+              "gap": -0.2975,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9339,
+              "n": 11
+            }
+          ],
+          "ece": 0.18017,
+          "mean_confidence": 0.73049,
+          "model": "clef-27B",
+          "n": 60,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 0.583333,
+              "brier": 0.118526,
+              "ece": 0.200696,
+              "mean_confidence": 0.532404
+            },
+            "normalised_margin": {
+              "accuracy": 0.583333,
+              "brier": 0.118526,
+              "ece": 0.192687,
+              "mean_confidence": 0.663112
+            },
+            "top_probability": {
+              "accuracy": 0.583333,
+              "brier": 0.118526,
+              "ece": 0.18017,
+              "mean_confidence": 0.73049
+            }
+          },
+          "task": "tile.tile"
+        },
+        "held_out": {
+          "accuracy_after": 0.566667,
+          "accuracy_before": 0.566667,
+          "brier_after": 0.108357,
+          "brier_before": 0.119942,
+          "brier_improvement": {
+            "high": 0.02694,
+            "low": -0.004193,
+            "point": 0.011585,
+            "resamples": 2000
+          },
+          "ece_after": 0.102581,
+          "ece_before": 0.212793,
+          "mean_confidence_after": 0.60453,
+          "mean_confidence_before": 0.743293,
+          "n": 30,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.7738,
+          "0.6": 0.7742,
+          "0.7": 0.8817
+        },
+        "recalibration": {
+          "brier_after": 0.10253,
+          "brier_before": 0.117111,
+          "held_out_brier_after": 0.108357,
+          "held_out_brier_before": 0.119942,
+          "kept": true,
+          "kind": "isotonic",
+          "reason": "isotonic improves the held-out Brier (0.1199 \u2192 0.1084)",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.3902,
+                  0.0
+                ],
+                [
+                  0.3955,
+                  0.46153846153846156
+                ],
+                [
+                  0.7737,
+                  0.46153846153846156
+                ],
+                [
+                  0.7744,
+                  0.6666666666666666
+                ],
+                [
+                  0.88,
+                  0.6666666666666666
+                ],
+                [
+                  0.8857,
+                  0.7777777777777778
+                ],
+                [
+                  0.9478,
+                  0.7777777777777778
+                ],
+                [
+                  0.9682,
+                  1.0
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9333,
+              "catch": 0.08,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.2,
+              "tax": 0.0571
+            },
+            {
+              "act_rate": 0.8667,
+              "catch": 0.12,
+              "caught_all": false,
+              "escalated": 8,
+              "tau": 0.3,
+              "tax": 0.1429
+            },
+            {
+              "act_rate": 0.6833,
+              "catch": 0.36,
+              "caught_all": false,
+              "escalated": 19,
+              "tau": 0.4,
+              "tax": 0.2857
+            },
+            {
+              "act_rate": 0.5167,
+              "catch": 0.68,
+              "caught_all": false,
+              "escalated": 29,
+              "tau": 0.5,
+              "tax": 0.3429
+            },
+            {
+              "act_rate": 0.4,
+              "catch": 0.68,
+              "caught_all": false,
+              "escalated": 36,
+              "tau": 0.6,
+              "tax": 0.5429
+            },
+            {
+              "act_rate": 0.2667,
+              "catch": 0.84,
+              "caught_all": false,
+              "escalated": 44,
+              "tau": 0.7,
+              "tax": 0.6571
+            },
+            {
+              "act_rate": 0.0667,
+              "catch": 0.96,
+              "caught_all": false,
+              "escalated": 56,
+              "tau": 0.8,
+              "tax": 0.9143
+            },
+            {
+              "act_rate": 0.0167,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 59,
+              "tau": 0.9,
+              "tax": 0.9714
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 60,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9333,
+              "catch": 0.08,
+              "caught_all": false,
+              "escalated": 4,
+              "tau": 0.3,
+              "tax": 0.0571
+            },
+            {
+              "act_rate": 0.85,
+              "catch": 0.12,
+              "caught_all": false,
+              "escalated": 9,
+              "tau": 0.4,
+              "tax": 0.1714
+            },
+            {
+              "act_rate": 0.7333,
+              "catch": 0.32,
+              "caught_all": false,
+              "escalated": 16,
+              "tau": 0.5,
+              "tax": 0.2286
+            },
+            {
+              "act_rate": 0.5833,
+              "catch": 0.56,
+              "caught_all": false,
+              "escalated": 25,
+              "tau": 0.6,
+              "tax": 0.3143
+            },
+            {
+              "act_rate": 0.5333,
+              "catch": 0.64,
+              "caught_all": false,
+              "escalated": 28,
+              "tau": 0.7,
+              "tax": 0.3429
+            },
+            {
+              "act_rate": 0.3833,
+              "catch": 0.72,
+              "caught_all": false,
+              "escalated": 37,
+              "tau": 0.8,
+              "tax": 0.5429
+            },
+            {
+              "act_rate": 0.1,
+              "catch": 0.88,
+              "caught_all": false,
+              "escalated": 54,
+              "tau": 0.9,
+              "tax": 0.9143
+            },
+            {
+              "act_rate": 0.05,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 57,
+              "tau": 0.95,
+              "tax": 0.9143
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9667,
+              "catch": 0.04,
+              "caught_all": false,
+              "escalated": 2,
+              "tau": 0.4,
+              "tax": 0.0286
+            },
+            {
+              "act_rate": 0.8833,
+              "catch": 0.12,
+              "caught_all": false,
+              "escalated": 7,
+              "tau": 0.5,
+              "tax": 0.1143
+            },
+            {
+              "act_rate": 0.7333,
+              "catch": 0.32,
+              "caught_all": false,
+              "escalated": 16,
+              "tau": 0.6,
+              "tax": 0.2286
+            },
+            {
+              "act_rate": 0.5833,
+              "catch": 0.56,
+              "caught_all": false,
+              "escalated": 25,
+              "tau": 0.7,
+              "tax": 0.3143
+            },
+            {
+              "act_rate": 0.45,
+              "catch": 0.68,
+              "caught_all": false,
+              "escalated": 33,
+              "tau": 0.8,
+              "tax": 0.4571
+            },
+            {
+              "act_rate": 0.1833,
+              "catch": 0.84,
+              "caught_all": false,
+              "escalated": 49,
+              "tau": 0.9,
+              "tax": 0.8
+            },
+            {
+              "act_rate": 0.05,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 57,
+              "tau": 0.95,
+              "tax": 0.9143
+            }
+          ]
+        }
+      },
+      "n": 60
+    },
+    "d1-2B (the liquid study's traces)": {
+      "cell": {
+        "auc": 0.281537,
+        "auc_interval": {
+          "high": 0.347389,
+          "low": 0.216677,
+          "point": 0.281537,
+          "resamples": 2000
+        },
+        "best_tau": {
+          "entropy_normalised": null,
+          "normalised_margin": null,
+          "top_probability": null
+        },
+        "cell": {
+          "accuracy": 0.525,
+          "backend": "d1",
+          "brier": 0.169907,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.7037,
+              "gap": 0.18,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.5237,
+              "n": 27
+            },
+            {
+              "accuracy": 0.7746,
+              "gap": 0.136,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.6386,
+              "n": 71
+            },
+            {
+              "accuracy": 0.5,
+              "gap": -0.2387,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.7387,
+              "n": 70
+            },
+            {
+              "accuracy": 0.6364,
+              "gap": -0.1919,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8283,
+              "n": 11
+            },
+            {
+              "accuracy": 0.1639,
+              "gap": -0.8062,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9701,
+              "n": 61
+            }
+          ],
+          "ece": 0.343811,
+          "mean_confidence": 0.747834,
+          "model": "d1-2B",
+          "n": 240,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 0.525,
+              "brier": 0.169907,
+              "ece": 0.316037,
+              "mean_confidence": 0.615472
+            },
+            "normalised_margin": {
+              "accuracy": 0.525,
+              "brier": 0.169907,
+              "ece": 0.371029,
+              "mean_confidence": 0.684792
+            },
+            "top_probability": {
+              "accuracy": 0.525,
+              "brier": 0.169907,
+              "ece": 0.343811,
+              "mean_confidence": 0.747834
+            }
+          },
+          "task": "liquid-trace"
+        },
+        "held_out": {
+          "accuracy_after": 0.558333,
+          "accuracy_before": 0.558333,
+          "brier_after": 0.135481,
+          "brier_before": 0.158766,
+          "brier_improvement": {
+            "high": 0.038712,
+            "low": 0.008564,
+            "point": 0.023285,
+            "resamples": 2000
+          },
+          "ece_after": 0.036363,
+          "ece_before": 0.319827,
+          "mean_confidence_after": 0.52197,
+          "mean_confidence_before": 0.753487,
+          "n": 120,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.5242,
+          "0.6": 1.0,
+          "0.7": 1.0
+        },
+        "recalibration": {
+          "brier_after": 0.150309,
+          "brier_before": 0.181048,
+          "held_out_brier_after": 0.135481,
+          "held_out_brier_before": 0.158766,
+          "kept": true,
+          "kind": "isotonic",
+          "reason": "isotonic improves the held-out Brier (0.1588 \u2192 0.1355)",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.5222711254103878,
+                  0.0
+                ],
+                [
+                  0.5242412729172938,
+                  0.5221238938053098
+                ],
+                [
+                  0.997413334231969,
+                  0.5221238938053098
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9667,
+              "catch": 0.0702,
+              "caught_all": false,
+              "escalated": 8,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.7583,
+              "catch": 0.2105,
+              "caught_all": false,
+              "escalated": 58,
+              "tau": 0.5,
+              "tax": 0.2698
+            },
+            {
+              "act_rate": 0.3,
+              "catch": 0.5175,
+              "caught_all": false,
+              "escalated": 168,
+              "tau": 0.6,
+              "tax": 0.8651
+            },
+            {
+              "act_rate": 0.2542,
+              "catch": 0.5526,
+              "caught_all": false,
+              "escalated": 179,
+              "tau": 0.7,
+              "tax": 0.9206
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.6228,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.8,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.6228,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.6228,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.8875,
+              "catch": 0.0702,
+              "caught_all": false,
+              "escalated": 27,
+              "tau": 0.5,
+              "tax": 0.1508
+            },
+            {
+              "act_rate": 0.5917,
+              "catch": 0.2105,
+              "caught_all": false,
+              "escalated": 98,
+              "tau": 0.6,
+              "tax": 0.5873
+            },
+            {
+              "act_rate": 0.3,
+              "catch": 0.5175,
+              "caught_all": false,
+              "escalated": 168,
+              "tau": 0.7,
+              "tax": 0.8651
+            },
+            {
+              "act_rate": 0.2542,
+              "catch": 0.5526,
+              "caught_all": false,
+              "escalated": 179,
+              "tau": 0.8,
+              "tax": 0.9206
+            },
+            {
+              "act_rate": 0.2125,
+              "catch": 0.5526,
+              "caught_all": false,
+              "escalated": 189,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.6228,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.8875,
+              "catch": 0.0702,
+              "caught_all": false,
+              "escalated": 27,
+              "tau": 0.6,
+              "tax": 0.1508
+            },
+            {
+              "act_rate": 0.5917,
+              "catch": 0.2105,
+              "caught_all": false,
+              "escalated": 98,
+              "tau": 0.7,
+              "tax": 0.5873
+            },
+            {
+              "act_rate": 0.3,
+              "catch": 0.5175,
+              "caught_all": false,
+              "escalated": 168,
+              "tau": 0.8,
+              "tax": 0.8651
+            },
+            {
+              "act_rate": 0.2542,
+              "catch": 0.5526,
+              "caught_all": false,
+              "escalated": 179,
+              "tau": 0.9,
+              "tax": 0.9206
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.6228,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ]
+        }
+      },
+      "n": 240
+    },
+    "d1-3B (the liquid study's traces)": {
+      "cell": {
+        "auc": 0.294363,
+        "auc_interval": {
+          "high": 0.365222,
+          "low": 0.225506,
+          "point": 0.294363,
+          "resamples": 2000
+        },
+        "best_tau": {
+          "entropy_normalised": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 240,
+            "tau": 0.95,
+            "tax": 1.0
+          },
+          "normalised_margin": null,
+          "top_probability": null
+        },
+        "cell": {
+          "accuracy": 0.329167,
+          "backend": "d1",
+          "brier": 0.213457,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.6154,
+              "gap": 0.0527,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.5627,
+              "n": 39
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.3721,
+              "gap": -0.3661,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.7382,
+              "n": 86
+            },
+            {
+              "accuracy": 0.3194,
+              "gap": -0.5141,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.8335,
+              "n": 72
+            },
+            {
+              "accuracy": 0.0,
+              "gap": -0.9723,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.9723,
+              "n": 43
+            }
+          ],
+          "ece": 0.46816,
+          "mean_confidence": 0.780189,
+          "model": "d1-3B",
+          "n": 240,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 0.329167,
+              "brier": 0.213457,
+              "ece": 0.525311,
+              "mean_confidence": 0.631273
+            },
+            "normalised_margin": {
+              "accuracy": 0.329167,
+              "brier": 0.213457,
+              "ece": 0.448742,
+              "mean_confidence": 0.725237
+            },
+            "top_probability": {
+              "accuracy": 0.329167,
+              "brier": 0.213457,
+              "ece": 0.46816,
+              "mean_confidence": 0.780189
+            }
+          },
+          "task": "liquid-trace"
+        },
+        "held_out": {
+          "accuracy_after": 0.375,
+          "accuracy_before": 0.375,
+          "brier_after": 0.143742,
+          "brier_before": 0.201765,
+          "brier_improvement": {
+            "high": 0.085665,
+            "low": 0.028488,
+            "point": 0.058022,
+            "resamples": 2000
+          },
+          "ece_after": 0.333207,
+          "ece_before": 0.463327,
+          "mean_confidence_after": 0.556378,
+          "mean_confidence_before": 0.769893,
+          "n": 120,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 1.0,
+          "0.6": 1.0,
+          "0.7": 1.0
+        },
+        "recalibration": {
+          "brier_after": 0.14942,
+          "brier_before": 0.22515,
+          "held_out_brier_after": 0.143742,
+          "held_out_brier_before": 0.201765,
+          "kept": true,
+          "kind": "isotonic",
+          "reason": "isotonic improves the held-out Brier (0.2018 \u2192 0.1437)",
+          "scale": {
+            "kind": "isotonic",
+            "params": {
+              "knots": [
+                [
+                  0.5499688376350268,
+                  0.25609756097560976
+                ],
+                [
+                  0.8183478262394167,
+                  0.25609756097560976
+                ],
+                [
+                  0.8668441973029218,
+                  0.34210526315789475
+                ],
+                [
+                  0.9800981011832612,
+                  0.34210526315789475
+                ]
+              ]
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 24,
+              "tau": 0.4,
+              "tax": 0.3038
+            },
+            {
+              "act_rate": 0.7583,
+              "catch": 0.2112,
+              "caught_all": false,
+              "escalated": 58,
+              "tau": 0.5,
+              "tax": 0.3038
+            },
+            {
+              "act_rate": 0.6292,
+              "catch": 0.2609,
+              "caught_all": false,
+              "escalated": 89,
+              "tau": 0.6,
+              "tax": 0.5949
+            },
+            {
+              "act_rate": 0.275,
+              "catch": 0.7329,
+              "caught_all": false,
+              "escalated": 174,
+              "tau": 0.7,
+              "tax": 0.7089
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.7329,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.8,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.1,
+              "catch": 0.8509,
+              "caught_all": false,
+              "escalated": 216,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 240,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.8375,
+              "catch": 0.0932,
+              "caught_all": false,
+              "escalated": 39,
+              "tau": 0.5,
+              "tax": 0.3038
+            },
+            {
+              "act_rate": 0.8375,
+              "catch": 0.0932,
+              "caught_all": false,
+              "escalated": 39,
+              "tau": 0.6,
+              "tax": 0.3038
+            },
+            {
+              "act_rate": 0.525,
+              "catch": 0.3602,
+              "caught_all": false,
+              "escalated": 114,
+              "tau": 0.7,
+              "tax": 0.7089
+            },
+            {
+              "act_rate": 0.3083,
+              "catch": 0.6832,
+              "caught_all": false,
+              "escalated": 166,
+              "tau": 0.8,
+              "tax": 0.7089
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.7329,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.7329,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.5,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.8375,
+              "catch": 0.0932,
+              "caught_all": false,
+              "escalated": 39,
+              "tau": 0.6,
+              "tax": 0.3038
+            },
+            {
+              "act_rate": 0.8375,
+              "catch": 0.0932,
+              "caught_all": false,
+              "escalated": 39,
+              "tau": 0.7,
+              "tax": 0.3038
+            },
+            {
+              "act_rate": 0.4792,
+              "catch": 0.4286,
+              "caught_all": false,
+              "escalated": 125,
+              "tau": 0.8,
+              "tax": 0.7089
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.7329,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.1792,
+              "catch": 0.7329,
+              "caught_all": false,
+              "escalated": 197,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ]
+        }
+      },
+      "n": 240
+    },
+    "the tiles rig (judge-only arm)": {
+      "cell": {
+        "auc": 0.511468,
+        "auc_interval": {
+          "high": 0.583644,
+          "low": 0.436396,
+          "point": 0.511468,
+          "resamples": 2000
+        },
+        "best_tau": {
+          "entropy_normalised": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 428,
+            "tau": 0.6,
+            "tax": 1.0
+          },
+          "normalised_margin": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 428,
+            "tau": 0.6,
+            "tax": 1.0
+          },
+          "top_probability": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "caught_all": true,
+            "escalated": 428,
+            "tau": 0.7,
+            "tax": 1.0
+          }
+        },
+        "cell": {
+          "accuracy": 0.845794,
+          "backend": "d1",
+          "brier": 0.064663,
+          "curve": [
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.1,
+              "index": 0,
+              "low": 0.0,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.2,
+              "index": 1,
+              "low": 0.1,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.3,
+              "index": 2,
+              "low": 0.2,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.4,
+              "index": 3,
+              "low": 0.3,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.75,
+              "gap": 0.2865,
+              "high": 0.5,
+              "index": 4,
+              "low": 0.4,
+              "mean_confidence": 0.4635,
+              "n": 28
+            },
+            {
+              "accuracy": 0.86,
+              "gap": 0.3465,
+              "high": 0.6,
+              "index": 5,
+              "low": 0.5,
+              "mean_confidence": 0.5135,
+              "n": 200
+            },
+            {
+              "accuracy": 0.845,
+              "gap": 0.2133,
+              "high": 0.7,
+              "index": 6,
+              "low": 0.6,
+              "mean_confidence": 0.6317,
+              "n": 200
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.8,
+              "index": 7,
+              "low": 0.7,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 0.9,
+              "index": 8,
+              "low": 0.8,
+              "mean_confidence": 0.0,
+              "n": 0
+            },
+            {
+              "accuracy": 0.0,
+              "gap": 0.0,
+              "high": 1.0,
+              "index": 9,
+              "low": 0.9,
+              "mean_confidence": 0.0,
+              "n": 0
+            }
+          ],
+          "ece": 0.28035,
+          "mean_confidence": 0.565445,
+          "model": "d1-2B",
+          "n": 428,
+          "per_definition": {
+            "entropy_normalised": {
+              "accuracy": 0.845794,
+              "brier": 0.064663,
+              "ece": 0.377321,
+              "mean_confidence": 0.468473
+            },
+            "normalised_margin": {
+              "accuracy": 0.845794,
+              "brier": 0.064663,
+              "ece": 0.367261,
+              "mean_confidence": 0.478534
+            },
+            "top_probability": {
+              "accuracy": 0.845794,
+              "brier": 0.064663,
+              "ece": 0.28035,
+              "mean_confidence": 0.565445
+            }
+          },
+          "task": "tiles.shortlist"
+        },
+        "held_out": {
+          "accuracy_after": 0.82243,
+          "accuracy_before": 0.82243,
+          "brier_after": 0.049855,
+          "brier_before": 0.064688,
+          "brier_improvement": {
+            "high": 0.023821,
+            "low": 0.004131,
+            "point": 0.014833,
+            "resamples": 2000
+          },
+          "ece_after": 0.084138,
+          "ece_before": 0.253523,
+          "mean_confidence_after": 0.906568,
+          "mean_confidence_before": 0.568907,
+          "n": 214,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
+        },
+        "raw_floor_for_calibrated_tau": {
+          "0.5": 0.2749,
+          "0.6": 0.2891,
+          "0.7": 0.305
+        },
+        "recalibration": {
+          "brier_after": 0.042549,
+          "brier_before": 0.064638,
+          "held_out_brier_after": 0.049855,
+          "held_out_brier_before": 0.064688,
+          "kept": true,
+          "kind": "temperature",
+          "reason": "temperature improves the held-out Brier (0.0647 \u2192 0.0499)",
+          "scale": {
+            "kind": "temperature",
+            "params": {
+              "temperature": 0.172304
+            }
+          }
+        },
+        "sweeps": {
+          "entropy_normalised": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.4673,
+              "catch": 0.5303,
+              "caught_all": false,
+              "escalated": 228,
+              "tau": 0.4,
+              "tax": 0.5331
+            },
+            {
+              "act_rate": 0.4673,
+              "catch": 0.5303,
+              "caught_all": false,
+              "escalated": 228,
+              "tau": 0.5,
+              "tax": 0.5331
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.6,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.7,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.8,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "normalised_margin": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9346,
+              "catch": 0.1061,
+              "caught_all": false,
+              "escalated": 28,
+              "tau": 0.4,
+              "tax": 0.058
+            },
+            {
+              "act_rate": 0.4673,
+              "catch": 0.5303,
+              "caught_all": false,
+              "escalated": 228,
+              "tau": 0.5,
+              "tax": 0.5331
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.6,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.7,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.8,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ],
+          "top_probability": [
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.1,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.2,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.3,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 1.0,
+              "catch": 0.0,
+              "caught_all": false,
+              "escalated": 0,
+              "tau": 0.4,
+              "tax": 0.0
+            },
+            {
+              "act_rate": 0.9346,
+              "catch": 0.1061,
+              "caught_all": false,
+              "escalated": 28,
+              "tau": 0.5,
+              "tax": 0.058
+            },
+            {
+              "act_rate": 0.4673,
+              "catch": 0.5303,
+              "caught_all": false,
+              "escalated": 228,
+              "tau": 0.6,
+              "tax": 0.5331
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.7,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.8,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.9,
+              "tax": 1.0
+            },
+            {
+              "act_rate": 0.0,
+              "catch": 1.0,
+              "caught_all": true,
+              "escalated": 428,
+              "tau": 0.95,
+              "tax": 1.0
+            }
+          ]
+        }
+      },
+      "n": 428
+    }
+  },
+  "definitions": [
+    "top_probability",
+    "normalised_margin",
+    "entropy_normalised"
+  ],
+  "experiment": "judge calibration \u2014 one definition of confidence, and the Brier tracked against it",
+  "machine": {
+    "at": "2026-11-01T10:15:14Z",
+    "git": "3ed1f6f",
+    "gpu": "not used \u2014 the vectors are replayed from disk",
+    "numpy": "2.5.4",
+    "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4"
+  },
+  "tau_gate": {
+    "d1-2B": {
+      "both_order_protocol": {
+        "added_latency_p50_ms": 32.21,
+        "assumption": "the model treats the reversed prompt as the same question with the two named conditions swapped \u2014 its answer follows the option it chose, renamed \u2014 so the two orders disagree exactly when its answer was one of the two named conditions; on this trace the first-named one in 208 of its 240 steps and the second-named one in none",
+        "calls_per_judgment": 2,
+        "catch": 0.7193,
+        "escalated": 208,
+        "escalation_rate": 0.8667,
+        "latency_p50_ms_per_decision": 32.21,
+        "reversed_replies_recorded": false,
+        "rule": "ask the same question with the two named conditions in the other order; escalate when the two answers disagree",
+        "tax": 1.0
+      },
+      "gate_by_group": [
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.1,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.2,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.3,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.4,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.5,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.9024,
+            "catch": 0.0976,
+            "escalated": 8,
+            "tax": null
+          },
+          "tau": 0.6,
+          "truth_first": {
+            "act_rate": 0.8797,
+            "catch": 0.0,
+            "escalated": 19,
+            "tax": 0.1508
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.9024,
+            "catch": 0.0976,
+            "escalated": 8,
+            "tax": null
+          },
+          "tau": 0.7,
+          "truth_first": {
+            "act_rate": 0.4304,
+            "catch": 0.5,
+            "escalated": 90,
+            "tax": 0.5873
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.6707,
+            "catch": 0.3293,
+            "escalated": 27,
+            "tax": null
+          },
+          "tau": 0.8,
+          "truth_first": {
+            "act_rate": 0.1076,
+            "catch": 1.0,
+            "escalated": 141,
+            "tax": 0.8651
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.622,
+            "catch": 0.378,
+            "escalated": 31,
+            "tax": null
+          },
+          "tau": 0.9,
+          "truth_first": {
+            "act_rate": 0.0633,
+            "catch": 1.0,
+            "escalated": 148,
+            "tax": 0.9206
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.5244,
+            "catch": 0.4756,
+            "escalated": 39,
+            "tax": null
+          },
+          "tau": 0.95,
+          "truth_first": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "escalated": 158,
+            "tax": 1.0
+          }
+        }
+      ],
+      "groups": {
+        "decoy_first": {
+          "accuracy": 0.0,
+          "mean_confidence": 0.8735,
+          "mean_reported_confidence": 0.8735,
+          "n": 82,
+          "position_answers": 82
+        },
+        "truth_first": {
+          "accuracy": 0.7975,
+          "mean_confidence": 0.6826,
+          "mean_reported_confidence": 0.6826,
+          "n": 158,
+          "position_answers": 126
+        }
+      },
+      "model": "d1-2B",
+      "n": 240,
+      "position_answers": 208
+    },
+    "d1-3B": {
+      "both_order_protocol": {
+        "added_latency_p50_ms": 50.7,
+        "assumption": "the model treats the reversed prompt as the same question with the two named conditions swapped \u2014 its answer follows the option it chose, renamed \u2014 so the two orders disagree exactly when its answer was one of the two named conditions; on this trace the first-named one in 141 of its 240 steps and the second-named one in none",
+        "calls_per_judgment": 2,
+        "catch": 0.3851,
+        "escalated": 141,
+        "escalation_rate": 0.5875,
+        "latency_p50_ms_per_decision": 50.7,
+        "reversed_replies_recorded": false,
+        "rule": "ask the same question with the two named conditions in the other order; escalate when the two answers disagree",
+        "tax": 1.0
+      },
+      "gate_by_group": [
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.1,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.2,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.3,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.4,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.5,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.8171,
+            "catch": 0.1829,
+            "escalated": 15,
+            "tax": null
+          },
+          "tau": 0.6,
+          "truth_first": {
+            "act_rate": 0.8481,
+            "catch": 0.0,
+            "escalated": 24,
+            "tax": 0.3038
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.8171,
+            "catch": 0.1829,
+            "escalated": 15,
+            "tax": null
+          },
+          "tau": 0.7,
+          "truth_first": {
+            "act_rate": 0.8481,
+            "catch": 0.0,
+            "escalated": 24,
+            "tax": 0.3038
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.7195,
+            "catch": 0.2805,
+            "escalated": 23,
+            "tax": null
+          },
+          "tau": 0.8,
+          "truth_first": {
+            "act_rate": 0.3544,
+            "catch": 0.5823,
+            "escalated": 102,
+            "tax": 0.7089
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.5244,
+            "catch": 0.4756,
+            "escalated": 39,
+            "tax": null
+          },
+          "tau": 0.9,
+          "truth_first": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "escalated": 158,
+            "tax": 1.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.5244,
+            "catch": 0.4756,
+            "escalated": 39,
+            "tax": null
+          },
+          "tau": 0.95,
+          "truth_first": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "escalated": 158,
+            "tax": 1.0
+          }
+        }
+      ],
+      "groups": {
+        "decoy_first": {
+          "accuracy": 0.0,
+          "mean_confidence": 0.8491,
+          "mean_reported_confidence": 0.8113,
+          "n": 82,
+          "position_answers": 62
+        },
+        "truth_first": {
+          "accuracy": 0.5,
+          "mean_confidence": 0.7444,
+          "mean_reported_confidence": 0.6806,
+          "n": 158,
+          "position_answers": 79
+        }
+      },
+      "model": "d1-3B",
+      "n": 240,
+      "position_answers": 141
+    }
+  },
+  "taus": [
+    0.1,
+    0.2,
+    0.3,
+    0.4,
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    0.95
+  ],
+  "tiles_rig": {
+    "box_at_start": {
+      "gpu_temp_c": 40.843,
+      "load1": 4.51,
+      "mem_available_gb": 111.9,
+      "ram_used_mb": 25887,
+      "ts": 1793489692.8857727,
+      "vdd_gpu_w": 5.51
+    },
+    "coldstart": {
+      "box_at_end": {
+        "gpu_temp_c": 45.468,
+        "load1": 4.64,
+        "mem_available_gb": 111.8,
+        "ram_used_mb": 25991,
+        "ts": 1793489723.0100913,
+        "vdd_gpu_w": 9.84
+      },
+      "box_at_start": {
+        "gpu_temp_c": 40.843,
+        "load1": 4.51,
+        "mem_available_gb": 111.9,
+        "ram_used_mb": 25887,
+        "ts": 1793489692.8857727,
+        "vdd_gpu_w": 5.51
+      },
+      "cost": {
+        "gpu_minutes_total": 0.424,
+        "hosted_cents": 0.0
+      },
+      "judge_only_gates": {
+        "act": 400,
+        "surfaced": 200
+      },
+      "model": "d1-2B",
+      "n_plays": 600,
+      "server_peak_rss_mb": 774.7,
+      "tau_default": 0.5,
+      "win_rates": {
+        "bandit": 0.7867,
+        "judge_only": 0.69,
+        "judge_prior": 0.7967
+      }
+    },
+    "hysteresis_sweep": {
+      "bound_down_ticks": 2,
+      "bound_up_ticks": 3,
+      "chosen": {
+        "d1-2B": {
+          "config": {
+            "band": 0.15,
+            "dwell_down": 0,
+            "dwell_up": 2,
+            "tau": 0.7
+          },
+          "metrics": {
+            "act_latency_ticks": {
+              "max": 2,
+              "mean": 2.0
+            },
+            "act_rate": 0.5917,
+            "agreement_vs_shown": 0.6083,
+            "agreement_vs_truth": 0.525,
+            "catch_vs_shown": 0.5625,
+            "catch_vs_truth": 0.4298,
+            "drop_latency_ticks": {
+              "max": 0,
+              "mean": 0.0
+            },
+            "flickers": 1,
+            "tax_vs_shown": 0.3846,
+            "tax_vs_truth": 0.3889,
+            "transitions": 19
+          },
+          "raw_at_tau_star": {
+            "act_latency_ticks": {
+              "max": 0,
+              "mean": 0.0
+            },
+            "act_rate": 0.5917,
+            "agreement_vs_shown": 0.5917,
+            "agreement_vs_truth": 0.3167,
+            "catch_vs_shown": 0.5,
+            "catch_vs_truth": 0.2105,
+            "drop_latency_ticks": {
+              "max": 0,
+              "mean": 0.0
+            },
+            "flickers": 66,
+            "tax_vs_shown": 0.3942,
+            "tax_vs_truth": 0.5873,
+            "transitions": 97
+          },
+          "tau_star": 0.7
+        },
+        "d1-3B": {
+          "config": {
+            "band": 0.0,
+            "dwell_down": 2,
+            "dwell_up": 2,
+            "tau": 0.7
+          },
+          "metrics": {
+            "act_latency_ticks": {
+              "max": 2,
+              "mean": 2.0
+            },
+            "act_rate": 0.4833,
+            "agreement_vs_shown": 0.5375,
+            "agreement_vs_truth": 0.4958,
+            "catch_vs_shown": 0.5657,
+            "catch_vs_truth": 0.5093,
+            "drop_latency_ticks": {
+              "max": 2,
+              "mean": 2.0
+            },
+            "flickers": 0,
+            "tax_vs_shown": 0.4823,
+            "tax_vs_truth": 0.5316,
+            "transitions": 22
+          },
+          "raw_at_tau_star": {
+            "act_latency_ticks": {
+              "max": 0,
+              "mean": 0.0
+            },
+            "act_rate": 0.525,
+            "agreement_vs_shown": 0.5042,
+            "agreement_vs_truth": 0.3375,
+            "catch_vs_shown": 0.4747,
+            "catch_vs_truth": 0.3602,
+            "drop_latency_ticks": {
+              "max": 0,
+              "mean": 0.0
+            },
+            "flickers": 54,
+            "tax_vs_shown": 0.4752,
+            "tax_vs_truth": 0.7089,
+            "transitions": 88
+          },
+          "tau_star": 0.7
+        }
+      },
+      "models": [
+        "d1-2B",
+        "d1-3B"
+      ],
+      "window_ticks": 2
+    },
+    "n_play_of_another_tile": 172,
+    "n_plays": 600,
+    "n_scored": 428,
+    "n_surfaced": 200,
+    "win_rates": {
+      "bandit": 0.7867,
+      "judge_only": 0.69,
+      "judge_prior": 0.7967
+    }
+  }
+}

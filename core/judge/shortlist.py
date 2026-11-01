@@ -140,6 +140,9 @@ class JudgePriorChooser(ContextualBandit):
             self.task,
             self.state_renderer(context, eligible),
             (question,),
+            # the bucket names the decision, and the calibration fold joins
+            # the judgment to the play that answers it by that name
+            scope=bucket,
         )
         judgment = answer.judgment(self.question_id)
         if judgment.gate == "act":

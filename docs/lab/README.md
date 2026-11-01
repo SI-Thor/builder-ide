@@ -8,6 +8,17 @@ Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md
 
 ---
 
+## Round 7 — the decision models (2026-10-31)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-judge-calibration.md`](exp-judge-calibration.md) | the judge's confidence under one definition, tracked against the Brier score on 1,470 recorded judgments: the per-cell Brier and ECE, the escalation sweeps under all three definitions, the recalibrations fitted on one split and read on another | **one definition is necessary and not sufficient — two cells' confidence is anti-correlated with being right (AUC 0.28, 0.29), one carries no signal (0.51), and the recalibration works where the signal is (10 of 11 cells improve their held-out Brier)** |
+
+Scripts: [`judge-calibration-scripts/`](judge-calibration-scripts/) — the
+replay of the recorded vectors, and what it reads.
+
+---
+
 ## Round 6 — the core's doors (2026-10-31)
 
 | file | what it measured | verdict |

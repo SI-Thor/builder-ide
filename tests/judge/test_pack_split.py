@@ -61,7 +61,17 @@ class HashBackend(FakeBackend):
 
 class GatedHashBackend(HashBackend):
     """The hash backend with a confidence dial: even-position ids clear
-    τ, odd-position ids fall below it — the split pack still escalates."""
+    τ, odd-position ids fall below it — the split pack still escalates.
+
+    The dial is in the **distribution**, not in the backend's own
+    confidence number. The judge reads the confidence from the vector the
+    backend returned, under one definition for every backend
+    (``core.judge.calibration``); a number the backend reported beside
+    the vector rides on the log and is never the one the gate compares
+    with τ. So the dial has to be the shape of the answer itself: an
+    even-position id is answered with a 0.9 top probability, an
+    odd-position id with a 0.3 one.
+    """
 
     def __init__(self, tau_line: float = 0.5):
         super().__init__()
@@ -69,14 +79,21 @@ class GatedHashBackend(HashBackend):
 
     def ask(self, state, questions):
         reply = super().ask(state, questions)
+        distributions = {}
         confidences = {}
         for question in questions:
             odd = int(question.qid[1:]) % 2 == 1
-            confidences[question.qid] = 0.3 if odd else 0.9
+            top = 0.3 if odd else 0.9
+            keys = question.option_keys
+            rest = (1.0 - top) / (len(keys) - 1)
+            vector = {key: rest for key in keys}
+            vector[keys[0]] = top
+            distributions[question.qid] = vector
+            confidences[question.qid] = top
         return BackendReply(
             backend=self.name,
             model=self.model,
-            distributions=reply.distributions,
+            distributions=distributions,
             confidences=confidences,
             input_tokens=1,
             wall_seconds=reply.wall_seconds,
