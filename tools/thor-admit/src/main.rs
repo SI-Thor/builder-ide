@@ -24,6 +24,7 @@ use thor_admit::daemon::{Config, Daemon, DEFAULT_EMERGENCY_FLOOR, DEFAULT_FLOOR}
 use thor_admit::gpu::GpuProbe;
 use thor_admit::history::History;
 use thor_admit::ledger::Bucket;
+use thor_admit::prealloc;
 use thor_admit::protocol::PeakArg;
 use thor_admit::sizes::{human, Size};
 use thor_admit::tier::Tier;
@@ -50,6 +51,7 @@ fn main() -> ExitCode {
     match command.as_str() {
         "daemon" => run_daemon(&args[1..]),
         "run" => run_command(&args[1..]),
+        "exec" => run_exec(&args[1..]),
         "serve" => run_serve(&args[1..]),
         "phase" => run_phase(&args[1..]),
         "status" => run_status(&args[1..]),
@@ -80,6 +82,15 @@ thor-admit — a memory-admission daemon for the Thor
 
   thor-admit run --peak <size|auto> --label <name> [--tier <tier>] -- <command>
         Take a lease, run the command under it, and give the lease back.
+
+  thor-admit exec [--allow-preallocation] -- <command>
+        Start a command WITHOUT a lease, and refuse to start one that takes
+        the box's memory by surprise. JAX/XLA needs
+        XLA_PYTHON_CLIENT_PREALLOCATE=false (or the platform allocator, or a
+        memory fraction of at most 0.15); TensorFlow needs
+        TF_FORCE_GPU_ALLOW_GROWTH=true. On 2026-11-01 a JAX run outside
+        thor-admit held 94.5 GB of the box's unified memory in 20 seconds and
+        the box needed a power cycle.
 
   thor-admit serve <model> --port <n> [--peak <size|auto>] [--tier <tier>] -- <command>
         Run a shared model server under a lease, or return the port of one
@@ -165,6 +176,17 @@ Daemon options (all have defaults):
   --gpu-busy-threshold <n>  the GPU's busy share at which live work takes
                             the GPU from the presence queue (default 50)
   --no-gpu-preempt          never stop the presence work for the GPU
+  --no-guard                never stop work that is outside a lease
+                            (default: stop it when the box is in trouble)
+  --guard-min-rss <size>    the smallest unleased process the guard will
+                            touch (default 4G)
+  --guard-drop <size>       the fall in free memory that counts as a runaway
+                            (default 8G inside the window)
+  --guard-window-secs <n>   the window the fall is measured over (default 10)
+  --guard-interval-ms <n>  how often the guard looks at the box (default 2000)
+  --guard-protected-file <path>
+                            the operator's list of command lines the guard
+                            must never touch (default <state-dir>/protected.txt)
 "
     );
 }
@@ -353,6 +375,7 @@ fn run_daemon(args: &[String]) -> ExitCode {
         config.presence_file = config.state_dir.join("presence.json");
         config.ledger = config.state_dir.join("ledger.jsonl");
         config.flow_file = config.state_dir.join("flow.json");
+        config.guard_protected_file = config.state_dir.join("protected.txt");
     }
     if let Some(value) = options.get("history") {
         config.history = PathBuf::from(value);
@@ -384,6 +407,44 @@ fn run_daemon(args: &[String]) -> ExitCode {
     }
     if options.has("no-gpu-preempt") {
         config.gpu_preempt = false;
+    }
+    if options.has("no-guard") {
+        config.guard = false;
+    }
+    match options.size("guard-min-rss") {
+        Ok(Some(value)) => config.guard_min_rss = value,
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    match options.size("guard-drop") {
+        Ok(Some(value)) => config.guard_drop_bytes = value,
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    match options.number("guard-window-secs") {
+        Ok(Some(value)) => config.guard_window = Duration::from_secs(value),
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    match options.number("guard-interval-ms") {
+        Ok(Some(value)) => config.guard_interval = Duration::from_millis(value),
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    if let Some(value) = options.get("guard-protected-file") {
+        config.guard_protected_file = PathBuf::from(value);
     }
     match options.number("gpu-busy-threshold") {
         Ok(Some(value)) => config.gpu_busy_threshold = value.min(100) as u8,
@@ -666,6 +727,77 @@ fn run_command(args: &[String]) -> ExitCode {
         human(outcome.peak_rss_bytes)
     );
     ExitCode::from((outcome.code & 0xff) as u8)
+}
+
+/// `thor-admit exec -- <command>`
+///
+/// Start a command on the box **without** a lease, and refuse to start one
+/// that would take the box's memory by surprise.
+///
+/// The refusal is the point of the command. On a discrete GPU, JAX/XLA's
+/// preallocation takes a private pool on the card and the rest of the machine
+/// never notices. On the Thor the GPU's memory **is** the system's memory,
+/// so the same preallocation takes most of the machine's RAM before the
+/// program computes anything: on 2026-11-01 a MJX run held 94.5 GB in 20
+/// seconds, the desktop died, the Wi-Fi driver died, and the box needed a
+/// power cycle (see `docs/lab/incident-2026-11-01-jax-hang.md`).
+///
+/// So `exec` reads the command line, finds out whether it starts a framework
+/// that preallocates — by the module it runs, by the code it passes to `-c`,
+/// or by what the script on disk imports — and refuses unless the
+/// environment has told the framework not to preallocate:
+///
+/// * JAX/XLA — `XLA_PYTHON_CLIENT_PREALLOCATE=false`, or
+///   `XLA_PYTHON_CLIENT_ALLOCATOR=platform`, or
+///   `XLA_PYTHON_CLIENT_MEM_FRACTION` at most 0.15;
+/// * TensorFlow — `TF_FORCE_GPU_ALLOW_GROWTH=true`.
+///
+/// The work still runs **outside** a lease, which is what makes this the
+/// guard's counterpart: the daemon's guard (round 12) can stop a runaway
+/// after it has started, and this stops it before. `--allow-preallocation`
+/// overrides the refusal, loudly, for the case where the operator knows the
+/// run is safe.
+fn run_exec(args: &[String]) -> ExitCode {
+    let options = Options::parse(args);
+    if options.rest.is_empty() {
+        eprintln!("thor-admit: exec needs a command after --");
+        return ExitCode::from(2);
+    }
+    let command = &options.rest;
+
+    if let Some(detected) = prealloc::detect(command) {
+        let framework = prealloc::FRAMEWORKS
+            .iter()
+            .find(|framework| framework.name == detected.framework)
+            .expect("a detected framework is one of the known ones");
+        if options.has("allow-preallocation") {
+            eprintln!(
+                "thor-admit: starting a {} process with --allow-preallocation: its allocator \
+                 was not made safe on purpose ({}).",
+                detected.framework, detected.evidence
+            );
+        } else {
+            match prealloc::safety(framework, &|key: &str| std::env::var(key).ok()) {
+                Ok(reason) => {
+                    eprintln!(
+                        "thor-admit: {} is safe here ({reason}); starting it.",
+                        detected.framework
+                    );
+                }
+                Err(_) => {
+                    eprintln!("{}", prealloc::refusal(&detected, command));
+                    return ExitCode::from(2);
+                }
+            }
+        }
+    }
+
+    eprintln!(
+        "thor-admit: exec runs the command without a lease. The daemon's guard can stop it \
+         if the box runs short; heavy work belongs under one: thor-admit run --peak 16G --label \
+         <name> -- <command>"
+    );
+    client::exec_now(command)
 }
 
 /// `thor-admit serve <model> --port <n> [--peak S|auto] [--tier T] -- <command>`

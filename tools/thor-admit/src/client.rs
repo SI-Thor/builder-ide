@@ -628,6 +628,20 @@ fn wait_for(pid: libc::pid_t) -> std::io::Result<Outcome> {
     }
 }
 
+/// Run a command **in place of this process**, and never come back.
+///
+/// `thor-admit exec` uses it: the command takes the terminal's process, its
+/// signals and its exit code, so a program that reads the keyboard or traps
+/// `SIGINT` behaves exactly as it would without the wrapper. It never
+/// returns — the only way out is the command's own exit.
+pub fn exec_now(command: &[String]) -> ! {
+    if command.is_empty() {
+        eprintln!("thor-admit: exec needs a command");
+        unsafe { libc::_exit(2) };
+    }
+    exec_command(command)
+}
+
 /// `execvp` the command. Only called in the forked child; it never returns.
 fn exec_command(command: &[String]) -> ! {
     let program = std::ffi::CString::new(command[0].clone()).unwrap_or_default();

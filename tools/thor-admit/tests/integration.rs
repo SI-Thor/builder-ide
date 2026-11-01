@@ -3687,3 +3687,803 @@ fn run_leaves_the_lease_id_in_the_command_environment() {
         daemon.log()
     );
 }
+
+// ---------------------------------------------------------------------------
+// Round 12: the guard — work that is outside any lease.
+// ---------------------------------------------------------------------------
+
+/// Protect every process on the box except the ones the test names.
+///
+/// The guard's job is to stop the box's **biggest unleased process**, and on
+/// this box that is the model server (58.9 GiB, measured 2026-11-01) and
+/// whatever the other seats are running. A test's daemon must not touch any
+/// of it: the hog the test started is the only process it may stop.
+///
+/// So the test's daemon gets a protected list naming every pid on the box
+/// but its own. The list is read by the daemon when it changes, so the test
+/// can write it after the hog has started.
+///
+/// The file is written under a temp name and renamed into place. The daemon
+/// reads it without a lock, and a half-written file would leave a process
+/// unprotected for as long as it took to write the rest.
+fn protect_everything_but(path: &Path, mine: &[i32]) {
+    let mut lines = Vec::new();
+    for entry in std::fs::read_dir("/proc").unwrap().flatten() {
+        let name = entry.file_name();
+        let Some(text) = name.to_str() else {
+            continue;
+        };
+        let Ok(pid) = text.parse::<i32>() else {
+            continue;
+        };
+        if mine.contains(&pid) {
+            continue;
+        }
+        lines.push(format!("pid {pid}"));
+    }
+    let temporary = path.with_extension("tmp");
+    std::fs::write(&temporary, lines.join("\n")).unwrap();
+    std::fs::rename(&temporary, path).unwrap();
+}
+
+/// The protection list, kept current for as long as the test runs.
+///
+/// The list is a snapshot of the box at one moment, and the box keeps moving:
+/// a seat starts a process, and that process is not on the list. The guard
+/// would then be free to stop it — and the test's daemon is pointed at the
+/// **real** box, with a scripted memory number in place of the real one. So
+/// the list is refreshed until the test is over, and the only processes it
+/// leaves out are the test's own hogs.
+struct Protection {
+    /// The pids the guard may stop: the test's own hogs.
+    mine: Arc<Mutex<Vec<i32>>>,
+    stop: Arc<std::sync::atomic::AtomicBool>,
+    thread: Option<std::thread::JoinHandle<()>>,
+}
+
+impl Protection {
+    /// Start refreshing the list.
+    fn start(path: &Path) -> Protection {
+        let mine = Arc::new(Mutex::new(Vec::new()));
+        let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let thread = {
+            let path = path.to_path_buf();
+            let mine = Arc::clone(&mine);
+            let stop = Arc::clone(&stop);
+            std::thread::spawn(move || {
+                while !stop.load(std::sync::atomic::Ordering::Relaxed) {
+                    let mine = mine.lock().unwrap().clone();
+                    protect_everything_but(&path, &mine);
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+            })
+        };
+        Protection {
+            mine,
+            stop,
+            thread: Some(thread),
+        }
+    }
+
+    /// Let the guard stop this process.
+    fn spare(&self, pid: i32) {
+        self.mine.lock().unwrap().push(pid);
+    }
+
+    /// Stop refreshing.
+    fn finish(&mut self) {
+        self.stop
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+/// The guard's events in the daemon's log, in order.
+fn guard_events(daemon: &DaemonUnderTest, event: &str) -> Vec<Value> {
+    daemon
+        .log()
+        .lines()
+        .filter(|line| line.contains(&format!("\"{event}\"")))
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .collect()
+}
+
+/// Round 12: the guard stops work that is **outside** any lease.
+///
+/// The daemon's watchdog of §4 only knew about leases: when the box ran
+/// short it picked the largest *lease* and terminated it. A process that was
+/// never leased was invisible to that rule, and the 2026-11-01 incident was
+/// exactly that — a JAX run started outside `thor-admit` took 94.5 GB of
+/// the box's unified memory in 20 seconds, the desktop died, the Wi-Fi
+/// driver died, and the box needed a power cycle.
+///
+/// The memory **curve** is scripted here: the daemon, the hog, the
+/// `SIGTERM`, the grace and the timing are all real; only the number the
+/// daemon reads is written by the test. The real box cannot be taken to 8
+/// GiB free for a test, and the brief caps a test's memory at 60 GiB.
+#[test]
+fn the_guard_stops_an_unleased_hog_before_the_box_runs_out() {
+    let _serial = serial_gate();
+    let _lock = match Gate::take() {
+        Gate::Skip => {
+            eprintln!("skipping: another seat holds the box's heavy lock");
+            return;
+        }
+        Gate::Run(file) => file,
+    };
+    let total = 122 * GIB;
+    let floor = 8 * GIB;
+    let scratch = std::env::temp_dir().join(format!("thor-admit-guard-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&scratch);
+    std::fs::create_dir_all(&scratch).unwrap();
+    let meminfo = scratch.join("meminfo");
+    write_meminfo(&meminfo, total, 100 * GIB);
+    let protected = scratch.join("protected.txt");
+
+    // `--guard-drop 512G` switches the runaway trigger off, so this test is
+    // about the floor and about nothing else. The runaway trigger has its
+    // own test below.
+    let daemon = DaemonUnderTest::start_named(
+        "guard-on-a-scripted-curve",
+        &[
+            "--meminfo",
+            meminfo.to_str().unwrap(),
+            "--guard-protected-file",
+            protected.to_str().unwrap(),
+            "--guard-min-rss",
+            "1G",
+            "--guard-drop",
+            "512G",
+        ],
+    );
+    let oom_before = oom_kills();
+
+    // Everything on the box is protected, and the list is kept current.
+    let mut protection = Protection::start(&protected);
+
+    // The hog: a real process, holding real memory, and **no lease**. It is
+    // started the way the incident's run was started — from a shell, with
+    // nothing to say so.
+    let mut hog = Command::new(HOG)
+        .arg("--bytes")
+        .arg("4G")
+        .arg("--hold")
+        .arg("180")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("the hog starts");
+    let hog_pid = hog.id() as i32;
+    protection.spare(hog_pid);
+
+    // Wait until the hog is really holding memory, so the guard has
+    // something to find.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut hog_rss = 0;
+    while Instant::now() < deadline {
+        hog_rss = rss_of(hog_pid as u32);
+        if hog_rss >= GIB {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(
+        hog_rss >= GIB,
+        "the hog never grew to be a candidate ({hog_rss} bytes)"
+    );
+
+    // The curve: the box loses a lot of memory at once — the shape of the
+    // 13:22 OOM — and then keeps sliding down, a quarter of a gibibyte a
+    // step, through the emergency floor and on past the 2 GiB line.
+    let steps = Arc::new(Mutex::new(Vec::<(u64, Instant)>::new()));
+    let writer = {
+        let meminfo = meminfo.clone();
+        let steps = Arc::clone(&steps);
+        std::thread::spawn(move || {
+            write_meminfo(&meminfo, total, 12 * GIB);
+            steps.lock().unwrap().push((12 * GIB, Instant::now()));
+            let mut available = 12 * GIB;
+            while available > 0 {
+                std::thread::sleep(Duration::from_millis(50));
+                available = available.saturating_sub(256 * 1024 * 1024);
+                write_meminfo(&meminfo, total, available);
+                steps.lock().unwrap().push((available, Instant::now()));
+            }
+        })
+    };
+
+    // Wait for the guard to act.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut terminated: Option<Value> = None;
+    let mut observed_at = None;
+    while Instant::now() < deadline {
+        let events = guard_events(&daemon, "guard.terminated");
+        if let Some(event) = events.first() {
+            terminated = Some(event.clone());
+            observed_at = Some(Instant::now());
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let Some(event) = terminated else {
+        let _ = hog.kill();
+        let _ = hog.wait();
+        panic!(
+            "the guard did not terminate the unleased hog; the log was:\n{}",
+            daemon.log()
+        );
+    };
+
+    // It stopped the right process: the hog, and nothing else.
+    assert_eq!(
+        event["pid"].as_i64(),
+        Some(hog_pid as i64),
+        "the guard stopped the wrong process: {event}"
+    );
+    assert_eq!(
+        event["trigger"].as_str(),
+        Some("floor"),
+        "the guard's trigger should be the floor: {event}"
+    );
+    assert!(
+        event["total_bytes"].as_u64().unwrap_or(0) >= GIB,
+        "the guard should say how much the process held: {event}"
+    );
+    assert!(
+        event["command"]
+            .as_str()
+            .unwrap_or("")
+            .contains("thor-admit-hog"),
+        "the guard should say what it stopped: {event}"
+    );
+
+    // It acted at the floor, not deep in the danger zone: the daemon
+    // samples every 250 ms and the curve moves 256 MiB every 50 ms, so the
+    // number it reads can be a gibibyte or so below the floor. It must not
+    // be far below that, or the daemon would be acting late.
+    let available_at_stop = event["mem_available_bytes"].as_u64().unwrap_or(0);
+    assert!(
+        available_at_stop <= floor && floor - available_at_stop <= 2 * GIB,
+        "the guard acted at {} MiB free, which is not the {} MiB floor",
+        available_at_stop / (1024 * 1024),
+        floor / (1024 * 1024)
+    );
+
+    // The hog must actually die: a termination is not a stop. On this box a
+    // stopped process keeps every page it took, and the emergency gets
+    // worse while the daemon waits.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut died = false;
+    while Instant::now() < deadline {
+        if hog.try_wait().ok().flatten().is_some() {
+            died = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(
+        died,
+        "the unleased hog was terminated but never died; the log was:\n{}",
+        daemon.log()
+    );
+    assert_eq!(
+        oom_kills(),
+        oom_before,
+        "the kernel's OOM killer fired; the guard was too late"
+    );
+
+    // And the status says what happened, so an operator can see it without
+    // reading the log.
+    assert!(
+        wait_until(10, || {
+            daemon.status()["guard"]["last_pid"].as_i64() == Some(hog_pid as i64)
+        }),
+        "the status did not report the guard's action: {}",
+        daemon.status()
+    );
+
+    // Let the curve finish, so the test has shown the danger zone was
+    // really reached — after the stop, not before it.
+    let _ = writer.join();
+    let curve = steps.lock().unwrap().clone();
+    let lowest = curve.last().map(|(available, _)| *available).unwrap_or(0);
+    assert!(
+        lowest <= 2 * GIB,
+        "the curve only reached {} MiB free, so the danger zone was never reached",
+        lowest / (1024 * 1024)
+    );
+    let crossed = curve
+        .iter()
+        .find(|(available, _)| *available < floor)
+        .map(|(_, at)| *at);
+    let latency = match (crossed, observed_at) {
+        (Some(crossed), Some(observed)) => observed.saturating_duration_since(crossed),
+        _ => Duration::ZERO,
+    };
+    eprintln!(
+        "guard: the unleased hog was terminated with {} MiB free (the floor was {} MiB) and \
+         died; the curve went on down to {} MiB, the daemon acted within {} ms of the floor \
+         being crossed, and the kernel's OOM killer fired {} times",
+        available_at_stop / (1024 * 1024),
+        floor / (1024 * 1024),
+        lowest / (1024 * 1024),
+        latency.as_millis(),
+        oom_kills() - oom_before,
+    );
+
+    let _ = hog.kill();
+    let _ = hog.wait();
+    protection.finish();
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
+/// Round 12: the guard stops a runaway **above** the emergency floor.
+///
+/// This is the shape the 2026-11-01 incident had, and the floor test above
+/// does not cover it. The JAX run left **15 GB free** — above the 8 GiB
+/// emergency floor — and the desktop had already died. A guard that only
+/// answers the floor is too late for that: the box loses its desktop long
+/// before the kernel would have run out of memory.
+///
+/// So the guard has a second trigger: the box loses memory faster than the
+/// leases can explain it. Here the box stays at 20 GiB free — never near
+/// the floor — and an unleased hog takes 12 GiB in one go. The guard must
+/// stop it there and then.
+#[test]
+fn the_guard_stops_a_runaway_while_the_box_is_still_above_the_floor() {
+    let _serial = serial_gate();
+    let _lock = match Gate::take() {
+        Gate::Skip => {
+            eprintln!("skipping: another seat holds the box's heavy lock");
+            return;
+        }
+        Gate::Run(file) => file,
+    };
+    let total = 122 * GIB;
+    let floor = 8 * GIB;
+    let scratch = std::env::temp_dir().join(format!("thor-admit-guard-runaway-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&scratch);
+    std::fs::create_dir_all(&scratch).unwrap();
+    let meminfo = scratch.join("meminfo");
+    write_meminfo(&meminfo, total, 100 * GIB);
+    let protected = scratch.join("protected.txt");
+
+    // A short window and a fast clock, so the test does not take a minute:
+    // the guard has to see the hog grow inside its own window, and the
+    // window is what the run away is measured over.
+    let daemon = DaemonUnderTest::start_named(
+        "guard-on-a-runaway",
+        &[
+            "--meminfo",
+            meminfo.to_str().unwrap(),
+            "--guard-protected-file",
+            protected.to_str().unwrap(),
+            "--guard-min-rss",
+            "1G",
+            "--guard-interval-ms",
+            "500",
+            "--guard-window-secs",
+            "6",
+        ],
+    );
+    let mut protection = Protection::start(&protected);
+
+    // The hog, and no lease: the incident's shape exactly.
+    let mut hog = Command::new(HOG)
+        .arg("--bytes")
+        .arg("12G")
+        .arg("--hold")
+        .arg("180")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("the hog starts");
+    let hog_pid = hog.id() as i32;
+    protection.spare(hog_pid);
+
+    // Wait until the hog is really holding memory. The guard's window has
+    // to hold a look from *before* the hog grew, or the growth is not seen.
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let mut hog_rss = 0;
+    while Instant::now() < deadline {
+        hog_rss = rss_of(hog_pid as u32);
+        if hog_rss >= 12 * GIB {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(
+        hog_rss >= 12 * GIB,
+        "the hog never grew to 12 GiB ({hog_rss} bytes)"
+    );
+
+    // And now the box loses memory, with no lease to explain it — but it
+    // stays **above** the emergency floor. This is the incident's shape:
+    // 15 GB free, the desktop already gone.
+    write_meminfo(&meminfo, total, 20 * GIB);
+
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut terminated: Option<Value> = None;
+    while Instant::now() < deadline {
+        if let Some(event) = guard_events(&daemon, "guard.terminated").first() {
+            terminated = Some(event.clone());
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let Some(event) = terminated else {
+        let _ = hog.kill();
+        let _ = hog.wait();
+        panic!(
+            "the guard did not stop the runaway; the log was:\n{}",
+            daemon.log()
+        );
+    };
+
+    assert_eq!(
+        event["pid"].as_i64(),
+        Some(hog_pid as i64),
+        "the guard stopped the wrong process: {event}"
+    );
+    assert_eq!(
+        event["trigger"].as_str(),
+        Some("runaway"),
+        "the guard's trigger should be the runaway, not the floor: {event}"
+    );
+    // The whole point: the box was **not** below the floor.
+    let available_at_stop = event["mem_available_bytes"].as_u64().unwrap_or(0);
+    assert!(
+        available_at_stop > floor,
+        "the guard acted at {} MiB free, which is not above the {} MiB floor: {event}",
+        available_at_stop / (1024 * 1024),
+        floor / (1024 * 1024)
+    );
+
+    // And the hog dies, so the memory comes back.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut died = false;
+    while Instant::now() < deadline {
+        if hog.try_wait().ok().flatten().is_some() {
+            died = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(
+        died,
+        "the runaway was terminated but never died; the log was:\n{}",
+        daemon.log()
+    );
+
+    eprintln!(
+        "guard runaway: the unleased hog was stopped with {} MiB free — {} MiB above the {} MiB \
+         emergency floor — and died",
+        available_at_stop / (1024 * 1024),
+        (available_at_stop - floor) / (1024 * 1024),
+        floor / (1024 * 1024),
+    );
+
+    let _ = hog.kill();
+    let _ = hog.wait();
+    protection.finish();
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
+/// The guard's allowlist: the box's furniture, and the operator's own list.
+///
+/// Three processes, one daemon, one curve below the floor:
+///
+/// * an ordinary unleased hog — the guard must stop it;
+/// * a hog whose program is called `gnome-shell` — the guard must not touch
+///   it, because the desktop is never touched;
+/// * a hog the operator protected by name — the guard must not touch it
+///   either.
+///
+/// The third is the escape hatch an operator needs for the model server: it
+/// is `python -m glide.server`, and every other python on the box is
+/// `python` too, so the protection has to be matched against the **command
+/// line**.
+#[test]
+fn the_guard_leaves_the_protected_processes_alone() {
+    let _serial = serial_gate();
+    let _lock = match Gate::take() {
+        Gate::Skip => {
+            eprintln!("skipping: another seat holds the box's heavy lock");
+            return;
+        }
+        Gate::Run(file) => file,
+    };
+    let total = 122 * GIB;
+    let floor = 8 * GIB;
+    let scratch = std::env::temp_dir().join(format!("thor-admit-guard-list-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&scratch);
+    std::fs::create_dir_all(&scratch).unwrap();
+    let meminfo = scratch.join("meminfo");
+    write_meminfo(&meminfo, total, 100 * GIB);
+    let protected = scratch.join("protected.txt");
+
+    // A copy of the hog under the desktop's name: the guard must recognise
+    // the name and leave it alone.
+    let desktop = scratch.join("gnome-shell");
+    std::fs::copy(HOG, &desktop).unwrap();
+
+    // And a copy under the model server's name: the operator's list is
+    // matched against the command line, and this is the case that needs it
+    // — the model server and the incident's runaway are both `python`.
+    let server = scratch.join("the-model-server");
+    std::fs::copy(HOG, &server).unwrap();
+
+    let daemon = DaemonUnderTest::start_named(
+        "guard-and-its-allowlist",
+        &[
+            "--meminfo",
+            meminfo.to_str().unwrap(),
+            "--guard-protected-file",
+            protected.to_str().unwrap(),
+            "--guard-min-rss",
+            "1G",
+            "--guard-drop",
+            "512G",
+        ],
+    );
+    let mut protection = Protection::start(&protected);
+
+    let mut hog = Command::new(HOG)
+        .arg("--bytes")
+        .arg("4G")
+        .arg("--hold")
+        .arg("180")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("the hog starts");
+    let hog_pid = hog.id() as i32;
+    protection.spare(hog_pid);
+
+    let mut desktop_hog = Command::new(&desktop)
+        .arg("--bytes")
+        .arg("2G")
+        .arg("--hold")
+        .arg("180")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("the desktop-named hog starts");
+    let desktop_pid = desktop_hog.id() as i32;
+
+    let mut listed = Command::new(&server)
+        .arg("--bytes")
+        .arg("2G")
+        .arg("--hold")
+        .arg("180")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("the listed hog starts");
+    let listed_pid = listed.id() as i32;
+
+    // The operator's list: everything on the box but the hog, and the one
+    // process the operator means to spare by name.
+    protect_everything_but(&protected, &[hog_pid, desktop_pid, listed_pid]);
+    let mut lines = std::fs::read_to_string(&protected).unwrap_or_default();
+    lines.push_str("\n# the operator's own: the model server\n*the-model-server*\n");
+    std::fs::write(&protected, lines).unwrap();
+
+    // Wait until the hogs are holding memory.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while Instant::now() < deadline {
+        if rss_of(hog_pid as u32) >= GIB && rss_of(desktop_pid as u32) >= GIB {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+
+    // The curve, straight past the floor.
+    let writer = {
+        let meminfo = meminfo.clone();
+        std::thread::spawn(move || {
+            write_meminfo(&meminfo, total, 4 * GIB);
+            std::thread::sleep(Duration::from_millis(200));
+            write_meminfo(&meminfo, total, 2 * GIB);
+        })
+    };
+
+    // The guard must stop the ordinary hog.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut stopped: Option<Value> = None;
+    while Instant::now() < deadline {
+        if let Some(event) = guard_events(&daemon, "guard.terminated").first() {
+            stopped = Some(event.clone());
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let Some(event) = stopped else {
+        panic!(
+            "the guard did not terminate the hog; the log was:\n{}",
+            daemon.log()
+        );
+    };
+    assert_eq!(
+        event["pid"].as_i64(),
+        Some(hog_pid as i64),
+        "the guard stopped the wrong process: {event}"
+    );
+    let available_at_stop = event["mem_available_bytes"].as_u64().unwrap_or(0);
+    assert!(
+        available_at_stop <= floor && floor - available_at_stop <= 2 * GIB,
+        "the guard acted at {} MiB free, which is not the {} MiB floor",
+        available_at_stop / (1024 * 1024),
+        floor / (1024 * 1024)
+    );
+
+    // And the two protected processes must still be there.
+    std::thread::sleep(Duration::from_secs(4));
+    assert!(
+        desktop_hog.try_wait().ok().flatten().is_none(),
+        "the guard stopped the process named gnome-shell; the log was:\n{}",
+        daemon.log()
+    );
+    assert!(
+        listed.try_wait().ok().flatten().is_none(),
+        "the guard stopped a process on the operator's list; the log was:\n{}",
+        daemon.log()
+    );
+
+    let _ = writer.join();
+    eprintln!(
+        "guard allowlist: the ordinary hog was stopped, and the desktop-named process and the \
+         operator's own were left alone"
+    );
+
+    let _ = hog.kill();
+    let _ = hog.wait();
+    let _ = desktop_hog.kill();
+    let _ = desktop_hog.wait();
+    let _ = listed.kill();
+    let _ = listed.wait();
+    protection.finish();
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
+/// Round 12, client half: `thor-admit exec` refuses to start a framework
+/// that would take the box's memory by surprise.
+///
+/// The refusal has to happen **before** the program runs — that is the whole
+/// point. The 2026-11-01 run reached 94.5 GB in 20 seconds; by the time a
+/// watchdog sees that, the desktop is already gone.
+///
+/// The test does not need JAX to be installed: it needs a program that
+/// *looks* like a JAX program to the reader, and one that runs. So the test
+/// puts a stub `jax` module on the child's `PYTHONPATH` — the import works,
+/// the program's own output is the test's own.
+#[test]
+fn the_exec_refuses_a_framework_that_would_take_the_box() {
+    let _serial = serial_gate();
+
+    let directory = std::env::temp_dir().join(format!("thor-admit-exec-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&directory);
+    std::fs::create_dir_all(&directory).unwrap();
+    // A stub `jax`: importable, harmless, and enough for the program's own
+    // output to be the test's output.
+    std::fs::write(directory.join("jax.py"), "__version__ = 'stub'\n").unwrap();
+    let pythonpath = directory.to_str().unwrap().to_string();
+
+    // Caught by the code it is given.
+    let refused = Command::new(BIN)
+        .arg("exec")
+        .arg("--")
+        .arg("python3")
+        .arg("-c")
+        .arg("import jax; print('this must never run')")
+        .env("PYTHONPATH", &pythonpath)
+        .output()
+        .expect("the exec runs");
+    assert_eq!(
+        refused.status.code(),
+        Some(2),
+        "the refusal must be a failure: {}",
+        String::from_utf8_lossy(&refused.stderr)
+    );
+    let message = String::from_utf8_lossy(&refused.stderr);
+    assert!(
+        message.contains("XLA_PYTHON_CLIENT_PREALLOCATE"),
+        "the refusal must say what would make it safe: {message}"
+    );
+    assert!(
+        !String::from_utf8_lossy(&refused.stdout).contains("this must never run"),
+        "the program ran anyway"
+    );
+
+    // Caught by the script on disk: the incident's run was
+    // `train_spike.py --backend mjx --nworld 256`, and the file's name says
+    // nothing — the import does.
+    let script = directory.join("train_spike.py");
+    std::fs::write(
+        &script,
+        "import jax\nimport jax.numpy as jnp\nprint('this must never run')\n",
+    )
+    .unwrap();
+    let refused = Command::new(BIN)
+        .arg("exec")
+        .arg("--")
+        .arg("python3")
+        .arg(script.to_str().unwrap())
+        .env("PYTHONPATH", &pythonpath)
+        .output()
+        .expect("the exec runs");
+    assert_eq!(
+        refused.status.code(),
+        Some(2),
+        "a script that imports jax must be refused: {}",
+        String::from_utf8_lossy(&refused.stderr)
+    );
+
+    // Safe: the allocator has been told not to take the box.
+    let ran = Command::new(BIN)
+        .arg("exec")
+        .arg("--")
+        .arg("python3")
+        .arg("-c")
+        .arg("import jax; print('ran')")
+        .env("PYTHONPATH", &pythonpath)
+        .env("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
+        .output()
+        .expect("the exec runs");
+    assert!(
+        ran.status.success(),
+        "a safe allocator must let the program run: {}",
+        String::from_utf8_lossy(&ran.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&ran.stdout).contains("ran"),
+        "the program did not run: {}",
+        String::from_utf8_lossy(&ran.stdout)
+    );
+
+    // A command that has nothing to do with a framework is not touched.
+    let ran = Command::new(BIN)
+        .arg("exec")
+        .arg("--")
+        .arg("echo")
+        .arg("plain")
+        .output()
+        .expect("the exec runs");
+    assert!(
+        ran.status.success(),
+        "a plain command must run: {}",
+        String::from_utf8_lossy(&ran.stderr)
+    );
+    assert!(String::from_utf8_lossy(&ran.stdout).contains("plain"));
+
+    // And the operator's override says so, loudly.
+    let ran = Command::new(BIN)
+        .arg("exec")
+        .arg("--allow-preallocation")
+        .arg("--")
+        .arg("python3")
+        .arg("-c")
+        .arg("import jax; print('ran anyway')")
+        .env("PYTHONPATH", &pythonpath)
+        .output()
+        .expect("the exec runs");
+    assert!(
+        ran.status.success(),
+        "the override must let the program run: {}",
+        String::from_utf8_lossy(&ran.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&ran.stderr).contains("--allow-preallocation"),
+        "the override must say that it was used: {}",
+        String::from_utf8_lossy(&ran.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&ran.stdout).contains("ran anyway"),
+        "the program did not run: {}",
+        String::from_utf8_lossy(&ran.stdout)
+    );
+
+    let _ = std::fs::remove_dir_all(&directory);
+}
