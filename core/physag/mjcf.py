@@ -101,9 +101,17 @@ class BuiltProp:
     #: and an open one does not, so the volume ratio below is only a
     #: statement about the collider when this is true.
     mesh_closed: bool = True
+    #: Whether the mesh is a **surface** rather than a solid: its own
+    #: volume is negligible beside the collider's, so everything the
+    #: collider covers that is far from the material is a cavity.
+    mesh_is_surface: bool = False
     #: The volume of the mesh's own convex hull: the space the prop
     #: occupies, whatever shape its surface is.
     mesh_hull_volume_m3: float = 0.0
+    #: How far the collider's own surface strays from the material it
+    #: stands for: the mirror of the deviation, and the test that says
+    #: whether the collider bulges away from the prop.
+    collider_stray_m: float = 0.0
     #: The same hollow the collider fills in, as a share of the part's own
     #: extent. The share is what the guard is about: a collider that
     #: swallows half the prop is no longer standing in for it, while a
@@ -179,6 +187,7 @@ class BuiltProp:
             "coverage_deviation_m": round(self.coverage_deviation_m, 6),
             "collider_concavity_m": round(self.collider_concavity_m, 6),
             "collider_concavity_ratio": round(self.collider_concavity_ratio, 6),
+            "collider_stray_m": round(self.collider_stray_m, 6),
             "root_body": self.root_body,
             "free_base": self.free_base,
             "anchor_m": None if self.anchor_m is None else [round(float(v), 6) for v in self.anchor_m],
@@ -511,6 +520,7 @@ def build_mjcf(
     # the strip between the cut and the clearance.
     deviation = 0.0
     concavity = 0.0
+    stray = 0.0
     #: The hollow the collider fills in, as a share of the part's own
     #: extent. The share is what the guard is about: a collider that
     #: swallows half the prop is no longer standing in for it, while a
@@ -520,6 +530,7 @@ def build_mjcf(
     for name, decomp in decompositions.items():
         deviation = max(deviation, decomp.deviation_m)
         concavity = max(concavity, decomp.concavity_m)
+        stray = max(stray, decomp.stray_m)
         part = segmentation.pieces.get(name)
         if part is not None and not part.part.is_empty:
             extent = float(np.linalg.norm(part.part.bbox_size))
@@ -555,6 +566,41 @@ def build_mjcf(
         hull = convex_hull(segmentation.mesh.vertices)
         hull_volume = float(hull.volume)
 
+    # Which measure says whether the collider is inflated.
+    #
+    # The volume ratio — the collider's volume over the mesh's — is the
+    # guard's own test, and it only works when the mesh's surface is
+    # closed: the divergence theorem measures the space a closed surface
+    # encloses, and an open shell has no volume for it to measure.
+    #
+    # But a *generated* prop is not a closed solid either: it is a
+    # surface, with no thickness, so even a closed one has almost no
+    # material volume to compare the collider's against — a collider is
+    # a solid and the mesh is a skin, and the ratio between them says
+    # nothing about inflation.
+    #
+    # So there are two cases and the mesh tells us which:
+    #
+    # * a **closed solid** — the mesh encloses a volume and the collider
+    #   is compared with it. The ratio is the test.
+    # * a **surface** — the mesh's own volume is negligible beside the
+    #   collider's, so everything the collider covers that is far from
+    #   the material is a cavity the collider filled in. The depth of
+    #   that cavity, as a share of the part's extent, is the test.
+    #
+    # A mesh that is neither — open, and with a material volume that is
+    # not negligible — has no volume test, and the record says so.
+    mesh_volume = volume_of(segmentation.mesh)
+    # A **surface**: the collider fills only a small share of the space the
+    # prop occupies, so the prop is a skin and the volume ratio — which
+    # compares a solid with a solid — is not a test that means anything.
+    # It is recorded, and the stray distance carries the guard.
+    surface_mesh = (
+        total_collider_volume > 0.0
+        and hull_volume > 0.0
+        and total_collider_volume <= 0.25 * hull_volume
+    )
+
     return BuiltProp(
         spec=spec,
         xml=xml,
@@ -565,8 +611,9 @@ def build_mjcf(
         action_joint=action_joint,
         total_mass_kg=total_mass,
         collider_volume_m3=total_collider_volume,
-        mesh_volume_m3=volume_of(segmentation.mesh),
+        mesh_volume_m3=mesh_volume,
         mesh_closed=mesh_closed,
+        mesh_is_surface=surface_mesh,
         mesh_hull_volume_m3=hull_volume,
         root_body=f"body_{root_name}",
         free_base=free_base,
@@ -574,6 +621,7 @@ def build_mjcf(
         coverage_deviation_m=coverage,
         collider_concavity_m=concavity,
         collider_concavity_ratio=concavity_ratio,
+        collider_stray_m=stray,
         anchor_m=offsets.get(root_name),
         notes=tuple(notes),
     )

@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import math
 import os
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -483,23 +484,29 @@ def check_prop(
     #
     # The guard's test is about *inflation*: a hull that bulges over a
     # hollow makes every penetration number a statement about the hull.
-    # The companion test is the distance from the material to the
-    # collider, held against the prop's own size, because a collider
-    # that is blind to a hollow is wrong in the same place it is thin.
+    # There are three ways to say that, and the mesh says which apply:
     #
-    # The volume ratio is the third test, and it only works when the
-    # mesh's surface is closed: an open shell has no volume for the
-    # collider to be compared with. When it is closed, the ratio is
-    # checked against the guard's one per cent, and it is reported either
-    # way. When it is not, the hollow the collider fills in — measured
-    # from the inside of the collider — is the test that stands in for it,
-    # because that is the thing the ratio was measuring in the first
-    # place.
+    # * the **volume ratio** — the collider's volume over the mesh's —
+    #   is the guard's own test, and it needs a closed surface: the
+    #   divergence theorem measures the space a closed surface encloses,
+    #   and an open shell has no volume for it to measure.
+    # * the **stray distance** — how far the collider's own surface is
+    #   from the material it stands for — is the mirror of the deviation,
+    #   and it says the same thing for a solid prop and for a shell: a
+    #   collider that bulges away from the prop is a collider whose
+    #   contacts are not the prop's contacts.
+    # * the **cavity** — how deep inside the collider the material's
+    #   absence reaches — is reported for every prop.
+    #
+    # The deviation and the stray distance are the decisive ones: they
+    # work on every mesh, and they are the two directions of the same
+    # Hausdorff distance. The volume ratio is checked when it can be.
     inflation = built.inflation
     guard_inflation_ok = inflation is not None and inflation <= 0.01
+    stray_ok = built.collider_stray_m <= 0.02 * max(diag, 1e-6)
     collider_valid = (
         built.collider_deviation_m <= 0.02 * max(diag, 1e-6)
-        and built.collider_concavity_ratio <= 0.5
+        and stray_ok
         and (inflation is None or inflation <= 0.15)
     )
     valid = rest.settled and collider_valid and not exploded
@@ -510,8 +517,8 @@ def check_prop(
             f"the collider is {built.collider_volume_m3:.4f} m³ against the mesh's "
             f"{built.mesh_volume_m3:.4f} m³, "
             f"{built.collider_deviation_m * 1000:.1f} mm from the material it "
-            f"stands for and {built.collider_concavity_m * 1000:.1f} mm into it "
-            f"({built.collider_concavity_ratio:.0%} of the part), "
+            f"stands for and {built.collider_stray_m * 1000:.1f} mm from it the "
+            f"other way, "
             "so the score is void"
         )
 
@@ -554,14 +561,15 @@ def check_prop(
         "inflation": None if built.inflation is None else round(built.inflation, 6),
         "shrinkage": None if built.shrinkage is None else round(built.shrinkage, 6),
         "mesh_closed": built.mesh_closed,
+        "mesh_is_surface": built.mesh_is_surface,
         "mesh_hull_volume_m3": round(built.mesh_hull_volume_m3, 9),
         "volume_ratio_evaluable": built.volume_ratio is not None,
         "volume_ratio_note": (
             ""
-            if built.mesh_closed
-            else "the mesh's surface is not closed, so it has no volume to "
-            "compare the collider's against; the hollow the collider fills "
-            "in is measured instead"
+            if built.volume_ratio is not None
+            else "the mesh's surface is not closed, so the divergence theorem "
+            "gives it no volume to compare the collider's against; the stray "
+            "distance and the deviation carry the guard instead"
         ),
         "deviation_m": round(built.collider_deviation_m, 6),
         "deviation_rel_diag": round(
@@ -575,6 +583,8 @@ def check_prop(
         "guard_inflation_within_1pct": guard_inflation_ok,
         "concavity_m": round(built.collider_concavity_m, 6),
         "concavity_ratio": round(built.collider_concavity_ratio, 6),
+        "stray_m": round(built.collider_stray_m, 6),
+        "stray_rel_diag": round(built.collider_stray_m / max(diag, 1e-6), 6),
         "mesh_volume_m3": round(built.mesh_volume_m3, 9),
         "collider_volume_m3": round(built.collider_volume_m3, 9),
         "epsilon_m": round(epsilon, 8),
@@ -738,28 +748,63 @@ def _render(
     path: str | Path,
     segmentation: Segmentation,
 ) -> Path:
-    """Write a render of the final state."""
-    import os
+    """Write a render of the final state.
 
-    os.environ.setdefault("MUJOCO_GL", "egl")
+    This is the picture the planner is shown when it is asked to repair a
+    prop, so it has to be a picture of the prop: the camera looks at the
+    middle of the mesh's own box, from the corner the prop's shape reads
+    best from.
+
+    The render happens in a **subprocess**. MuJoCo's EGL context on this
+    box does not survive being torn down and made again in the same
+    process, and the next render aborts the process rather than raising —
+    an abort that would take the whole run with it. The child loads the
+    model, puts the state back, renders and writes the picture; the parent
+    carries on whether the child succeeded or not.
+    """
+    import subprocess
+    import tempfile
+
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    height = width = 480
-    renderer = mujoco.Renderer(model, height, width)
-    camera = mujoco.MjvCamera()
-    mujoco.mjv_initCamera(camera)
+
     size = segmentation.mesh.bbox_size
     centre = segmentation.mesh.bbox_min + size / 2.0
-    camera.lookat[:] = centre
-    camera.distance = 2.4 * float(np.linalg.norm(size))
-    camera.azimuth = 135.0
-    camera.elevation = -18.0
-    renderer.update_scene(data, camera=camera)
-    image = renderer.render()
-    try:
-        from PIL import Image
+    distance = 2.4 * float(np.linalg.norm(size))
 
-        Image.fromarray(image).save(path)
-    except Exception:  # pragma: no cover - a PNG is a nicety, not the result
-        path.with_suffix(".raw").write_bytes(image.tobytes())
+    with tempfile.TemporaryDirectory() as workdir:
+        work = Path(workdir)
+        model_path = work / "model.xml"
+        state_path = work / "state.npz"
+        model_path.write_text(model.xml)
+        np.savez(
+            state_path,
+            qpos=np.asarray(data.qpos).copy(),
+            qvel=np.asarray(data.qvel).copy(),
+            time=np.asarray([data.time]),
+        )
+        command = [
+            sys.executable,
+            "-m",
+            "core.physag.render",
+            str(model_path),
+            str(state_path),
+            str(path),
+            f"{centre[0]:.8g}",
+            f"{centre[1]:.8g}",
+            f"{centre[2]:.8g}",
+            f"{distance:.8g}",
+        ]
+        env = dict(os.environ)
+        env["PYTHONPATH"] = os.pathsep.join(
+            [str(Path(__file__).resolve().parents[2]), env.get("PYTHONPATH", "")]
+        )
+        proc = subprocess.run(
+            command, capture_output=True, text=True, timeout=180, env=env
+        )
+    if proc.returncode != 0:
+        raise RuntimeError(
+            f"the render failed (exit {proc.returncode}): "
+            f"{(proc.stderr.strip() or proc.stdout.strip())[-300:]}"
+        )
     return path

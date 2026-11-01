@@ -195,6 +195,8 @@ def _clip_to_part(
         deviation_m=deviation,
         deviation_p95_m=p95,
         concavity_m=decomp.concavity_m,
+        stray_m=decomp.stray_m,
+        stray_p95_m=decomp.stray_p95_m,
         overlaps=decomp.overlaps,
         notes=decomp.notes,
     )

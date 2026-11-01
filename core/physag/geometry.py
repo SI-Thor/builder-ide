@@ -43,6 +43,7 @@ __all__ = [
     "MeshPart",
     "apply_transform",
     "convex_hull",
+    "distance_to_surface",
     "hull_volume",
     "is_closed",
     "largest_component",
@@ -306,6 +307,108 @@ def subsample_points(points: np.ndarray, limit: int = 2000) -> np.ndarray:
         return points
     stride = max(1, points.shape[0] // limit)
     return points[::stride]
+
+
+def distance_to_surface(points: np.ndarray, mesh: MeshPart, neighbours: int = 8) -> np.ndarray:
+    """How far each point is from the mesh's surface.
+
+    The distance to the nearest *vertex* is not the distance to the
+    surface: the middle of a large flat panel is far from the panel's
+    corners and a few millimetres from the panel itself. So the nearest
+    triangles are found through a tree over their centres, and the exact
+    point-to-triangle distance is computed for those.
+
+    The tree is over the triangles' centres, so the search is approximate
+    in *which* triangles are considered and exact in how far away they
+    are. With a handful of neighbours the error is far below the
+    millimetre the guards are measured in.
+    """
+    if points.shape[0] == 0:
+        return np.zeros(0)
+    if mesh.triangles.shape[0] == 0:
+        return np.full(points.shape[0], np.inf)
+
+    from scipy.spatial import cKDTree
+
+    vertices = mesh.vertices
+    triangles = mesh.triangles
+    a = vertices[triangles[:, 0]]
+    b = vertices[triangles[:, 1]]
+    c = vertices[triangles[:, 2]]
+    centres = (a + b + c) / 3.0
+    tree = cKDTree(centres)
+
+    k = min(int(neighbours), centres.shape[0])
+    _distances, indices = tree.query(points, k=k)
+
+    if k == 1:
+        indices = indices.reshape(-1, 1)
+
+    p = points[:, None, :]
+    ta = a[indices]
+    tb = b[indices]
+    tc = c[indices]
+
+    ab = tb - ta
+    ac = tc - ta
+    ap = p - ta
+
+    d1 = np.einsum("pkc,pkc->pk", ab, ap)
+    d2 = np.einsum("pkc,pkc->pk", ac, ap)
+    bp = p - tb
+    d3 = np.einsum("pkc,pkc->pk", ab, bp)
+    d4 = np.einsum("pkc,pkc->pk", ac, bp)
+    cp = p - tc
+    d5 = np.einsum("pkc,pkc->pk", ab, cp)
+    d6 = np.einsum("pkc,pkc->pk", ac, cp)
+
+    va = d3 * d6 - d5 * d4
+    vb = d5 * d2 - d1 * d6
+    vc = d1 * d4 - d3 * d2
+
+    closest = np.empty((points.shape[0], k, 3), dtype=points.dtype)
+    done = np.zeros((points.shape[0], k), dtype=bool)
+
+    # The vertex regions.
+    region_a = (d1 <= 0) & (d2 <= 0)
+    region_b = (d3 >= 0) & (d4 <= d3)
+    region_c = (d6 >= 0) & (d5 <= d6)
+    # The edge regions.
+    edge_ab = (vc <= 0) & (d1 >= 0) & (d3 <= 0)
+    edge_ac = (vb <= 0) & (d2 >= 0) & (d6 <= 0)
+    edge_bc = (va <= 0) & ((d4 - d3) >= 0) & ((d5 - d6) >= 0)
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        t_ab = np.where(d1 - d3 != 0, d1 / (d1 - d3), 0.0)
+        t_ac = np.where(d2 - d6 != 0, d2 / (d2 - d6), 0.0)
+        denom = (d4 - d3) + (d5 - d6)
+        t_bc = np.where(denom != 0, (d4 - d3) / np.where(denom != 0, denom, 1.0), 0.0)
+
+    candidates = {
+        "a": (region_a, ta),
+        "b": (region_b, tb),
+        "c": (region_c, tc),
+        "ab": (edge_ab, ta + t_ab[:, :, None] * ab),
+        "ac": (edge_ac, ta + t_ac[:, :, None] * ac),
+        "bc": (edge_bc, tb + t_bc[:, :, None] * (tc - tb)),
+    }
+
+    for mask, value in candidates.values():
+        take = mask & ~done
+        if take.any():
+            closest[take] = value[take]
+            done |= take
+
+    # The interior of the triangle.
+    interior = ~done
+    if interior.any():
+        total = va + vb + vc
+        safe = np.where(total != 0, total, 1.0)
+        v = np.where(total != 0, vb / safe, 0.0)
+        w = np.where(total != 0, vc / safe, 0.0)
+        closest[interior] = (ta + v[:, :, None] * ab + w[:, :, None] * ac)[interior]
+
+    return np.linalg.norm(p - closest, axis=2).min(axis=1)
 
 
 def signed_volume(vertices: np.ndarray, triangles: np.ndarray) -> float:

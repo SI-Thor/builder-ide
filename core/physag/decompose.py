@@ -43,6 +43,7 @@ from core.physag.geometry import (
     MeshPart,
     convex_hull,
     distance_to_hull,
+    distance_to_surface,
     distance_to_union,
     hull_metrics,
     subsample_points,
@@ -104,6 +105,10 @@ class Decomposition:
     #: How deep the pieces swallow the material they cover: the hollow a
     #: convex hull fills in.
     concavity_m: float = 0.0
+    #: How far the collider's own surface strays from the material it
+    #: stands for: the mirror of the deviation.
+    stray_m: float = 0.0
+    stray_p95_m: float = 0.0
     notes: tuple[str, ...] = ()
 
     @property
@@ -119,6 +124,8 @@ class Decomposition:
             "deviation_m": round(self.deviation_m, 6),
             "deviation_p95_m": round(self.deviation_p95_m, 6),
             "concavity_m": round(self.concavity_m, 6),
+            "stray_m": round(self.stray_m, 6),
+            "stray_p95_m": round(self.stray_p95_m, 6),
             "overlaps": self.overlaps,
             "notes": list(self.notes),
         }
@@ -530,6 +537,7 @@ def decompose_part(
     collider_volume = float(sum(p.volume for p in pieces))
     overlaps = _pieces_overlap(pieces)
     hollow = _hollow_depth(pieces, part, tol_m)
+    stray, stray_p95 = _stray_distance(pieces, part)
 
     return Decomposition(
         part_name=part_name,
@@ -539,6 +547,8 @@ def decompose_part(
         deviation_m=deviation,
         deviation_p95_m=p95,
         concavity_m=hollow,
+        stray_m=stray,
+        stray_p95_m=stray_p95,
         overlaps=overlaps,
         notes=tuple(notes),
     )
@@ -564,20 +574,13 @@ def _hollow_depth(
     hollow the collider reaches: near zero for a solid prop, and the
     prop's own thickness for a shell.
 
-    The material is measured against its **vertices**, through a tree. For
-    a generated prop the vertices are millimetres apart, so the distance to
-    the nearest vertex is the distance to the surface to within a
-    millimetre, which is finer than the tolerance the guard uses.
+    The distance is to the material's **surface**, not to its vertices:
+    the middle of a panel is millimetres from the panel and far from its
+    corners, and a measure that said "far from the corners" would call a
+    flat panel a cavity.
     """
     if not pieces or material.is_empty:
         return 0.0
-    from scipy.spatial import cKDTree
-
-    vertices = material.vertices
-    if vertices.shape[0] > 60000:
-        stride = max(1, vertices.shape[0] // 60000)
-        vertices = vertices[::stride]
-    tree = cKDTree(vertices)
 
     deepest = 0.0
     for piece in pieces:
@@ -586,9 +589,80 @@ def _hollow_depth(
         points = _sample_piece(piece, samples_per_piece)
         if points.shape[0] == 0:
             continue
-        distances, _ = tree.query(points)
+        distances = distance_to_surface(points, material)
         deepest = max(deepest, float(np.max(distances)))
     return deepest
+
+
+def _stray_distance(
+    pieces: list[Collider],
+    material: MeshPart,
+    samples_per_piece: int = 120,
+) -> tuple[float, float]:
+    """How far the collider's own surface strays from the material.
+
+    This is the mirror of the deviation: the deviation asks whether the
+    collider misses material, and this asks whether the collider bulges
+    away from it. A hull that bridges the gap between a crate's slats has
+    a surface in mid-air, and that surface is what the simulation's
+    contacts are measured against — so a collider that strays is a
+    collider whose "nothing penetrated past epsilon" is a statement about
+    the collider.
+
+    The measure is of the *surface*, not of the interior, so it says the
+    same thing for a solid prop and for a shell: a solid prop's collider
+    sits on its material and strays by nothing, and a shell's collider
+    strays by the gap it bridges.
+
+    The pieces' faces are sampled — points drawn on the triangles, with
+    each triangle picked in proportion to its area — and each is measured
+    against the material's surface.
+    """
+    if not pieces or material.is_empty:
+        return 0.0, 0.0
+
+    distances: list[float] = []
+    for piece in pieces:
+        if piece.is_empty or piece.faces.shape[0] == 0:
+            continue
+        points = _sample_faces(piece, samples_per_piece)
+        if points.shape[0] == 0:
+            continue
+        measured = distance_to_surface(points, material)
+        distances.extend(float(v) for v in measured)
+
+    if not distances:
+        return 0.0, 0.0
+    values = np.asarray(distances, dtype=np.float64)
+    return float(values.max()), float(np.percentile(values, 95))
+
+
+def _sample_faces(piece: Collider, count: int) -> np.ndarray:
+    """Points drawn on a convex piece's faces, in proportion to their area."""
+    if count <= 0 or piece.faces.shape[0] == 0:
+        return np.zeros((0, 3))
+    vertices = piece.vertices
+    triangles = piece.faces
+    a = vertices[triangles[:, 0]]
+    b = vertices[triangles[:, 1]]
+    c = vertices[triangles[:, 2]]
+    areas = 0.5 * np.linalg.norm(np.cross(b - a, c - a), axis=1)
+    total = float(areas.sum())
+    if total <= 0.0:
+        return np.zeros((0, 3))
+
+    rng = np.random.default_rng(20261101)
+    picks = rng.choice(triangles.shape[0], size=count, p=areas / total)
+    u = rng.random((count, 1))
+    v = rng.random((count, 1))
+    over = u + v > 1.0
+    u[over] = 1.0 - u[over]
+    v[over] = 1.0 - v[over]
+    return (
+        a[picks]
+        + u * (b[picks] - a[picks])
+        + v * (c[picks] - a[picks])
+    )
 
 
 def _sample_piece(piece: Collider, count: int) -> np.ndarray:
