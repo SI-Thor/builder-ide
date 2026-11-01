@@ -206,12 +206,16 @@ class MemoryColumn:
 def default_memory_column() -> MemoryColumn:
     """The column as the box stands now: the live history, or the snapshot.
 
-    The live history is the daemon's own file; when it is not there (a
+    The live history is the daemon's own file; when it is not there or empty (a
     fresh checkout, or the daemon has never run) the snapshot kept with
     the model's recorded data is used instead, so the column always has a
     source in the repo.
     """
     live = live_history_path()
     if live.exists():
-        return MemoryColumn(load_peaks(live))
+        records = load_peaks(live)
+        if records:
+            return MemoryColumn(records)
+    # an absent or empty live file (a daemon that has not measured yet)
+    # is no source: the snapshot stands in
     return MemoryColumn(load_peaks(snapshot_path()))
