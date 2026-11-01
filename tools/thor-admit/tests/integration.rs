@@ -267,13 +267,24 @@ fn output_of(child: &mut Child) -> String {
     text
 }
 
+/// The brief's cap: a test must never take more than this much of the box.
+/// The box has 122 GiB and no swap, and the OOM this crate exists to
+/// prevent is one careless test away.
+const TEST_MEMORY_CAP_GIB: u64 = 60;
+
 /// How big a hog the heavy tests use. The brief's scale is 30 GiB; a
 /// smaller one is for a box that is already busy.
 fn hog_gb() -> u64 {
-    std::env::var("THOR_ADMIT_HOG_GB")
+    let gigabytes = std::env::var("THOR_ADMIT_HOG_GB")
         .ok()
         .and_then(|text| text.parse().ok())
-        .unwrap_or(30)
+        .unwrap_or(30);
+    assert!(
+        gigabytes <= TEST_MEMORY_CAP_GIB,
+        "the brief caps a test's memory at {TEST_MEMORY_CAP_GIB} GiB, and {gigabytes} GiB \
+         was asked for"
+    );
+    gigabytes
 }
 
 /// A scripted `/proc/meminfo`.
@@ -320,6 +331,9 @@ fn floor_for_one_hog(hog_bytes: u64) -> u64 {
 
 #[test]
 fn three_thirty_gigabyte_hogs_are_serialised() {
+    // The brief's memory cap is checked first, so an over-large hog is
+    // refused even when the test is about to skip.
+    let hog_gb = hog_gb();
     let _lock = match Gate::take() {
         Gate::Skip => {
             eprintln!("skipping: another seat holds the box's heavy lock");
@@ -327,7 +341,6 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
         }
         Gate::Run(file) => file,
     };
-    let hog_gb = hog_gb();
     let hog_bytes = hog_gb * GIB;
     // A floor of (available - hog - 8 GiB) means one hog fits and a second
     // one does not: the daemon charges the running hog's reservation, so
@@ -409,6 +422,9 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
 
 #[test]
 fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
+    // The brief's memory cap is checked first, so an over-large hog is
+    // refused even when the test is about to skip.
+    let hog_gb = hog_gb();
     let _lock = match Gate::take() {
         Gate::Skip => {
             eprintln!("skipping: another seat holds the box's heavy lock");
@@ -421,7 +437,6 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
     // safe on a box that is also running a seat's work. The floor here is
     // (available - 8 GiB), so the same rule fires after the runaway has
     // taken 8 GiB — and it fires with the whole box still free.
-    let hog_gb = hog_gb();
     let emergency = mem_available().saturating_sub(8 * GIB).max(GIB);
     let daemon = DaemonUnderTest::start(&[
         "--emergency-floor",
