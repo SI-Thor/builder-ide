@@ -34,3 +34,16 @@ Run the Thor **headless**: stop the display manager (`gdm`), or switch to `multi
 If priorities already keep live latency flat, MIG is not worth the desktop.
 
 Undo log: `~/last-mile-ops.md` on the Thor.
+
+## The limits of this test (Hy4 adversarial review, 2026-11-01)
+- **Partitioning is unproven.** MIG mode enabled and the profiles listed, but **no instance was ever created**. The 2g+1g "guaranteed 6-SM slice" is a proposal, not a measurement, and so is "compute-only isolation".
+- **Headless is unproven.** gdm was never stopped and retried. "In use by another client" has other possible causes:
+  - clients `fuser /dev/nvidia*` does not show: Xorg as DRM master on `/dev/dri/card0`, `nvargus-daemon`, `nvidia-persistenced`, or a stale context from the earlier jobs;
+  - or instance creation may be unsupported on Tegra sm_110 despite the mode toggling. The 0 GiB profiles and a 3g profile equal to the whole GPU hint that it might be a stub.
+- **The baseline** is one 8-second matmul, with no clocks or power recorded.
+
+**What to do instead first:**
+- the **priority co-run**: live work (d1, the first mile) alone, then beside the sweep with stream priorities only, measuring p50/p95/p99;
+- **Green Contexts** (`cuDevSmResourceSplitByCount`, seed 164, `docs/research/googl1.md`): an SM split inside a process that needs no MIG and no headless switch.
+
+Both are specs in xp-batch (`stream-priority`, `green-contexts`). Only if both fail to keep live latency flat is a headless MIG test worth Casey's desktop.
