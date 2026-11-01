@@ -347,6 +347,7 @@ def _piece_record(
     piece: MeshPart,
     origin: np.ndarray,
     size: np.ndarray,
+    claims_gate: bool = True,
 ) -> PartPiece:
     """Measure one part against the claim the spec makes about it.
 
@@ -355,6 +356,15 @@ def _piece_record(
     the part is is still a claim, and the CAD arm is exactly the case where
     checking it is worthwhile — the geometry is exact, so a poor claim is
     the planner's and not the kernel's.
+
+    ``claims_gate`` decides what the measurement *does* to the verdict. In
+    the segmentation arm the claim is all there is — the cut was made on
+    the claim, so a part that does not sit where the claim says is a part
+    the cut may not have found, and it fails the mapping. In the CAD arm
+    the parts are the kernel's, the mapping is exact by construction, and
+    the claim mismatch is the planner's, not the build's: it is recorded
+    (the IoU and the containment are in the part's own record) and scored
+    as claim accuracy, but it does not void the mapping.
     """
     notes: list[str] = []
     if piece.is_empty:
@@ -382,13 +392,18 @@ def _piece_record(
         _kept, components, share_list = largest_component(piece)
         shares = tuple(share_list)
         if components > 1 and shares[0] < 0.9:
-            notes.append(
-                f"the split fell into {components} pieces; the largest holds "
-                f"{shares[0]:.0%} of the area"
-            )
-            if part.role == "moving":
-                notes.append("the part is ambiguous: no piece dominates")
-                ambiguous = True
+            if claims_gate:
+                notes.append(
+                    f"the split fell into {components} pieces; the largest holds "
+                    f"{shares[0]:.0%} of the area"
+                )
+                if part.role == "moving":
+                    notes.append("the part is ambiguous: no piece dominates")
+                    ambiguous = True
+            # When the claims do not gate, the part is the kernel's own
+            # body: the fragmentation is what the kernel made, and the
+            # kernel moves it as one. The counts and shares are in the
+            # record either way.
         if piece.triangle_count == 0:
             notes.append("the part has no triangles")
 
@@ -410,9 +425,9 @@ def _piece_record(
             np.all(bbox_min >= claimed_min - 1e-9) and np.all(bbox_max <= claimed_max + 1e-9)
         )
         if part.role == "moving":
-            if iou < 0.5:
+            if iou < 0.5 and claims_gate:
                 notes.append(f"the piece covers {iou:.0%} of the region the spec claimed")
-            if not contained:
+            if not contained and claims_gate:
                 notes.append("the piece reaches outside the region the spec claimed")
 
     return PartPiece(
@@ -448,9 +463,13 @@ def segmentation_from_parts(
     The split is still *measured*. The planner's claim about where the
     moving part is is a claim, and in the CAD arm it is the one thing that
     can still be wrong — the geometry is exact, so a poor claim is the
-    planner's and not the kernel's. The guard is the same guard: an
-    ambiguous mapping is flagged, and the completion rate is reported only
-    for verified mappings.
+    planner's and not the kernel's. The claim is scored, not obeyed: the
+    IoU and the containment land in every part's record, the arm reports
+    claim accuracy beside its completion rate, and the mapping itself is
+    voided only by what would void it in any arm — a part that came out
+    empty. A kernel body that fell into pieces is noted, because the
+    record keeps the fact, but the kernel moves the body as one and the
+    mapping is not ambiguous about who moves.
 
     The parts are placed in the mesh's own frame, and the gap is not opened:
     the kernel's bodies already stand where it put them.
@@ -473,7 +492,12 @@ def segmentation_from_parts(
         piece = parts[part.name]
         if piece.is_empty:
             reasons.append(f"part {part.name!r} came out empty")
-        pieces[part.name] = _piece_record(part, piece, origin, size)
+        # The claims do not gate here: the parts are the kernel's, so a
+        # claim that misses them is the planner's error, and it is scored
+        # as claim accuracy rather than voiding the mapping.
+        pieces[part.name] = _piece_record(
+            part, piece, origin, size, claims_gate=False
+        )
 
     assigned = sum(int(piece.triangle_count) for piece in parts.values())
     mesh_area = surface_area(mesh)

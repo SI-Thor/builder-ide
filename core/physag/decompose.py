@@ -724,18 +724,48 @@ def decompose_part(
 
     # A piece that is mostly hollow is a piece of air: the cavity in the
     # middle of a crate is a box of nothing, and its hull is a box that
-    # fills the crate's cavity. The material around it is already covered
-    # by the pieces that were cut away, so the hollow piece is dropped.
+    # fills the crate's cavity. Dropping it is safe only where the
+    # material it stands over is covered by the pieces that remain — for
+    # a crate's cavity that holds, because the walls carry their own
+    # pieces, and for a lattice it does not: the hull left standing over
+    # two pales is mostly the gap between them, and it is the only piece
+    # over either pale.
+    #
+    # So the test is the counterfactual the guard itself would run: with
+    # the piece gone, is any sampled point of the material left farther
+    # from what remains than the tolerance? The max, not a percentile —
+    # the deviation the guard measures later is the max, and a piece whose
+    # material is "mostly" covered is exactly the piece whose last five
+    # per cent the guard would catch.
     kept: list[Collider] = []
+    hollows: list[tuple[Collider, float]] = []
     for piece in pieces:
         hollow = _piece_hollow(piece, part, surface)
         if hollow > tol_m:
+            hollows.append((piece, hollow))
+        else:
+            kept.append(piece)
+
+    if hollows:
+        sample = _sample_mesh(part, deviation_point_limit)
+    for piece, hollow in hollows:
+        if kept:
+            gaps = distance_to_union(sample, [p.planes for p in kept])
+            finite = gaps[np.isfinite(gaps)]
+            covered = float(finite.max()) if finite.size else float("inf")
+        else:
+            covered = float("inf")  # nothing else covers anything yet
+        if covered <= tol_m:
             notes.append(
                 f"a piece that was mostly hollow ({hollow * 1000:.1f} mm deep) "
                 "was dropped: it was the inside of the prop, not the prop"
             )
             continue
         kept.append(piece)
+        notes.append(
+            f"a piece that was mostly hollow ({hollow * 1000:.1f} mm deep) was "
+            "kept: the material under it is covered by nothing else"
+        )
     if kept:
         pieces = kept
 

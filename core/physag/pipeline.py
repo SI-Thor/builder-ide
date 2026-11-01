@@ -69,6 +69,7 @@ def _decompose_all(
     spec: InteractionSpec,
     tolerance_m: float,
     max_pieces: int,
+    max_depth: int = 8,
     clip: bool = True,
 ) -> dict[str, Decomposition]:
     """Every part's convex pieces, clipped to the part's own half-space.
@@ -87,6 +88,7 @@ def _decompose_all(
             part.name,
             tol_m=tolerance_m,
             max_pieces=max_pieces,
+            max_depth=max_depth,
         )
         if clip:
             decomp = _clip_to_part(decomp, part, spec, size, piece.part)
@@ -203,6 +205,7 @@ def run_prop(
     planner: Planner | None = None,
     decomposition_tolerance_m: float = 0.004,
     max_pieces: int = 24,
+    max_depth: int = 8,
     epsilon_rel: float = 0.005,
     rest_s: float = 2.0,
     arm: str = "trellis",
@@ -250,6 +253,7 @@ def run_prop(
         spec,
         decomposition_tolerance_m,
         max_pieces,
+        max_depth,
         clip=not segmentation.from_known_parts,
     )
     timings["decompose_s"] = time.perf_counter() - started
@@ -350,6 +354,7 @@ def run_prop(
                 repaired,
                 decomposition_tolerance_m,
                 max_pieces,
+                max_depth,
                 clip=not segmentation.from_known_parts,
             )
             built = build_mjcf(repaired, segmentation, decompositions)

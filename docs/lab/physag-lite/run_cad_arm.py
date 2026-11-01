@@ -225,6 +225,10 @@ def parse_urdf(path: Path) -> Urdf:
 
 def build_design(design: Path, workdir: Path) -> tuple[Path | None, str | None]:
     """Run the SolidCraft design and write the URDF beside its meshes."""
+    # The kernel is invoked with the workdir as its cwd, so the script it
+    # is handed has to be absolute: a relative --out from the caller would
+    # otherwise make it look for the script inside the workdir itself.
+    workdir = workdir.resolve()
     workdir.mkdir(parents=True, exist_ok=True)
     script = json.loads(design.read_text())
     commands = list(script.get("commands", []))
@@ -555,6 +559,14 @@ def main() -> int:
                 planner=None,
                 parts=cad.parts,
                 mesh=cad.mesh,
+                # The CAD meshes are exact and small — a few thousand
+                # triangles against the generated meshes' hundreds of
+                # thousands — so the decomposition can afford the budget
+                # a lattice or a shell needs to come apart: a gate leaf
+                # is eight pales and two rails, and a 24-piece budget
+                # spent on the rails leaves the pales with nothing.
+                max_pieces=64,
+                max_depth=14,
             )
         except Exception as exc:
             print(f"!! {prop}: {type(exc).__name__}: {exc}", file=sys.stderr)
@@ -600,6 +612,30 @@ def main() -> int:
     stable = [r for r in counted if r.get("physics_status") == "stable"]
     valid = [r for r in counted if r.get("physics_status") in ("stable", "unstable")]
 
+    # Claim accuracy: the planner's claim about where the moving part is,
+    # measured against the geometry the kernel actually built. The parts
+    # are the kernel's, so this number is about the planner and not about
+    # the build — it is the one thing this arm can say that the
+    # segmentation arm cannot.
+    claim: dict[str, Any] = {}
+    for record in records:
+        pieces = (record.get("verified") or {}).get("segmentation", {}).get("pieces") or {}
+        moving = next(
+            (p for p in pieces.values() if p.get("role") == "moving"),
+            None,
+        )
+        if moving is None:
+            continue
+        matched = moving["bbox_iou"] >= 0.5 and moving["contained"]
+        claim[record["prop"]] = {
+            "iou": moving["bbox_iou"],
+            "contained": moving["contained"],
+            "matched": matched,
+            "verified_mapping": moving["verified"],
+        }
+    claim_matched = [name for name, c in claim.items() if c["matched"]]
+    counted_completed = {r["prop"] for r in completed}
+
     summary = {
         "arm": "cad",
         "props": len(records),
@@ -609,6 +645,17 @@ def main() -> int:
         "stable": len(stable),
         "stable_of_counted": round(len(stable) / len(counted), 4) if counted else None,
         "physics_valid_of_counted": round(len(valid) / len(counted), 4) if counted else None,
+        "claim_accuracy": {
+            "props_with_claim": len(claim),
+            "matched": len(claim_matched),
+            "matched_props": claim_matched,
+            "note": (
+                "the planner's expect boxes against the kernel's own parts; "
+                "a mismatch is the planner's claim being wrong about a prop "
+                "that exists, not a missing part"
+            ),
+            "completed_among_claim_matched": len(counted_completed & set(claim_matched)),
+        },
         "not_counted": [r["prop"] for r in records if not r.get("counted")],
         "statuses": {
             r["prop"]: {

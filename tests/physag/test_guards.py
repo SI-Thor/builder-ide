@@ -274,3 +274,69 @@ def test_a_cut_that_goes_through_the_body_is_not_verified(tmp_path):
     run = run_prop(make_spec(), path, out_dir=tmp_path / "out")
     assert not run.segmentation.verified
     assert not run.counted
+
+
+def test_a_hull_that_is_the_only_cover_for_its_material_is_kept():
+    # A lattice: three slats joined by a rail across the top. The hull
+    # that ends up standing over two slats is mostly the gap between
+    # them, so the hollow test calls it air — and dropping it would leave
+    # the slats with no collider at all. The drop is only allowed where
+    # what remains still covers the material: the regression here is a
+    # gate leaf whose pales came out of the model entirely.
+    from core.physag.geometry import MeshPart
+
+    slats = []
+    for center_y in (0.03, 0.14, 0.25):
+        slats.append(box_mesh((0.02, 0.06, 0.5), (0.0, center_y, 0.25)))
+    slats.append(box_mesh((0.02, 0.28, 0.02), (0.0, 0.14, 0.49)))
+    vertices = np.concatenate([s[0] for s in slats])
+    triangles = np.concatenate(
+        [s[1] + sum(q[0].shape[0] for q in slats[:i]) for i, s in enumerate(slats)]
+    )
+    lattice = MeshPart(vertices=vertices, triangles=triangles)
+
+    decomposition = decompose_part(lattice, "lattice", 0.004, 24)
+    # Every slat is under a piece: nothing was silently dropped as
+    # "hollow" while being the only thing standing over real material.
+    assert decomposition.deviation_m < 0.005, decomposition.notes
+
+
+def test_known_parts_are_measured_against_the_claim_but_not_voided_by_it(tmp_path):
+    # The CAD arm's rule: the parts are the kernel's, so the mapping is
+    # exact by construction, and the planner's claim about where the
+    # moving part is — here, wrong by half the height — is scored as
+    # claim accuracy, not held against the mapping. The segmentation
+    # arm's rule stays as it was: a cut that misses the claim voids the
+    # mapping, and that is the test above this one.
+    from core.physag.segment import segmentation_from_parts
+    from core.physag.geometry import MeshPart, load_mesh
+
+    body_v, body_f = box_mesh((0.4, 0.4, 0.3), (0.0, 0.0, 0.15))
+    lid_v, lid_f = box_mesh((0.42, 0.42, 0.055), (0.0, 0.0, 0.3325))
+    vertices = np.concatenate([body_v, lid_v])
+    triangles = np.concatenate([body_f, lid_f + body_v.shape[0]])
+    path = write_glb(tmp_path / "crate.glb", vertices, triangles)
+    mesh = load_mesh(path)
+
+    spec = make_spec(
+        parts=(
+            Part(name="body", role="base", cut=Cut(kind="rest")),
+            Part(
+                name="lid",
+                role="moving",
+                cut=Cut(kind="plane", axis="z", at=0.94, keep="above"),
+                expect=Box(min=(0.0, 0.0, 0.94), max=(1.0, 1.0, 1.0)),
+            ),
+        ),
+    )
+    # The kernel's parts: the lid is the whole top slab, not the band the
+    # claim names.
+    parts = {
+        "body": MeshPart(vertices=body_v, triangles=body_f),
+        "lid": MeshPart(vertices=lid_v, triangles=lid_f),
+    }
+    segmentation = segmentation_from_parts(mesh, parts, spec)
+    lid = segmentation.piece("lid")
+    assert lid.bbox_iou < 0.9  # the claim is recorded as wrong
+    assert segmentation.verified  # the mapping is still exact
+    assert not lid.ambiguous
