@@ -204,10 +204,18 @@ one replayable log instead of correlating daemon logs with dmesg.
   should not repeat that mistake.
 - **core-doors (per-agent tokens)** — every bid should carry the `agent`
   claim the way every audit row does, so the answer to "which agent
-  asked for tonight's GPU-minutes" is a fold, not an investigation. The
-  door this branch proposes for the why stream (`GET /v1/why/summary`,
-  the `/v1/world/scene` precedent — a read door, no new event types) is
-  the read side of the same discipline.
+  asked for tonight's GPU-minutes" is a fold, not an investigation.
+  The why stream's door now exists as a full proposal
+  (`docs/design/why-door.md`, this branch): `POST /v1/why/digest` (the
+  ecology publishes through the door — one `why.digest` audit event,
+  the core's single writer, the closed set grown by exactly one the way
+  the tiles' four were) and `GET /v1/why/summary` (the fold; an
+  unwired core answers 501 with the seam named, the `/v1/world/scene`
+  precedent). No new stream door — `GET /v1/events?types=why.digest`
+  already is one. thor-world's follow-up branch
+  (`research/ecology-why-door`) reads the door end to end and degrades
+  honestly when it is not wired; its review round asked for exactly
+  this, and the ask was right.
 - **The daytime world, ON by default (B3: yes)** — an always-on daytime
   lane is a permanent low-priority bidder, and the importance classes
   are built for exactly that shape: daytime's stand-down-when-night-busy
