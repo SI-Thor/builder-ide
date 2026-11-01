@@ -274,6 +274,8 @@ class CadProp:
 
     mesh: MeshPart
     parts: dict[str, MeshPart]
+    #: The kernel's own bodies, grouped under the plan's part names.
+    subparts: dict[str, list[MeshPart]]
     joint: UrdfJoint
     anchor: np.ndarray
     axis: np.ndarray
@@ -379,6 +381,14 @@ def build_cad_prop(urdf_path: Path, base_part: str, moving_part: str) -> CadProp
     return CadProp(
         mesh=mesh,
         parts={base_part: base, moving_part: parts[moving_link]},
+        #: The kernel's own bodies, grouped under the plan's part names: the
+        #: base is every non-moving link as the body it is, because the
+        #: decomposition of a merged frame is the hull of a frame, while
+        #: the decomposition of each leg is the leg.
+        subparts={
+            base_part: [part for name, part in parts.items() if name != moving_link],
+            moving_part: [parts[moving_link]],
+        },
         joint=next(j for j in urdf.joints.values() if j.child == moving_link),
         anchor=anchor,
         axis=axis,
@@ -559,6 +569,7 @@ def main() -> int:
                 planner=None,
                 parts=cad.parts,
                 mesh=cad.mesh,
+                subparts=cad.subparts,
                 # The CAD meshes are exact and small — a few thousand
                 # triangles against the generated meshes' hundreds of
                 # thousands — so the decomposition can afford the budget
@@ -619,7 +630,8 @@ def main() -> int:
     # segmentation arm cannot.
     claim: dict[str, Any] = {}
     for record in records:
-        pieces = (record.get("verified") or {}).get("segmentation", {}).get("pieces") or {}
+        segmentation = (record.get("verified") or {}).get("segmentation") or {}
+        pieces = segmentation.get("parts") or {}
         moving = next(
             (p for p in pieces.values() if p.get("role") == "moving"),
             None,

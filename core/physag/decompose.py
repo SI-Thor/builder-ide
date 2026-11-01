@@ -76,6 +76,12 @@ class DecompositionError(ValueError):
 #: notice and far above float noise.
 _MERGE_EPS = 1e-6
 
+#: The largest mesh the aggressive cut search runs on. A mesh this small
+#: scores a candidate in milliseconds, and the search it buys is the
+#: difference between a frame and a hull of a frame; a generated mesh is
+#: two orders bigger and the conservative rule keeps its cost bounded.
+_AGGRESSIVE_TRIANGLE_LIMIT = 50_000
+
 
 @dataclass(frozen=True)
 class Collider:
@@ -678,10 +684,35 @@ def decompose_part(
                 best = (key, normal, offset, total)
 
         current = outer_stray * float(hull.volume)
-        if best is None or (best[0][0] >= 2 and best[0][1] >= current):
-            # No cut makes a piece faithful and none of them improves on
-            # the piece as it is; keeping the hull is the honest answer,
-            # and it is recorded.
+        if best is None:
+            # No candidate cut exists for this piece; keeping the hull is
+            # the honest answer, and it is recorded.
+            final = convex_hull(_subsample(piece.vertices, hull_point_limit))
+            if not final.is_empty:
+                pieces.append(Collider.from_piece(final))
+            notes.append(
+                f"a piece whose surface strays {outer_stray * 1000:.1f} mm from "
+                "the material could not be cut further and was left as one hull"
+            )
+            return
+
+        # The best cut makes neither child faithful and does not even
+        # improve the weighted stray. The rule that stopped here — "no cut
+        # at all" — was right about cost and wrong about shape: the first
+        # cut of a table frame, leg from leg, leaves two half-frames as
+        # unfaithful as the whole, and the cuts that would isolate the
+        # rails live a few levels deeper. Each cut partitions the material
+        # into strictly smaller pieces, so taking it is progress by
+        # construction, and the budget bounds it.
+        #
+        # The search it buys is expensive — every node scores every
+        # candidate on both children — and worth it only where a score is
+        # cheap and the geometry is exact: a CAD body is a few thousand
+        # triangles the kernel placed once. A generated prop is hundreds
+        # of thousands, and there the old conservative rule stands, since
+        # the hull it leaves is what the guard measures either way.
+        aggressive = piece.triangle_count <= _AGGRESSIVE_TRIANGLE_LIMIT
+        if not aggressive and best[0][0] >= 2 and best[0][1] >= current:
             final = convex_hull(_subsample(piece.vertices, hull_point_limit))
             if not final.is_empty:
                 pieces.append(Collider.from_piece(final))

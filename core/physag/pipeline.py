@@ -64,6 +64,79 @@ class PropRun:
         return bool(self.result and self.result.stability and self.result.stability.stable)
 
 
+def _decompose_subparts(
+    part_name: str,
+    subparts: list["MeshPart"],
+    tolerance_m: float,
+    max_pieces: int,
+    max_depth: int,
+) -> "Decomposition":
+    """Decompose a part that arrives as several known bodies, and merge.
+
+    The CAD arm's parts are the kernel's bodies. A base is several of them
+    — a table's legs, a gate's posts — and decomposing them *merged* makes
+    one convex search face a shape whose pieces the kernel had already
+    separated: the hull of a leg-and-rail frame spans the space between
+    the legs, and no axis-aligned cut of the search's vocabulary takes it
+    apart again. Decomposing each body as the shape it is keeps the hulls
+    on the bodies, and the merged measures are taken afterwards, against
+    the whole part, so the guard's numbers are the guard's numbers.
+    """
+    import numpy as np
+
+    from core.physag.decompose import measure_pieces
+
+    decomps = [
+        decompose_part(
+            subpart,
+            part_name,
+            tol_m=tolerance_m,
+            max_pieces=max_pieces,
+            max_depth=max_depth,
+        )
+        for subpart in subparts
+    ]
+    colliders = tuple(c for d in decomps for c in d.colliders)
+    material = subparts[0]
+    if len(subparts) > 1:
+        material = MeshPart(
+            vertices=np.concatenate([s.vertices for s in subparts], axis=0),
+            triangles=np.concatenate(
+                [s.triangles + sum(t.vertices.shape[0] for t in subparts[:i]) for i, s in enumerate(subparts)],
+                axis=0,
+            ),
+        )
+    measured = (
+        measure_pieces(list(colliders), material)
+        if colliders
+        else {
+            "deviation_m": 0.0,
+            "deviation_p95_m": 0.0,
+            "concavity_m": 0.0,
+            "stray_m": 0.0,
+            "stray_p95_m": 0.0,
+        }
+    )
+    notes = tuple(
+        f"{d.part_name} body {i}: {note}"
+        for i, d in enumerate(decomps)
+        for note in d.notes
+    )
+    return Decomposition(
+        part_name=part_name,
+        colliders=colliders,
+        hull_volume=float(sum(d.hull_volume for d in decomps)),
+        collider_volume=float(sum(d.collider_volume for d in decomps)),
+        deviation_m=measured["deviation_m"],
+        deviation_p95_m=measured["deviation_p95_m"],
+        concavity_m=measured["concavity_m"],
+        stray_m=measured["stray_m"],
+        stray_p95_m=measured["stray_p95_m"],
+        overlaps=any(d.overlaps for d in decomps),
+        notes=notes,
+    )
+
+
 def _decompose_all(
     segmentation: Segmentation,
     spec: InteractionSpec,
@@ -71,6 +144,7 @@ def _decompose_all(
     max_pieces: int,
     max_depth: int = 8,
     clip: bool = True,
+    subparts: dict[str, list[MeshPart]] | None = None,
 ) -> dict[str, Decomposition]:
     """Every part's convex pieces, clipped to the part's own half-space.
 
@@ -78,18 +152,31 @@ def _decompose_all(
     kernel that built the prop made them, one body each. The two bodies
     do not share space, because the kernel put them where it wanted them,
     and clipping them to the spec's cut would cut a lid off a door.
+
+    ``subparts`` is the CAD arm's way in: when a part arrives as several
+    kernel bodies, each is decomposed as the shape it is and the results
+    are merged — see :func:`_decompose_subparts`.
     """
     out: dict[str, Decomposition] = {}
     size = segmentation.mesh.bbox_size
     for part in spec.parts:
         piece = segmentation.pieces[part.name]
-        decomp = decompose_part(
-            piece.part,
-            part.name,
-            tol_m=tolerance_m,
-            max_pieces=max_pieces,
-            max_depth=max_depth,
-        )
+        if subparts and part.name in subparts and subparts[part.name]:
+            decomp = _decompose_subparts(
+                part.name,
+                subparts[part.name],
+                tolerance_m,
+                max_pieces,
+                max_depth,
+            )
+        else:
+            decomp = decompose_part(
+                piece.part,
+                part.name,
+                tol_m=tolerance_m,
+                max_pieces=max_pieces,
+                max_depth=max_depth,
+            )
         if clip:
             decomp = _clip_to_part(decomp, part, spec, size, piece.part)
         out[part.name] = decomp
@@ -214,6 +301,7 @@ def run_prop(
     ground_truth: dict[str, Any] | None = None,
     parts: dict[str, MeshPart] | None = None,
     mesh: MeshPart | None = None,
+    subparts: dict[str, list[MeshPart]] | None = None,
 ) -> PropRun:
     """Run one prop through the whole loop.
 
@@ -255,6 +343,7 @@ def run_prop(
         max_pieces,
         max_depth,
         clip=not segmentation.from_known_parts,
+        subparts=subparts,
     )
     timings["decompose_s"] = time.perf_counter() - started
 
@@ -356,6 +445,7 @@ def run_prop(
                 max_pieces,
                 max_depth,
                 clip=not segmentation.from_known_parts,
+                subparts=subparts,
             )
             built = build_mjcf(repaired, segmentation, decompositions)
             timings["rebuild_s"] = time.perf_counter() - started

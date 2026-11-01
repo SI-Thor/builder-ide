@@ -482,6 +482,11 @@ class SurfaceDistance:
             closest[interior] = (a + v[:, :, None] * ab + w[:, :, None] * ac)[interior]
 
         distances = np.linalg.norm(p - closest, axis=2)
+        # A candidate whose corner data was degenerate can leave a nan in
+        # its distance, and the min over a row with a nan in it is a nan:
+        # the nan candidates are the invalid ones or the degenerate ones,
+        # and neither has a distance worth keeping.
+        distances = np.where(np.isfinite(distances), distances, np.inf)
         distances = np.where(valid, distances, np.inf)
         nearest = distances.min(axis=1)
         if not self.closed:
@@ -644,11 +649,18 @@ def mesh_components(part: MeshPart) -> list[MeshPart]:
 
 
 def _thicken(points: np.ndarray, thickness_m: float) -> np.ndarray | None:
-    """Thicken a flat point set into a slab, or ``None`` if it is not flat.
+    """Thicken a flat point set into a slab, or ``None`` if it cannot be.
 
     The plane is the one the points lie in, found from the smallest
     singular value of the centred points, and the slab is the set plus
     its mirror image across that plane.
+
+    The caller only gets here when qhull failed or returned a hull with
+    no volume — it has already decided the set is effectively flat, so
+    this does not second-guess it: a sheet that *bows* slightly still has
+    no volume worth speaking of, and refusing to thicken it turns a
+    panel into an exception. The direction the points move least is the
+    sheet's own normal, whatever its third singular value is.
     """
     if points.shape[0] < 3 or thickness_m <= 0.0:
         return None
@@ -658,11 +670,9 @@ def _thicken(points: np.ndarray, thickness_m: float) -> np.ndarray | None:
         _u, _s, vt = np.linalg.svd(centred, full_matrices=False)
     except np.linalg.LinAlgError:  # pragma: no cover - a singular matrix
         return None
-    if _s.size < 3 or _s[2] > 1e-6 * max(float(_s[0]), 1e-12):
-        # Not flat: the third direction has real extent.
+    if _s.size < 3 or not np.isfinite(_s).all():
         return None
     normal = vt[2]
-    half = 0.5 * thickness_m
     return np.concatenate([points, points + normal * thickness_m], axis=0)
 
 
