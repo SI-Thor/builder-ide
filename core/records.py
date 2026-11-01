@@ -123,6 +123,12 @@ EVENT_TYPES: frozenset[str] = frozenset(
         # judgments (the judge seat: one judgment seam, typed questions,
         # every verdict recorded with its author, distribution and cost)
         "judge.verdict",
+        # the band and the night-v3 integration seat: the time-first
+        # scheduler's cues between loops (cue, effect), the mediator's calls
+        # counted in and out of flow, the heavy-step leases, and the live
+        # view's compile of the night's recipe changes
+        "band.cue", "band.effect", "night.mediator_call", "night.heavy_lease",
+        "night.live_view", "night.box_state",
         # questions
         "question.parked", "question.answered", "assumption.recorded",
         # continuity
