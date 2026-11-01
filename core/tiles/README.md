@@ -25,6 +25,9 @@ module's docstring cites it; the citations are the contract.
 | `author.py` | the cloud seam: `ScriptedAuthor` (the fake) and `CloudAuthor` (the real one) |
 | `plays.py` | the play record: written to the log, folded back out of it |
 | `chooser.py` | the decision model: the contextual bandit, behind the `TileChooser` door |
+| `retrieval.py` | the retrieval front: the tiles that *mean* the right thing, found by embedding, narrowed to K |
+| `bands.py` | the three score bands — execute, confirm, compile — held by `core.hysteresis`'s gate |
+| `nail.py` | the export: a tile library and its chooser, content addressed, in the `.nail` shape |
 | `retrain.py` | the nightly loop: refit, rank, retire, and the feedback packets |
 | `stats.py` | the numbers the seat's claims are made of: Wilson, Newcombe, the two-proportion z |
 | `ope.py` | the off-policy estimators: what a **new** chooser would have earned on the old log ([`OPE.md`](OPE.md)) |
@@ -62,6 +65,29 @@ module's docstring cites it; the citations are the contract.
    choice was drawn from. Without it the play cannot be weighted for an
    off-policy estimate, and a missing propensity is **never** defaulted to
    1.0 — a default is a bias nobody can see. See [`OPE.md`](OPE.md).
+9. **The front narrows; it does not decide.** The retrieval front takes the
+   K tiles whose meaning matches the context and hands them to the chooser,
+   which is the only thing that knows what *wins*. A front that decided
+   would throw the learning away, and a chooser shown the whole library
+   would drown in options it has no estimate for. Eligibility comes first:
+   a tile whose preconditions do not hold is not a low-scoring option, it
+   is not an option, and it is never scored.
+10. **A choice made through the front carries the whole policy's
+    probability.** Two mechanisms make that choice — the front proposes,
+    the chooser disposes — so the propensity is the **product** of both
+    draws, and the shortlist it was drawn from travels with the play
+    record. Recording only the chooser's own number would make the
+    importance weights too large and the estimates too confident.
+11. **A similarity score is meaningless without the embedder that made
+    it.** Every number the front produces travels with the embedder's
+    record — kind, model, licence, dimensions — and a model whose licence
+    has not been checked is reported as *unchecked* rather than free.
+12. **The bundle's timestamps are part of its content, not the clock.** A
+    wall-clock stamp would make every export of the same library a
+    different bundle, and the content hash would stop being an address. So
+    the bundle says when its oldest tile was authored and when its newest
+    one was, and re-exporting an unchanged library gives back the same
+    bundle, byte for byte.
 
 ## The acceptance run, and the numbers
 
@@ -94,22 +120,111 @@ outcomes.
 The simulated game is not a switch: a play wins with probability 0.85 when
 the tile's style is the one the context asked for and 0.15 when it is not.
 
+## Finding the tiles: the retrieval front
+
+The chooser above is a bandit: it learns which tile wins in which bucket, and
+it picks well *among the tiles it was handed*. With six tiles that is enough;
+with six hundred it is not, because the bandit's estimate is one number per
+(bucket, tile) and it can only act on what it is given.
+
+`retrieval.py` is the missing half. It embeds the game's state, embeds each
+tile once when it is added, and takes the K tiles whose meaning matches. The
+chooser then does what it is good at — learning from outcomes — inside that
+shortlist.
+
+**The embedder is a parameter, and the record says which one.** The default is
+a local static model (model2vec's `potion-base-8M`, **MIT**, 256 dimensions,
+CPU only, no forward pass); the floor is `HashingEmbedder`, feature hashing
+with no model, no download and no licence question. Both run, and the choice
+between them was measured rather than assumed — see
+[`docs/lab/exp-tiles-retrieval.md`](../../docs/lab/exp-tiles-retrieval.md)
+§5.9: on requests that share words with the tile, the free fallback is
+*sharper*; on a paraphrase it has no signal at all.
+
+`model2vec` is an **optional extra** (`pip install -e ".[embed]"`), so the core
+installs without it and the front falls back to hashing.
+
+**The three bands** (`bands.py`) are `quilt-pincher`'s, and they are held by
+`core/hysteresis`'s gate rather than by a new mechanism — the same way
+`core/judge.StandingGate` holds the judge's escalation. Above the high line
+the tile is executed; in the gap it is played but marked confirmed; below the
+low line **nothing is played** and a request goes to the cloud author for a
+new tile. A score that wobbles across the line does not move the band,
+because the gate's split thresholds hold it.
+
+**The numbers, on the acceptance rig** (the ProArt, 2026-11-01; the harness
+reproduces the acceptance run's own rig — the same `ScriptedAuthor`, the same
+contexts, the same seeded game — and the bandit arm comes out at the
+published 479/600 = 0.798):
+
+| arm | win rate | against the bandit |
+|---|---|---|
+| bandit (from zero) | 479/600 = 0.7983 | — |
+| **retrieval-only** | **504/600 = 0.8400** | +0.0417, CI [−0.0019, +0.0851], p = 0.0608 |
+| retrieval-bandit (K = 3) | 493/600 = 0.8217 | +0.0233, CI [−0.0211, +0.0677], p = 0.3029 |
+| fastpath (τ = 0.42) | 486/600 = 0.8100 | +0.0117, CI [−0.0333, +0.0566], p = 0.6106 |
+| always-matching (the reference) | 503/600 = 0.8383 | +0.0400, CI [−0.0037, +0.0836], p = 0.0724 |
+
+The front's top-1 was the tile whose style the context asked for in **600 of
+600** contexts, with no learning at all, and it landed on the
+always-matching reference — the best class of policy the game allows. The
+fast path costs **0.12 ms at p95**.
+
+**The rig cannot resolve the +0.04**, and that is worth saying plainly: the
+always-matching reference itself is only p = 0.0724 against the learner at
+600 plays. The mechanism's claim is exact and measured; the *value* of it over
+the learner is +0.04 with an interval that just includes zero.
+
+Pincher's own thresholds do **not** transfer: at his 0.80 the fast path never
+fires (0 of 600 contexts), because that number was measured in a different
+embedding space — the calibrated line for ours is 0.42. The full measurement,
+the calibration rules and what the experiment does not say are in the lab
+note.
+
+## The export: a `.nail` bundle
+
+`nail.py` writes the library and the chooser into the shape `quilt-pincher`
+uses — `version`, `reflexes`, `vetoRules`, `compileHistory`, `metadata` — with
+the field names kept so the two are comparable, and the mapping written down
+in the module's docstring. A tile is a reflex in pincher's sense: an action
+compiled once by a language model and then reused for free.
+
+Two things are added on top. The **chooser travels with the tiles**, because
+a library without its chooser's estimates is a set of options with no
+decisions attached, and the reader would have to relearn them. And the bundle
+is **content addressed**: the hash covers the reflexes, the rules, the
+history, the metadata and the chooser state, so a changed tile or a changed
+estimate gives a different hash and the same bundle always gives the same one.
+
 ## Running it
 
 ```bash
-cd ~/lm-wt/tiles
+cd ~/lm-wt/tiles-retrieval
 .venv/bin/python -m pytest -q tests/tiles          # this seat's suite
 .venv/bin/python -m pytest -q                     # the whole core
 ```
 
-114 tests for this seat, no network, no GPU, no LLM: the seat's whole point
+169 tests for this seat, no network, no GPU, no LLM: the seat's whole point
 is that the loop, the library, the chooser and the learning can be
-exercised before the engine lands.
+exercised before the engine lands. The retrieval seat's own are:
+
+```bash
+.venv/bin/python -m pytest -q tests/tiles/test_retrieval.py tests/tiles/test_bands.py \
+    tests/tiles/test_retrieval_propensities.py tests/tiles/test_nail.py   # 55 tests
+```
 
 The off-policy estimators print their own numbers:
 
 ```bash
 PYTHONPATH=. .venv/bin/python docs/lab/tiles-ope-scripts/measure_ope.py
+```
+
+and the retrieval front's experiment prints its:
+
+```bash
+PYTHONPATH=. .venv/bin/python docs/lab/tiles-retrieval-scripts/measure_tiles_retrieval.py
+PYTHONPATH=. .venv/bin/python docs/lab/tiles-retrieval-scripts/measure_tiles_retrieval.py \
+    --embedder hashing --out docs/lab/tiles-retrieval-scripts/results/tiles-retrieval-e1-hashing.json
 ```
 
 ## How it connects to the core
