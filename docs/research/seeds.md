@@ -1961,3 +1961,5 @@ unattenuated telemetry-to-JIT loops, and stochastic dampening derivatives. Those
 not metaphors; they are three names for three ways a self-tuning loop goes wrong, and
 writing down what each one looks like in a log would be a small piece of work with a
 clear payoff.
+
+- **158. Two-sided pruning for escalations (from MatAnyone-E, 2026-10-31).** A low-resolution pass picks both the uncertain *queries* and the relevant *memory*; the expensive pass runs only on those pairs. Applied to the cascades: an escalated item carries only retrieved, relevant context. Measure the tokens or ms per escalation and the agreement against full context. → lab-cascade.
