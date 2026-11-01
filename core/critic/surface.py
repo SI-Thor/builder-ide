@@ -219,8 +219,14 @@ def suggest_edit(
 ) -> Edit | None:
     """The edit the critic proposes for a frame that has something floating.
 
-    ``None`` when the check did not fire: there is nothing to propose, and a
-    critic that always has an edit is a critic that is always crying wolf.
+    ``None`` when there is nothing hanging in the frame at all.
+
+    The probe does **not** require the scripted check to have fired. The
+    check is deliberately conservative, and a model delegate may flag a frame
+    the check let alone; in that case the probe does its own looser search
+    and names the thing with the largest open space under it. The gate on
+    proposing an edit at all belongs to the caller — the hybrid only asks
+    for one when a verdict actually fired.
     """
     surface = probe_surface(
         image, thresholds, metres_per_pixel=metres_per_pixel
@@ -233,6 +239,16 @@ def suggest_edit(
         row=surface.row,
         source="frame",
     )
+    evidence: dict[str, float] = {
+        "relief": surface.relief,
+        "span": surface.span,
+        "support_row": float(surface.row or 0),
+    }
+    if surface.metres_per_pixel is not None:
+        # The scale came from the scene's camera (the geometry probe), and it
+        # travels with the edit so a reader can see where the metres came
+        # from instead of taking them on faith.
+        evidence["metres_per_pixel"] = surface.metres_per_pixel
     return Edit(
         op="lower_object",
         target=target,
@@ -241,9 +257,5 @@ def suggest_edit(
         drop_px=surface.drop_px,
         drop_frame_heights=surface.drop_frame_heights,
         drop_m=surface.drop_m,
-        evidence={
-            "relief": surface.relief,
-            "span": surface.span,
-            "support_row": float(surface.row or 0),
-        },
+        evidence=evidence,
     )

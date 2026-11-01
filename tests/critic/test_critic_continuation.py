@@ -206,3 +206,81 @@ def test_the_hybrid_carries_no_continuation_when_nothing_fires(frame_path):
     verdict = hybrid.score(_member(frame_path))
     assert not verdict.outcome("floating_blob").fired
     assert verdict.edits == ()
+
+
+# -- the metric scale, from the geometry probe --------------------------------
+
+
+def _camera_stats(half_width: float, frame_width: int = 960):
+    from core.critic.models import CameraInfo, MeshStats
+
+    return MeshStats(
+        camera=CameraInfo(
+            location=(0.0, 0.0, 0.0),
+            forward=(0.0, 0.0, 1.0),
+            up=(0.0, 1.0, 0.0),
+            right=(1.0, 0.0, 0.0),
+            half_width=half_width,
+            half_height=half_width * 9 / 16,
+            depth=10.0,
+        ),
+        frame_width=frame_width,
+        frame_height=540,
+    )
+
+
+def test_the_edit_carries_the_drop_in_metres_when_the_scene_is_measured(
+    frame_path, monkeypatch
+):
+    """The geometry probe's camera gives the picture's scale, so the drop has
+    a metre value as well as a pixel one."""
+    import core.critic.hybrid as hybrid_module
+
+    monkeypatch.setattr(
+        hybrid_module, "probe_scene", lambda *a, **k: _camera_stats(9.6)
+    )
+    member = MemberRecipe(
+        member_id="mem_test",
+        base_id="base_test",
+        defect="floating_object",
+        layer="image",
+        seed=1,
+        recipe={},
+        derived_path=str(frame_path),
+        mesh_path="/nowhere/scene.blend",
+    )
+    hybrid = HybridCritic(_AlwaysFloating(), escalate=("floating_object",))
+    verdict = hybrid.score(member)
+    assert len(verdict.edits) == 1
+    edit = verdict.edits[0]
+    # 9.6 m of half-width over 960 px is 0.02 m per pixel
+    assert edit.drop_m == pytest.approx(edit.drop_px * 0.02)
+    assert edit.as_dict()["drop_m"] == pytest.approx(edit.drop_px * 0.02)
+
+
+def test_the_edit_stays_in_the_frame_when_the_scene_cannot_be_measured(
+    frame_path, monkeypatch
+):
+    """No scene means no metre value — the edit says so instead of guessing."""
+    import core.critic.hybrid as hybrid_module
+
+    def _no_scene(*a, **k):
+        raise RuntimeError("no blend on this box")
+
+    monkeypatch.setattr(hybrid_module, "probe_scene", _no_scene)
+    member = MemberRecipe(
+        member_id="mem_test",
+        base_id="base_test",
+        defect="floating_object",
+        layer="image",
+        seed=1,
+        recipe={},
+        derived_path=str(frame_path),
+        mesh_path="/nowhere/scene.blend",
+    )
+    hybrid = HybridCritic(_AlwaysFloating(), escalate=("floating_object",))
+    verdict = hybrid.score(member)
+    edit = verdict.edits[0]
+    assert edit.drop_px > 0
+    assert edit.drop_frame_heights > 0
+    assert edit.drop_m is None

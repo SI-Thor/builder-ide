@@ -37,7 +37,7 @@ from typing import Any, Iterable, Protocol, Sequence, runtime_checkable
 
 from .checks import DEFAULT_THRESHOLDS, Thresholds, run_image_checks, run_mesh_checks
 from .imaging import load_rgb
-from .mesh import apply_mesh_defect, probe_scene
+from .mesh import apply_mesh_defect, blender_python_from_env, probe_scene
 from .models import (
     DEFECT_KINDS,
     DEFECT_TARGETS,
@@ -274,11 +274,7 @@ def score_member(
 
 
 def _blender_python() -> str | None:
-    import os
-
-    return os.environ.get("CRITIC_BLENDER_PYTHON") or os.environ.get(
-        "CRITIC_INFINIGEN_PYTHON"
-    )
+    return blender_python_from_env()
 
 
 # -- the fold -----------------------------------------------------------------
