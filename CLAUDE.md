@@ -71,6 +71,7 @@ works.
   scenebloom (Apache-2.0 code) with its VLM swapped to a cloud vision model we
   already use (no OpenRouter), or locally as a scoped B2 exception;
   KBRASK/UniAction with Wan2.2-I2V-A14B (Apache-2.0), after the current wave.
+  Paradee-8M (Apache-2.0 TTS) for the first mile.
   Also our crew's
   quilt-pincher, KTX-Software (`toktx`), and the open-source builds the seats
   listed in their reports. Any other third-party project from GitHub still
