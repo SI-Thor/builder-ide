@@ -175,6 +175,27 @@ impl History {
             .filter(|record| record.label == label)
             .count()
     }
+
+    /// The GPU peak `--peak auto` reserves for a label: the larger of the
+    /// p95 and the last run of the GPU column, when the driver could be
+    /// asked for one at all.
+    ///
+    /// `None` means the history has never seen this label hold device
+    /// memory (CPU-only work, or no driver view), and then there is no GPU
+    /// promise to make.
+    pub fn learned_gpu(&self, label: &str) -> Option<u64> {
+        let peaks: Vec<u64> = self
+            .records
+            .iter()
+            .filter(|record| record.label == label)
+            .filter_map(|record| record.peak_gpu_bytes)
+            .collect();
+        if peaks.is_empty() {
+            return None;
+        }
+        let p95 = percentile(&peaks, 0.95).round() as u64;
+        Some(p95.max(*peaks.last().unwrap_or(&0)))
+    }
 }
 
 /// The `q`-th percentile, linearly interpolated — the same convention

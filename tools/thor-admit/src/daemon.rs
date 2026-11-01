@@ -63,6 +63,10 @@ const GRANT_GRACE: Duration = Duration::from_secs(30);
 pub const DEFAULT_GPU_BUSY_THRESHOLD: u8 = 50;
 /// The default interval for reading the CPU's counters.
 pub const DEFAULT_LEDGER_INTERVAL: Duration = Duration::from_secs(1);
+/// The default floor for the GPU's own allocation pool (`tegrastats`' `lfb`):
+/// the least that must stay free of `cudaMalloc` blocks and pinned host
+/// memory, which no amount of `MemAvailable` can reclaim.
+pub const DEFAULT_GPU_FLOOR: u64 = 2 * 1024 * 1024 * 1024;
 /// How many runs a label needs before `--peak auto` will speak.
 ///
 /// A p95 of two runs is a guess wearing a percentile's clothes: one shifted
@@ -148,6 +152,15 @@ pub struct Config {
     /// Let live work stop the presence queue's jobs so that live work can
     /// have the GPU.
     pub gpu_preempt: bool,
+    /// The least the GPU's own allocation pool must keep free (see
+    /// [`DEFAULT_GPU_FLOOR`]). Applied only when something can see the pool.
+    pub gpu_floor: u64,
+    /// The `tegrastats` to run, when it is not the one on the `PATH`.
+    ///
+    /// It is a test seam, like `meminfo`: the real daemon runs the real
+    /// `tegrastats`, and a test runs a script that prints a pool the test
+    /// controls, so the GPU rule can be driven without touching the GPU.
+    pub tegrastats_command: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -173,6 +186,8 @@ impl Default for Config {
             ledger_interval: DEFAULT_LEDGER_INTERVAL,
             gpu_busy_threshold: DEFAULT_GPU_BUSY_THRESHOLD,
             gpu_preempt: true,
+            gpu_floor: DEFAULT_GPU_FLOOR,
+            tegrastats_command: None,
         }
     }
 }
@@ -384,6 +399,9 @@ struct State {
     ledger: Ledger,
     /// When the CPU's counters were last read.
     last_cpu_read: Instant,
+    /// The waiters the GPU's own pool is holding up, so each is logged once
+    /// rather than every sample.
+    gpu_blocked: std::collections::HashSet<u64>,
 }
 
 /// A child process that keeps printing the GPU's view.
@@ -489,6 +507,7 @@ impl Daemon {
             },
             ledger: Ledger::new(&config.ledger),
             last_cpu_read: Instant::now(),
+            gpu_blocked: std::collections::HashSet::new(),
         };
         Ok(Arc::new(Daemon {
             config,
@@ -922,6 +941,8 @@ impl Daemon {
                 json!({
                     "mem_available_bytes": state.mem.mem_available,
                     "mem_total_bytes": state.mem.mem_total,
+                    "gpu_largest_free_block_bytes": state.gpu.largest_free_block,
+                    "gpu_box_used_bytes": state.gpu.box_used_bytes,
                     "leases": state.leases.len(),
                     "waiting": state.queue.len(),
                     "presence_running": state.presence.running.len(),
@@ -959,10 +980,15 @@ impl Daemon {
 
         let id = state.next_id;
         state.next_id += 1;
+        // The GPU promise is learned, not asked for: the label's own history
+        // says how much device memory it holds, and the GPU's pool has to
+        // have room for that on top of the GPU floor.
+        let peak_gpu = state.history.learned_gpu(&label).unwrap_or(0);
         let waiter = Waiter {
             id,
             label: label.clone(),
             peak_bytes,
+            peak_gpu,
             priority,
             tier,
             seq: 0,
@@ -996,6 +1022,30 @@ impl Daemon {
             state.waiters.remove(&id);
             state.targets.remove(&id);
             state.waiting_since.remove(&id);
+            state.gpu_blocked.remove(&id);
+        }
+    }
+
+    /// The admission rule as it stands right now: the memory rule, plus the
+    /// GPU's own pool when something can see it.
+    fn admission_now(&self, state: &State) -> Admission {
+        Admission {
+            available: state.mem.mem_available,
+            floor: self.config.floor,
+            gpu_available: state.gpu.largest_free_block,
+            gpu_floor: self.config.gpu_floor,
+        }
+    }
+
+    /// The memory rule alone, for the questions that are only about memory:
+    /// would the live lease fit without the presence queue, is there room
+    /// for registered work. The GPU side of those questions is the GPU
+    /// pre-emption's business, not the memory pre-emption's.
+    fn memory_admission(&self, state: &State) -> Admission {
+        Admission {
+            gpu_available: None,
+            gpu_floor: 0,
+            ..self.admission_now(state)
         }
     }
 
@@ -1006,13 +1056,30 @@ impl Daemon {
                 return;
             };
             let leases = self.charged_memory(state);
-            let admission = Admission {
-                available: state.mem.mem_available,
-                floor: self.config.floor,
-            };
-            if !admission.admits(&leases, waiter.peak_bytes) {
+            let admission = self.admission_now(state);
+            // A waiter that fits the memory rule but not the GPU's own pool
+            // is waiting for a *different* thing, and the log should say so
+            // once rather than every 250 ms.
+            if admission.admits(&leases, waiter.peak_bytes)
+                && !admission.gpu_admits(waiter.peak_gpu)
+                && state.gpu_blocked.insert(waiter.id)
+            {
+                self.log_event(
+                    "lease.waiting_for_gpu_memory",
+                    json!({
+                        "lease": waiter.id,
+                        "label": waiter.label,
+                        "gpu_free_bytes": state.gpu.largest_free_block,
+                        "gpu_floor_bytes": self.config.gpu_floor,
+                        "label_gpu_peak_bytes": waiter.peak_gpu,
+                        "gpu_source": state.gpu_source,
+                    }),
+                );
+            }
+            if !admission.admits_lease(&leases, waiter.peak_bytes, waiter.peak_gpu) {
                 return;
             }
+            state.gpu_blocked.remove(&waiter.id);
             let waiter = state.queue.pop().expect("the queue had a waiter");
             let reply = state.waiters.remove(&waiter.id);
             state.waiting_since.remove(&waiter.id);
@@ -1239,10 +1306,7 @@ impl Daemon {
         if state.presence.running.is_empty() {
             return;
         }
-        let admission = Admission {
-            available: state.mem.mem_available,
-            floor: self.config.floor,
-        };
+        let admission = self.memory_admission(state);
         let with_presence = self.charged_memory(state);
         if admission.admits(&with_presence, waiter.peak_bytes) {
             // It fits already. Nothing to pre-empt.
@@ -1367,10 +1431,7 @@ impl Daemon {
             // Live work is waiting. The presence queue waits behind it.
             return;
         }
-        let admission = Admission {
-            available: state.mem.mem_available,
-            floor: self.config.floor,
-        };
+        let admission = self.admission_now(state);
         loop {
             let Some(job) = state.presence.queue.next_runnable().cloned() else {
                 return;
@@ -1380,7 +1441,11 @@ impl Daemon {
                 return;
             }
             let charged = self.charged_memory(state);
-            if !admission.admits(&charged, job.spec.peak_bytes) {
+            // Registered work has to clear both rules too: the box's memory,
+            // and the GPU's own pool against whatever device memory this
+            // label has historically held.
+            let job_gpu = state.history.learned_gpu(&job.spec.label).unwrap_or(0);
+            if !admission.admits_lease(&charged, job.spec.peak_bytes, job_gpu) {
                 return;
             }
             let lock_path = self
@@ -1577,10 +1642,7 @@ impl Daemon {
         if registered.is_empty() {
             return IdleReason::NoWorkRegistered;
         }
-        let admission = Admission {
-            available: state.mem.mem_available,
-            floor: self.config.floor,
-        };
+        let admission = self.memory_admission(state);
         let charged = self.charged_memory(state);
         let fits = registered
             .iter()
@@ -1907,9 +1969,21 @@ impl Daemon {
 
     /// `tegrastats`: one child, printing the Tegra's own memory view.
     fn spawn_tegrastats_watch(&self) -> Option<GpuWatch> {
-        let mut command = std::process::Command::new("tegrastats");
+        let mut command = match &self.config.tegrastats_command {
+            Some(path) => {
+                let mut command = std::process::Command::new(path);
+                // The real tegrastats takes an interval; a test double takes
+                // nothing, but accepting the arguments keeps the seam honest.
+                command.args(["--interval", "1000"]);
+                command
+            }
+            None => {
+                let mut command = std::process::Command::new("tegrastats");
+                command.args(["--interval", "1000"]);
+                command
+            }
+        };
         command
-            .args(["--interval", "1000"])
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::null());
         let mut child = command.spawn().ok()?;
@@ -2129,11 +2203,13 @@ fn status_report(state: &State, config: &Config) -> StatusReport {
         mem_available_bytes: state.mem.mem_available,
         floor_bytes: config.floor,
         emergency_floor_bytes: config.emergency_floor,
+        gpu_floor_bytes: config.gpu_floor,
         leases,
         queue,
         gpu_source: state.gpu_source.clone(),
         gpu_visible: state.gpu_source != "off" && !state.gpu_source.contains("unavailable"),
         gpu_box_used_bytes: state.gpu.box_used_bytes,
+        gpu_largest_free_block_bytes: state.gpu.largest_free_block,
         uptime_s: state.started.elapsed().as_secs_f64(),
         samples: state.samples,
         presence: presence_reports(state),

@@ -1507,6 +1507,103 @@ fn the_queue_is_ordered_by_priority() {
     }
 }
 
+/// The GPU's own allocation pool is a second budget, beside MemAvailable.
+///
+/// `MemAvailable` is the kernel's estimate of reclaimable memory, and it
+/// cannot say how full or how fragmented the *non-reclaimable* pool is —
+/// `cudaMalloc` blocks and pinned host memory stay put. `tegrastats`' `lfb`
+/// (the free blocks of the allocation pool) can. When the pool is thin a
+/// lease waits even though MemAvailable is generous: that is Hy4's third
+/// failure mode, a workload OOM-ing on `cudaMalloc` while the daemon said
+/// there was room.
+///
+/// The pool here is driven by a fake `tegrastats` (the
+/// `--tegrastats-command` seam, like `--meminfo`), so the test allocates
+/// nothing and touches no GPU.
+#[test]
+fn a_lease_waits_when_the_gpus_own_pool_is_thin() {
+    let reserved = DaemonUnderTest::reserve("gpu-pool", &[]);
+    let state_dir = reserved.state_dir.clone();
+    // The pool the fake reports: the number of 4 MiB blocks free.
+    let pool = state_dir.join("lfb");
+    std::fs::write(&pool, "2\n").unwrap(); // 8 MiB free of the allocation pool
+    let script = state_dir.join("fake-tegrastats.sh");
+    std::fs::write(
+        &script,
+        format!(
+            "#!/bin/sh\nwhile :; do\n  n=$(cat {})\n  printf '10-31-2026 23:00:00 RAM \
+             40000/125749MB (lfb %sx4MB) VDD_GPU 3000mW/3000mW/3000mW\\n' \"$n\"\n  \
+             sleep 1\ndone\n",
+            pool.display()
+        ),
+    )
+    .unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    let _ = std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755));
+    let mut extra = vec![
+        "--floor".to_string(),
+        "1G".to_string(),
+        "--gpu-probe".to_string(),
+        "tegrastats".to_string(),
+        "--gpu-floor".to_string(),
+        "1G".to_string(),
+        "--tegrastats-command".to_string(),
+        script.display().to_string(),
+    ];
+    extra.extend(reserved.extra.clone());
+    let daemon = DaemonUnderTest::start(Reserved {
+        state_dir,
+        extra,
+    });
+
+    // MemAvailable is the box's real, generous number; the pool is 8 MiB.
+    // The lease fits the memory rule and still waits.
+    let mut waiter = leased(&daemon, "gpu.thirsty", "1G", &["sleep", "60"]);
+    let held = wait_until(15, || {
+        daemon.log().contains("lease.waiting_for_gpu_memory")
+    });
+    assert!(
+        held,
+        "the daemon did not say the lease was waiting for the GPU's pool; \
+         the log was:\n{}",
+        daemon.log()
+    );
+    assert_eq!(
+        daemon.status()["queue"]
+            .as_array()
+            .map(|queue| queue.len())
+            .unwrap_or(0),
+        1,
+        "the lease should be waiting, not running; the status was {}",
+        daemon.status()
+    );
+
+    // The pool recovers (whatever held it let go): the lease is admitted.
+    std::fs::write(&pool, "1024\n").unwrap(); // 4 GiB free
+    let admitted = wait_until(20, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        admitted,
+        "the lease was not admitted once the pool recovered; the log was:\n{}",
+        daemon.log()
+    );
+    // And the status shows the pool beside the memory, which is where the
+    // rule's numbers live.
+    let status = daemon.status();
+    assert_eq!(
+        status["gpu_largest_free_block_bytes"].as_u64(),
+        Some(1024 * 4 * 1024 * 1024),
+        "the status does not show the pool it is ruling on: {status}"
+    );
+
+    let _ = waiter.kill();
+    let _ = waiter.wait();
+}
+
 /// The daemon must never signal the box's own services.
 #[test]
 fn the_watchdog_leaves_small_leases_alone() {

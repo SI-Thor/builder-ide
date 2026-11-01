@@ -12,6 +12,10 @@ pub struct Waiter {
     pub id: u64,
     pub label: String,
     pub peak_bytes: u64,
+    /// The device memory this label has historically held, which the GPU's
+    /// own pool must have room for on top of the GPU floor. Zero when the
+    /// history has never seen the label touch the GPU.
+    pub peak_gpu: u64,
     /// Higher runs first. The default is 0.
     pub priority: i32,
     /// Which tier of work this is. Only a live waiter may pre-empt the
@@ -94,6 +98,7 @@ mod tests {
             id,
             label: format!("w{id}"),
             peak_bytes: 1024,
+            peak_gpu: 0,
             priority,
             tier: Tier::Live,
             seq: 0,

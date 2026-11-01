@@ -100,6 +100,8 @@ The tiers, most urgent first:
 Daemon options (all have defaults):
   --floor <size>            the floor a lease must clear      (default 25G)
   --emergency-floor <size>  below this, the watchdog acts     (default 8G)
+  --gpu-floor <size>        the least the GPU's own allocation pool must
+                            keep free (tegrastats' lfb; default 2G)
   --sample-interval-ms <n>  how often the box is sampled      (default 250)
   --scan-interval-ms <n>    how often the processes' memory is read (default 1000)
   --stop-grace-samples <n>  samples a watchdog-terminated lease is given
@@ -110,6 +112,7 @@ Daemon options (all have defaults):
   --history <path>          where the learned peaks are written
   --meminfo <path>          where the box's memory is read (default /proc/meminfo)
   --gpu-probe <auto|nvidia|tegrastats|off>   the GPU's view (default auto)
+  --tegrastats-command <path>  a test seam: run this instead of tegrastats
   --idle-exit <seconds>     leave after this long with nothing to do (default 900)
   --no-stop-on-client-gone  leave a dead client's command running (default: stop it)
   --no-presence             do not run the presence queue (default: run it)
@@ -267,6 +270,17 @@ fn run_daemon(args: &[String]) -> ExitCode {
             eprintln!("thor-admit: {error}");
             return ExitCode::from(2);
         }
+    }
+    match options.size("gpu-floor") {
+        Ok(Some(value)) => config.gpu_floor = value,
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    if let Some(value) = options.get("tegrastats-command") {
+        config.tegrastats_command = Some(PathBuf::from(value));
     }
     if let Some(value) = options.get("socket") {
         config.socket = PathBuf::from(value);
@@ -523,13 +537,20 @@ fn run_status(args: &[String]) -> ExitCode {
         return ExitCode::SUCCESS;
     }
     println!(
-        "memory: {} free of {} (floor {}, emergency floor {})",
+        "memory: {} free of {} (floor {}, emergency floor {}, gpu floor {})",
         human(report.mem_available_bytes),
         human(report.mem_total_bytes),
         human(report.floor_bytes),
-        human(report.emergency_floor_bytes)
+        human(report.emergency_floor_bytes),
+        human(report.gpu_floor_bytes)
     );
     println!("gpu view: {}", report.gpu_source);
+    if let Some(free) = report.gpu_largest_free_block_bytes {
+        println!(
+            "gpu pool: {} free of the allocation pool (from {})",
+            human(free), report.gpu_source
+        );
+    }
     println!("leases: {}", report.leases.len());
     for lease in &report.leases {
         println!(
