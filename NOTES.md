@@ -427,3 +427,38 @@ a seat that follows the rule does not hold the lock while it waits.
   `thor-admit exec`, and know that the guard can stop an unleased runaway.
   The previous runtime could not write outside its workspace; this one can,
   so the live copy and the repository copy are the same file again.
+
+## 2026-11-01 13:52 — the binary is staged
+
+The release binary is at **`~/lm-tools/thor-admit.new`**, sha256
+`636ba7bb9d6beb769b4f520ba51a95fd0d1f45d4657b4a730178f631a909918f`,
+identical to the worktree's `target/release/thor-admit`. It was written to
+`~/lm-tools/thor-admit.new.tmp` and moved into place, so a running client
+keeps the inode it opened.
+
+The live binary is **unchanged**: `~/lm-tools/thor-admit`, sha256
+`a0e5db1764941509d43f44ff3de16400df3a959cdc32f709fafd4b721bcd14fd`
+(the round-11 binary, 12:04). **The swap is the director's**, and the round
+*does* change what the box does when the daemon is next restarted: the guard
+is on by default, and the leases are ranked by resident set plus device
+bytes. Nothing needs a restart to be *safe* — the old daemon keeps the old
+rule and is not wrong, only blind to work it does not own.
+
+Checked on the real box with the staged binary:
+
+    $ ~/lm-tools/thor-admit.new exec -- python3 -c "import jax; print('must not run')"
+    thor-admit: refusing to start a JAX/XLA process without a safe allocator.
+      found: the inline code imports it
+      why:   on this box the GPU's memory is the system's memory, and this framework
+             preallocates 75-90% of it before it computes anything. ...
+      make it safe with one of: XLA_PYTHON_CLIENT_PREALLOCATE=false or
+             XLA_PYTHON_CLIENT_ALLOCATOR=platform or XLA_PYTHON_CLIENT_MEM_FRACTION=0.15
+    exit=2
+
+    $ ~/lm-tools/thor-admit.new exec -- echo plain-ok
+    plain-ok
+    exit=0
+
+The staged binary also reads the **live round-11 daemon's** status without
+trouble (`guard.enabled: false`, the rest defaulted), so a new client
+against an old daemon works — which is the swap window.
