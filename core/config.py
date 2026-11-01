@@ -61,6 +61,12 @@ class Settings:
     # (2026-10-31): on by default; turn it off to give the box to other
     # growth cycles when an experiment calls for it.
     daytime_enabled: bool = True
+    # Which critic scores the reference set — the **parameter**, with a
+    # default. The default is the scripted critic in ``core/critic``: it
+    # needs no model, and it is the fallback whenever the chosen critic
+    # cannot be built on this box. The bake-off that chose it is
+    # ``docs/lab/exp-critic-select.md``.
+    critic: str = "scripted"
 
     @classmethod
     def for_home(cls, home: str | Path) -> "Settings":
@@ -76,6 +82,10 @@ class Settings:
             reports_dir=home / "reports",
             tokens_file=home / "tokens.json",
         )
+        # The critic is chosen by name, from the environment or the config
+        # file. An unknown name is not a crash: the scripted critic answers
+        # and the reason travels with the verdict.
+        s.critic = os.environ.get("BUILDER_CRITIC", s.critic)
         for d in (
             s.artifacts_dir,
             s.stages_dir,

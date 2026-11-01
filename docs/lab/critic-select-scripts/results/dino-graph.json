@@ -1,0 +1,279 @@
+{
+ "note": "The DINOv2 candidate's forward path on the reference set's own pictures: the candidate's eager path against the same forward captured in a CUDA Graph with a static input buffer. The joules are the box's rails for the whole window \u2014 the seed sweep and other seats share this box \u2014 so they are context, not an attribution to the critic.",
+ "model": "facebook/dinov2-large",
+ "params_m": 304.4,
+ "dtype": "bfloat16",
+ "device": "cuda",
+ "pictures": 21,
+ "warm_up": {
+  "clock_before_mhz": 315.0,
+  "clock_after_mhz": 1575.0,
+  "warm_seconds": 2.0,
+  "reps": 1740
+ },
+ "box_before": {
+  "timestamp": "2026-10-31 16:52:18 AKDT",
+  "loadavg": [
+   6.2,
+   5.92,
+   6.73
+  ],
+  "n_cores": 14,
+  "power_mode": "NV Power Mode: MAXN",
+  "gpu_util_pct": 0,
+  "gpu_clock_mhz": 315.0,
+  "gpu_clock_limits": {
+   "gpc": {
+    "min_mhz": 315.0,
+    "max_mhz": 1575.0,
+    "governor": "nvhost_podgov"
+   },
+   "nvd": {
+    "min_mhz": 315.0,
+    "max_mhz": 1692.0,
+    "governor": "nvhost_podgov"
+   }
+  },
+  "mem_mib": {
+   "MemTotal": 125748,
+   "MemFree": 5959,
+   "MemAvailable": 115767,
+   "Cached": 93916
+  },
+  "gpu_processes": []
+ },
+ "box_after": {
+  "timestamp": "2026-10-31 16:52:23 AKDT",
+  "loadavg": [
+   6.18,
+   5.92,
+   6.72
+  ],
+  "n_cores": 14,
+  "power_mode": "NV Power Mode: MAXN",
+  "gpu_util_pct": 21,
+  "gpu_clock_mhz": 1575.0,
+  "gpu_clock_limits": {
+   "gpc": {
+    "min_mhz": 315.0,
+    "max_mhz": 1575.0,
+    "governor": "nvhost_podgov"
+   },
+   "nvd": {
+    "min_mhz": 315.0,
+    "max_mhz": 1692.0,
+    "governor": "nvhost_podgov"
+   }
+  },
+  "mem_mib": {
+   "MemTotal": 125748,
+   "MemFree": 3229,
+   "MemAvailable": 113692,
+   "Cached": 95492
+  },
+  "gpu_processes": [
+   {
+    "pid": 194826,
+    "name": ".venv-torch/bin/python",
+    "mem_mib": "896",
+    "cmdline": ".venv-torch/bin/python docs/lab/critic-select-scripts/run_dino_graph.py"
+   }
+  ]
+ },
+ "median_eager_total_ms": 26.6,
+ "median_eager_forward_ms": 6.2,
+ "median_graph_total_ms": 24.2,
+ "median_graph_replay_ms": 5.9,
+ "all_bit_exact": true,
+ "rows": [
+  {
+   "member_id": "mem_21488ad67db1666b",
+   "eager_total_ms": 20.706,
+   "eager_forward_ms": 6.003,
+   "graph_total_ms": 18.474,
+   "graph_replay_ms": 5.889,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_f95ee685896a09c0",
+   "eager_total_ms": 26.229,
+   "eager_forward_ms": 6.086,
+   "graph_total_ms": 24.155,
+   "graph_replay_ms": 5.883,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_9aa7eec1d2c8f19d",
+   "eager_total_ms": 25.284,
+   "eager_forward_ms": 6.173,
+   "graph_total_ms": 23.967,
+   "graph_replay_ms": 5.924,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_b5828303072b1a3c",
+   "eager_total_ms": 25.767,
+   "eager_forward_ms": 6.117,
+   "graph_total_ms": 23.565,
+   "graph_replay_ms": 5.906,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_307101c469654adf",
+   "eager_total_ms": 28.007,
+   "eager_forward_ms": 6.286,
+   "graph_total_ms": 25.576,
+   "graph_replay_ms": 5.95,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_f2de39875e8a21f9",
+   "eager_total_ms": 27.931,
+   "eager_forward_ms": 6.165,
+   "graph_total_ms": 25.347,
+   "graph_replay_ms": 5.929,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_adc321874fe5a328",
+   "eager_total_ms": 27.419,
+   "eager_forward_ms": 6.177,
+   "graph_total_ms": 24.591,
+   "graph_replay_ms": 5.939,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_718023ba022732d4",
+   "eager_total_ms": 27.793,
+   "eager_forward_ms": 6.131,
+   "graph_total_ms": 24.695,
+   "graph_replay_ms": 5.478,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_006310cbdf937f74",
+   "eager_total_ms": 26.521,
+   "eager_forward_ms": 5.885,
+   "graph_total_ms": 22.956,
+   "graph_replay_ms": 5.141,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_e5097025648d7b9c",
+   "eager_total_ms": 20.073,
+   "eager_forward_ms": 6.121,
+   "graph_total_ms": 17.469,
+   "graph_replay_ms": 4.974,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_966194306043c892",
+   "eager_total_ms": 25.939,
+   "eager_forward_ms": 5.899,
+   "graph_total_ms": 22.603,
+   "graph_replay_ms": 5.126,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_9d6d264ba8126d40",
+   "eager_total_ms": 26.586,
+   "eager_forward_ms": 6.252,
+   "graph_total_ms": 23.376,
+   "graph_replay_ms": 5.048,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_65684b3ca047a1ae",
+   "eager_total_ms": 27.197,
+   "eager_forward_ms": 5.947,
+   "graph_total_ms": 23.926,
+   "graph_replay_ms": 5.014,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_f718dd9be64c17e4",
+   "eager_total_ms": 31.668,
+   "eager_forward_ms": 5.996,
+   "graph_total_ms": 29.197,
+   "graph_replay_ms": 5.872,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_5dce9a3310b1eba5",
+   "eager_total_ms": 27.718,
+   "eager_forward_ms": 6.323,
+   "graph_total_ms": 25.475,
+   "graph_replay_ms": 5.969,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "eager_total_ms": 27.198,
+   "eager_forward_ms": 6.517,
+   "graph_total_ms": 24.878,
+   "graph_replay_ms": 5.925,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_d5c1c6cc24413705",
+   "eager_total_ms": 27.88,
+   "eager_forward_ms": 6.042,
+   "graph_total_ms": 24.859,
+   "graph_replay_ms": 5.857,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_b521f152359d1cde",
+   "eager_total_ms": 26.921,
+   "eager_forward_ms": 6.154,
+   "graph_total_ms": 24.108,
+   "graph_replay_ms": 6.064,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_202aa986e4168c4c",
+   "eager_total_ms": 20.582,
+   "eager_forward_ms": 6.377,
+   "graph_total_ms": 18.563,
+   "graph_replay_ms": 5.903,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "eager_total_ms": 26.607,
+   "eager_forward_ms": 6.234,
+   "graph_total_ms": 26.953,
+   "graph_replay_ms": 6.073,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  },
+  {
+   "member_id": "mem_f187020297fd5c58",
+   "eager_total_ms": 26.18,
+   "eager_forward_ms": 6.757,
+   "graph_total_ms": 24.53,
+   "graph_replay_ms": 5.975,
+   "bit_exact": true,
+   "max_abs_diff": 0.0
+  }
+ ]
+}

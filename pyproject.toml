@@ -16,6 +16,9 @@ dependencies = [
     # Python. The USD extra already pulls numpy in; this makes it a
     # dependency in its own right.
     "numpy>=1.26",
+    # The critic's calibration set reads the sweep's renders and writes the
+    # derived images the checks run on, so the image half needs a PNG codec.
+    "pillow>=10",
 ]
 
 [project.optional-dependencies]

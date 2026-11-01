@@ -1,0 +1,167 @@
+{
+ "rows": [
+  {
+   "member_id": "mem_21488ad67db1666b",
+   "base_id": "arctic-s1",
+   "defect": "black_frame",
+   "cosine_to_its_base_render": 0.05929
+  },
+  {
+   "member_id": "mem_f95ee685896a09c0",
+   "base_id": "arctic-s4",
+   "defect": "noise_fireflies",
+   "cosine_to_its_base_render": 0.98431
+  },
+  {
+   "member_id": "mem_9aa7eec1d2c8f19d",
+   "base_id": "arctic-s5",
+   "defect": null,
+   "cosine_to_its_base_render": 1.0
+  },
+  {
+   "member_id": "mem_b5828303072b1a3c",
+   "base_id": "arctic-s6",
+   "defect": "missing_object",
+   "cosine_to_its_base_render": 0.98862
+  },
+  {
+   "member_id": "mem_307101c469654adf",
+   "base_id": "arctic-s7",
+   "defect": "holes",
+   "cosine_to_its_base_render": 0.99004
+  },
+  {
+   "member_id": "mem_f2de39875e8a21f9",
+   "base_id": "arctic-s8",
+   "defect": null,
+   "cosine_to_its_base_render": 1.0
+  },
+  {
+   "member_id": "mem_adc321874fe5a328",
+   "base_id": "canyon-s1",
+   "defect": "texture_swap",
+   "cosine_to_its_base_render": 0.85122
+  },
+  {
+   "member_id": "mem_718023ba022732d4",
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "cosine_to_its_base_render": 1.0
+  },
+  {
+   "member_id": "mem_006310cbdf937f74",
+   "base_id": "canyon-s5",
+   "defect": null,
+   "cosine_to_its_base_render": 1.0
+  },
+  {
+   "member_id": "mem_e5097025648d7b9c",
+   "base_id": "canyon-s6",
+   "defect": "black_frame",
+   "cosine_to_its_base_render": 0.12756
+  },
+  {
+   "member_id": "mem_966194306043c892",
+   "base_id": "canyon-s7",
+   "defect": "noise_fireflies",
+   "cosine_to_its_base_render": 0.94651
+  },
+  {
+   "member_id": "mem_9d6d264ba8126d40",
+   "base_id": "canyon-s8",
+   "defect": null,
+   "cosine_to_its_base_render": 1.0
+  },
+  {
+   "member_id": "mem_65684b3ca047a1ae",
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "cosine_to_its_base_render": 0.98253
+  },
+  {
+   "member_id": "mem_f718dd9be64c17e4",
+   "base_id": "coast-s2",
+   "defect": "holes",
+   "cosine_to_its_base_render": 0.98732
+  },
+  {
+   "member_id": "mem_5dce9a3310b1eba5",
+   "base_id": "coast-s4",
+   "defect": null,
+   "cosine_to_its_base_render": 1.0
+  },
+  {
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "base_id": "coast-s5",
+   "defect": "texture_swap",
+   "cosine_to_its_base_render": 0.98929
+  },
+  {
+   "member_id": "mem_d5c1c6cc24413705",
+   "base_id": "coast-s6",
+   "defect": "floating_object",
+   "cosine_to_its_base_render": 1.0
+  },
+  {
+   "member_id": "mem_b521f152359d1cde",
+   "base_id": "coast-s7",
+   "defect": null,
+   "cosine_to_its_base_render": 1.0
+  },
+  {
+   "member_id": "mem_202aa986e4168c4c",
+   "base_id": "coast-s8",
+   "defect": "black_frame",
+   "cosine_to_its_base_render": 0.08603
+  },
+  {
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "base_id": "desert-s1",
+   "defect": "noise_fireflies",
+   "cosine_to_its_base_render": 0.97602
+  },
+  {
+   "member_id": "mem_f187020297fd5c58",
+   "base_id": "arctic-s2",
+   "defect": "noise_fireflies",
+   "cosine_to_its_base_render": 0.88896
+  }
+ ],
+ "by_defect": {
+  "black_frame": [
+   0.05929,
+   0.12756,
+   0.08603
+  ],
+  "noise_fireflies": [
+   0.98431,
+   0.94651,
+   0.97602,
+   0.88896
+  ],
+  "None": [
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0
+  ],
+  "missing_object": [
+   0.98862,
+   0.98253
+  ],
+  "holes": [
+   0.99004,
+   0.98732
+  ],
+  "texture_swap": [
+   0.85122,
+   0.98929
+  ],
+  "floating_object": [
+   1.0,
+   1.0
+  ]
+ }
+}
