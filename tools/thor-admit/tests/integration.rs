@@ -1963,6 +1963,74 @@ fn a_live_lease_preempts_a_presence_job() {
     let _ = live.wait();
 }
 
+/// A granted lease that is never held never ran anything, and the ledger
+/// must not invent work for it: the tier's running time stays at zero, and
+/// the window is booked to its own attributed cause instead (Hy4's fifth
+/// failure mode — the ledger showed live.running_s > 0 for a lease whose
+/// command never started).
+#[test]
+fn a_granted_lease_that_never_runs_is_not_booked_as_running() {
+    let daemon = DaemonUnderTest::start_named("granted-not-run", &[
+        "--floor",
+        "1G",
+        "--grant-grace-secs",
+        "3",
+    ]);
+
+    let mut holder = lease_holder("abandon", &daemon, "phantom.live", 60.0);
+    let granted = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(granted, "the holder never got its grant: {}", daemon.log());
+
+    // The grant's grace runs out and the daemon takes the lease back.
+    let gone = wait_until(20, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        gone,
+        "the unclaimed grant was never taken back: {}",
+        daemon.log()
+    );
+    assert!(
+        daemon.log().contains("lease.granted_not_run"),
+        "the daemon never named the phantom lease: {}",
+        daemon.log()
+    );
+
+    // And the ledger tells the truth about the window: nothing ran, and the
+    // idleness has the cause the grant explains.
+    let buckets = ledger(&daemon);
+    let bucket = buckets.last().expect("there is an hour");
+    let live_running = bucket["tiers"]["live"]["running_s"].as_f64().unwrap_or(0.0);
+    assert_eq!(
+        live_running, 0.0,
+        "the ledger booked running time for a lease that never ran: {bucket}"
+    );
+    let reasons = bucket["idle"]["by_reason"]
+        .as_object()
+        .cloned()
+        .unwrap_or_default();
+    assert!(
+        reasons.contains_key("granted_not_run"),
+        "the grant's window has no cause of its own: {bucket}"
+    );
+    assert_eq!(
+        bucket["idle"]["unattributed_s"].as_f64().unwrap_or(-1.0),
+        0.0,
+        "an explained window was booked as unattributed: {bucket}"
+    );
+
+    let _ = holder.kill();
+    let _ = holder.wait();
+}
+
 /// The ledger books the box's time to the tiers, and explains its idleness.
 #[test]
 fn the_ledger_books_the_time_by_tier() {

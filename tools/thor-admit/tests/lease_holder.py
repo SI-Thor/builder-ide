@@ -10,6 +10,8 @@ does *not*, the tests need a holder whose behaviour is up to them:
     orphan     holds the lease, then exits while a forked child keeps the
                lock's file descriptor open (a lock with nobody left to
                release it)
+    abandon    takes the grant and never takes the lock at all (a lease
+               that never runs)
 
 Usage: lease_holder.py <mode> <socket> <label> [seconds]
 
@@ -60,6 +62,13 @@ def main() -> None:
         if event.get("event") == "granted":
             break
     lease_id = int(event["lease"])
+    if mode == "abandon":
+        # Granted, and that is the last the daemon hears of it: no lock, no
+        # held, no heartbeat. The daemon must give the lease back on its
+        # own, and the ledger must not book the window as running work.
+        print("granted", flush=True)
+        time.sleep(seconds)
+        return
     lock_fd = os.open(event["lock_path"], os.O_RDWR | os.O_CREAT, 0o600)
     fcntl.flock(lock_fd, fcntl.LOCK_EX)
     send(stream, {"op": "held", "lease": lease_id})

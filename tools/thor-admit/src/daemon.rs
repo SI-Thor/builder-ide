@@ -56,12 +56,13 @@ pub const DEFAULT_SCAN_INTERVAL: Duration = Duration::from_millis(1000);
 pub const DEFAULT_MEMINFO: &str = "/proc/meminfo";
 /// The default smallest lease the watchdog will touch.
 pub const DEFAULT_MIN_VICTIM_RSS: u64 = 2 * 1024 * 1024 * 1024;
-/// How long a granted lease may sit unlocked before the daemon gives up on it.
-const GRANT_GRACE: Duration = Duration::from_secs(30);
 /// The default grace a client's silence gets before the daemon acts: six
 /// missed heartbeats at the client's one-every-five-seconds, plus slack for
 /// a box under load.
 pub const DEFAULT_HEARTBEAT_GRACE: Duration = Duration::from_secs(60);
+/// The default grace a grant gets before the daemon gives up on the client
+/// ever taking the lock.
+pub const DEFAULT_GRANT_GRACE: Duration = Duration::from_secs(30);
 /// The default GPU's busy share of the GPU at which live work takes the GPU from
 /// the presence queue.
 pub const DEFAULT_GPU_BUSY_THRESHOLD: u8 = 50;
@@ -161,6 +162,9 @@ pub struct Config {
     /// the lease back. The lock alone is not liveness: a hung client's lock
     /// never drops.
     pub heartbeat_grace: Duration,
+    /// How long a granted lease may sit unclaimed before the daemon gives
+    /// up on the client ever taking the lock.
+    pub grant_grace: Duration,
     /// The least the GPU's own allocation pool must keep free (see
     /// [`DEFAULT_GPU_FLOOR`]). Applied only when something can see the pool.
     pub gpu_floor: u64,
@@ -196,6 +200,7 @@ impl Default for Config {
             gpu_busy_threshold: DEFAULT_GPU_BUSY_THRESHOLD,
             gpu_preempt: true,
             heartbeat_grace: DEFAULT_HEARTBEAT_GRACE,
+            grant_grace: DEFAULT_GRANT_GRACE,
             gpu_floor: DEFAULT_GPU_FLOOR,
             tegrastats_command: None,
         }
@@ -1618,15 +1623,16 @@ impl Daemon {
         let mut running_tiers: Vec<Tier> = Vec::new();
         let mut preempted_tiers: Vec<Tier> = Vec::new();
         for lease in state.leases.iter() {
-            // A lease is booked from the **grant**, not from the client's
-            // confirmation. The memory is committed at the grant — that is
-            // exactly what the admission rule charges — and the client's
-            // "held" arrives a tick later, so counting only the confirmed
-            // leases would leave a sample of the box looking idle while a
-            // lease was already committed to it.
-            if matches!(lease.state, LeaseState::Granted | LeaseState::Active)
-                && !running_tiers.contains(&lease.tier)
-            {
+            // A lease is booked from the moment the client **holds** it. A
+            // lease that was granted but never held never ran anything, so
+            // booking its grant as running time would invent work — the
+            // ledger would say live ran for an hour in which a phantom
+            // lease sat unclaimed (Hy4's fifth failure mode). The grant's
+            // window is not lost: below, the box's idleness in it is booked
+            // to `granted_not_run`, an attributed cause, so the committed
+            // memory still explains the empty-looking box without being
+            // called work.
+            if lease.state == LeaseState::Active && !running_tiers.contains(&lease.tier) {
                 running_tiers.push(lease.tier);
             }
         }
@@ -1674,6 +1680,16 @@ impl Daemon {
     /// running and is not stopped — is the one the ledger cannot explain, and
     /// it is the number that should be zero.
     fn idle_reason(&self, state: &State) -> IdleReason {
+        if state
+            .leases
+            .iter()
+            .any(|lease| lease.state == LeaseState::Granted)
+        {
+            // Memory is committed to a lease nobody has held. The box is
+            // not doing nothing; it is waiting on a grant that may never be
+            // claimed, and that is its own cause.
+            return IdleReason::GrantedNotRun;
+        }
         if !state.queue.is_empty() {
             // Live work is waiting for room.
             return IdleReason::WaitingForMemory;
@@ -1719,7 +1735,7 @@ impl Daemon {
         for lease in state.leases.iter() {
             match lease.state {
                 LeaseState::Granted => {
-                    if lease.granted_at.elapsed() > GRANT_GRACE {
+                    if lease.granted_at.elapsed() > self.config.grant_grace {
                         dead.push((lease.id, "the client never took the lock"));
                     }
                 }
@@ -1951,6 +1967,20 @@ impl Daemon {
             return;
         };
         let lease = state.leases.remove(index);
+        if lease.state == LeaseState::Granted {
+            // Granted, never held, now gone: the command never ran. The
+            // ledger has been booking this window as granted_not_run; the
+            // event names it once, plainly, for anyone reading the log.
+            self.log_event(
+                "lease.granted_not_run",
+                json!({
+                    "lease": lease.id,
+                    "label": lease.label,
+                    "reason": reason,
+                    "granted_s": lease.granted_at.elapsed().as_secs_f64(),
+                }),
+            );
+        }
         let (peak, peak_source) = lease.measured_peak();
         let mut record = PeakRecord::new(&lease.label, &lease.label, peak);
         record.peak_gpu_bytes = if lease.peak_gpu > 0 {

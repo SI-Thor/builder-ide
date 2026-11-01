@@ -108,6 +108,8 @@ Daemon options (all have defaults):
                             before the watchdog escalates to SIGKILL (default 8)
   --heartbeat-grace-secs <n> how long a silent client keeps its lease
                             (the client heartbeats every 5s; default 60)
+  --grant-grace-secs <n>    how long a grant waits for its client to take
+                            the lock (default 30)
   --min-victim-rss <size>   the smallest lease the watchdog will touch (default 2G)
   --socket <path>           the socket to listen on
   --state-dir <path>        where the lease files and the log live
@@ -353,6 +355,14 @@ fn run_daemon(args: &[String]) -> ExitCode {
     }
     match options.number("heartbeat-grace-secs") {
         Ok(Some(value)) => config.heartbeat_grace = Duration::from_secs(value),
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    match options.number("grant-grace-secs") {
+        Ok(Some(value)) => config.grant_grace = Duration::from_secs(value),
         Ok(None) => {}
         Err(error) => {
             eprintln!("thor-admit: {error}");
