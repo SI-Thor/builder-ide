@@ -14,12 +14,14 @@ the night's output is a catalogue of props rather than a render.
 
 | module | what it owns | needs a GPU? |
 |---|---|---|
-| `glb.py` | reading a GLB: the container, and the mesh primitive in it | no |
+| `glb.py` | reading a GLB: the container, and the mesh primitive in it — and `Glb.asset`, the whole object with every part placed where the scene graph puts it | no |
 | `mesh.py` | measuring a mesh: watertightness, triangles, bbox, volume, area, centre of mass | no |
+| `occupancy.py` | **what the object occupies** — the convex hull, the visual hull, or the shell's signed volume | no |
 | `repair.py` | the repair stage: welding the seams the generator leaves, and undoing the self-crossings | no |
 | `fidelity.py` | the silhouette IoU: how much of the prop a repair left alone | no |
 | `critic.py` | the scripted critic — the judgement that picks the winner | no |
 | `plausibility.py` | the **other** side of the judge: a prior over real-object features, and the ambiguity gate ([`PLAUSIBILITY.md`](PLAUSIBILITY.md)) | no |
+| `reference.py` | the prior's reference set: the approved assets **and** the measured real objects, and the fit over the two | no |
 | `assets.py`, `licences.py` | the asset record: the file, the recipe, the licence row | no |
 | `models.py`, `store.py` | the records, and where the night's output is kept | no |
 | `workflow.py` | the two API workflows, patched from the TRELLIS.2 environment's own templates | no |
@@ -40,14 +42,57 @@ that matches its image perfectly and depicts nothing that exists passes
 all eight.
 
 `plausibility.py` is the other side: a prior over the features of real
-objects, fitted on the **approved assets**, and the **ambiguity gate** that
-says the image did not determine the shape. The note is
-[`PLAUSIBILITY.md`](PLAUSIBILITY.md); the measured numbers and the two
-design bugs the controls caught are in
+objects, fitted on the **approved assets and the real objects**, and the
+**ambiguity gate** that says the image did not determine the shape. The
+note is [`PLAUSIBILITY.md`](PLAUSIBILITY.md); the measured numbers and the
+two design bugs the controls caught are in
 [`docs/lab/exp-genbatch-plausibility.md`](../../docs/lab/exp-genbatch-plausibility.md).
 
+## The prior needs real objects in it, and it needs to measure what they occupy
+
+Two things the plausibility prior had wrong, both found by measuring it
+against the **NVIDIA SimReady** assets (CC-BY-4.0, read and sampled, never
+mirrored) instead of against a synthetic toy.
+
+**The measure.** `fill_ratio` divided the mesh's **signed volume** by its
+bounding box — the volume of the material in a shell's wall, not the space
+the object takes up. The real SimReady mug encloses **43 cm³ of ceramic**
+in a box that holds **826 cm³**, so it read a fill ratio of **0.052** where
+the generated toy mug reads **0.68**. A prior fitted on generated solids
+therefore called **all 38** real assets ghosts.
+
+`occupancy.py` measures the space the object **occupies** instead — the
+convex hull of its vertices by default, with the visual hull and the old
+signed measure kept as parameters. The real mug's occupied volume is
+**489 cm³** and its fill ratio reads **0.592**.
+
+**The reference set.** `reference.py` fits the prior over the **union** of
+the approved assets and 38 measured real objects, and `simready-reference.json`
+holds those 38 as **six numbers each**, with their provenance — the
+dataset, the licence, the measure, the prior's parameters, and the box
+state that measured them. The meshes stay where they are (113.9 MiB); the
+numbers are the reference set, and a rebuild from the same meshes gives
+the same numbers.
+
+**The groups are the kinds.** The score is a rank inside a group, so a
+group of `n` members cannot score below `0.5 / (n + 1)` and the 0.05
+threshold needs ten members before a group can express it. The real assets
+are 37 categories for 38 packages — a kind of one — so they are one kind:
+*a real object*.
+
+| | before | after |
+|---|---|---|
+| the ghost | 0.0238, flagged | **0.0385, flagged** |
+| real assets flagged | **38 of 38 (100 %)** | **1 of 38 (2.6 %)** |
+| real assets' median score | 0.0028 | **0.5000** |
+
+Held out of the fit, 3 of 38 (7.9 %) are flagged — a floor of 2/38 for a
+kind of 38 at this threshold. The confusion table, the three measures
+against known volumes, and the ways that were tried and failed are in
+[`docs/lab/exp-critic-shells.md`](../../docs/lab/exp-critic-shells.md).
+
 ```bash
-.venv/bin/python -m pytest -q tests/genbatch/test_plausibility.py   # 16 tests
+.venv/bin/python -m pytest -q tests/genbatch/test_plausibility.py tests/genbatch/test_shells.py   # 27 tests
 ```
 
 ## Running it
