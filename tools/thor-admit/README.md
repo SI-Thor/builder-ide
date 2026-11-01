@@ -93,6 +93,19 @@ The Python shim's tests live with the repo's suite:
 .venv/bin/python -m pytest tests/thor_admit -q
 ```
 
+**The GPU's peak column**, with a real GPU context (the test hogs are CPU
+only, so the driver says nothing about them):
+
+```bash
+nvcc -O2 -o /tmp/cuda_probe tests/cuda_probe.cu
+/tmp/cuda_probe --mib 512 --hold 12 &          # a real context, 512 MiB
+nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits
+# 163916, 614
+```
+
+Run the same probe under a lease and the daemon writes the driver's own
+number for it: `peak_gpu_bytes: 643825664` (614 MiB).
+
 ## What it stubs, and what it does not do
 
 * **It does not install anything.** No systemd unit, no system packages.
