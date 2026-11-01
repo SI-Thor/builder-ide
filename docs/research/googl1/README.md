@@ -35,4 +35,4 @@ The `googl1-digest` seat wrote the 13 part docs. mcode's quota stopped it at ~08
 
 **The firmware-level ideas** (custom EL3 boot, owned MMU, raw SASS, MMIO doorbells, DVFS): the digest found each either unsupported on this hardware or unnecessary given supported mechanisms. **I recommend none of them.**
 
-**Pending:** `00-overview.md` and the papers decision (the network → tensor zero-copy candidate), when mcode is back.
+**Done (10:55):** [00-overview.md](00-overview.md) and [RESULT.md](RESULT.md). One paper earned its place: **"The Three-Microsecond Doorbell"** (resident kernels and zero-copy ingress), opened for Casey as [superinstance-papers PR #19](https://github.com/SuperInstance/SuperInstance-papers/pull/19).
