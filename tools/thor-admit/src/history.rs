@@ -135,7 +135,7 @@ impl History {
             .collect()
     }
 
-    /// The p95 of a label's history, the number `--peak auto` uses.
+    /// The p95 of a label's history, the number `--peak auto` starts from.
     pub fn p95(&self, label: &str) -> Option<u64> {
         let peaks = self.peaks_for(label);
         if peaks.is_empty() {
@@ -151,6 +151,29 @@ impl History {
             return None;
         }
         Some(percentile(&peaks, 0.50).round() as u64)
+    }
+
+    /// The peak of the label's most recent run.
+    ///
+    /// `--peak auto` reserves the larger of this and the p95: the p95 says
+    /// what the label *usually* costs, the last run says what it cost the
+    /// last time the workload looked like this one — and a label whose last
+    /// run overran its history is exactly the label a p95-only reservation
+    /// would under-reserve (Hy4's second failure mode).
+    pub fn last(&self, label: &str) -> Option<u64> {
+        self.records
+            .iter()
+            .filter(|record| record.label == label)
+            .last()
+            .map(|record| record.peak_rss_bytes)
+    }
+
+    /// How many runs of one label the history holds.
+    pub fn runs(&self, label: &str) -> usize {
+        self.records
+            .iter()
+            .filter(|record| record.label == label)
+            .count()
     }
 }
 
@@ -248,6 +271,27 @@ mod tests {
         let path = temp_path("unknown");
         let history = History::load(&path);
         assert_eq!(history.p95("nothing"), None);
+        assert_eq!(history.last("nothing"), None);
+        assert_eq!(history.runs("nothing"), 0);
+    }
+
+    #[test]
+    fn the_last_run_is_what_the_p95_has_not_caught_up_with() {
+        // Three quiet runs and one loud one: the p95 is still mostly made of
+        // the quiet runs, so reserving the p95 alone would under-reserve the
+        // next run. The last run is the louder number, and the reservation
+        // takes the larger of the two.
+        let path = temp_path("last");
+        let mut history = History::load(&path);
+        for peak in [10u64, 10, 10, 40] {
+            history
+                .append(PeakRecord::new("trellis", "trellis", peak * 1_000_000_000))
+                .unwrap();
+        }
+        assert_eq!(history.runs("trellis"), 4);
+        assert_eq!(history.last("trellis").unwrap(), 40_000_000_000);
+        assert!(history.p95("trellis").unwrap() < 40_000_000_000);
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]

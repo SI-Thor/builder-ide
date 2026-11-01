@@ -58,11 +58,35 @@ pub const DEFAULT_MEMINFO: &str = "/proc/meminfo";
 pub const DEFAULT_MIN_VICTIM_RSS: u64 = 2 * 1024 * 1024 * 1024;
 /// How long a granted lease may sit unlocked before the daemon gives up on it.
 const GRANT_GRACE: Duration = Duration::from_secs(30);
-/// The default busy share of the GPU at which live work takes the GPU from
+/// The default GPU's busy share of the GPU at which live work takes the GPU from
 /// the presence queue.
 pub const DEFAULT_GPU_BUSY_THRESHOLD: u8 = 50;
 /// The default interval for reading the CPU's counters.
 pub const DEFAULT_LEDGER_INTERVAL: Duration = Duration::from_secs(1);
+/// How many runs a label needs before `--peak auto` will speak.
+///
+/// A p95 of two runs is a guess wearing a percentile's clothes: one shifted
+/// workload and the reservation is half of what the label costs. Three runs
+/// is the smallest sample whose p95 has seen the label misbehave once and
+/// still survived (Hy4's second failure mode: the p95 reserved too little,
+/// the box blew through the emergency floor before the watchdog could act).
+pub const MIN_AUTO_RUNS: usize = 3;
+/// How much a running lease must grow beyond what it has already over-run
+/// before another interim peak is written.
+const OVERRUN_WRITE_STEP: u64 = 512 * 1024 * 1024;
+
+/// How far a lease may exceed its reservation before the over-run watch
+/// speaks: 2 % of the reservation, at least 128 MiB.
+///
+/// A lease that reserved exactly what it meant to use still measures a
+/// little over its number — the runtime itself, the allocator's own pages —
+/// and calling that an over-run would cry wolf on every honest lease. The
+/// tolerance is what the watch is *not* about: it is after the gross
+/// under-reservations, the 40 GiB reserved against a 55 GiB reality, where
+/// the box has no swap to absorb the difference.
+fn overrun_tolerance(reserved: u64) -> u64 {
+    (reserved / 50).max(128 * 1024 * 1024)
+}
 
 /// How the daemon is set up.
 #[derive(Clone, Debug)]
@@ -205,6 +229,10 @@ struct Lease {
     peak_gpu: u64,
     /// The peak the client measured itself (its `rusage`).
     reported_peak: Option<u64>,
+    /// The running peak already written to the history by the over-run
+    /// watch, so an over-running lease is on record while it is still
+    /// running — even if the box, or the daemon, does not outlive it.
+    overrun_written: u64,
     /// The watchdog has asked this lease's work to terminate (`SIGTERM`).
     ///
     /// The ask is sent once. The memory comes back when the process is
@@ -395,6 +423,35 @@ pub struct Daemon {
     /// Nothing reads it: the descriptor *is* the lock.
     #[allow(dead_code)]
     socket_lock: std::fs::File,
+}
+
+/// The peak `--peak auto` reserves for a label: the larger of the p95 and
+/// the last run, once the label has enough runs to be believed.
+///
+/// The p95 alone is not enough. The p95 says what the label *usually*
+/// costs; the last run says what it cost the last time the workload looked
+/// like this one. A label whose last run overran its history — a bigger
+/// scene, a longer batch — is exactly the label a p95-only reservation
+/// would under-reserve, and an under-reserved lease on a box with no swap
+/// arrives at the emergency floor with the watchdog already late.
+fn learned_peak(state: &State, label: &str) -> Result<u64, String> {
+    let runs = state.history.runs(label);
+    if runs == 0 {
+        return Err(format!(
+            "no history for the label {label:?}, so there is no learned peak; \
+             run it once with an explicit --peak"
+        ));
+    }
+    if runs < MIN_AUTO_RUNS {
+        return Err(format!(
+            "only {runs} run(s) for the label {label:?}; --peak auto needs {MIN_AUTO_RUNS} \
+             before it will guess, because a p95 of so few runs under-reserves a shifted \
+             workload; give it an explicit --peak until then"
+        ));
+    }
+    let p95 = state.history.p95(label).unwrap_or(0);
+    let last = state.history.last(label).unwrap_or(0);
+    Ok(p95.max(last))
 }
 
 impl Daemon {
@@ -783,16 +840,61 @@ impl Daemon {
         if has_work && (state.samples % scan_every == 0 || urgent) {
             let procs = procscan::scan();
             let gpu = state.gpu.clone();
+            let mut overruns = Vec::new();
             for lease in state.leases.iter_mut() {
                 let usage = procscan::usage_for(target_of(lease.target), &procs);
                 lease.current_rss = usage.rss_bytes;
                 lease.peak_rss = lease.peak_rss.max(usage.rss_bytes);
                 lease.peak_gpu = lease.peak_gpu.max(gpu.for_pids(&usage.pids));
+                // The over-run watch. A lease past its reservation is the
+                // number the admission rule was wrong by, and the fact is
+                // worth more than the log line: the peak goes into the
+                // history *now*, while the lease is still running, so the
+                // next `--peak auto` reserves it even if this run takes the
+                // daemon with it. The first crossing writes; each further
+                // half-gibibyte of growth writes again.
+                if lease.peak_rss
+                    > lease.peak_bytes.saturating_add(overrun_tolerance(lease.peak_bytes))
+                    && (lease.overrun_written == 0
+                        || lease.peak_rss >= lease.overrun_written + OVERRUN_WRITE_STEP)
+                {
+                    overruns.push((
+                        lease.id,
+                        lease.label.clone(),
+                        lease.peak_bytes,
+                        lease.peak_rss,
+                        lease.peak_gpu,
+                    ));
+                    lease.overrun_written = lease.peak_rss;
+                }
             }
             for job in state.presence.running.iter_mut() {
                 let usage = procscan::usage_for(Target::Group(job.pgid), &procs);
                 job.current_rss = usage.rss_bytes;
                 job.peak_rss = job.peak_rss.max(usage.rss_bytes);
+            }
+            for (id, label, reserved, peak_rss, peak_gpu) in overruns {
+                self.log_event(
+                    "lease.underreserved",
+                    json!({
+                        "lease": id,
+                        "label": label,
+                        "reserved_bytes": reserved,
+                        "peak_rss_bytes": peak_rss,
+                        "over_by_bytes": peak_rss.saturating_sub(reserved),
+                        "mem_available_bytes": state.mem.mem_available,
+                    }),
+                );
+                let mut record = PeakRecord::new(&label, &label, peak_rss);
+                record.peak_source = "overrun".to_string();
+                record.peak_gpu_bytes = if peak_gpu > 0 { Some(peak_gpu) } else { None };
+                record.gpu_visible =
+                    state.gpu_source != "off" && !state.gpu_source.contains("unavailable");
+                record.mem_total_bytes = state.mem.mem_total;
+                record.floor_bytes = self.config.floor;
+                if let Err(error) = state.history.append(record) {
+                    self.log_event("history.write_failed", json!({"error": error.to_string()}));
+                }
             }
         }
 
@@ -846,15 +948,10 @@ impl Daemon {
         } = request;
         let peak_bytes = match peak {
             PeakArg::Bytes(bytes) => bytes,
-            PeakArg::Auto => match state.history.p95(&label) {
-                Some(p95) => p95,
-                None => {
-                    let _ = reply.send(Response::Rejected {
-                        reason: format!(
-                            "no history for the label {label:?}, so there is no learned peak; \
-                             run it once with an explicit --peak"
-                        ),
-                    });
+            PeakArg::Auto => match learned_peak(state, &label) {
+                Ok(learned) => learned,
+                Err(reason) => {
+                    let _ = reply.send(Response::Rejected { reason });
                     return;
                 }
             },
@@ -943,6 +1040,7 @@ impl Daemon {
                 peak_rss: 0,
                 peak_gpu: 0,
                 reported_peak: None,
+                overrun_written: 0,
                 terminated_at: None,
                 killed: false,
             };
@@ -1011,15 +1109,10 @@ impl Daemon {
         }
         let peak_bytes = match peak {
             PeakArg::Bytes(bytes) => bytes,
-            PeakArg::Auto => match state.history.p95(&label) {
-                Some(p95) => p95,
-                None => {
-                    let _ = reply.send(Response::Rejected {
-                        reason: format!(
-                            "no history for the label {label:?}, so there is no learned peak; \
-                             register it once with an explicit --peak"
-                        ),
-                    });
+            PeakArg::Auto => match learned_peak(state, &label) {
+                Ok(learned) => learned,
+                Err(reason) => {
+                    let _ = reply.send(Response::Rejected { reason });
                     return;
                 }
             },

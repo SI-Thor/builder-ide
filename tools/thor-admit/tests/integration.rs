@@ -1226,13 +1226,38 @@ fn the_daemon_costs_almost_nothing() {
 fn a_learned_peak_is_used_by_the_next_run() {
     let daemon = DaemonUnderTest::start_named("learned-peak", &["--floor", "1G"]);
 
-    // One run with an explicit peak teaches the daemon what the label costs.
-    let mut first = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
-    let _ = first.wait();
-    let _ = output_of(&mut first);
+    // `--peak auto` refuses to guess until the label has three runs, so the
+    // teaching is three runs with an explicit peak.
+    let mut refused = leased(&daemon, "auto-label", "auto", &["true"]);
+    let status = refused.wait().expect("the client finishes");
+    let output = output_of(&mut refused);
+    assert!(!status.success(), "the client should have been refused");
+    assert!(
+        output.contains("no history for the label"),
+        "the refusal was not explained:\n{output}"
+    );
+
+    // With one or two runs the daemon still refuses — a p95 of so few runs
+    // under-reserves a shifted workload — and says so differently.
+    let mut under_taught = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
+    let _ = under_taught.wait();
+    let _ = output_of(&mut under_taught);
+    let mut still_refused = leased(&daemon, "auto-label", "auto", &["true"]);
+    let _ = still_refused.wait();
+    let output = output_of(&mut still_refused);
+    assert!(
+        output.contains("needs 3") && output.contains("run(s) for the label"),
+        "the too-few-runs refusal was not explained:\n{output}"
+    );
+
+    for _ in 0..2 {
+        let mut run = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
+        let _ = run.wait();
+        let _ = output_of(&mut run);
+    }
 
     let history = daemon.history();
-    assert_eq!(history.len(), 1, "the run was recorded");
+    assert_eq!(history.len(), 3, "the runs were recorded");
     assert_eq!(history[0]["label"], "auto-label");
     let measured = history[0]["peak_rss_bytes"].as_u64().unwrap();
     assert!(
@@ -1253,6 +1278,102 @@ fn a_learned_peak_is_used_by_the_next_run() {
     assert!(
         !output.contains("no history for the label"),
         "the automatic peak found no history:\n{output}"
+    );
+}
+
+/// The auto peak reserves the larger of the p95 and the last run: a label
+/// whose last run was far heavier than its history must not be reserved at
+/// the p95 of the quiet runs (Hy4's second failure mode).
+#[test]
+fn an_auto_peak_reserves_the_last_run_when_it_outran_the_p95() {
+    let daemon = DaemonUnderTest::start_named("auto-takes-the-last", &["--floor", "1G"]);
+
+    // Three quiet runs, then one heavy one. The p95 of [2, 2, 2, 6] GiB is
+    // about 5.4 GiB; the last run took a measured ~6 GiB.
+    for gigabytes in [2u64, 2, 2, 6] {
+        let mut run = leased(
+            &daemon,
+            "shifting-label",
+            "6G",
+            &[HOG, "--bytes", &format!("{gigabytes}G"), "--hold", "1"],
+        );
+        let _ = run.wait();
+        let _ = output_of(&mut run);
+    }
+
+    let mut last = daemon.history();
+    let last_measured = last
+        .pop()
+        .and_then(|record| record["peak_rss_bytes"].as_u64())
+        .expect("the heavy run was recorded");
+    assert!(last_measured > 5 * GIB, "the heavy run took {last_measured}");
+
+    // The next auto run is reserved at no less than the last run's peak.
+    let mut next = leased(&daemon, "shifting-label", "auto", &[HOG, "--bytes", "2G", "--hold", "1"]);
+    let output = {
+        let _ = next.wait();
+        output_of(&mut next)
+    };
+    assert!(output.contains("admitted after"), "auto was refused:\n{output}");
+    let granted = daemon
+        .log()
+        .lines()
+        .filter(|line| line.contains("\"lease.granted\"") && line.contains("shifting-label"))
+        .last()
+        .and_then(|line| serde_json::from_str::<Value>(line).ok())
+        .and_then(|event| event["peak_bytes"].as_u64())
+        .expect("the auto run was granted");
+    assert!(
+        granted >= last_measured,
+        "the auto run was reserved {granted} bytes, below the last run's \
+         {last_measured} bytes — the p95 alone under-reserved it"
+    );
+}
+
+/// A lease that outruns its reservation is logged, and its measured peak is
+/// written to the history while the lease is still running — not only when
+/// it ends.
+#[test]
+fn an_overrunning_lease_is_logged_and_written_at_once() {
+    let daemon = DaemonUnderTest::start_named("overrun", &["--floor", "1G"]);
+
+    // Reserved 1 GiB; takes 3 GiB.
+    let mut hog = leased(&daemon, "under.reserved", "1G", &[HOG, "--bytes", "3G", "--hold", "8"]);
+
+    let saw_event = wait_until(20, || {
+        daemon
+            .log()
+            .lines()
+            .any(|line| line.contains("\"lease.underreserved\""))
+    });
+    assert!(
+        saw_event,
+        "the over-run was not logged; the log was:\n{}",
+        daemon.log()
+    );
+    // The interim record is in the history while the lease still holds.
+    let interim = wait_until(10, || {
+        daemon
+            .history()
+            .iter()
+            .any(|record| record["peak_source"] == "overrun")
+    });
+    assert!(
+        interim,
+        "the over-running peak was not written while the lease ran; the history was {:?}",
+        daemon.history()
+    );
+
+    let _ = hog.wait();
+    let _ = output_of(&mut hog);
+
+    // And the final record is there too, with the client's own measurement.
+    let history = daemon.history();
+    assert!(
+        history
+            .iter()
+            .any(|record| record["peak_source"] == "rusage"),
+        "the finished lease's peak was not recorded: {history:?}"
     );
 }
 
