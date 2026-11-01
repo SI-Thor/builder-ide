@@ -1462,8 +1462,16 @@ fn a_model_is_loaded_once_per_box() {
     let back = wait_until(20, || thor_admit::serve::port_answers(port));
     assert!(back, "a fresh server was never started: {}", daemon.log());
 
+    // Kill the seat and wait for its server to go with it. Killing the
+    // client alone is not enough as a cleanup: the daemon reaps the orphan
+    // on its next tick, and a test that tears its daemon down in the same
+    // instant leaves the server running on the box — every run of this
+    // test used to leak one idle `http.server` that way (37 were found
+    // running on 2026-11-01).
     let _ = third.kill();
     let _ = third.wait();
+    let gone = wait_until(15, || !thor_admit::serve::port_answers(port));
+    assert!(gone, "the server outlived the test: {}", daemon.log());
 }
 
 /// The 01:19 incident (round 9, item e): three d1-2B servers ran at once as
@@ -1567,10 +1575,17 @@ fn the_same_model_under_two_names_is_loaded_once() {
         daemon.log()
     );
 
+    // Kill the seats and wait for both servers to go with them: killing
+    // the client alone leaves the orphan to the daemon's next tick, and a
+    // test tearing its daemon down in the same instant leaks the server.
     let _ = first.kill();
     let _ = first.wait();
     let _ = third.kill();
     let _ = third.wait();
+    let gone = wait_until(15, || {
+        !thor_admit::serve::port_answers(port) && !thor_admit::serve::port_answers(other_port)
+    });
+    assert!(gone, "a server outlived the test; the log:\n{}", daemon.log());
 }
 
 /// The ledger names each player, not only the tier it played in, and keeps
