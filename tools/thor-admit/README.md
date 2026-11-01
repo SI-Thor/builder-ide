@@ -59,12 +59,28 @@ thor-admit peaks
 # make a running daemon re-read its history and its presence queue
 # (after an edit by hand; SIGHUP does the same)
 thor-admit reload
+
+# the work changed phase: give the difference back while the lease runs.
+# A shrink is always allowed (never below what the run has touched); a grow
+# is refused if the box has no room for it.
+thor-admit phase trellis --peak 8G
+```
+
+`thor-admit run` puts the lease's id in the command's environment as
+`THOR_ADMIT_LEASE`, so a workload can phase itself without knowing its
+own id:
+
+```bash
+thor-admit run --peak 40G --label trellis -- bash -c '
+  load_weights                       # the heavy part
+  thor-admit phase "$THOR_ADMIT_LEASE" --peak 8G   # give the rest back
+  render_scene'
 ```
 
 From Python:
 
 ```python
-from thor_admit import lease
+from thor_admit import lease, phase
 
 with lease("40G", "trellis"):
     ...the heavy work...
@@ -74,6 +90,11 @@ with lease("auto", "trellis"):     # the p95 of this label's own history
 
 with lease("8G", "sweep", tier="study"):   # booked to the study tier
     ...the box's own background work...
+
+with lease("40G", "trellis") as held:
+    ...the heavy work...
+    phase(held, "8G")                    # the work changed phase: give
+                                          # the difference back at once
 ```
 
 ## The presence queue: the box's own useful work
@@ -202,7 +223,10 @@ for what the label historically held on the device (`--gpu-floor`, default
 0 — `tegrastats`' `lfb` is a contiguous-block figure, not GPU headroom, so
 the pool's floor is off unless the operator asks for it; a lease that
 promises no device memory never waits for the pool at all). The queue is
-first in, first out, with priorities in front. If the box ever falls
+first in, first out, with priorities in front — and when the head
+**cannot fit at all**, a waiter behind it may pass it, under the rules
+below, because a queue that waits for a head that will not fit is a queue
+that does nothing. If the box ever falls
 below the emergency floor (8 GiB), the watchdog **terminates** the largest
 admitted lease's process group — it never merely stops it, because with no
 swap a stopped process keeps every page it took; `SIGKILL` follows a grace
@@ -222,6 +246,54 @@ reserve — and an over-running lease is written down while it still runs,
 which can only raise one. The history and the presence queue live in
 files the operator can edit; `thor-admit reload` (or `SIGHUP`) makes a
 running daemon see the edit without a restart.
+
+## When the head cannot fit
+
+On 2026-11-01 the box's queue was not slow, it was stuck: a 58 GiB
+request at the head, 35 GiB free above the floor, and nineteen waiters
+behind it — none of them admitted, because strict FIFO only ever looks
+at the head. Three rules fix that shape.
+
+**Backfill.** A waiter behind a head that does not fit may be admitted
+instead, when it *cannot delay the head's earliest possible start*: the
+head's start is bounded by when the memory it waits for can exist, and a
+smaller request that fits now does not move that moment. The daemon does
+not guess — without an estimate of the head's start, nothing passes it.
+The head's protection is bounded too (`--backfill-max-head-wait`,
+default **1800 s**), after which the queue is plain FIFO again.
+`--no-backfill` turns the rule off.
+
+The guarantee: **a backfilling policy never starts the blocking head
+later than strict FIFO did.** It is checked in the suite and again by
+the replay (§ "the measurements in the lab record").
+
+**Coalescing.** Two asks for the *same model* that are waiting side by
+side become **one waiter and one promise**. The key is the model file
+and the command's flags — the same key the shared-server registry uses
+— so the second ask for a model that is still starting is told which
+lease holds it, reads the leader's port from the registry when it
+answers, and starts no server of its own. (The registry answers "is
+there a server for this model?" once one is *up*; the coalesce key
+answers "is another ask for this model *waiting*?", which is the window
+before there is one.)
+
+**Phase.** A lease that reserved far above what it uses is holding the
+box hostage. `thor-admit phase` changes a running lease's reservation:
+a **shrink** is always allowed and is charged back at once (never below
+what the run has already touched); a **grow** is refused if the box has
+no room for it, and the lease keeps the promise it has.
+
+The daemon does not shrink a lease by itself — the work may spike
+later, and only the workload knows. It **names** the lease: a lease
+holding at least four times both its label's learned peak and its own
+measured peak, with 8 GiB of the promise still owed, for five minutes,
+is logged as `lease.overreserved` and marked **over-reserved** in
+`thor-admit status`, with the peak it would fit in. The holder then
+answers, by id:
+
+```bash
+thor-admit phase <label-or-id> --peak auto   # settle at the label's learned peak
+```
 
 ## Running the tests
 
@@ -268,6 +340,21 @@ cargo test --test integration -- --nocapture \
     a_daemon_that_hangs_on_the_way_up_does_not_wedge_the_socket \
     a_daemon_that_never_serves_stops_itself \
     a_queued_client_rides_out_a_daemon_restart
+
+# the queue when the head cannot fit: backfill, coalescing, phase
+cargo test --test integration -- --nocapture \
+    a_small_request_backfills_past_a_blocked_head \
+    the_heads_wait_bound_closes_the_backfill_window \
+    two_identical_serve_asks_waiting_side_by_side_become_one_waiter \
+    a_phase_shrink_frees_the_room_the_queue_is_waiting_for \
+    a_phase_grow_that_does_not_fit_is_refused \
+    a_lease_that_holds_far_more_than_it_uses_is_named_in_the_status
+
+# the replay: the day's real queue under each policy, and the model's own
+# error against what really happened
+cargo run --release --example replay -- \
+    ~/.local/state/thor-admit/daemon.log ~/lm-tools/thor-admit-daemon.log \
+    --history ~/.local/state/thor-admit/peaks.jsonl --pid 956421 --floor 25G
 
 # a smoke test of the CLI, end to end (light: it allocates nothing)
 python3 smoke-cli.py
@@ -317,7 +404,12 @@ number for it: `peak_gpu_bytes: 643825664` (614 MiB).
 * **It does not reserve memory for the kernel's reclaim.** The floor is a
   number the operator sets; the default (25 GiB) is the stopgap's "keep
   25 GB free", carried forward.
-* **It does not know about swap.** There is none.
+* **It does not know about swap.** The rule is `MemAvailable`, which the
+  kernel already accounts for the swap against, so the daemon does not
+  reserve for the swap and does not read it. (There **is** swap on the
+  box now — 47 GiB, added after the brief was written — so a workload
+  that overruns its promise is now paged rather than killed at once.
+  The floor still means what it says: `MemAvailable` must stay above it.)
 * **`--meminfo` is a test seam, not an operating knob.** It says where the
   daemon reads the box's memory accounting from; it is `/proc/meminfo` in
   production and it should stay that way. Point the daemon at anything
