@@ -432,6 +432,9 @@ flock ~/lm-wt/heavy.lock bash run_vlm_stage.sh
 # 6. the tables side by side, and the selection the published table carries
 .venv/bin/python report.py --write-selection
 .venv/bin/python -m core.critic --grow --publish
+
+# 7. the DINOv2 forward, eager against graphed zero-copy (under the shared lock)
+flock ~/lm-wt/heavy.lock ../../../.venv-torch/bin/python run_dino_graph.py
 ```
 
 The torch venv the probe needs is the worktree's own:
