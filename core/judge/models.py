@@ -46,6 +46,7 @@ __all__ = [
     "JudgeCost",
     "state_hash",
     "question_set_hash",
+    "pack_hash",
 ]
 
 #: The four kinds of typed judgment.
@@ -74,6 +75,19 @@ def question_set_hash(questions: Sequence["Question"]) -> str:
     is another request.
     """
     body = [q.to_wire_record() for q in questions]
+    return content_hash(body)
+
+
+def pack_hash(state: str, questions: Sequence["Question"]) -> str:
+    """``sha256:…`` over the state **and** the questions of one attempt.
+
+    A verdict row cites the attempt it records, and an attempt is a
+    shared state plus the questions asked over it — so a rung that
+    re-asked over a re-read state cites its own pack hash, not the first
+    rung's. A row that cited a pack the state has moved out from under
+    would be a row that lies about what it asked.
+    """
+    body = {"state": state, "questions": [q.to_wire_record() for q in questions]}
     return content_hash(body)
 
 
