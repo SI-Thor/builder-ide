@@ -253,6 +253,20 @@ neutral order (86.3 %), so the recommendation on that cell is to route it
 to the d1-3B. A caller whose states name conditions builds them through
 `neutral_state`; the ordering's own suite is `tests/judge/test_ordering.py`.
 
+**The recorder is fixed too, at the source.** The sea-state recorder that
+built those traces left the truth out of 82 of its 240 prompts (the decoy
+named twice, or the decoy plus the truth's other neighbour) — §9 of the
+note fixes the builder and re-records the trace: the truth and the drawn
+decoy, once each, in the canonical order, on the same seed and stream. On
+the recorder's own prompts the route to the d1-3B stands (accuracy 0.5208
+against the 2B's 0.4833; gate at τ 0.8: catch 0.783 at a 0.728 tax), both
+models' confidences straddle the coin-flip line (0.5300 and 0.4797 — no
+routing signal in this cell), and the routed cell applied end to end
+through `Judge` at the calibrated τ 0.76 catches 0.783 of its errors at a
+0.728 tax. The fixed builder's suite is
+`tests/judge/test_recorder_fix.py`; the scripts are
+`docs/lab/judge-recorder-fix-scripts/`.
+
 **The fold that makes the tracking possible.** A judgment is only worth
 scoring once something has happened, so `tracking.py` pairs a judgment
 with the outcome that answers it — the tiles' play, the critic's verdict,
