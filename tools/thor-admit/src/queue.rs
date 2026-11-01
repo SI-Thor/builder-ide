@@ -83,6 +83,12 @@ impl Queue {
         self.items.iter()
     }
 
+    /// The waiters, mutably: the coalescing path raises a waiting waiter's
+    /// promise when an identical ask arrives with a larger one (round 11).
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, Waiter> {
+        self.items.iter_mut()
+    }
+
     /// Where a waiter sits in the queue, counted from 1.
     pub fn position(&self, id: u64) -> Option<usize> {
         self.items.iter().position(|w| w.id == id).map(|i| i + 1)

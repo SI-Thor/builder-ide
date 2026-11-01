@@ -175,6 +175,18 @@ impl History {
         Ok(())
     }
 
+    /// A history holding exactly these records, written to `path` if
+    /// anything is ever appended to it.
+    ///
+    /// The replay (`examples/replay.rs`) builds one from a snapshot it has
+    /// already read; nothing on the box writes to it.
+    pub fn from_records(path: &Path, records: &[PeakRecord]) -> History {
+        History {
+            path: path.to_path_buf(),
+            records: records.to_vec(),
+        }
+    }
+
     /// The records of one label that may teach a reservation.
     pub fn teachers(&self, label: &str) -> Vec<&PeakRecord> {
         self.records
@@ -250,6 +262,25 @@ impl History {
         }
         let p95 = percentile(&peaks, 0.95).round() as u64;
         Some(p95.max(*peaks.last().unwrap_or(&0)))
+    }
+
+    /// The p95 of a label's teaching runs' durations, in seconds — the
+    /// backfill rule's estimate of how long a lease of this label will hold
+    /// its promise (round 11). The p95 rather than the p50, because an
+    /// underestimate is the dangerous direction: a candidate given 60 s and
+    /// running for an hour holds the hole for an hour past what the rule
+    /// checked. `None` when the label has no teaching run — and a lease
+    /// with no estimate never backfills (`crate::backfill`).
+    pub fn duration_p95(&self, label: &str) -> Option<f64> {
+        let durations: Vec<u64> = self
+            .teachers(label)
+            .into_iter()
+            .map(|record| (record.duration_s.max(0.0) * 1000.0).round() as u64)
+            .collect();
+        if durations.is_empty() {
+            return None;
+        }
+        Some(percentile(&durations, 0.95) / 1000.0)
     }
 }
 
@@ -372,6 +403,29 @@ mod tests {
         assert_eq!(history.p95("nothing"), None);
         assert_eq!(history.last("nothing"), None);
         assert_eq!(history.runs("nothing"), 0);
+        assert_eq!(history.duration_p95("nothing"), None);
+    }
+
+    #[test]
+    fn the_duration_estimate_is_the_p95_of_the_teaching_runs() {
+        // The backfill rule's estimate. A no-op (under the teaching
+        // duration) contributes nothing however many there are, and the
+        // estimate leans high: [60, 60, 60, 600] s of teaching runs gives
+        // a p95 of 60 + (600 - 60) * 0.85 = 519 s, not the p50's 60 s.
+        let path = temp_path("duration-p95");
+        let mut history = History::load(&path);
+        for seconds in [60.0, 60.0, 60.0, 600.0] {
+            let mut record = taught("trellis", 4_000_000_000);
+            record.duration_s = seconds;
+            history.append(record).unwrap();
+        }
+        let mut noop = PeakRecord::new("trellis", "trellis", 3_670_000);
+        noop.duration_s = 0.4;
+        noop.exit_code = Some(0);
+        history.append(noop).unwrap();
+        let estimate = history.duration_p95("trellis").unwrap();
+        assert!((estimate - 519.0).abs() < 0.01, "the estimate was {estimate}");
+        let _ = std::fs::remove_file(&path);
     }
 
     #[test]

@@ -51,6 +51,7 @@ fn main() -> ExitCode {
         "daemon" => run_daemon(&args[1..]),
         "run" => run_command(&args[1..]),
         "serve" => run_serve(&args[1..]),
+        "phase" => run_phase(&args[1..]),
         "status" => run_status(&args[1..]),
         "peaks" => run_peaks(&args[1..]),
         "presence" => run_presence(&args[1..]),
@@ -86,6 +87,15 @@ thor-admit — a memory-admission daemon for the Thor
         per seat: the registry is keyed on the model file (path + hash) and
         the command's other flags, so the same model under any name is one
         server, and a variant whose flags really differ is its own.
+        Identical asks waiting side by side are coalesced into one waiter:
+        the second asker is told which lease is starting the server and
+        waits for the port instead of promising the memory twice.
+
+  thor-admit phase <lease-id|label> --peak <size|auto>
+        Change a running lease's reservation: the work changed phase. A
+        shrink is taken at once (the freed bytes return to the box); a grow
+        is taken only if the box has the room. A workload can phase itself:
+        run puts the lease id in THOR_ADMIT_LEASE for the command.
 
   thor-admit status [--json]
         Show the leases, the free memory, the queue and the presence work.
@@ -142,6 +152,11 @@ Daemon options (all have defaults):
   --idle-exit <seconds>     leave after this long with nothing to do (default 900)
   --no-stop-on-client-gone  leave a dead client's command running (default: stop it)
   --no-presence             do not run the presence queue (default: run it)
+  --no-backfill             do not pass requests around a blocked head
+                            (default: backfill when it cannot delay the head)
+  --backfill-max-head-wait <seconds>
+                            once the head has waited this long, nothing more
+                            passes it (default 1800; 0 = no bound)
   --presence-file <path>    where the presence queue is kept
   --flow-file <path>        where the flow signal is published, if anyone
                             publishes one (default <state-dir>/flow.json)
@@ -353,6 +368,19 @@ fn run_daemon(args: &[String]) -> ExitCode {
     }
     if options.has("no-presence") {
         config.presence = false;
+    }
+    if options.has("no-backfill") {
+        config.backfill = false;
+    }
+    match options.number("backfill-max-head-wait") {
+        Ok(Some(value)) => {
+            config.backfill_max_head_wait = Duration::from_secs(value);
+        }
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
     }
     if options.has("no-gpu-preempt") {
         config.gpu_preempt = false;
@@ -602,19 +630,30 @@ fn run_command(args: &[String]) -> ExitCode {
             }
         }
     };
-    let outcome = match client::run_under_lease(
+    let under_lease = match client::run_under_lease(
         &mut connection,
         &socket,
         &label,
         peak,
         priority,
         tier,
+        None,
         &options.rest,
         &mut revive,
     ) {
-        Ok(outcome) => outcome,
+        Ok(under_lease) => under_lease,
         Err(error) => {
             eprintln!("thor-admit: {error}");
+            return ExitCode::from(1);
+        }
+    };
+    let outcome = match under_lease {
+        client::UnderLease::Ran(outcome) => outcome,
+        client::UnderLease::Coalesced { lease } => {
+            // Only a serve ask carries a coalescing key, and `run` never
+            // does: reaching this means the daemon answered a plain ask
+            // with a serve answer, which is its bug to fix, not ours.
+            eprintln!("thor-admit: the daemon coalesced {label:?} into lease {lease}, which a run cannot be");
             return ExitCode::from(1);
         }
     };
@@ -781,12 +820,56 @@ fn run_serve(args: &[String]) -> ExitCode {
         peak,
         0,
         tier,
+        Some(&key.key),
         &command,
         &mut revive,
     );
+    // A coalesced ask does not wait on the lease it joined: the leader's
+    // server is the answer, and the registry is where the leader's watcher
+    // records it the moment the port answers. While waiting, the lease
+    // itself is the other thing to watch: if it ends without the registry
+    // ever naming a port, the leader's server never answered, and this
+    // ask should fail rather than wait out the half hour.
+    if let Ok(client::UnderLease::Coalesced { lease }) = &outcome {
+        eprintln!(
+            "thor-admit: waiting for {model:?} to answer under lease {lease} (the ask was coalesced)"
+        );
+        let registry = thor_admit::serve::Registry::new(&state_dir_for(&socket));
+        let deadline = Instant::now() + Duration::from_secs(1800);
+        let mut lease_ended_at: Option<Instant> = None;
+        loop {
+            if let Some(entry) = registry.find(&key.key) {
+                return report_serve(&model, entry.port, "coalesced", options.has("json"));
+            }
+            let lease_alive = connection
+                .status()
+                .map(|report| report.leases.iter().any(|running| running.lease == *lease))
+                .unwrap_or(true);
+            if lease_alive {
+                lease_ended_at = None;
+            } else {
+                // A short grace: the leader's watcher may record the port in
+                // the moments after the lease releases.
+                match lease_ended_at {
+                    None => lease_ended_at = Some(Instant::now()),
+                    Some(at) if at.elapsed() > Duration::from_secs(5) => break,
+                    Some(_) => {}
+                }
+            }
+            if Instant::now() > deadline {
+                break;
+            }
+            std::thread::sleep(Duration::from_millis(500));
+        }
+        eprintln!(
+            "thor-admit: the coalesced lease {lease} for {model:?} never answered a port"
+        );
+        return ExitCode::from(1);
+    }
     let _ = watcher.join();
     let outcome = match outcome {
-        Ok(outcome) => outcome,
+        Ok(client::UnderLease::Ran(outcome)) => outcome,
+        Ok(client::UnderLease::Coalesced { .. }) => unreachable!("handled above"),
         Err(error) => {
             eprintln!("thor-admit: {error}");
             return ExitCode::from(1);
@@ -809,6 +892,103 @@ fn run_serve(args: &[String]) -> ExitCode {
         outcome.code
     );
     ExitCode::from((outcome.code & 0xff) as u8)
+}
+
+/// `thor-admit phase <lease-id|label> --peak <size|auto>`
+///
+/// A lease that reserved far above its use can give the difference back
+/// while it runs: the work changed phase, and the reservation should say
+/// so (round 11). The lease is named by its id (what `run` leaves in the
+/// command's `THOR_ADMIT_LEASE`) or by its label, when exactly one lease of
+/// that label is running. A shrink is always taken; a grow needs the room.
+fn run_phase(args: &[String]) -> ExitCode {
+    let options = Options::parse(args);
+    let Some(selector) = options.rest.first().cloned() else {
+        eprintln!("thor-admit: phase needs a lease id or a label (phase 7 --peak 4G)");
+        return ExitCode::from(2);
+    };
+    let peak = match options.get("peak") {
+        None => {
+            eprintln!("thor-admit: phase needs a --peak (a size, or \"auto\")");
+            return ExitCode::from(2);
+        }
+        Some(text) if text.eq_ignore_ascii_case("auto") => PeakArg::Auto,
+        Some(text) => match Size::parse(text) {
+            Ok(size) => PeakArg::Bytes(size.bytes),
+            Err(error) => {
+                eprintln!("thor-admit: --peak: {error}");
+                return ExitCode::from(2);
+            }
+        },
+    };
+    let socket = match socket_path(&options) {
+        Ok(socket) => socket,
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let mut connection = match Client::connect(&socket) {
+        Ok(connection) => connection,
+        Err(error) => {
+            eprintln!("thor-admit: cannot reach the daemon: {error}");
+            return ExitCode::from(1);
+        }
+    };
+    // The lease to phase: an id outright, or a label when exactly one lease
+    // of that label is running. Two leases of one label is not ambiguity
+    // the daemon can resolve — it is two leases, and the operator names one.
+    let lease = match selector.parse::<u64>() {
+        Ok(id) => id,
+        Err(_) => {
+            let report = match connection.status() {
+                Ok(report) => report,
+                Err(error) => {
+                    eprintln!("thor-admit: cannot ask the daemon: {error}");
+                    return ExitCode::from(1);
+                }
+            };
+            let matches: Vec<&thor_admit::protocol::LeaseReport> = report
+                .leases
+                .iter()
+                .filter(|lease| lease.label == selector)
+                .collect();
+            match matches.as_slice() {
+                [only] => only.lease,
+                [] => {
+                    eprintln!(
+                        "thor-admit: no running lease is labelled {selector:?}; the leases are {}",
+                        report
+                            .leases
+                            .iter()
+                            .map(|lease| format!("#{} {}", lease.lease, lease.label))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    return ExitCode::from(1);
+                }
+                several => {
+                    eprintln!(
+                        "thor-admit: {} leases are labelled {selector:?}; name one by id: {}",
+                        several.len(),
+                        several
+                            .iter()
+                            .map(|lease| format!("#{}", lease.lease))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    );
+                    return ExitCode::from(1);
+                }
+            }
+        }
+    };
+    match connection.phase(lease, peak) {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            ExitCode::from(1)
+        }
+    }
 }
 
 /// Say where a model is served.
@@ -881,8 +1061,16 @@ fn run_status(args: &[String]) -> ExitCode {
     }
     println!("leases: {}", report.leases.len());
     for lease in &report.leases {
+        // A lease the daemon has named as over-reserved says so here, with
+        // the peak it would suggest, so the holder can answer without
+        // reading the log: `thor-admit phase <id> --peak <suggested>`.
+        let over = if lease.over_reserved {
+            format!("  over-reserved, would fit {}", human(lease.suggested_peak_bytes))
+        } else {
+            String::new()
+        };
         println!(
-            "  #{} {:<16} peak {:>8}  now {:>8}  saw {:>8}  pid {}  {:.0}s",
+            "  #{} {:<16} peak {:>8}  now {:>8}  saw {:>8}  pid {}  {:.0}s{over}",
             lease.lease,
             lease.label,
             human(lease.peak_bytes),
@@ -894,9 +1082,19 @@ fn run_status(args: &[String]) -> ExitCode {
     }
     println!("queue: {}", report.queue.len());
     for waiter in &report.queue {
+        let coalesced = if waiter.coalesced > 0 {
+            format!("  +{} coalesced", waiter.coalesced)
+        } else {
+            String::new()
+        };
         println!(
-            "  {}. {:<16} peak {:>8}  priority {}",
-            waiter.position, waiter.label, human(waiter.peak_bytes), waiter.priority
+            "  {}. {:<16} peak {:>8}  priority {}  waiting {:.0}s{}",
+            waiter.position,
+            waiter.label,
+            human(waiter.peak_bytes),
+            waiter.priority,
+            waiter.waiting_s,
+            coalesced
         );
     }
     println!("presence: {}", report.presence.len());

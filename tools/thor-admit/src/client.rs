@@ -97,6 +97,12 @@ impl Client {
 
     /// Take a lease. The daemon answers "queued" first (if the box is
     /// busy) and "granted" when the lease is real.
+    ///
+    /// `coalesce` is the serve registry's key, and only `serve` passes
+    /// one: an identical ask already waiting is joined rather than
+    /// duplicated, and the answer for a joined asker is
+    /// [`Response::Coalesced`] — somebody else's lease is starting the
+    /// server, and this client's command must not run.
     pub fn acquire(
         &mut self,
         label: &str,
@@ -104,14 +110,16 @@ impl Client {
         priority: i32,
         tier: Tier,
         target: TargetSpec,
+        coalesce: Option<&str>,
         on_queued: &mut dyn FnMut(usize, usize),
-    ) -> std::io::Result<Grant> {
+    ) -> std::io::Result<Acquire> {
         let request = Request::Acquire {
             label: label.to_string(),
             peak,
             priority,
             tier,
             target,
+            coalesce: coalesce.map(str::to_string),
         };
         self.send(&request)?;
         loop {
@@ -128,14 +136,17 @@ impl Client {
                     floor_bytes,
                     available_bytes,
                 } => {
-                    return Ok(Grant {
+                    return Ok(Acquire::Granted(Grant {
                         lease,
                         label,
                         peak_bytes,
                         lock_path: std::path::PathBuf::from(lock_path),
                         floor_bytes,
                         available_bytes,
-                    });
+                    }));
+                }
+                Response::Coalesced { lease, label } => {
+                    return Ok(Acquire::Coalesced { lease, label });
                 }
                 Response::Rejected { reason } => {
                     return Err(std::io::Error::new(
@@ -152,6 +163,22 @@ impl Client {
                     )));
                 }
             }
+        }
+    }
+
+    /// Change a running lease's reservation (`thor-admit phase`): the work
+    /// changed phase, and the lease may shrink what it owes — or grow it,
+    /// when the box has the room.
+    pub fn phase(&mut self, lease: u64, peak: PeakArg) -> std::io::Result<()> {
+        match self.request(&Request::Phase { lease, peak })? {
+            Response::Ok => Ok(()),
+            Response::Rejected { reason } => Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                reason,
+            )),
+            other => Err(std::io::Error::other(format!(
+                "unexpected answer from the daemon: {other:?}"
+            ))),
         }
     }
 
@@ -292,6 +319,27 @@ pub struct Grant {
     pub available_bytes: u64,
 }
 
+/// What an acquire came back with: a lease to run under, or the word that
+/// an identical ask is already being served by another client's lease.
+#[derive(Clone, Debug)]
+pub enum Acquire {
+    Granted(Grant),
+    /// The ask was coalesced into `lease`: the same server, starting under
+    /// somebody else's lease. Nothing should run for this ask.
+    Coalesced { lease: u64, label: String },
+}
+
+/// What `run_under_lease` leaves behind: the command ran to its end, or an
+/// identical serve ask was folded into another client's lease and the
+/// command never started.
+#[derive(Clone, Copy, Debug)]
+pub enum UnderLease {
+    Ran(Outcome),
+    /// The ask joined a coalescing waiter and the grant went to its leader;
+    /// the caller waits for the server by its port instead.
+    Coalesced { lease: u64 },
+}
+
 /// What a command left behind: its exit code and the peak it reached.
 #[derive(Clone, Copy, Debug)]
 pub struct Outcome {
@@ -323,6 +371,17 @@ pub const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// while this client is queued or asking does not end the wait: the client
 /// reconnects and asks again (round 10, item c), the way the heartbeat
 /// already reconnects its own connection.
+///
+/// `coalesce` is the serve registry's key, and only `serve` passes one: an
+/// identical ask already waiting is joined, and when the leader's lease is
+/// granted this client's command does not run — the answer is
+/// [`UnderLease::Coalesced`], and the server it asked for is starting under
+/// the leader's lease.
+///
+/// When the command does run, it finds `THOR_ADMIT_LEASE` in its
+/// environment holding its lease id: a workload that knows its own phases
+/// can give memory back mid-run (`thor-admit phase $THOR_ADMIT_LEASE
+/// --peak 4G`, round 11) without any outside help.
 pub fn run_under_lease(
     client: &mut Client,
     socket: &Path,
@@ -330,9 +389,10 @@ pub fn run_under_lease(
     peak: PeakArg,
     priority: i32,
     tier: Tier,
+    coalesce: Option<&str>,
     command: &[String],
     revive: &mut dyn FnMut(),
-) -> std::io::Result<Outcome> {
+) -> std::io::Result<UnderLease> {
     // A pipe the child waits on: the command starts when the lease is real.
     let mut fds = [0 as libc::c_int; 2];
     if unsafe { libc::pipe(fds.as_mut_ptr()) } != 0 {
@@ -347,19 +407,46 @@ pub fn run_under_lease(
         return Err(std::io::Error::last_os_error());
     }
     if pid == 0 {
-        // The child: its own process group, then wait for the go-ahead.
-        // The go-ahead is one byte: "g" means run. End of file (the parent
-        // died, or the lease was refused) means **do not run**: nothing may
-        // start without a lease.
+        // The child: its own process group, then wait for the go-ahead. The
+        // go-ahead is the lease id (decimal text) followed by "g"; the id is
+        // put into the environment as THOR_ADMIT_LEASE before the exec, so
+        // a phasing workload can name its own lease. End of file (the
+        // parent died, the lease was refused, or the ask was coalesced)
+        // means **do not run**: nothing may start without a lease.
         unsafe {
             libc::setpgid(0, 0);
             libc::close(write_fd);
-            let mut byte = [0u8; 1];
-            let read = libc::read(read_fd, byte.as_mut_ptr() as *mut libc::c_void, 1);
-            libc::close(read_fd);
-            if read == 1 && byte[0] == b'g' {
-                exec_command(command);
+            let mut seen = [0u8; 32];
+            let mut length = 0usize;
+            loop {
+                let mut byte = [0u8; 1];
+                let read = libc::read(read_fd, byte.as_mut_ptr() as *mut libc::c_void, 1);
+                if read != 1 {
+                    break;
+                }
+                if byte[0] == b'g' {
+                    libc::close(read_fd);
+                    if length > 0 {
+                        let name = b"THOR_ADMIT_LEASE\0";
+                        let value: Vec<u8> = seen[..length]
+                            .iter()
+                            .copied()
+                            .chain(std::iter::once(0))
+                            .collect();
+                        libc::setenv(
+                            name.as_ptr() as *const libc::c_char,
+                            value.as_ptr() as *const libc::c_char,
+                            1,
+                        );
+                    }
+                    exec_command(command);
+                }
+                if length < seen.len() {
+                    seen[length] = byte[0];
+                    length += 1;
+                }
             }
+            libc::close(read_fd);
             libc::_exit(126);
         }
     }
@@ -372,18 +459,19 @@ pub fn run_under_lease(
     let pgid = pid as i32;
     let asked_at = std::time::Instant::now();
     let mut queued_at: Option<(usize, usize)> = None;
-    let grant = loop {
+    let acquire = loop {
         match client.acquire(
             label,
             peak,
             priority,
             tier,
             TargetSpec::Group { pgid },
+            coalesce,
             &mut |position, waiting| {
                 queued_at = Some((position, waiting));
             },
         ) {
-            Ok(grant) => break grant,
+            Ok(acquire) => break acquire,
             Err(error) if is_connection_gone(&error) => {
                 // The daemon went away while this client was asking or
                 // waiting for room — a restart, a crash, an idle exit. The
@@ -416,6 +504,23 @@ pub fn run_under_lease(
         }
     };
 
+    let grant = match acquire {
+        Acquire::Granted(grant) => grant,
+        Acquire::Coalesced { lease, label } => {
+            // An identical serve ask is already being started under `lease`.
+            // This client's command must not run: the pipe closes without a
+            // go-ahead and the child exits without exec'ing anything.
+            eprintln!(
+                "thor-admit: {label:?} was coalesced into lease {lease} — the same server \
+                 is starting under another seat's lease; nothing to load here"
+            );
+            unsafe { libc::close(write_fd) };
+            let mut status = 0;
+            unsafe { libc::waitpid(pid, &mut status, 0) };
+            return Ok(UnderLease::Coalesced { lease });
+        }
+    };
+
     let waited = asked_at.elapsed().as_secs_f64();
     // The queue is only worth mentioning when the wait was long enough for
     // the operator to wonder what was going on.
@@ -445,15 +550,22 @@ pub fn run_under_lease(
     // shrug (there is no such lease) and costs nothing.
     let _heartbeat = spawn_heartbeat(socket, grant.lease);
 
-    // Now the command may run.
-    unsafe {
-        libc::write(write_fd, b"g".as_ptr() as *const libc::c_void, 1);
-        libc::close(write_fd);
+    // Now the command may run, with its lease id in front of the go-ahead.
+    {
+        let go = format!("{}g", grant.lease);
+        unsafe {
+            libc::write(
+                write_fd,
+                go.as_ptr() as *const libc::c_void,
+                go.len(),
+            );
+            libc::close(write_fd);
+        }
     }
 
     let outcome = wait_for(pid)?;
     let _ = client.release(grant.lease, Some(outcome.peak_rss_bytes), Some(outcome.code));
-    Ok(outcome)
+    Ok(UnderLease::Ran(outcome))
 }
 
 /// The thread that says this lease's client is alive, every five seconds,
