@@ -763,3 +763,45 @@ waiting live work and a pool it has learned to need 8.98 GiB of).
 (`thor-admit ledger --hours 2`), the per-minute sampler is 60 calls to
 `thor-admit status --json`, and the window's events are grepped from
 `~/.local/state/thor-admit/daemon.log` between the two UTC stamps.
+
+## 20. Round 10: the hour above, answered (2026-11-01, ~04:30 AKDT)
+
+Section 19's hour left §11.8 open with 21 waiters held by a 2 GiB floor on
+`tegrastats`' `lfb` while `MemAvailable` sat near 100 GiB. The director's
+watch overnight added the decisive number — those 21 requests were held
+**for over an hour** — and moved the live daemon to `--gpu-floor 0` by
+hand. Round 10 put the code where the operator already was, and the
+hardware fact underneath it is in `docs/design/thor-admit.md` §14.1:
+`lfb` (`7x4MB`) counts the allocation pool's *contiguous* free blocks, a
+fragmentation signal, while the GPU's real budget on unified memory is
+`MemAvailable` — already governed by the memory rule. A default floor on
+`lfb` therefore double-governs the same bytes and bites exactly when the
+pool is fragmented and the box is otherwise empty, which is what the hour
+measured.
+
+Two changes, each with its test in the integration suite:
+
+* the default `--gpu-floor` is **0** (the rule is still there for an
+  operator who asks for it);
+* a lease whose label has never held device memory **skips the pool
+  rule** (`a_cpu_only_lease_is_not_held_by_the_gpus_pool`: the same 8 MiB
+  scripted pool and 1 GiB floor that holds a GPU-holding lease in
+  `a_lease_waits_when_the_gpus_own_pool_is_thin` lets a fresh CPU-only
+  label straight through). The promise is learned, so the risk — a first
+  run touching CUDA unmeasured — stays; if it takes device memory, its
+  own history makes the next run wait for the pool.
+
+The same round fixed the 04:15 wedged startup (bind before the lifetime
+lock, plus a 15 s `--startup-timeout-secs`; reproduced with a test seam
+that hangs the daemon where the old order left the box wedged) and made a
+queued client ride out a daemon restart by asking again instead of dying
+(`a_queued_client_rides_out_a_daemon_restart`).
+
+**The suite after the changes:** 34/34 serial, 203 s, load 5.7–7.5 (other
+seats: a `serve` d1-2B on 8094, a `d1-2B-baseline` lease, the coldshelf
+paint chain), `MemAvailable` 86 GiB — the heavy tests ran for real, under
+the box's stopgap lock, and left nothing running behind them.
+
+**Reproduce:** `cargo test --test integration` (serial is the default);
+the two pool tests bring their own scripted `tegrastats` via
+`--tegrastats-command`, so they touch no GPU.

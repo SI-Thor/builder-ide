@@ -196,25 +196,32 @@ A lease **reserves** the peak it was given. The daemon admits a lease only
 if `available - peak >= floor` (the floor is 25 GiB by default), where
 `available` is `MemAvailable` from `/proc/meminfo` *minus* what the running
 leases still owe — a lease that reserved 40 GiB and has used 2 GiB so far
-still owes 38 GiB — and only if the GPU's own allocation pool
-(`tegrastats`' `lfb`) has room above its own floor (2 GiB by default) for
-what this label has historically held on the device. The queue is first
-in, first out, with priorities in front. If the box ever falls below the
-emergency floor (8 GiB), the watchdog **terminates** the largest admitted
-lease's process group — it never merely stops it, because with no swap a
-stopped process keeps every page it took; `SIGKILL` follows a grace
+still owes 38 GiB. When the label has held device memory before and
+something can see the GPU's allocation pool, the pool must also have room
+for what the label historically held on the device (`--gpu-floor`, default
+0 — `tegrastats`' `lfb` is a contiguous-block figure, not GPU headroom, so
+the pool's floor is off unless the operator asks for it; a lease that
+promises no device memory never waits for the pool at all). The queue is
+first in, first out, with priorities in front. If the box ever falls
+below the emergency floor (8 GiB), the watchdog **terminates** the largest
+admitted lease's process group — it never merely stops it, because with no
+swap a stopped process keeps every page it took; `SIGKILL` follows a grace
 period if the process somehow survives. On top of that, the **presence
 queue** runs registered work when no live request is waiting, and gives
 it back the moment live work needs the memory or the GPU. While a client
 holds a lease it heartbeats every 5 s; a client that goes silent past
 `--heartbeat-grace-secs` (default 60 s) is asked to leave, and a lease
-whose lock outlives its client is taken back. When a lease ends, its peak
-**teaches** the history only if the run exited 0 and lasted at least 5 s —
-a no-op's megabytes never lower a reserve — and an over-running lease is
-written down while it still runs, which can only raise one. The history
-and the presence queue live in files the operator can edit;
-`thor-admit reload` (or `SIGHUP`) makes a running daemon see the edit
-without a restart.
+whose lock outlives its client is taken back. If the daemon goes away
+while a client is queued, the client reconnects and asks again rather
+than losing its wait — and auto-starts a daemon if nothing answers; a
+daemon that never begins serving within `--startup-timeout-secs`
+(default 15 s) stops itself so its socket is free for the next start.
+When a lease ends, its peak **teaches** the history only if the run
+exited 0 and lasted at least 5 s — a no-op's megabytes never lower a
+reserve — and an over-running lease is written down while it still runs,
+which can only raise one. The history and the presence queue live in
+files the operator can edit; `thor-admit reload` (or `SIGHUP`) makes a
+running daemon see the edit without a restart.
 
 ## Running the tests
 
@@ -248,6 +255,19 @@ cargo test --test integration -- --nocapture \
 cargo test --test integration -- --nocapture \
     a_model_is_loaded_once_per_box \
     the_same_model_under_two_names_is_loaded_once
+
+# the GPU's pool: a lease with a device-memory promise waits for it, and
+# a CPU-only lease does not
+cargo test --test integration -- --nocapture \
+    a_lease_waits_when_the_gpus_own_pool_is_thin \
+    a_cpu_only_lease_is_not_held_by_the_gpus_pool
+
+# the startup order: a daemon that hangs on the way up cannot wedge the
+# socket, and one that never serves stops itself
+cargo test --test integration -- --nocapture \
+    a_daemon_that_hangs_on_the_way_up_does_not_wedge_the_socket \
+    a_daemon_that_never_serves_stops_itself \
+    a_queued_client_rides_out_a_daemon_restart
 
 # a smoke test of the CLI, end to end (light: it allocates nothing)
 python3 smoke-cli.py
@@ -337,9 +357,13 @@ number for it: `peak_gpu_bytes: 643825664` (614 MiB).
   separate VRAM pool. `nvidia-smi`'s per-process accounting works and is
   used for the GPU peak; `nvidia-smi --query-gpu=memory.used` answers
   `N/A`, so the device/pinned *split* of the non-swappable pool cannot be
-  seen. `tegrastats` gives the Tegra's own RAM figure and the largest
-  free block — and that `lfb` is what the `--gpu-floor` rule is applied
-  to. See `docs/design/thor-admit.md` §"What the GPU exposes".
+  seen. `tegrastats` gives the Tegra's own RAM figure and its `lfb` —
+  the pool's *contiguous* free blocks, a fragmentation signal rather than
+  GPU headroom, which is why `--gpu-floor` defaults to 0 and why a lease
+  that promises no device memory skips the pool rule (measured
+  2026-11-01: a 2 GiB default on `lfb` held 21 requests for over an hour
+  while ~100 GiB was available). See `docs/design/thor-admit.md`
+  §"What the GPU exposes" and §14.
 * **The heartbeat is a lease-scope promise, not a health check.** The
   daemon learns only that the client's process is alive; it cannot tell a
   client that is computing from one that is spinning. The grace period
