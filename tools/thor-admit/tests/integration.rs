@@ -796,7 +796,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
 
 #[test]
 fn a_dead_client_cannot_leak_a_lease() {
-    let daemon = DaemonUnderTest::start(&[]);
+    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
 
     let mut client = leased(&daemon, "ghost", "1G", &["sleep", "120"]);
 
@@ -842,7 +842,7 @@ fn a_dead_client_cannot_leak_a_lease() {
 
 #[test]
 fn the_daemon_costs_almost_nothing() {
-    let daemon = DaemonUnderTest::start(&[]);
+    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
     let pid = daemon.child.id();
 
     // Warm up, then measure over ten seconds of doing nothing.
@@ -896,7 +896,7 @@ fn the_daemon_costs_almost_nothing() {
 
 #[test]
 fn a_learned_peak_is_used_by_the_next_run() {
-    let daemon = DaemonUnderTest::start(&[]);
+    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
 
     // One run with an explicit peak teaches the daemon what the label costs.
     let mut first = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
@@ -930,7 +930,7 @@ fn a_learned_peak_is_used_by_the_next_run() {
 
 #[test]
 fn the_stop_command_stops_the_daemon() {
-    let mut daemon = DaemonUnderTest::start(&[]);
+    let mut daemon = DaemonUnderTest::start(&["--floor", "1G"]);
 
     // The daemon is answering.
     assert!(
@@ -965,7 +965,7 @@ fn the_stop_command_stops_the_daemon() {
 
 #[test]
 fn a_refused_lease_does_not_run_the_command() {
-    let daemon = DaemonUnderTest::start(&[]);
+    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
     let marker = daemon.state_dir.join("ran.txt");
 
     // "--peak auto" for a label with no history is refused.
@@ -990,20 +990,31 @@ fn a_refused_lease_does_not_run_the_command() {
 
 #[test]
 fn the_queue_is_ordered_by_priority() {
-    // The default floor (25 GiB) and a 50 GiB reservation: the first lease
-    // fits (118 - 50 = 68 free, above the floor) and the second does not
-    // (68 - 50 = 18, below it). The reservation is what blocks the queue —
-    // the commands themselves use nothing.
-    let daemon = DaemonUnderTest::start(&[]);
+    // The floor and the reservation are derived from the box's free memory
+    // at this moment, so the test says what it means whatever else is
+    // running. The floor is placed half way between "the first lease fits"
+    // and "no lease fits", so all three requests wait and the queue is
+    // tested on its own — and the box's memory can move by twenty-odd
+    // gibibytes while the test runs without changing the answer.
+    let available = mem_available();
+    let reservation = ((available / 2) / GIB) * GIB;
+    let floor = available - reservation / 2;
+    let daemon = DaemonUnderTest::start(&[
+        "--floor",
+        &floor.to_string(),
+        "--emergency-floor",
+        "1G",
+    ]);
+    let peak = format!("{}G", reservation / GIB);
 
-    let low = leased_with_priority(&daemon, "low", "50G", 0, &["sleep", "6"]);
+    let low = leased_with_priority(&daemon, "low", &peak, 0, &["sleep", "6"]);
     std::thread::sleep(Duration::from_millis(800));
 
-    let normal = leased_with_priority(&daemon, "normal", "50G", 0, &["sleep", "6"]);
+    let normal = leased_with_priority(&daemon, "normal", &peak, 0, &["sleep", "6"]);
     std::thread::sleep(Duration::from_millis(400));
 
     // A high-priority request must overtake the one that arrived first.
-    let high = leased_with_priority(&daemon, "high", "50G", 5, &["sleep", "2"]);
+    let high = leased_with_priority(&daemon, "high", &peak, 5, &["sleep", "2"]);
     std::thread::sleep(Duration::from_millis(800));
 
     let status = daemon.status();
@@ -1025,10 +1036,17 @@ fn the_queue_is_ordered_by_priority() {
         Some("high"),
         "the queue is {queue:?}, and the high-priority request is not first"
     );
+    // Two requests of the same priority keep the order they arrived in:
+    // "low" asked first, so it is in front of "normal".
     assert_eq!(
         queue.get(1).map(String::as_str),
+        Some("low"),
+        "the queue is {queue:?}; the earlier request should be in front of the later one"
+    );
+    assert_eq!(
+        queue.get(2).map(String::as_str),
         Some("normal"),
-        "the queue is {queue:?}; the earlier request should be behind the later one"
+        "the queue is {queue:?}"
     );
 
     for mut child in [low, normal, high] {
@@ -1042,7 +1060,14 @@ fn the_queue_is_ordered_by_priority() {
 fn the_watchdog_leaves_small_leases_alone() {
     // The emergency floor is above the box's free memory, so the watchdog is
     // armed from the first sample.
-    let daemon = DaemonUnderTest::start(&["--emergency-floor", "200G", "--min-victim-rss", "2G"]);
+    let daemon = DaemonUnderTest::start(&[
+        "--floor",
+        "1G",
+        "--emergency-floor",
+        "200G",
+        "--min-victim-rss",
+        "2G",
+    ]);
 
     let mut small = leased(&daemon, "small", "1G", &["sleep", "8"]);
     std::thread::sleep(Duration::from_secs(3));
