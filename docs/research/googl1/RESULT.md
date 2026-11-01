@@ -1,6 +1,8 @@
 # RESULT — googl1-digest: the parts, the verdicts, the papers, and why
 
-**Seat:** googl1-digest (continuation), 2026-11-01.
+**Seat:** googl1-digest (continuation), 2026-11-01. **This file now covers
+two digests:** the googl1 digest (below) and the googleidea3 digest
+(end). The seat's running log is `NOTES.md`.
 **Inputs:** Casey's `googl1.md` (~25,000-word bare-metal Thor brainstorm); our
 measurements in `builder-ide` (`docs/lab/`, `docs/lab/xp-batch/`,
 `thor-fp4/BENCHMARKS.md`, `docs/design/`); the `superinstance-papers` library.
@@ -81,9 +83,21 @@ measured twice:
   helper multiplying nanoseconds, ×1000 inflation) — the correction is
   quantified in the paper and the corrected probe is what is committed. The
   zero arm's pass bar (zero p50 < naive p50, zero mismatches) stands
-  pre-registered, and the corrected run sits queued as lease
-  `googl1.ingress4` (~10 s of bounded, 512 MB work): when the box opens it
-  executes unattended and lands in `~/googl1-ingress/results/` on the Thor.
+  pre-registered.
+
+  > **Superseded (11:30, the googleidea3 seat — see the end of this file).**
+  > The queued lease `googl1.ingress4` did **not** survive the queue (at
+  > 11:15 the queue was empty, no ledger entry, no results dir). The next
+  > seat resubmitted the run as `googl1.ingress5`, fixed one more probe
+  > defect found on execution (the shutdown `cudaDeviceSynchronize()`
+  > hanging behind co-tenant GPU starvation with the JSON unprinted), and
+  > **the zero-copy arm then measured and PASSED its pre-registered bar**:
+  > zero p50 **3.21 µs** (1 KiB, 50,000 frames) and **4.84 µs** (8 KiB,
+  > 20,000 frames) vs naive 29.32/44.35 µs — 9.1×/9.2×, `mismatch = 0`
+  everywhere, **zero** frames over 1 ms in the zero arm (naive: 22 and 1).
+  Paper 61's experiment is complete; commit `2d0ccb6` on `googl1-papers`,
+  not pushed. The correction is recorded in the paper's `measurement.md`
+  (attempt 2 superseded, attempt 3 added) with the old text kept visible.
 
 Filed in the library's structure: `papers/61-doorbell-ring-ingress/` (the
 next number after `papers/60`), plus its `LEDGER.md` (new "November 2026"
@@ -134,3 +148,80 @@ head-of-line blocked for part of the morning behind a 24 GB render lease,
 and two of my queued lease requests were killed and resubmitted (only my own
 PIDs were touched; no other tenant's lease was affected — verified before and
 after).
+
+---
+
+# googleidea3 — the parts, the verdicts, the paper decision
+
+**Seat:** googl1-digest (googleidea3 continuation), 2026-11-01, per the
+11:30 CONTINUE. **Inputs:** `googleidea3.md` (86 KB: the "Cellular POSIX
+Simulator", Stages 31–40, a closing self-review); googleidea1 and
+googleidea2 (`~/lm-ops/aider-desk/lib-googleidea{1,2}.md`, identical copies
+in the seedbank) for the extends/repeats/contradicts relation; everything
+the googl1 digest banked. **Deliverables:** `docs/googleidea3/00-overview.md`
++ 13 part docs + a compile probe (`docs/googleidea3/probes/`).
+
+## The parts and their verdicts
+
+| Part | Verdict |
+|---|---|
+| 01 the Cellular POSIX Simulator | Right shape (a thin compiler into the 3 µs ring), broken costume: paths collide at ~300 names, `ls` can't list, "exploit immunity" inverts the truth; contradicts googleidea1's Linux pipeline |
+| 02 the monolith (linker.ld, boot.s) | Real Arm boot mechanics, canonical values — invented self-contradictory map behind signed boot; doesn't assemble |
+| 03 the register map + command path | The ring discipline = paper 61's measured ring; every address invented; GIC wrong in version (device tree: `arm,gic-v3` at 0x8146000000) and bank; **the handler does not compile** (probe: 5 lvalue errors + missing typedef + silent read-the-address bugs) |
+| 04 cells, "FP4", Hebbian, RNDR | Cell drifted to 112 B (fails googl1's own 128-rule); "FP4" = 4-bit ints ≠ NVFP4; RNDR is real Arm but **FEAT_RNG absent on this box's V3AE (checked live)** — the `mrs` would fault; `getrandom()` suffices |
+| 05 the JTAG route | Textbook TAP on a Raspberry Pi GPIO map; can't write flash; signed chain rejects the payload; USB recovery flash is the supported route |
+| 06 crash dump + watchdog | The right pattern (crash-only); adopt the supported form: verify pstore/ramoops once, hash-chain the agent journal |
+| 07 cache maintenance | Real `dc ivac/cvac` idiom, wrong premise: CPU↔GPU is coherent — 170 k bit-exact jobs/frames ran with zero maintenance |
+| 08 the hardware timer | Most nearly correct stage (right regs, right PPI 26); still an EL2/EL3 naming error, a bank error, an undefined symbol; clock_gettime/vDSO is enough |
+| 09 the PCIe barrier | Real hazard, wrong fix (Transactions-Pending ≠ your writes' arrival) and unnecessary: posted-write ordering + release/acquire, proven bit-exact by paper 61 |
+| 10 NVLink telemetry | Third appearance of the NVLink fiction; Thor has no NVLink (4×25 GbE); ethtool counters are the real form |
+| 11 the context swapper | Invented registers sitting on its own command ring; CPU register file pasted onto a GPU; real answers are measured (ring = no context to swap; Green Context floor 1195/1200) |
+| 12 the Stage 40 loop | Right skeleton, invented organs; calls symbols that exist nowhere; not in its own build script |
+| 13 the expert review | TMA + mbarrier real (assembler-verified sm_110a) beside ps-claims, Apple-ecosystem API names, invented registers; its one true sentence — zero-copy on one coherent pool — is now measured (paper 61, PASS) |
+
+**Overall verdict.** googleidea3 adds no mechanism googl1 didn't already
+adjudicate, and its new specifics fail first contact with the machine —
+three of them falsified this seat in minutes each (compile probe; live
+FEAT_RNG check; device-tree GIC). What stands is what stood after googl1
+(Thesis B, the ring, the floor, the differential discipline) plus one
+honest addition: crash-first evidence handling (part 06).
+
+## The paper decision
+
+**No paper; no `googleidea3-papers` branch.** The mechanism-shaped
+candidates are subsumed by paper 61 (zero-copy pipeline = its subject, now
+measured PASS; doorbell ordering = its bit-exact runs + write-ordering
+rules; shell-as-ring-client = an application note of its §6 regression);
+the genuinely new candidates are not pencilable (RNG mutation rests on a
+feature the CPU lacks and is a toy rule without a model; the POSIX
+simulator doesn't close semantically; the NVLink monitor and context
+registers monitor/command hardware that doesn't exist). The digest's own
+findings are evidence about a document, not mechanisms about a machine.
+Reasons are stated in `docs/googleidea3/00-overview.md` §"The paper
+decision" — a valid outcome per the brief.
+
+**Library work this seat did instead:** completed paper 61's dangling
+pre-registered measurement — resubmitted the lost `googl1.ingress4` lease
+as `googl1.ingress5`, diagnosed and fixed a shutdown-hang defect (the
+receiver printed its JSON only after a `cudaDeviceSynchronize()` that waits
+out co-tenant starvation; now print-then-exit), re-ran all five configs:
+**zero-copy arm PASS** (3.21/4.84 µs p50 vs 29.32/44.35 µs naive, 9.1×/
+9.2×, mismatch 0, zero >1 ms events, 70,000 frames). Committed as
+`2d0ccb6` on `googl1-papers` (paper.md + measurement.md + raw JSON +
+corrected probe); **not pushed** — the director handles the PR. The words
+"breakthrough"/"groundbreaking"/"ah-ha" do not appear in the library text
+(checked, `grep -c` = 0).
+
+## What was run on the Thor (this continuation)
+
+Read-only fact checks over `ssh thor-lan` (`/proc/cpuinfo` Features — no
+`rng`; `/proc/device-tree/interrupt-controller@8146000000/compatible` =
+`arm,gic-v3`). CUDA work only under `thor-admit run` (study tier, label
+`googl1.ingress5`, peak 2G, co-tenant render + two model servers
+throughout). One correction of the record: the previous seat's queued lease
+`googl1.ingress4` had vanished without running — recorded here and in the
+paper's `measurement.md` with the old text kept visible. Two stuck
+processes killed mid-diagnosis were the lease's own (PIDs verified before
+the kill); no other tenant's lease was touched. Nothing wrote to
+`/dev/mem`, firmware, or boot configuration. The compile probe ran on the
+ProArt host, not the Thor.
