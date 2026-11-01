@@ -106,6 +106,7 @@ __all__ = [
     "Recalibration",
     "recalibrate",
     "is_identity",
+    "raw_floor_for",
     "DriftLine",
     "drift_of",
     "area_under_curve",
@@ -667,11 +668,15 @@ class IsotonicScale(CalibrationScale):
         # runner-up's, so the argmax does not change under a calibration.
         if rest:
             calibrated = max(calibrated, float(distribution[max(rest, key=lambda key: distribution[key])]))
-        remaining = 1.0 - calibrated
         rest_mass = sum(float(distribution[key]) for key in rest)
+        if rest_mass <= 0.0:
+            # nothing else carries mass, so there is no remainder to share:
+            # the whole distribution is the top option
+            return {key: (1.0 if key == top else 0.0) for key in distribution}
+        remaining = 1.0 - calibrated
         out = {top: calibrated}
         for key in rest:
-            share = float(distribution[key]) / rest_mass if rest_mass > 0 else 0.0
+            share = float(distribution[key]) / rest_mass
             out[key] = remaining * share
         return out
 
@@ -829,6 +834,75 @@ def _brier_with(samples: Sequence[CalibrationSample], scale: CalibrationScale | 
     if not scores:
         return None
     return sum(scores) / len(scores)
+
+
+def raw_floor_for(
+    scale: CalibrationScale,
+    tau: float,
+    shape: Mapping[str, float],
+    *,
+    steps: int = 2000,
+) -> float:
+    """The raw confidence at which the calibrated confidence reaches τ.
+
+    **This is "the gate's τ read from the calibrated space" made into a
+    number.** The gate compares the *calibrated* confidence with τ, so the
+    operator sets τ in the calibrated space — "act when the calibrated
+    probability of being right is at least τ" — and this says what the raw
+    number has to be for that to happen.
+
+    The map from a raw confidence to a calibrated one depends on the whole
+    distribution, not on the top probability alone, so ``shape`` is the
+    reference: the distribution's options and their relative shares. The
+    top option's mass is then swept from 0 to 1, the rest keeping their
+    shares of what is left, and the first sweep point whose calibrated
+    confidence reaches τ is the floor.
+
+    An identity scale returns τ itself, which is the check that the sweep
+    and the scale agree.
+    """
+    keys = list(shape)
+    if not keys:
+        raise ValueError("a shape has options")
+    top = max(keys, key=lambda key: float(shape[key]))
+    rest = [key for key in keys if key != top]
+    rest_total = sum(float(shape[key]) for key in rest)
+    shares = {
+        key: (float(shape[key]) / rest_total if rest_total > 0 else 0.0) for key in rest
+    }
+    max_share = max(shares.values()) if shares else 0.0
+
+    def calibrated(raw: float) -> float:
+        distribution = {top: raw}
+        for key, share in shares.items():
+            distribution[key] = (1.0 - raw) * share
+        return scale.calibrated_confidence(distribution)
+
+    # The sweep starts where the intended option is at least tied for the
+    # top. Below that the option the confidence belongs to is not the one
+    # the model answered with — on a binary that is exactly the half, which
+    # is why a binary's raw floor can never be under a half.
+    lower = max_share / (1.0 + max_share) if max_share > 0 else 0.0
+    if calibrated(lower) >= tau:
+        return lower
+    low, high = lower, 1.0
+    for index in range(1, steps + 1):
+        candidate = lower + (1.0 - lower) * index / steps
+        if calibrated(candidate) >= tau:
+            low, high = lower + (1.0 - lower) * (index - 1) / steps, candidate
+            break
+    else:
+        return 1.0
+    # the sweep is a grid; a short bisection puts the floor on the crossing
+    for _ in range(40):
+        middle = (low + high) / 2.0
+        if calibrated(middle) >= tau:
+            high = middle
+        else:
+            low = middle
+        if high - low < 1e-6:
+            break
+    return high
 
 
 def recalibrate(

@@ -40,6 +40,7 @@ from core.judge.calibration import (
     fit_isotonic,
     fit_temperature,
     mean_confidence,
+    raw_floor_for,
     recalibrate,
     reliability_curve,
 )
@@ -399,6 +400,19 @@ def test_an_isotonic_map_keeps_the_ranking_of_the_distribution():
     assert scaled["a"] > scaled["b"]
 
 
+def test_an_isotonic_map_keeps_a_distribution_that_sums_to_one():
+    """Even when the rest of the distribution carries no mass at all.
+
+    A point mass has nothing left to share the remainder with, and a
+    distribution that does not sum to one is not a distribution — the
+    confidence of a point mass is one.
+    """
+    scale = IsotonicScale(params={"knots": [[0.0, 0.0], [1.0, 0.65]]})
+    scaled = scale.apply({"a": 1.0, "b": 0.0})
+    assert sum(scaled.values()) == pytest.approx(1.0)
+    assert scaled["a"] == pytest.approx(1.0)
+
+
 def test_a_recalibration_is_kept_only_when_the_held_out_brier_improves():
     """The fit half says 0.9; the held-out half says 0.9 and is wrong.
 
@@ -501,6 +515,44 @@ def test_a_stale_recalibration_is_a_drift():
     assert "recalibration_stale" in kinds
     stale = next(line for line in lines if line.kind == "recalibration_stale")
     assert "no longer improves" in stale.detail
+
+
+# --- the threshold in the calibrated space --------------------------------------
+
+
+def test_the_raw_floor_of_an_identity_scale_is_the_threshold_itself():
+    scale = TemperatureScale(params={"temperature": 1.0})
+    floor = raw_floor_for(scale, 0.5, {"true": 0.5, "false": 0.5})
+    assert floor == pytest.approx(0.5, abs=1e-3)
+
+
+def test_a_softening_scale_moves_the_raw_floor_up():
+    """A temperature above one softens the model, so more raw confidence is needed.
+
+    This is what "the gate's τ read from the calibrated space" means in
+    practice: the operator sets τ in the calibrated space, and the raw
+    number that has to clear the floor moves with the scale.
+    """
+    scale = TemperatureScale(params={"temperature": 2.0})
+    floor = raw_floor_for(scale, 0.5, {"true": 0.5, "false": 0.5})
+    assert floor == pytest.approx(0.5, abs=1e-3)
+    higher = raw_floor_for(scale, 0.6, {"true": 0.5, "false": 0.5})
+    assert higher > floor
+    # the calibrated confidence at that floor is the threshold
+    distribution = {"true": higher, "false": round(1.0 - higher, 10)}
+    assert scale.calibrated_confidence(distribution) == pytest.approx(0.6, abs=1e-3)
+
+
+def test_the_raw_floor_of_a_sharpening_scale_moves_down():
+    scale = TemperatureScale(params={"temperature": 0.5})
+    floor = raw_floor_for(scale, 0.8, {"true": 0.5, "false": 0.5})
+    assert floor < 0.8
+
+
+def test_the_raw_floor_of_an_isotonic_map_is_read_off_its_knots():
+    scale = IsotonicScale(params={"knots": [[0.0, 0.0], [1.0, 1.0]]})
+    floor = raw_floor_for(scale, 0.5, {"true": 0.5, "false": 0.5})
+    assert floor == pytest.approx(0.5, abs=1e-3)
 
 
 def test_a_drift_line_names_the_model_and_the_task():
