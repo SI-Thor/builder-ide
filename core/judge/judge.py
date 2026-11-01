@@ -29,16 +29,16 @@ what acts on them is the caller's.
 
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Mapping, Sequence
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from core.canon import now_utc
 from core.records import Actor
 
 from .backends import BackendReply, FakeBackend, JudgeBackend, JudgeRefusal
 from .events import JUDGE_EVENT_TYPE
-from .gate import ConfidencePolicy, EscalationLadder
+from .gate import ConfidencePolicy, EscalationLadder, StandingGate
 from .models import JudgeCost, Judgment, Question, judgment_from_distribution, question_set_hash, state_hash
 from .ports import LedgerPort
 
@@ -51,7 +51,11 @@ class JudgeAnswer(BaseModel):
     ``judgments`` is one per question asked, in pack order — the
     judgment that governs each question (the first rung whose
     confidence cleared τ, or the last rung's when the ladder was
-    exhausted). The authors are on the judgments.
+    exhausted). The authors are on the judgments. ``standing_words``
+    carries the hysteresis standing's word per question id when a
+    standing governed the first rung (the row has it too); ``surfaced``
+    follows the standing where it governed, and the raw gate word
+    elsewhere.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -64,6 +68,7 @@ class JudgeAnswer(BaseModel):
     surfaced: bool
     cost: JudgeCost
     latency_seconds: float
+    standing_words: dict[str, str | None] = Field(default_factory=dict)
 
     @property
     def authors(self) -> tuple[str, ...]:
@@ -79,7 +84,19 @@ class JudgeAnswer(BaseModel):
 
 
 class Judge:
-    """The seam. The backend is a parameter with a default (the fake)."""
+    """The seam. The backend is a parameter with a default (the fake).
+
+    ``standing`` wires the escalation trigger of the ladder through the
+    hysteresis standing: the first rung's act-or-escalate decision is
+    then the standing's word (per question id, the subject), not the
+    per-tick τ comparison — a confidence that wanders across τ does not
+    flap the ladder, and a sustained drop escalates within the dwell
+    bound. The standing consumes the **first** rung's confidences (the
+    signal it was configured for); the later rungs stay gated by the
+    policy's τ. ``now`` — the standing's clock, the caller's — is
+    required when a standing is wired; for the adopted configuration it
+    is the tick number.
+    """
 
     def __init__(
         self,
@@ -87,6 +104,7 @@ class Judge:
         *,
         ladder: EscalationLadder | None = None,
         policy: ConfidencePolicy | None = None,
+        standing: StandingGate | None = None,
         ledger: LedgerPort,
         clock=now_utc,
     ) -> None:
@@ -101,6 +119,7 @@ class Judge:
             rungs.append((FakeBackend().name, FakeBackend()))
         self.rungs = tuple(rungs)
         self.policy = policy or ConfidencePolicy()
+        self.standing = standing
         self.ledger = ledger
         self._clock = clock
 
@@ -113,13 +132,23 @@ class Judge:
         questions: Sequence[Question],
         *,
         at: str | None = None,
+        now: float | None = None,
     ) -> JudgeAnswer:
         """Ask one pack over one state, under the confidence policy.
 
         Escalation is per question and the wire is the pack: each rung
         is asked only the questions the previous rung fell short on,
-        over the same shared state.
+        over the same shared state. With a standing wired, the first
+        rung's fall-short-or-act word is the standing's; ``now`` is then
+        required, because a standing without the caller's clock cannot
+        replay.
         """
+        if self.standing is not None and now is None:
+            raise ValueError(
+                "a standing gate is a clock over ticks: pass now= (the "
+                "caller's clock; the adopted configuration's dwells are "
+                "ticks of the decision loop)"
+            )
         pack = tuple(questions)
         if not pack:
             raise ValueError("a question pack is not empty")
@@ -132,11 +161,20 @@ class Judge:
         prev_backend: str | None = None
         attempts = 0
         total = JudgeCost(wall_seconds=0.0)
+        # the standing's word per qid for the row being written, the
+        # words it read on the first rung (the answer carries them), and
+        # the words that actually made a governing decision — the
+        # standing's word is the gate's word where it governs, even
+        # where the raw τ comparison would have said otherwise
+        standing_words: dict[str, str | None] = {}
+        standing_readings: dict[str, str | None] = {}
+        governed_by: dict[str, str] = {}
 
         for index, (name, backend) in enumerate(self.rungs):
             if not pending:
                 break
             tau = self.policy.tau_for(backend.name, backend.model, task)
+            standing_governs = self.standing is not None and index == 0
             try:
                 reply = backend.ask(state, pending)
             except JudgeRefusal as refusal:
@@ -168,17 +206,42 @@ class Judge:
             }
             act: list[Judgment] = []
             still_pending: list[Question] = []
+            standing_words = {}
             for question in pending:
                 judgment = judged[question.qid]
-                if self.policy.decision(confidence=judgment.confidence, tau=tau) == "act":
+                if standing_governs:
+                    if judgment.confidence is None:
+                        # a judgment with no confidence cannot feed a
+                        # continuous gate: it never passes (the policy's
+                        # own rule), and the standing takes no reading
+                        acts = False
+                        standing_words[question.qid] = None
+                    else:
+                        word = self.standing.step_for(
+                            question.qid, judgment.confidence, now
+                        ).state
+                        standing_words[question.qid] = word
+                        acts = word == "act"
+                else:
+                    acts = (
+                        self.policy.decision(confidence=judgment.confidence, tau=tau)
+                        == "act"
+                    )
+                if acts:
                     act.append(judgment)
                     governing[question.qid] = judgment
+                    if standing_governs and standing_words.get(question.qid):
+                        governed_by[question.qid] = standing_words[question.qid]
                 elif index + 1 < len(self.rungs):
                     still_pending.append(question)
                 else:
                     act.append(judgment)
                     governing[question.qid] = judgment  # surfaced
+                    if standing_governs and standing_words.get(question.qid):
+                        governed_by[question.qid] = standing_words[question.qid]
             escalated_qids = {question.qid for question in still_pending}
+            if standing_governs:
+                standing_readings.update(standing_words)
 
             row_judgments = tuple(
                 judged[question.qid].model_copy(
@@ -199,6 +262,7 @@ class Judge:
                 escalated_from=prev_backend,
                 refusal=None,
                 at=moment,
+                standing_words=standing_words,
             )
             total = total.added(cost)
             attempts += 1
@@ -212,15 +276,24 @@ class Judge:
                 "the refusals are on the log",
             )
         ordered = tuple(governing[question.qid] for question in pack)
+
+        def _surfaced(judgment: Judgment) -> bool:
+            # the standing's word is the gate's word where it governed
+            word = governed_by.get(judgment.qid)
+            if word is not None:
+                return word != "act"
+            return judgment.gate == "surfaced"
+
         return JudgeAnswer(
             task=task,
             state_hash=s_hash,
             questions_hash=pack_hash,
             judgments=ordered,
             attempts=attempts,
-            surfaced=any(judgment.gate == "surfaced" for judgment in ordered),
+            surfaced=any(_surfaced(judgment) for judgment in ordered),
             cost=total,
             latency_seconds=total.wall_seconds,
+            standing_words=dict(standing_readings),
         )
 
     # -- the record ------------------------------------------------------------
@@ -239,8 +312,18 @@ class Judge:
         escalated_from: str | None,
         refusal: JudgeRefusal | None,
         at: str,
+        standing_words: Mapping[str, str | None] | None = None,
     ) -> None:
-        """One ``judge.verdict`` row per attempt — refused attempts included."""
+        """One ``judge.verdict`` row per attempt — refused attempts included.
+
+        ``standing_words`` is the hysteresis standing's word per question
+        id when a standing governs the rung (``None`` where it took no
+        reading — a no-confidence judgment, or no standing wired). The
+        row carries it beside the raw gate's word because a log that
+        needs a computation to say what governed is a log that lies by
+        omission.
+        """
+        standing_words = standing_words or {}
         payload: dict[str, object] = {
             "task": task,
             "state_hash": state_hash,
@@ -252,9 +335,14 @@ class Judge:
             "n_questions": len(questions),
             # the gate decision is derived (confidence, τ, escalated), but the
             # row carries it anyway: a log that needs a computation to say
-            # what was acted on is a log that lies by omission
+            # what was acted on is a log that lies by omission — and the
+            # standing's word rides beside it for the same reason
             "judgments": [
-                {**judgment.model_dump(), "gate": judgment.gate}
+                {
+                    **judgment.model_dump(),
+                    "gate": judgment.gate,
+                    "standing": standing_words.get(judgment.qid),
+                }
                 for judgment in judgments
             ],
             "latency_seconds": reply.wall_seconds if reply else 0.0,
@@ -292,10 +380,11 @@ def fold_judgments(events, *, backend: str | None = None) -> list[dict]:
 
     One entry **per judgment** — the unit the brief names — with its
     attempt's context flattened on (author, cost, latency, hashes, the
-    rung it was escalated from). A **refused attempt** is its own
-    judgment-less entry, because the edges are the story and a refusal
-    is an edge. ``entry["judgment"]`` is the :class:`Judgment`;
-    ``entry["distribution"]`` and ``entry["gate"]`` are conveniences.
+    rung it was escalated from, and the hysteresis standing's word where
+    one governed). A **refused attempt** is its own judgment-less entry,
+    because the edges are the story and a refusal is an edge.
+    ``entry["judgment"]`` is the :class:`Judgment`; ``entry["distribution"]``,
+    ``entry["gate"]`` and ``entry["standing"]`` are conveniences.
     """
     from .models import Judgment
 
@@ -306,14 +395,16 @@ def fold_judgments(events, *, backend: str | None = None) -> list[dict]:
         payload = dict(getattr(event, "payload", {}) or {})
         if backend is not None and payload.get("backend") != backend:
             continue
-        attempt = tuple(Judgment.model_validate(raw) for raw in payload.get("judgments", []))
-        for judgment in attempt:
+        raw_judgments = payload.get("judgments", [])
+        attempt = tuple(Judgment.model_validate(raw) for raw in raw_judgments)
+        for raw, judgment in zip(raw_judgments, attempt):
             entry = dict(payload)
             entry["judgment"] = judgment
             entry["qid"] = judgment.qid
             entry["distribution"] = judgment.distribution
             entry["gate"] = judgment.gate
             entry["escalated"] = judgment.escalated
+            entry["standing"] = raw.get("standing") if isinstance(raw, dict) else None
             entry["seq"] = getattr(event, "seq", None)
             entry["at"] = getattr(event, "at", "")
             entry["attempt_judgments"] = attempt

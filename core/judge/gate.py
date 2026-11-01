@@ -21,24 +21,93 @@ threshold flickers: each flap is a fact written, withdrawn, written
 again. :class:`StandingGate` is that case, and it is not a new
 mechanism — it wraps :mod:`core.hysteresis`, the gate built and
 measured for exactly this, with the judgment's confidence as the
-continuous signal and τ as the enter line.
+continuous signal and τ as the enter line. Its defaults are a
+measurement too: the real d1 traces replayed through the gate chose
+:class:`StandingConfig`'s band and dwells, and the replay is what
+``docs/lab/exp-hysteresis-d1.md`` records.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Mapping, Sequence
 
 from core.hysteresis.gate import HysteresisGate, Level, Transition
 
 from .backends import BackendReply, JudgeBackend
 
-__all__ = ["DEFAULT_TAU", "ConfidencePolicy", "EscalationLadder", "StandingGate"]
+__all__ = [
+    "DEFAULT_TAU",
+    "DEFAULT_BAND",
+    "DEFAULT_DWELL_UP",
+    "DEFAULT_DWELL_DOWN",
+    "StandingConfig",
+    "ConfidencePolicy",
+    "EscalationLadder",
+    "StandingGate",
+]
 
 
 #: E1 (§1.4): all three of d1-2B's errors sat in the bottom confidence
 #: band; above 0.5 it was 196/196. The default until a task's own
 #: calibration says otherwise.
 DEFAULT_TAU = 0.5
+
+#: The adopted standing configuration, from the replay of the real d1
+#: traces through the gate (`docs/lab/exp-hysteresis-d1.md`; the sweep
+#: and its results JSON are beside the harness). At the traces'
+#: calibrated τ the raw threshold flickers 66 times in 240 ticks on the
+#: 2B recording; **band 0.15, dwell_up 2, dwell_down 0 leaves one** with
+#: the raw gate's catch of the model's misreadings and its agreement
+#: kept and both latency bounds met. The band holds the shallow wobble,
+#: the dwell_up earns `act`, and a real drop is not delayed — the same
+#: asymmetry the mechanism's own README argues for, mirrored for
+#: escalation (the safety direction commits at once).
+#:
+#: The dwells are in **the caller's clock**: for the judge's per-tick
+#: caller that is ticks of the decision loop (one tick, one judgment —
+#: 2 ticks ≈ 64 ms of decision time on the rung-0 recording). A caller
+#: whose clock is seconds passes its own numbers; that is what a
+#: parameter with a default is for.
+DEFAULT_BAND = 0.15
+DEFAULT_DWELL_UP = 2.0
+DEFAULT_DWELL_DOWN = 0.0
+
+
+@dataclass(frozen=True)
+class StandingConfig:
+    """The standing's four numbers as one parameter, with the adopted default.
+
+    ``tau`` is the enter line (E1's default until a task's own
+    calibration names another), ``band`` is the width of the
+    inside-which-nothing-moves region below it, and the two dwells are
+    how long a change must be asked for before it commits, in the
+    caller's clock. This is the configuration the trace replay chose;
+    the sweep table in ``docs/lab/exp-hysteresis-d1.md`` is its record.
+    """
+
+    tau: float = DEFAULT_TAU
+    band: float = DEFAULT_BAND
+    dwell_up: float = DEFAULT_DWELL_UP
+    dwell_down: float = DEFAULT_DWELL_DOWN
+
+    def __post_init__(self) -> None:
+        if not 0.0 < self.tau <= 1.0:
+            raise ValueError("tau is a rate in (0, 1]")
+        if not 0.0 <= self.band < self.tau:
+            raise ValueError("the band sits below tau and does not reach zero")
+        if self.dwell_up < 0.0 or self.dwell_down < 0.0:
+            raise ValueError("a dwell time is a duration")
+
+    def standing_gate(self, name: str = "") -> "StandingGate":
+        """The gate this configuration builds."""
+        return StandingGate(
+            tau=self.tau,
+            band=self.band,
+            dwell_up=self.dwell_up,
+            dwell_down=self.dwell_down,
+            name=name,
+        )
 
 
 class ConfidencePolicy:
@@ -127,6 +196,12 @@ class StandingGate:
     exactly as the mechanism requires, so a trace replays to the same
     answer.
 
+    The defaults are the **adopted configuration** — the standing
+    config the real d1 traces chose (see :class:`StandingConfig`): pass
+    nothing and the gate is the one the sweep's rule landed on; pass a
+    ``config`` (or the four numbers) and yours governs. Per-tick callers
+    pass ticks as ``now``; the adopted dwells are ticks.
+
     Gates are per subject (a tile, a question, a builder): ask with
     :meth:`step_for` or with the default subject via :meth:`step`.
     """
@@ -134,12 +209,16 @@ class StandingGate:
     def __init__(
         self,
         *,
+        config: StandingConfig | None = None,
         tau: float = DEFAULT_TAU,
-        band: float = 0.1,
-        dwell_up: float = 0.0,
-        dwell_down: float = 0.0,
+        band: float = DEFAULT_BAND,
+        dwell_up: float = DEFAULT_DWELL_UP,
+        dwell_down: float = DEFAULT_DWELL_DOWN,
         name: str = "",
     ) -> None:
+        if config is not None:
+            tau, band = config.tau, config.band
+            dwell_up, dwell_down = config.dwell_up, config.dwell_down
         if not 0.0 < tau <= 1.0:
             raise ValueError("tau is a rate in (0, 1]")
         if not 0.0 <= band < tau:

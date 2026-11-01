@@ -75,3 +75,17 @@ and the clock. What a level means belongs to the caller.
 
 None of those is wired up here: the module is measured and tested, and
 the three call sites are named so the next seat knows where it goes.
+
+**First caller, landed (2026-10-31):** the vocabulary gate is still
+named-but-unwired, but the escalation standing of `core/judge`'s ladder
+now routes through this gate — `core/judge/gate.py`'s `StandingGate` and
+`StandingConfig`, with the configuration the real d1 traces chose
+(band 0.15, dwell_up 2, dwell_down 0 at the task's calibrated τ; the
+replay is [`docs/lab/exp-hysteresis-d1.md`](../../docs/lab/exp-hysteresis-d1.md)).
+That wiring is also this package's first measurement on **real** recorded
+signal: the synthetic traces here established the mechanism, the d1
+confidence traces established the numbers a threshold actually meets —
+66 flickers in 240 ticks at the 2B's calibrated τ, 1 after the gate. The
+replay harness lives beside that note
+(`docs/lab/hysteresis-scripts/replay_d1_traces.py`), and it is the tool
+to re-run before any new call site picks its own band and dwell.
