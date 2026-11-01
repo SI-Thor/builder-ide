@@ -37,3 +37,69 @@ That is the canon's and the mediator's half of `three-minds.md`. The reflex half
 3. **thor-admit's presence queue and the night scheduler:** use `queueing-theory` to model the tiers (a priority M/M/c) before tuning, and compare the model's predicted wait with the ledger's measured one. **Seed 162.**
 
 **Install note:** no machine has OTP yet. The first job that needs it installs a rootless OTP + Elixir/Gleam in its worktree (the fleet's old `beams.env` pattern), and logs it with its undo.
+
+## The case against each default, and the measurement that settles it (Hy4 adversarial review, 2026-11-01)
+The map above is a set of defaults, not verdicts. Each is settled by its measurement, run when the layer is next built:
+
+GB unified, no swap; Windows/WSL laptop)                                        
+
+1. Rust for CPU services / daemons / kernels of logic                           
+
+ • Strongest case against: The box is memory-rich (122 GB) and core-poor (14);  
+   our daemons are tiny (thor-admit: 2 MiB, 0.03% CPU) and I/O-bound, so “exact 
+   memory / no GC pauses” is not the binding constraint — the thor-admit lease  
+   already reserves a peak and prevents OOM. The real cost is agent iteration:  
+   Rust’s borrow checker plus aarch64 compile times (and cross-compiling from   
+   WSL) slow the edit→run loop versus Go/Python. The WASM-viewer benefit only   
+   applies to a subset.                                                         
+ • Cheapest measurement: Port one real daemon (thor-admit’s admission loop) to  
+   Go (or Python) and keep the Rust one. Run both under the same lease/load on  
+   the Jetson; measure peak RSS, p99 latency, any GC pause >10 ms, and agent    
+   change→test time (incl. build). If Go/Python RSS stays under the reserved    
+   peak, latency is equal, and iteration is >2× faster, Rust is not the right   
+   default here.                                                                
+
+2. Per-kernel GPU languages (CUDA C++/CUTLASS, inline PTX, Triton, Vulkan/WGSL) 
+
+ • Strongest case against: The Thor has only an integrated sm_110 NVIDIA GPU;   
+   Vulkan/WGSL is for the Radeon/Chrome target, not the Thor default. Triton    
+   likely matches CUDA C++ for non-GEMM kernels at a fraction of the agent cost;
+   inline PTX is a portability risk rarely needed if CUTLASS/CUDA C++ works.    
+   Four backends are maintained before any measurement proves they are needed.  
+ • Cheapest measurement: Implement the thor-fp4 activation quantizer in Triton  
+   and CUDA C++, and a GEMM in CUTLASS (+Vulkan if easy). Benchmark on the      
+   Jetson at the real shape (e.g. 2048×8192): if Triton is within ~15% of CUDA  
+   C++ and much faster to write, default non-GEMM to Triton; if Vulkan is       
+   non-functional or >3× slower on Jetson, drop it. Keep CUDA C++/CUTLASS for   
+   tensor-core GEMMs only.                                                      
+
+3. BEAM (Elixir/Gleam) for the quilt / large agent networks                     
+
+ • Strongest case against: The claimed scale (hundreds/thousands of processes)  
+   is unmeasured; at 14 cores, OTP’s per-process overhead may lose to a Rust/Go 
+   actor tree for our current tens of bots. No machine has OTP installed        
+   (rootless install + a second runtime/type system beside Rust); the 2         
+   KB/process win is irrelevant with 122 GB but 14 cores. The bots’ client is   
+   Node/Rust, so BEAM adds IPC and operational surface.                         
+ • Cheapest measurement: Build the same bot+coach supervisor tree in Gleam and  
+   in Rust (or Go). Run 50 and 200 bots on the Jetson; measure bots/core,       
+   crash-restart time, cue latency, and CPU/bot. If BEAM does not beat Rust/Go  
+   at 14 cores, or the install+IPC cost is material, BEAM is premature as the   
+   default.                                                                     
+
+4. Queueing models first (capacity planning in Rust)                            
+
+ • Strongest case against: M/M/c and Erlang C assume Poisson arrivals and       
+   exponential service, but our load is batched, heavy-tailed, priority-based,  
+   preemptible, and — on a no-swap unified box — bound by memory (thor-admit    
+   leases), not CPU queueing. The ledger already measures the truth (wait,      
+   preemptions, waiting_for_memory), so a model-first default can be confidently
+   wrong; Rust is overkill for the first fit.                                   
+ • Cheapest measurement: Backtest the priority M/M/c against the existing       
+   thor-admit ledger for one real hour: feed measured arrival/service rates into
+   the model and compare predicted wait/preemption to the ledger’s measured     
+   waiting_for_memory / preempted_for_live_work. If error >20% or the model     
+   ignores memory, use the empirical ledger first; only if it predicts within   
+   tolerance is it worth implementing in Rust.                                  
+
+
