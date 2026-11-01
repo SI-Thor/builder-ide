@@ -169,11 +169,17 @@ class Heavy:
         self._ledger = ledger
         self.enabled = enabled
         self.waits = 0
+        self._depth = 0
 
     @contextmanager
     def hold(self, reason: str, *, check_ram: bool = False):
         if not self.enabled:
             log(f"(dry run: the heavy lease is a no-op — {reason})")
+            yield
+            return
+        if self._depth > 0:
+            # already inside the night's one lease: a heavy step within the
+            # heavy phase re-enters rather than queueing behind itself
             yield
             return
         log(f"queueing for the heavy lock ({reason})")
@@ -186,6 +192,7 @@ class Heavy:
                 log("the lock is held (another seat's heavy step); waiting")
                 fcntl.flock(fh, fcntl.LOCK_EX)
             waited = time.monotonic() - started
+            self._depth = 1
             log(f"got the heavy lock after {waited:.0f} s ({reason})")
             if self._ledger is not None:
                 self._ledger.append(
@@ -206,6 +213,7 @@ class Heavy:
                         )
                     log(f"free after {reason}: {free:.1f} GB")
             finally:
+                self._depth = 0
                 fcntl.flock(fh, fcntl.LOCK_UN)
 
 
@@ -1168,11 +1176,27 @@ def main(argv: list[str] | None = None) -> int:
 
     d1_handle: dict = {}
     comfy_started = False
+    big_lease = None
     try:
         # -- services ---------------------------------------------------------
         if not args.dry_run:
             d1_handle = serve_d1(heavy, out)
+            # One lease for the whole heavy phase (the seat precedent:
+            # run_coldstart.sh "the whole run takes ~/lm-wt/heavy.lock").
+            # The night queues once and then runs straight through, instead
+            # of racing the box's other seats for a fresh lock at every
+            # heavy step. Every load inside still checks the 25 GB bar.
+            big_lease = heavy.hold(
+                "the night's heavy phase: ComfyUI, the world's renders, "
+                "the props")
+            big_lease.__enter__()
             comfy_started = serve_comfy(heavy)
+            free = ram_free_gb()
+            if free < MIN_FREE_GB:
+                raise RuntimeError(
+                    f"only {free:.1f} GB free after the loads "
+                    f"(the bar is {MIN_FREE_GB})")
+            log(f"free after the loads: {free:.1f} GB")
 
         # -- the pieces -------------------------------------------------------
         if args.dry_run:
@@ -1457,6 +1481,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         stop_comfy(comfy_started)
         stop_d1(d1_handle)
+        if big_lease is not None:
+            big_lease.__exit__(None, None, None)
         ledger.append(
             type="night.box_state", actor=CORE_ACTOR,
             subject={"entity_kind": "night", "entity_id": NIGHT_ID},
