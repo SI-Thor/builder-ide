@@ -183,27 +183,54 @@ pub fn parse_tegrastats_line(line: &str) -> Option<GpuSample> {
 
 /// Parse one line of `nvidia-smi --query-gpu=utilization.gpu,power.draw`.
 ///
-/// The driver prints `98 %, 23.62 W` — the busy share first, then the power.
+/// The driver prints `98 %, 23.62 W`, or `98, 23.62` when the format says
+/// `nounits`. The fields are in the order they were asked for, so a line
+/// without units is read positionally: the busy share first, the power in
+/// watts second.
 pub fn parse_nvidia_gpu_line(line: &str) -> Option<GpuSample> {
     let line = line.trim();
     if line.is_empty() {
         return None;
     }
     let mut sample = GpuSample::default();
+    let mut position = 0usize;
     for part in line.split(',') {
         let part = part.trim();
-        if let Some(number) = part.strip_suffix('%') {
-            if let Ok(busy) = number.trim().parse::<f64>() {
-                sample.busy_pct = Some(busy.clamp(0.0, 100.0) as u8);
-            }
-        } else if let Some(number) = part.strip_suffix("W") {
-            if let Ok(watts) = number.trim().parse::<f64>() {
-                if watts.is_finite() && watts >= 0.0 {
-                    sample.power_mw = Some((watts * 1000.0).round() as u64);
+        let (number_text, unit) = match part.strip_suffix('%') {
+            Some(number) => (number.trim(), Some('%')),
+            None => match part.strip_suffix("W") {
+                Some(number) => (number.trim(), Some('W')),
+                None => (part, None),
+            },
+        };
+        let Ok(number) = number_text.parse::<f64>() else {
+            position += 1;
+            continue;
+        };
+        if !number.is_finite() {
+            position += 1;
+            continue;
+        }
+        match unit {
+            Some('%') => sample.busy_pct = Some(number.clamp(0.0, 100.0) as u8),
+            Some('W') => {
+                if number >= 0.0 {
+                    sample.power_mw = Some((number * 1000.0).round() as u64);
                     sample.power_source = Some("nvidia-smi".to_string());
                 }
             }
+            None => match position {
+                // The unit-less form: the query's own order.
+                0 => sample.busy_pct = Some(number.clamp(0.0, 100.0) as u8),
+                1 if number >= 0.0 => {
+                    sample.power_mw = Some((number * 1000.0).round() as u64);
+                    sample.power_source = Some("nvidia-smi".to_string());
+                }
+                _ => {}
+            },
+            Some(_) => {}
         }
+        position += 1;
     }
     if sample.busy_pct.is_none() && sample.power_mw.is_none() {
         return None;
@@ -274,6 +301,18 @@ mod tests {
         assert_eq!(sample.busy_pct, Some(98));
         assert_eq!(sample.power_mw, Some(23620));
         assert_eq!(sample.power_source.as_deref(), Some("nvidia-smi"));
+    }
+
+    #[test]
+    fn reads_the_drivers_line_without_units() {
+        // The daemon's own query asks for `nounits`, so the line is
+        // "98, 23.62" — the fields are in the order they were asked for.
+        let sample = parse_nvidia_gpu_line("0, 3.15").unwrap();
+        assert_eq!(sample.busy_pct, Some(0));
+        assert_eq!(sample.power_mw, Some(3150));
+        let sample = parse_nvidia_gpu_line("97, 23.62").unwrap();
+        assert_eq!(sample.busy_pct, Some(97));
+        assert_eq!(sample.power_mw, Some(23620));
     }
 
     #[test]
