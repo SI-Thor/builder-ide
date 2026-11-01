@@ -40,8 +40,11 @@ TILES = Question(
 WANDER = [0.9, 0.9, 0.9, 0.55, 0.42, 0.55, 0.42, 0.55, 0.42]
 
 #: The same shape with a real drop at the end: three ticks below the
-#: exit line, sustained.
-DROP = [0.9, 0.9, 0.9, 0.30, 0.30, 0.30]
+#: exit line, sustained. The drop is a third of the mass — the model
+#: cannot choose between the three options — because the confidence is the
+#: top probability of a distribution that sums to one, and a third is the
+#: smallest top probability a three-option question can have.
+DROP = [0.9, 0.9, 0.9, 1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0]
 
 
 class SeriesBackend:
@@ -60,8 +63,15 @@ class SeriesBackend:
         return BackendReply(
             backend=self.name,
             model=self.model,
+            # a distribution that sums to one, with the series value as the
+            # top probability — what a real head returns, and what the
+            # canonical confidence (the top probability) reads
             distributions={
-                q.qid: {"plain": value, "weathered": 0.05, "stained": 0.05}
+                q.qid: {
+                    "plain": value,
+                    "weathered": (1.0 - value) / 2,
+                    "stained": (1.0 - value) / 2,
+                }
                 for q in questions
             },
             confidences={q.qid: value for q in questions},
@@ -231,9 +241,17 @@ def test_a_standing_escalated_judgment_at_the_ladder_s_end_is_surfaced(ledger):
     assert row["standing"] == "escalate"
 
 
-def test_a_judgment_with_no_confidence_escalates_and_leaves_the_standing_untouched(ledger):
-    """A judgment with no confidence cannot feed a continuous gate: it
-    never passes, and the standing takes no reading from it."""
+def test_a_backend_with_no_confidence_of_its_own_still_gates_on_the_distribution(ledger):
+    """A backend that reports no confidence of its own does not stop the gate.
+
+    The confidence is computed from the distribution the backend returned —
+    one definition, for every backend — so it is there even when the backend
+    reports nothing of its own. The gate acts on what the model actually
+    said. The old rule, a judgment with no confidence at all never passing,
+    still holds for a judgment that has none: the policy's own test covers
+    it, and a row folded from an older log is judged on the number it
+    carries.
+    """
 
     class NoConfidenceBackend(SeriesBackend):
         def ask(self, state, questions):
@@ -258,9 +276,14 @@ def test_a_judgment_with_no_confidence_escalates_and_leaves_the_standing_untouch
         standing=standing,
     )
     answer = judge.judge("tiles.shortlist", "state", (TILES,), now=0)
-    # escalated to the cloud rung, which governs
+    # the local rung's answer was confident on its own distribution, but the
+    # standing is cold: it escalates, and the cloud rung governs
     assert answer.judgments[0].backend == "jev"
-    # the standing took no reading: the subject has no warm state
     assert standing.standing_for("tile") == "escalate"
     (row,) = [row for row in fold_judgments(ledger.events()) if row["backend"] == "d1"]
-    assert row["standing"] is None
+    # the standing took a reading — the distribution gave it one
+    assert row["standing"] == "escalate"
+    # and the row says which definition the confidence was computed under
+    assert row["judgment"].confidence_definition == "top_probability"
+    assert row["judgment"].backend_confidence is None
+    assert row["judgment"].confidence == pytest.approx(0.9)

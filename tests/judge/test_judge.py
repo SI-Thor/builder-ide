@@ -160,13 +160,21 @@ def test_only_the_below_tau_questions_are_escalated(ledger):
     def d1_reply(question):
         if question.qid == "tile":
             return CONFIDENT  # 0.9, at or above τ
-        return {"true": 0.35, "false": 0.34}  # 0.35, below τ
+        return {"true": 0.5, "false": 0.5}  # undecided: 0.5, below τ
 
     d1 = ScriptedBackend("d1", "d1-2B", d1_reply)
     jev = ScriptedBackend(
         "jev", "jev-latest", lambda q: {"true": 0.9, "false": 0.1} if q.qid == "alive" else UNCERTAIN
     )
-    judge = Judge(backend=d1, ladder=EscalationLadder([("jev", jev)]), ledger=ledger)
+    # the τ that escalates an undecided noul is above a half: a binary
+    # question's canonical confidence is the probability of the answer the
+    # model gave, and one of two options always holds at least a half
+    judge = Judge(
+        backend=d1,
+        ladder=EscalationLadder([("jev", jev)]),
+        ledger=ledger,
+        policy=ConfidencePolicy(default=0.6),
+    )
     answer = judge.judge("tiles.shortlist", "state", (TILES, ALIVE))
 
     # only the uncertain noul went to the second rung
