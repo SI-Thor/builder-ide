@@ -117,6 +117,7 @@
     "clef student \u00b7 scene.beacon_reachable": {
       "cell": {
         "auc": null,
+        "auc_interval": null,
         "best_tau": {
           "entropy_normalised": null,
           "normalised_margin": null,
@@ -249,11 +250,18 @@
           "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.044846,
+          "brier_improvement": {
+            "high": 0.053017,
+            "low": 0.037238,
+            "point": 0.044846,
+            "resamples": 2000
+          },
           "ece_after": 0.0,
           "ece_before": 0.205352,
           "mean_confidence_after": 1.0,
           "mean_confidence_before": 0.794648,
-          "n": 31
+          "n": 31,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.5,
@@ -650,6 +658,7 @@
     "clef student \u00b7 scene.enemy_visible": {
       "cell": {
         "auc": null,
+        "auc_interval": null,
         "best_tau": {
           "entropy_normalised": null,
           "normalised_margin": null,
@@ -782,11 +791,18 @@
           "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.015952,
+          "brier_improvement": {
+            "high": 0.035544,
+            "low": 0.002521,
+            "point": 0.015952,
+            "resamples": 2000
+          },
           "ece_after": 0.0,
           "ece_before": 0.07041,
           "mean_confidence_after": 1.0,
           "mean_confidence_before": 0.92959,
-          "n": 31
+          "n": 31,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.5,
@@ -1179,6 +1195,12 @@
     "clef teacher \u00b7 defect.defect_class": {
       "cell": {
         "auc": 1.0,
+        "auc_interval": {
+          "high": 1.0,
+          "low": 1.0,
+          "point": 1.0,
+          "resamples": 1270
+        },
         "best_tau": {
           "entropy_normalised": {
             "act_rate": 0.4833,
@@ -1332,11 +1354,18 @@
           "accuracy_before": 0.966667,
           "brier_after": 0.005724,
           "brier_before": 0.024054,
+          "brier_improvement": {
+            "high": 0.024615,
+            "low": 0.00715,
+            "point": 0.018329,
+            "resamples": 2000
+          },
           "ece_after": 0.030887,
           "ece_before": 0.434367,
           "mean_confidence_after": 0.997554,
           "mean_confidence_before": 0.558553,
-          "n": 30
+          "n": 30,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.1588,
@@ -1612,6 +1641,7 @@
     "clef teacher \u00b7 scene.action": {
       "cell": {
         "auc": null,
+        "auc_interval": null,
         "best_tau": {
           "entropy_normalised": null,
           "normalised_margin": null,
@@ -1744,11 +1774,18 @@
           "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.008915,
+          "brier_improvement": {
+            "high": 0.014522,
+            "low": 0.003846,
+            "point": 0.008915,
+            "resamples": 2000
+          },
           "ece_after": 0.0,
           "ece_before": 0.07471,
           "mean_confidence_after": 1.0,
           "mean_confidence_before": 0.92529,
-          "n": 40
+          "n": 40,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.3724,
@@ -2185,6 +2222,12 @@
     "clef teacher \u00b7 scene.beacon_bearing": {
       "cell": {
         "auc": 0.748044,
+        "auc_interval": {
+          "high": 0.871531,
+          "low": 0.595714,
+          "point": 0.748044,
+          "resamples": 2000
+        },
         "best_tau": {
           "entropy_normalised": {
             "act_rate": 0.1625,
@@ -2338,11 +2381,18 @@
           "accuracy_before": 0.925,
           "brier_after": 0.035918,
           "brier_before": 0.03273,
+          "brier_improvement": {
+            "high": 0.005479,
+            "low": -0.010399,
+            "point": -0.003187,
+            "resamples": 2000
+          },
           "ece_after": 0.089368,
           "ece_before": 0.06393,
           "mean_confidence_after": 0.835632,
           "mean_confidence_before": 0.879725,
-          "n": 40
+          "n": 40,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.281,
@@ -2703,6 +2753,7 @@
     "clef teacher \u00b7 scene.beacon_reachable": {
       "cell": {
         "auc": null,
+        "auc_interval": null,
         "best_tau": {
           "entropy_normalised": null,
           "normalised_margin": null,
@@ -2835,11 +2886,18 @@
           "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.002202,
+          "brier_improvement": {
+            "high": 0.003188,
+            "low": 0.001387,
+            "point": 0.002202,
+            "resamples": 2000
+          },
           "ece_after": 0.0,
           "ece_before": 0.040392,
           "mean_confidence_after": 1.0,
           "mean_confidence_before": 0.959608,
-          "n": 40
+          "n": 40,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.5,
@@ -3272,6 +3330,7 @@
     "clef teacher \u00b7 scene.enemy_visible": {
       "cell": {
         "auc": null,
+        "auc_interval": null,
         "best_tau": {
           "entropy_normalised": null,
           "normalised_margin": null,
@@ -3404,11 +3463,18 @@
           "accuracy_before": 1.0,
           "brier_after": 0.0,
           "brier_before": 0.000795,
+          "brier_improvement": {
+            "high": 0.001878,
+            "low": 0.000225,
+            "point": 0.000795,
+            "resamples": 2000
+          },
           "ece_after": 0.0,
           "ece_before": 0.018948,
           "mean_confidence_after": 1.0,
           "mean_confidence_before": 0.981052,
-          "n": 40
+          "n": 40,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.5,
@@ -3829,6 +3895,12 @@
     "clef teacher \u00b7 tile.tile": {
       "cell": {
         "auc": 0.614857,
+        "auc_interval": {
+          "high": 0.755656,
+          "low": 0.462985,
+          "point": 0.614857,
+          "resamples": 2000
+        },
         "best_tau": {
           "entropy_normalised": {
             "act_rate": 0.0167,
@@ -3982,11 +4054,18 @@
           "accuracy_before": 0.566667,
           "brier_after": 0.108357,
           "brier_before": 0.119942,
+          "brier_improvement": {
+            "high": 0.02694,
+            "low": -0.004193,
+            "point": 0.011585,
+            "resamples": 2000
+          },
           "ece_after": 0.102581,
           "ece_before": 0.212793,
           "mean_confidence_after": 0.60453,
           "mean_confidence_before": 0.743293,
-          "n": 30
+          "n": 30,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.7738,
@@ -4295,6 +4374,12 @@
     "d1-2B (the liquid study's traces)": {
       "cell": {
         "auc": 0.281537,
+        "auc_interval": {
+          "high": 0.347389,
+          "low": 0.216677,
+          "point": 0.281537,
+          "resamples": 2000
+        },
         "best_tau": {
           "entropy_normalised": null,
           "normalised_margin": null,
@@ -4427,11 +4512,18 @@
           "accuracy_before": 0.558333,
           "brier_after": 0.135481,
           "brier_before": 0.158766,
+          "brier_improvement": {
+            "high": 0.038712,
+            "low": 0.008564,
+            "point": 0.023285,
+            "resamples": 2000
+          },
           "ece_after": 0.036363,
           "ece_before": 0.319827,
           "mean_confidence_after": 0.52197,
           "mean_confidence_before": 0.753487,
-          "n": 120
+          "n": 120,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.5242,
@@ -4720,6 +4812,12 @@
     "d1-3B (the liquid study's traces)": {
       "cell": {
         "auc": 0.294363,
+        "auc_interval": {
+          "high": 0.365222,
+          "low": 0.225506,
+          "point": 0.294363,
+          "resamples": 2000
+        },
         "best_tau": {
           "entropy_normalised": {
             "act_rate": 0.0,
@@ -4859,11 +4957,18 @@
           "accuracy_before": 0.375,
           "brier_after": 0.143742,
           "brier_before": 0.201765,
+          "brier_improvement": {
+            "high": 0.085665,
+            "low": 0.028488,
+            "point": 0.058022,
+            "resamples": 2000
+          },
           "ece_after": 0.333207,
           "ece_before": 0.463327,
           "mean_confidence_after": 0.556378,
           "mean_confidence_before": 0.769893,
-          "n": 120
+          "n": 120,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 1.0,
@@ -5156,6 +5261,12 @@
     "the tiles rig (judge-only arm)": {
       "cell": {
         "auc": 0.511468,
+        "auc_interval": {
+          "high": 0.583644,
+          "low": 0.436396,
+          "point": 0.511468,
+          "resamples": 2000
+        },
         "best_tau": {
           "entropy_normalised": {
             "act_rate": 0.0,
@@ -5309,11 +5420,18 @@
           "accuracy_before": 0.82243,
           "brier_after": 0.049855,
           "brier_before": 0.064688,
+          "brier_improvement": {
+            "high": 0.023821,
+            "low": 0.004131,
+            "point": 0.014833,
+            "resamples": 2000
+          },
           "ece_after": 0.084138,
           "ece_before": 0.253523,
           "mean_confidence_after": 0.906568,
           "mean_confidence_before": 0.568907,
-          "n": 214
+          "n": 214,
+          "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored"
         },
         "raw_floor_for_calibrated_tau": {
           "0.5": 0.2749,
@@ -5594,12 +5712,384 @@
   ],
   "experiment": "judge calibration \u2014 one definition of confidence, and the Brier tracked against it",
   "machine": {
-    "at": "2026-11-01T05:33:13Z",
-    "git": "bb70d27",
+    "at": "2026-11-01T10:15:14Z",
+    "git": "3ed1f6f",
     "gpu": "not used \u2014 the vectors are replayed from disk",
     "numpy": "2.5.4",
     "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
     "python": "3.14.4"
+  },
+  "tau_gate": {
+    "d1-2B": {
+      "both_order_protocol": {
+        "added_latency_p50_ms": 32.21,
+        "assumption": "the model treats the reversed prompt as the same question with the two named conditions swapped \u2014 its answer follows the option it chose, renamed \u2014 so the two orders disagree exactly when its answer was one of the two named conditions; on this trace the first-named one in 208 of its 240 steps and the second-named one in none",
+        "calls_per_judgment": 2,
+        "catch": 0.7193,
+        "escalated": 208,
+        "escalation_rate": 0.8667,
+        "latency_p50_ms_per_decision": 32.21,
+        "reversed_replies_recorded": false,
+        "rule": "ask the same question with the two named conditions in the other order; escalate when the two answers disagree",
+        "tax": 1.0
+      },
+      "gate_by_group": [
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.1,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.2,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.3,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.4,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.5,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.9024,
+            "catch": 0.0976,
+            "escalated": 8,
+            "tax": null
+          },
+          "tau": 0.6,
+          "truth_first": {
+            "act_rate": 0.8797,
+            "catch": 0.0,
+            "escalated": 19,
+            "tax": 0.1508
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.9024,
+            "catch": 0.0976,
+            "escalated": 8,
+            "tax": null
+          },
+          "tau": 0.7,
+          "truth_first": {
+            "act_rate": 0.4304,
+            "catch": 0.5,
+            "escalated": 90,
+            "tax": 0.5873
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.6707,
+            "catch": 0.3293,
+            "escalated": 27,
+            "tax": null
+          },
+          "tau": 0.8,
+          "truth_first": {
+            "act_rate": 0.1076,
+            "catch": 1.0,
+            "escalated": 141,
+            "tax": 0.8651
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.622,
+            "catch": 0.378,
+            "escalated": 31,
+            "tax": null
+          },
+          "tau": 0.9,
+          "truth_first": {
+            "act_rate": 0.0633,
+            "catch": 1.0,
+            "escalated": 148,
+            "tax": 0.9206
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.5244,
+            "catch": 0.4756,
+            "escalated": 39,
+            "tax": null
+          },
+          "tau": 0.95,
+          "truth_first": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "escalated": 158,
+            "tax": 1.0
+          }
+        }
+      ],
+      "groups": {
+        "decoy_first": {
+          "accuracy": 0.0,
+          "mean_confidence": 0.8735,
+          "mean_reported_confidence": 0.8735,
+          "n": 82,
+          "position_answers": 82
+        },
+        "truth_first": {
+          "accuracy": 0.7975,
+          "mean_confidence": 0.6826,
+          "mean_reported_confidence": 0.6826,
+          "n": 158,
+          "position_answers": 126
+        }
+      },
+      "model": "d1-2B",
+      "n": 240,
+      "position_answers": 208
+    },
+    "d1-3B": {
+      "both_order_protocol": {
+        "added_latency_p50_ms": 50.7,
+        "assumption": "the model treats the reversed prompt as the same question with the two named conditions swapped \u2014 its answer follows the option it chose, renamed \u2014 so the two orders disagree exactly when its answer was one of the two named conditions; on this trace the first-named one in 141 of its 240 steps and the second-named one in none",
+        "calls_per_judgment": 2,
+        "catch": 0.3851,
+        "escalated": 141,
+        "escalation_rate": 0.5875,
+        "latency_p50_ms_per_decision": 50.7,
+        "reversed_replies_recorded": false,
+        "rule": "ask the same question with the two named conditions in the other order; escalate when the two answers disagree",
+        "tax": 1.0
+      },
+      "gate_by_group": [
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.1,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.2,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.3,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.4,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": null
+          },
+          "tau": 0.5,
+          "truth_first": {
+            "act_rate": 1.0,
+            "catch": 0.0,
+            "escalated": 0,
+            "tax": 0.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.8171,
+            "catch": 0.1829,
+            "escalated": 15,
+            "tax": null
+          },
+          "tau": 0.6,
+          "truth_first": {
+            "act_rate": 0.8481,
+            "catch": 0.0,
+            "escalated": 24,
+            "tax": 0.3038
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.8171,
+            "catch": 0.1829,
+            "escalated": 15,
+            "tax": null
+          },
+          "tau": 0.7,
+          "truth_first": {
+            "act_rate": 0.8481,
+            "catch": 0.0,
+            "escalated": 24,
+            "tax": 0.3038
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.7195,
+            "catch": 0.2805,
+            "escalated": 23,
+            "tax": null
+          },
+          "tau": 0.8,
+          "truth_first": {
+            "act_rate": 0.3544,
+            "catch": 0.5823,
+            "escalated": 102,
+            "tax": 0.7089
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.5244,
+            "catch": 0.4756,
+            "escalated": 39,
+            "tax": null
+          },
+          "tau": 0.9,
+          "truth_first": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "escalated": 158,
+            "tax": 1.0
+          }
+        },
+        {
+          "decoy_first": {
+            "act_rate": 0.5244,
+            "catch": 0.4756,
+            "escalated": 39,
+            "tax": null
+          },
+          "tau": 0.95,
+          "truth_first": {
+            "act_rate": 0.0,
+            "catch": 1.0,
+            "escalated": 158,
+            "tax": 1.0
+          }
+        }
+      ],
+      "groups": {
+        "decoy_first": {
+          "accuracy": 0.0,
+          "mean_confidence": 0.8491,
+          "mean_reported_confidence": 0.8113,
+          "n": 82,
+          "position_answers": 62
+        },
+        "truth_first": {
+          "accuracy": 0.5,
+          "mean_confidence": 0.7444,
+          "mean_reported_confidence": 0.6806,
+          "n": 158,
+          "position_answers": 79
+        }
+      },
+      "model": "d1-3B",
+      "n": 240,
+      "position_answers": 141
+    }
   },
   "taus": [
     0.1,

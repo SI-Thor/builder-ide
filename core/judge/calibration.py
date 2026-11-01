@@ -78,6 +78,7 @@ recalibration for that cell is refitted on the newest outcomes and the gate's
 from __future__ import annotations
 
 import math
+import random
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Literal, Mapping, Sequence
 
@@ -110,6 +111,9 @@ __all__ = [
     "DriftLine",
     "drift_of",
     "area_under_curve",
+    "Interval",
+    "bootstrap_auc",
+    "bootstrap_brier_improvement",
 ]
 
 #: The three definitions the seed asked to be compared, by name.
@@ -984,6 +988,172 @@ def recalibrate(
 
 def _fmt(value: float | None) -> str:
     return "—" if value is None else f"{value:.4f}"
+
+
+# --- the intervals ----------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Interval:
+    """A point estimate and the interval a bootstrap puts around it.
+
+    ``low`` and ``high`` are the 2.5th and 97.5th percentiles of the
+    resampled statistic — the interval a reader should hold the number
+    with. ``resamples`` says how many draws it came from, because an
+    interval without its size is a number with a story attached.
+    """
+
+    point: float
+    low: float
+    high: float
+    resamples: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "point": round(self.point, 6),
+            "low": round(self.low, 6),
+            "high": round(self.high, 6),
+            "resamples": self.resamples,
+        }
+
+    def covers(self, value: float) -> bool:
+        """Whether the interval contains a value."""
+        return self.low <= value <= self.high
+
+
+def _percentiles(values: Sequence[float], low: float, high: float) -> tuple[float, float]:
+    """Two percentiles of a sample, linearly interpolated between the
+    order statistics."""
+    if not values:
+        raise ValueError("no draws to take percentiles of")
+    ordered = sorted(values)
+
+    def at(percent: float) -> float:
+        if len(ordered) == 1:
+            return ordered[0]
+        position = percent / 100.0 * (len(ordered) - 1)
+        below = math.floor(position)
+        above = math.ceil(position)
+        if below == above:
+            return ordered[int(position)]
+        weight = position - below
+        return ordered[below] * (1.0 - weight) + ordered[above] * weight
+
+    return at(low), at(high)
+
+
+def _auc_ranked(pairs: Sequence[tuple[float, bool]]) -> float | None:
+    """The AUC by ranks — the same number :func:`area_under_curve` gives,
+    in O(n log n) instead of O(n²), so a bootstrap of it is cheap.
+
+    Ties take the average rank, which is the half-credit the pairwise
+    definition gives them.
+    """
+    if not pairs:
+        return None
+    positives = sum(1 for _, right in pairs if right)
+    negatives = len(pairs) - positives
+    if not positives or not negatives:
+        return None
+    ordered = sorted(pairs, key=lambda pair: pair[0])
+    rank_sum = 0.0
+    index = 0
+    while index < len(ordered):
+        end = index
+        while end + 1 < len(ordered) and ordered[end + 1][0] == ordered[index][0]:
+            end += 1
+        # the average rank of the tie group, one-based
+        average = (index + end) / 2.0 + 1.0
+        for position in range(index, end + 1):
+            if ordered[position][1]:
+                rank_sum += average
+        index = end + 1
+    return (rank_sum - positives * (positives + 1) / 2.0) / (positives * negatives)
+
+
+def bootstrap_auc(
+    samples: Sequence[CalibrationSample],
+    *,
+    resamples: int = 2000,
+    seed: int = 20261031,
+    definition: ConfidenceDefinition = CANONICAL_CONFIDENCE,
+) -> Interval | None:
+    """The AUC's bootstrap interval — the separability, with its error bar.
+
+    The **judgment** is the unit: each draw takes the same number of
+    judgments with replacement and the AUC is recomputed on the draw.
+    The interval is the 2.5th and 97.5th percentile of the draws, so a
+    cell's separability is reported as a number and the range a reader
+    should hold it with.
+
+    ``None`` when there is nothing to order — a cell with no wrong
+    judgment has no AUC and therefore no interval.
+    """
+    pairs = [(sample.confidence(definition), sample.outcome) for sample in samples]
+    point = _auc_ranked(pairs)
+    if point is None:
+        return None
+    rng = random.Random(seed)
+    count = len(pairs)
+    draws: list[float] = []
+    for _ in range(resamples):
+        draw = [pairs[rng.randrange(count)] for _ in range(count)]
+        value = _auc_ranked(draw)
+        if value is not None:
+            draws.append(value)
+    if not draws:
+        return None
+    low, high = _percentiles(draws, 2.5, 97.5)
+    return Interval(point=point, low=low, high=high, resamples=len(draws))
+
+
+def bootstrap_brier_improvement(
+    holdout_samples: Sequence[CalibrationSample],
+    scale: CalibrationScale | None,
+    *,
+    resamples: int = 2000,
+    seed: int = 20261031,
+) -> Interval | None:
+    """The held-out Brier's improvement, with its interval — **paired**.
+
+    The pairing is the point: the same judgments are scored with and
+    without the scale, so every draw is the *difference* of two means
+    over one resample of the judgments — not two numbers compared after
+    the fact. The point estimate is the improvement (before − after):
+    positive means the recalibration helped.
+
+    ``None`` when the held-out judgments carry no scoreable truth.
+    """
+    before: list[float] = []
+    after: list[float] = []
+    for sample in holdout_samples:
+        truth_key = sample.truth_key()
+        if truth_key is None:
+            continue
+        raw = _brier_of(sample.distribution, truth_key)
+        if raw is None:
+            continue
+        before.append(raw)
+        if scale is None:
+            after.append(raw)
+            continue
+        scaled = _brier_of(scale.apply(sample.distribution), truth_key)
+        if scaled is None:
+            continue
+        after.append(scaled)
+    if not before:
+        return None
+    point = sum(before) / len(before) - sum(after) / len(after)
+    rng = random.Random(seed)
+    count = len(before)
+    draws: list[float] = []
+    for _ in range(resamples):
+        indices = [rng.randrange(count) for _ in range(count)]
+        raw_mean = sum(before[index] for index in indices) / count
+        scaled_mean = sum(after[index] for index in indices) / count
+        draws.append(raw_mean - scaled_mean)
+    low, high = _percentiles(draws, 2.5, 97.5)
+    return Interval(point=point, low=low, high=high, resamples=len(draws))
 
 
 # --- the drift -------------------------------------------------------------------

@@ -31,6 +31,8 @@ from core.judge.calibration import (
     accuracy,
     area_under_curve,
     brier_score,
+    bootstrap_auc,
+    bootstrap_brier_improvement,
     cell_of,
     cells_of,
     confidence_of,
@@ -568,3 +570,108 @@ def test_a_drift_line_names_the_model_and_the_task():
     assert line.model == "clef-flash"
     assert line.task == "enemy_visible"
     assert line.as_dict()["kind"] == line.kind
+
+
+# --- the intervals ---------------------------------------------------------------
+
+
+def test_the_bootstrap_interval_brackets_the_measured_auc():
+    """The AUC's error bar: the same judgments, resampled.
+
+    A separability measured on 240 judgments has an error bar, and the
+    interval is what says whether the number is worth reading — the
+    interval of a cell whose confidence is anti-correlated with being
+    right excludes the coin-flip line, and that is the finding.
+    """
+    samples = [
+        _sample(p_true=0.9, outcome=True, qid=f"q{index}") for index in range(10)
+    ] + [
+        _sample(p_true=0.2, outcome=False, qid=f"r{index}") for index in range(10)
+    ]
+    interval = bootstrap_auc(samples, resamples=200, seed=7)
+    assert interval is not None
+    assert interval.point == pytest.approx(1.0)
+    assert interval.low <= interval.point <= interval.high
+    assert interval.resamples == 200
+
+
+def test_the_bootstrap_interval_of_an_inverted_confidence_excludes_a_half():
+    """The two liquid-trace cells: the confidence is anti-correlated, and
+    the interval has to say so — an interval that straddled the coin-flip
+    line would not be a finding."""
+    samples = [
+        _sample(p_true=0.95, outcome=False, qid=f"q{index}") for index in range(12)
+    ] + [
+        _sample(p_true=0.55, outcome=True, qid=f"r{index}") for index in range(12)
+    ]
+    interval = bootstrap_auc(samples, resamples=200, seed=11)
+    assert interval is not None
+    assert interval.point < 0.5
+    assert interval.high < 0.5
+
+
+def test_the_bootstrap_auc_is_the_same_number_the_plain_auc_is():
+    """The bootstrap recomputes the AUC on every draw; it must be the
+    same statistic the cell publishes."""
+    samples = [
+        _sample(p_true=0.9, outcome=True, qid=f"q{index}") for index in range(6)
+    ] + [
+        _sample(p_true=0.4, outcome=False, qid=f"r{index}") for index in range(6)
+    ] + [
+        _sample(p_true=0.7, outcome=True, qid=f"s{index}") for index in range(6)
+    ]
+    pairs = [(sample.confidence(), sample.outcome) for sample in samples]
+    interval = bootstrap_auc(samples, resamples=50, seed=3)
+    assert interval is not None
+    assert interval.point == pytest.approx(area_under_curve(pairs))
+
+
+def test_the_brier_bootstrap_is_paired_and_says_which_way_the_improvement_runs():
+    """The held-out Brier's improvement, with its error bar.
+
+    The pairing is the point: the same judgments are scored with and
+    without the scale, so the interval is over the *difference*, not over
+    two independent numbers.
+
+    The cell here is **under**-confident on the answers it got right
+    (0.6 for a right answer) and undecided on the ones it got wrong, so a
+    sharpening scale is what the Brier wants: it moves the right answers'
+    probabilities towards one and leaves an even split even. (A
+    sharpening scale on a cell that is *over*-confident makes the Brier
+    worse — the wrong answers pay more than the right ones save — which
+    is why the rule keeps a scale only when the held-out Brier likes it.)
+    """
+    samples = [
+        _sample(p_true=0.6, outcome=True, qid=f"q{index}") for index in range(10)
+    ] + [
+        _sample(p_true=0.5, outcome=False, qid=f"r{index}") for index in range(10)
+    ]
+    scale = TemperatureScale(params={"temperature": 0.5})
+    interval = bootstrap_brier_improvement(samples, scale, resamples=200, seed=5)
+    assert interval is not None
+    # a sharpening scale on an under-confident cell lowers the Brier
+    assert interval.point > 0.0
+    assert interval.low <= interval.point <= interval.high
+
+
+def test_the_brier_bootstrap_of_a_kept_raw_confidence_is_zero():
+    """No scale, no improvement: the interval is the number zero."""
+    samples = [_sample(p_true=0.8, outcome=True) for _ in range(8)]
+    interval = bootstrap_brier_improvement(samples, None, resamples=50, seed=5)
+    assert interval is not None
+    assert interval.point == pytest.approx(0.0)
+    assert interval.low == pytest.approx(0.0)
+    assert interval.high == pytest.approx(0.0)
+
+
+def test_the_bootstrap_is_seeded_and_so_repeats():
+    """A measurement that cannot be reproduced is not a measurement."""
+    samples = [
+        _sample(p_true=0.9, outcome=True, qid=f"q{index}") for index in range(8)
+    ] + [
+        _sample(p_true=0.3, outcome=False, qid=f"r{index}") for index in range(8)
+    ]
+    first = bootstrap_auc(samples, resamples=100, seed=17)
+    second = bootstrap_auc(samples, resamples=100, seed=17)
+    assert first is not None and second is not None
+    assert (first.low, first.high) == (second.low, second.high)

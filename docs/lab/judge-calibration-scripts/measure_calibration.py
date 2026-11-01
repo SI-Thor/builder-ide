@@ -49,6 +49,8 @@ from core.judge.calibration import (  # noqa: E402
     CalibrationSample,
     TemperatureScale,
     area_under_curve,
+    bootstrap_auc,
+    bootstrap_brier_improvement,
     cell_of,
     confidence_of,
     escalation_sweep,
@@ -354,6 +356,143 @@ def clef_student_booleans() -> list[CalibrationSample]:
     return samples
 
 
+def tau_gate_analysis(model: str) -> dict[str, Any]:
+    """What the decoy-first finding means for the τ gate — measured.
+
+    On this cell the confidence is a **position** detector: the model
+    answers the condition the prompt named *first*, so the steps where
+    the prompt named the decoy first are the steps where the model is
+    confidently wrong. Three things are measured on the recorded trace:
+
+    * the two groups — the prompt named the truth first, the decoy
+      first — with their accuracy and their mean confidence;
+    * what the τ gate does **in each group** at each τ: the share of
+      the group's wrong judgments it escalates (its job) and the share
+      of the group's right judgments it taxes (its cost);
+    * the both-order protocol — ask the same question with the two named
+      conditions in the other order and escalate when the two answers
+      disagree — with its cost (two calls a decision) and its effect,
+      computed from the model's recorded behaviour in the one order the
+      recording holds.
+
+    **The recording does not hold the reversed order.** The protocol's
+    effect is therefore computed under one stated assumption: that the
+    model treats the reversed prompt as the same question with the two
+    named conditions swapped — its answer follows the option it chose,
+    renamed — so the two orders disagree exactly when its answer was one
+    of the two named conditions. The recording shows the model's answer
+    is the **first**-named condition in 208 of its 240 steps (and in
+    every one of the 82 decoy-first steps) and the second-named one in
+    **none** of them, so on this trace the two orders disagree exactly
+    on those 208 steps. A recording of the reversed replies would settle
+    it; this measures the rest.
+    """
+    path = LIQUID / f"exp_c_trace_{model}.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    entries = data["trace"]
+
+    groups: dict[str, list[dict[str, Any]]] = {"truth_first": [], "decoy_first": []}
+    latencies: list[float] = []
+    position_answers = 0
+    for entry in entries:
+        keys = sorted(entry["probs"])
+        probs = {key: float(entry["probs"][key]) for key in keys}
+        truth_key = keys[int(entry["truth"])]
+        shown_key = keys[int(entry["shown"])]
+        answer = max(sorted(probs), key=lambda key: probs[key])
+        confidence = probs[answer]
+        group = "truth_first" if shown_key == truth_key else "decoy_first"
+        groups[group].append(
+            {
+                "confidence": confidence,
+                "right": answer == truth_key,
+                "position_answer": answer == shown_key,
+                "reported": float(entry["confidence"]),
+            }
+        )
+        latencies.append(float(entry.get("wall_ms", 0.0)))
+        if answer == shown_key:
+            position_answers += 1
+
+    def side(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        if not rows:
+            return {}
+        right = sum(1 for row in rows if row["right"])
+        return {
+            "n": len(rows),
+            "accuracy": round(right / len(rows), 4),
+            "mean_confidence": round(
+                sum(row["confidence"] for row in rows) / len(rows), 4
+            ),
+            "mean_reported_confidence": round(
+                sum(row["reported"] for row in rows) / len(rows), 4
+            ),
+            "position_answers": sum(1 for row in rows if row["position_answer"]),
+        }
+
+    # -- what the τ gate does, group by group -----------------------------
+    sweep: list[dict[str, Any]] = []
+    for tau in TAUS:
+        entry: dict[str, Any] = {"tau": tau}
+        for name, rows in groups.items():
+            wrong = [row for row in rows if not row["right"]]
+            right = [row for row in rows if row["right"]]
+            escalated = [row for row in rows if row["confidence"] < tau]
+            caught = [row for row in escalated if not row["right"]]
+            taxed = [row for row in escalated if row["right"]]
+            entry[name] = {
+                "escalated": len(escalated),
+                "act_rate": round(1.0 - len(escalated) / len(rows), 4) if rows else None,
+                "catch": round(len(caught) / len(wrong), 4) if wrong else None,
+                "tax": round(len(taxed) / len(right), 4) if right else None,
+            }
+        sweep.append(entry)
+
+    # -- the both-order protocol ------------------------------------------
+    # the reversed reply is not in the recording; under the stated
+    # assumption — the model treats the reversed prompt as the same
+    # question with the two named conditions swapped, so its answer
+    # follows the option it chose, renamed — the two orders disagree
+    # exactly when its answer was one of the two named conditions. On
+    # this trace the answer is the first-named one in
+    # `position_answers` steps and the second-named one in none, so the
+    # disagreement set is the position answers.
+    all_rows = groups["truth_first"] + groups["decoy_first"]
+    disagreements = [row for row in all_rows if row["position_answer"]]
+    wrong = [row for row in all_rows if not row["right"]]
+    right = [row for row in all_rows if row["right"]]
+    caught = [row for row in disagreements if not row["right"]]
+    taxed = [row for row in disagreements if row["right"]]
+    latencies.sort()
+    p50 = latencies[len(latencies) // 2] if latencies else 0.0
+
+    return {
+        "model": model,
+        "n": len(all_rows),
+        "groups": {name: side(rows) for name, rows in groups.items()},
+        "position_answers": position_answers,
+        "gate_by_group": sweep,
+        "both_order_protocol": {
+            "rule": "ask the same question with the two named conditions in the other "
+            "order; escalate when the two answers disagree",
+            "assumption": "the model treats the reversed prompt as the same "
+            "question with the two named conditions swapped — its answer follows "
+            "the option it chose, renamed — so the two orders disagree exactly "
+            "when its answer was one of the two named conditions; on this trace "
+            f"the first-named one in {position_answers} of its {len(all_rows)} "
+            "steps and the second-named one in none",
+            "reversed_replies_recorded": False,
+            "escalated": len(disagreements),
+            "escalation_rate": round(len(disagreements) / len(all_rows), 4),
+            "catch": round(len(caught) / len(wrong), 4) if wrong else None,
+            "tax": round(len(taxed) / len(right), 4) if right else None,
+            "calls_per_judgment": 2,
+            "latency_p50_ms_per_decision": round(p50, 4),
+            "added_latency_p50_ms": round(p50, 4),
+        },
+    }
+
+
 def liquid_trace_breakdown(model: str) -> dict[str, Any]:
     """Why the confidence is what it is: the prompt named the state first.
 
@@ -532,6 +671,10 @@ def measure_cell(samples: Sequence[CalibrationSample], bins: int = 10) -> dict[s
         "auc": _round(area_under_curve(
             [(sample.confidence(CANONICAL_CONFIDENCE), sample.outcome) for sample in samples]
         )),
+        # the separability with its error bar: the judgment is the unit,
+        # and the interval is the 2.5th and 97.5th percentile of the
+        # bootstrap's draws
+        "auc_interval": _interval(bootstrap_auc(samples, resamples=2000)),
         "sweeps": sweeps,
         "best_tau": best,
         "recalibration": recal.as_dict(),
@@ -541,6 +684,11 @@ def measure_cell(samples: Sequence[CalibrationSample], bins: int = 10) -> dict[s
             "accuracy_after": _round(accuracy(recalibrated) if recalibrated else None),
             "brier_before": _round(brier_score(holdout)),
             "brier_after": _round(brier_score(recalibrated) if recalibrated else None),
+            # the improvement, paired: the same judgments scored with and
+            # without the scale, so the interval is over the difference
+            "brier_improvement": _interval(
+                bootstrap_brier_improvement(holdout, scale, resamples=2000)
+            ),
             "ece_before": _round(expected_calibration_error(holdout, bins=bins)),
             "ece_after": _round(
                 expected_calibration_error(recalibrated, bins=bins) if recalibrated else None
@@ -549,9 +697,18 @@ def measure_cell(samples: Sequence[CalibrationSample], bins: int = 10) -> dict[s
             "mean_confidence_after": _round(
                 mean_confidence(recalibrated) if recalibrated else None
             ),
+            # the split is time-ordered: the older half was fitted, the
+            # newer half is scored here. The samples carry the timestamp
+            # they were judged at, and the cut is on it.
+            "split": "time-ordered: the older half of the cell's judgments was fitted, the newer half is scored",
         },
         "raw_floor_for_calibrated_tau": floors,
     }
+
+
+def _interval(value) -> dict[str, Any] | None:
+    """An interval as the JSON carries it."""
+    return None if value is None else value.as_dict()
 
 
 def _round(value: float | None, digits: int = 6) -> float | None:
@@ -636,6 +793,9 @@ def main() -> int:
         "taus": list(TAUS),
         "datasets": measured,
         "backend_confidence_formulas": formulas,
+        "tau_gate": {
+            model: tau_gate_analysis(model) for model in ("d1-2B", "d1-3B")
+        },
         "clef_student_lopsidedness": lopsided,
         "tiles_rig": {
             **tiles_meta,
