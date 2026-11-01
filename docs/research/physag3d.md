@@ -49,7 +49,7 @@ On our box, the agent's work runs on cloud models (z.ai, MiniMax, Claude), and t
 The orchestrator is MIT code from outside, so **building or running it needs Casey's explicit OK** (CLAUDE.md). A reimplementation of the loop inside builder-ide, credited, would need the same check.
 
 ## Next (proposed)
-A night experiment: "physag-lite". For 10 props the builders use often:
+**Decided (director, Casey: "you decide"):** rebuild the loop in builder-ide with our own stack; their code is a credited reference only. Queued as `physag-lite`. A night experiment: For 10 props the builders use often:
 - a cloud seat proposes parts and joints;
 - TRELLIS (v1, our stack) generates;
 - a MuJoCo check executes the predefined action;
