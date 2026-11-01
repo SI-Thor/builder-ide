@@ -70,7 +70,7 @@ thor-admit — a memory-admission daemon for the Thor
   thor-admit status [--json]
         Show the leases, the free memory and the queue.
 
-  thor-admit peaks [--label <name>] [--json]
+  thor-admit peaks [--label <name>] [--json] [--state-dir <path>]
         Show the learned peaks: the p50 and p95 of each label's history.
 
   thor-admit stop
@@ -473,7 +473,12 @@ fn run_peaks(args: &[String]) -> ExitCode {
     let options = Options::parse(args);
     let history_path = match options.get("history") {
         Some(path) => PathBuf::from(path),
-        None => Config::default().history,
+        // The daemon's own --state-dir is where its history lives, so the
+        // command that reads that history must be able to find it too.
+        None => match options.get("state-dir") {
+            Some(dir) => PathBuf::from(dir).join("peaks.jsonl"),
+            None => Config::default().history,
+        },
     };
     let history = History::load(&history_path);
     let wanted = options.get("label");
