@@ -267,3 +267,77 @@ stays strict FIFO, `serve` asks do not coalesce, and no lease can be
 phased. The staged binary changes all three at the next daemon restart,
 which is the director's moment to pick.
 
+
+## 2026-11-01 13:20 — round 12 starts, on the ProArt
+
+The brief's rounds 1–11 are committed on this branch; the last of them is
+`389e609` ("docs: the suite's time again"). The director's 13:20 note says
+the last run ended on a request timeout before any commit — it had in fact
+committed round 11 (`6a5d8c4` and the docs after it) and left round 12's
+code **uncommitted** in the worktree: `src/guard.rs` (619 lines),
+`src/prealloc.rs` (395 lines) and edits across the daemon, the protocol,
+the client and the integration suite (1 397 lines changed in seven files).
+
+This runtime runs on the **ProArt** (wired) and drives the Thor over ssh, so
+the Thor's weak Wi-Fi carries only the commands. Per the brief, no
+sub-agents; every edit was made by hand.
+
+## 2026-11-01 13:22 — the box, and the state of the code that was left
+
+- `MemTotal` 128 766 524 kB (122.8 GiB), `MemAvailable` 84 541 916 kB
+  (~80.6 GiB), `SwapTotal` 50 331 640 kB (47 GiB of swap is present now —
+  the brief says "no swap"; it was added since, and the docs say so).
+- Load average 4.35, 14 users. Two seats hold `flock ~/lm-wt/heavy.lock`:
+  an `nvcc` build (`thor-fp4.r30-build2`) and a `cmake`/`ctest` run
+  (`lab-motion.mb-ctest-sonic2`), both about half an hour in.
+- The live daemon is **pid 123268**, the round-11 binary from
+  `~/lm-tools/thor-admit`. At 13:31 it held one lease
+  (`serve.d1-2B`, 814.6M) and had two requests waiting: `serve.glide`
+  (58 GiB, waiting 1 995 s) and `thor-fp4.r30-build2` (8 GiB, waiting
+  1 994 s) — the same head-that-cannot-fit shape as yesterday, under the
+  new rules.
+- `cargo check --all-targets` **passes** on the code that was left: it
+  compiles as it stands, and `cargo test --lib` gives 135 passing.
+
+## 2026-11-01 13:24 — three defects in the code that was left, and the fixes
+
+**1. The `exec` test could not have passed.** JAX is not installed on this
+box (`python3 -c "import jax"` → `ModuleNotFoundError`), so the test's "a
+safe allocator must let the program run" case asserted on the *program's*
+exit status, and the program could not run. And the `--allow-preallocation`
+case ran `python3 -c "print('ran anyway')"` — no framework in it, so nothing
+was detected and the "the override must say that it was used" assertion had
+nothing to match. Fixed with a **stub `jax` module** on the child's
+`PYTHONPATH`: the test needs a program that *looks* like a JAX program and
+runs, and JAX is not installed here. The stub makes the refusal's own
+detection the thing under test, which is what the test is for.
+
+**2. The guard stopped the process but not its children.** A runaway that
+forks a dataloader holds the memory in the children, and the left-over code
+signalled only the parent — the memory would have stayed on the box. The
+**family** is now found from the kernel's own parent links and signalled
+with it. The **group** is signalled only when the group is exactly that
+family: the operator's shell is in the group of every job it starts, and it
+must not go with them.
+
+**3. The test's protection list was a snapshot.** It named every pid on the
+box at the moment it was written, so a process another seat started
+afterwards was not on it — and the test's daemon is pointed at the **real**
+box with a scripted memory number in place of the real one, so it would have
+been free to stop it. The list is now refreshed every 50 ms while the test
+runs, written to a temp name and **renamed into place**, so the daemon
+never reads a half-written file.
+
+Also: `tmux` and `zcode` joined the protection list by name (the seats'
+sessions live under tmux), and the status carries the guard's last action
+(`guard.last_pid`, `guard.last_signal`, `guard.last_trigger`).
+
+## 2026-11-01 13:26 — the code is committed; the design record follows
+
+`da12466` — "thor-admit: round 12 — the guard for work that is outside any
+lease". **160 unit tests pass** (135 before this round, plus the guard's
+own). `549f97d` — "docs: round 12 in the design record and the crate
+README".
+
+The guard's integration tests take the box's heavy lock and are **queued**
+behind the two builds that hold it (`THOR_ADMIT_HEAVY_WAIT_SECS=2400`).
