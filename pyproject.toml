@@ -39,6 +39,15 @@ usd = [
     "usd-core==26.11",
     "build123d==0.13.0",
 ]
+# The tiles seat's retrieval front embeds the library with a local static
+# model: model2vec's distilled embeddings are a token table and a tokenizer,
+# so a query costs no forward pass and no GPU. The library (MIT) is the
+# first download; the seat falls back to feature hashing, which needs
+# nothing at all, when this extra is not installed — so it rides as an
+# extra and the core installs without it.
+embed = [
+    "model2vec>=0.10",
+]
 
 [project.scripts]
 builder-usd = "builder_usd.cli:main"
