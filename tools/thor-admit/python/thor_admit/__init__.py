@@ -30,6 +30,7 @@ import os
 import socket
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -45,6 +46,12 @@ __all__ = [
     "register_presence",
     "socket_path",
 ]
+
+#: How often the shim says it is alive while it holds a lease. The lock on
+#: the lease file says this process is not *dead*; only the heartbeat says
+#: it is not *stuck* — and the daemon gives a silent client a grace period
+#: (60 s by default) before it takes the lease back.
+HEARTBEAT_INTERVAL_S = 5.0
 
 
 class LeaseError(RuntimeError):
@@ -277,7 +284,22 @@ def lease(
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
         _send(stream, {"op": "held", "lease": granted.lease_id})
 
-        yield granted
+        # The heartbeat: its own connection, its own thread, because the
+        # code inside the lease block may be busy — or stuck — and a stuck
+        # holder is exactly what the heartbeat is for the daemon to notice.
+        stop = threading.Event()
+        heartbeat = threading.Thread(
+            target=_heartbeat,
+            args=(path, granted.lease_id, stop),
+            daemon=True,
+        )
+        heartbeat.start()
+
+        try:
+            yield granted
+        finally:
+            stop.set()
+            heartbeat.join(timeout=HEARTBEAT_INTERVAL_S + 1.0)
     finally:
         if granted is not None and lock_fd is not None:
             with contextlib.suppress(OSError):
@@ -366,6 +388,26 @@ def _send(stream: Any, request: dict[str, Any]) -> None:
     event = json.loads(line.decode("utf-8"))
     if event.get("event") == "error":
         raise LeaseError(str(event.get("message", "the daemon reported an error")))
+
+
+def _heartbeat(path: Path, lease_id: int, stop: threading.Event) -> None:
+    """Say this lease's holder is alive, until it is told to stop.
+
+    A failure to send is not a failure of the lease: the daemon may be
+    restarting, and the next round tries a fresh connection. The lock, not
+    the heartbeat, is what makes the lease real.
+    """
+    while not stop.wait(HEARTBEAT_INTERVAL_S):
+        try:
+            connection = _connect(path, timeout=5.0)
+            try:
+                stream = connection.makefile("rwb")
+                _send(stream, {"op": "heartbeat", "lease": lease_id})
+                stream.close()
+            finally:
+                connection.close()
+        except (OSError, LeaseError):
+            continue
 
 
 def _default_label() -> str:

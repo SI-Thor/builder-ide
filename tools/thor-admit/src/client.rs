@@ -9,6 +9,7 @@
 use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
 use std::path::Path;
+use std::time::Duration;
 
 use serde_json::json;
 
@@ -125,6 +126,18 @@ impl Client {
         Ok(())
     }
 
+    /// Say this lease's client is still alive and still working.
+    ///
+    /// The lock says the client is not *dead*; it cannot say the client is
+    /// not *stuck* — a hung client's lock never drops, and its reservation
+    /// would be charged forever. The heartbeat is the other half of the
+    /// truth, and the daemon gives a silent client a grace period before it
+    /// acts (see `--heartbeat-grace-secs`).
+    pub fn heartbeat(&mut self, lease: u64) -> std::io::Result<()> {
+        self.request(&Request::Heartbeat { lease })?;
+        Ok(())
+    }
+
     /// Give the lease back.
     pub fn release(&mut self, lease: u64, peak_rss_bytes: Option<u64>) -> std::io::Result<()> {
         self.request(&Request::Release {
@@ -234,13 +247,22 @@ pub struct Outcome {
     pub peak_rss_bytes: u64,
 }
 
+/// How often a client says it is alive.
+pub const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
+
 /// Run a command under a lease.
 ///
 /// The command is started **after** the lease is granted, so nothing runs
 /// before the box has room for it. The child gets its own process group,
 /// which is what the watchdog stops if the box runs short.
+///
+/// While the command runs, a heartbeat thread says the client is alive on
+/// its own connection, once every [`HEARTBEAT_INTERVAL`]: the lock on the
+/// lease file says this client is not dead, and only the heartbeat says it
+/// is not *stuck*.
 pub fn run_under_lease(
     client: &mut Client,
+    socket: &Path,
     label: &str,
     peak: PeakArg,
     priority: i32,
@@ -328,6 +350,14 @@ pub fn run_under_lease(
     let _lock = LeaseLock::acquire(&grant.lock_path)?;
     client.held(grant.lease)?;
 
+    // The heartbeat, on its own connection: the main flow below waits on
+    // the command and would not notice being asked whether it is alive.
+    // The thread is a daemon in the informal sense — it stops of its own
+    // accord once the lease is over, and the process's exit takes it with
+    // it — and a beat that lands just after the release is answered with a
+    // shrug (there is no such lease) and costs nothing.
+    let _heartbeat = spawn_heartbeat(socket, grant.lease);
+
     // Now the command may run.
     unsafe {
         libc::write(write_fd, b"g".as_ptr() as *const libc::c_void, 1);
@@ -337,6 +367,34 @@ pub fn run_under_lease(
     let outcome = wait_for(pid)?;
     let _ = client.release(grant.lease, Some(outcome.peak_rss_bytes));
     Ok(outcome)
+}
+
+/// The thread that says this lease's client is alive, every five seconds,
+/// until the process ends.
+fn spawn_heartbeat(socket: &Path, lease: u64) -> std::thread::JoinHandle<()> {
+    let socket = socket.to_path_buf();
+    std::thread::Builder::new()
+        .name("thor-admit-heartbeat".to_string())
+        .spawn(move || {
+            let mut connection: Option<Client> = None;
+            loop {
+                std::thread::sleep(HEARTBEAT_INTERVAL);
+                // The lease may already be over; a beat for a released
+                // lease is answered and ignored, and the thread ends with
+                // the process. A new connection each time it breaks: the
+                // daemon may have been restarted.
+                if connection.is_none() {
+                    connection = Client::connect(&socket).ok();
+                }
+                let Some(alive) = connection.as_mut() else {
+                    continue;
+                };
+                if alive.heartbeat(lease).is_err() {
+                    connection = None;
+                }
+            }
+        })
+        .expect("the heartbeat thread starts")
 }
 
 /// Wait for the command, and read the kernel's own peak for it.

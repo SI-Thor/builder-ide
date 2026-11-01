@@ -58,6 +58,10 @@ pub const DEFAULT_MEMINFO: &str = "/proc/meminfo";
 pub const DEFAULT_MIN_VICTIM_RSS: u64 = 2 * 1024 * 1024 * 1024;
 /// How long a granted lease may sit unlocked before the daemon gives up on it.
 const GRANT_GRACE: Duration = Duration::from_secs(30);
+/// The default grace a client's silence gets before the daemon acts: six
+/// missed heartbeats at the client's one-every-five-seconds, plus slack for
+/// a box under load.
+pub const DEFAULT_HEARTBEAT_GRACE: Duration = Duration::from_secs(60);
 /// The default GPU's busy share of the GPU at which live work takes the GPU from
 /// the presence queue.
 pub const DEFAULT_GPU_BUSY_THRESHOLD: u8 = 50;
@@ -152,6 +156,11 @@ pub struct Config {
     /// Let live work stop the presence queue's jobs so that live work can
     /// have the GPU.
     pub gpu_preempt: bool,
+    /// How long an active lease's client may stay silent — no heartbeat,
+    /// no release — before the daemon decides the client is stuck and takes
+    /// the lease back. The lock alone is not liveness: a hung client's lock
+    /// never drops.
+    pub heartbeat_grace: Duration,
     /// The least the GPU's own allocation pool must keep free (see
     /// [`DEFAULT_GPU_FLOOR`]). Applied only when something can see the pool.
     pub gpu_floor: u64,
@@ -186,6 +195,7 @@ impl Default for Config {
             ledger_interval: DEFAULT_LEDGER_INTERVAL,
             gpu_busy_threshold: DEFAULT_GPU_BUSY_THRESHOLD,
             gpu_preempt: true,
+            heartbeat_grace: DEFAULT_HEARTBEAT_GRACE,
             gpu_floor: DEFAULT_GPU_FLOOR,
             tegrastats_command: None,
         }
@@ -239,6 +249,14 @@ struct Lease {
     lock_path: PathBuf,
     state: LeaseState,
     granted_at: Instant,
+    /// The client that asked for this lease, from the socket's own
+    /// credentials — the process the daemon signals when the client goes
+    /// silent, and the one whose death explains a dropped lock.
+    client_pid: i32,
+    /// When the client last said it was alive (`held` or a heartbeat).
+    last_heartbeat: Option<Instant>,
+    /// The daemon has already signalled this lease's silent client.
+    stale_signalled: bool,
     current_rss: u64,
     peak_rss: u64,
     peak_gpu: u64,
@@ -283,6 +301,8 @@ struct AcquireRequest {
     priority: i32,
     tier: Tier,
     target: TargetSpec,
+    /// The asking client's pid, from the socket's credentials.
+    client_pid: i32,
 }
 
 /// What a client asked for when it registered a presence job.
@@ -381,10 +401,15 @@ struct State {
     waiters: HashMap<u64, Sender<Response>>,
     /// What each waiting request wants to lease.
     targets: HashMap<u64, TargetSpec>,
+    /// Who asked for each waiting request, so the lease can carry the
+    /// client's pid from the queue to the grant.
+    client_pids: HashMap<u64, i32>,
     /// When each waiting request arrived.
     waiting_since: HashMap<u64, Instant>,
-    /// Requests that arrived and are not handled yet.
-    inbox: Vec<(Request, Sender<Response>)>,
+    /// Requests that arrived and are not handled yet: the request, the
+    /// client that sent it (its pid, from the socket's credentials), and
+    /// where the answer goes.
+    inbox: Vec<(i32, Request, Sender<Response>)>,
     next_id: u64,
     mem: MemInfo,
     gpu: GpuSample,
@@ -489,10 +514,10 @@ impl Daemon {
             queue: Queue::new(),
             waiters: HashMap::new(),
             targets: HashMap::new(),
+            client_pids: HashMap::new(),
             waiting_since: HashMap::new(),
             inbox: Vec::new(),
-            next_id: 1,
-            mem: MemInfo::read().unwrap_or_default(),
+            next_id: 1,            mem: MemInfo::read().unwrap_or_default(),
             gpu: GpuSample::default(),
             gpu_source: config.gpu_probe.as_str().to_string(),
             samples: 0,
@@ -671,6 +696,11 @@ impl Daemon {
 
     /// Serve one client connection.
     fn serve(self: Arc<Self>, stream: UnixStream) {
+        // Who is talking: the socket's own credentials. The daemon never
+        // trusts the client to name itself — the pid is what the kernel put
+        // on the connection, and it is how a silent client is told apart
+        // from a dead one.
+        let peer = peer_pid(&stream);
         let reader = BufReader::new(match stream.try_clone() {
             Ok(stream) => stream,
             Err(_) => return,
@@ -694,7 +724,7 @@ impl Daemon {
             let (reply_tx, reply_rx) = channel::<Response>();
             {
                 let mut state = self.state.lock().unwrap();
-                state.inbox.push((request, reply_tx));
+                state.inbox.push((peer, request, reply_tx));
                 state.last_activity = Instant::now();
                 self.wake.notify_all();
             }
@@ -757,7 +787,7 @@ impl Daemon {
 
         // 1. What the clients asked for.
         let inbox = std::mem::take(&mut state.inbox);
-        for (request, reply) in inbox {
+        for (peer, request, reply) in inbox {
             match request {
                 Request::Acquire {
                     label,
@@ -773,12 +803,20 @@ impl Daemon {
                         priority,
                         tier,
                         target,
+                        client_pid: peer,
                     },
                     reply,
                 ),
                 Request::Held { lease } => {
                     if let Some(found) = state.leases.iter_mut().find(|l| l.id == lease) {
                         found.state = LeaseState::Active;
+                        found.last_heartbeat = Some(Instant::now());
+                    }
+                    let _ = reply.send(Response::Ok);
+                }
+                Request::Heartbeat { lease } => {
+                    if let Some(found) = state.leases.iter_mut().find(|l| l.id == lease) {
+                        found.last_heartbeat = Some(Instant::now());
                     }
                     let _ = reply.send(Response::Ok);
                 }
@@ -966,6 +1004,7 @@ impl Daemon {
             priority,
             tier,
             target,
+            client_pid,
         } = request;
         let peak_bytes = match peak {
             PeakArg::Bytes(bytes) => bytes,
@@ -996,6 +1035,7 @@ impl Daemon {
         state.queue.push(waiter);
         state.waiters.insert(id, reply.clone());
         state.targets.insert(id, target);
+        state.client_pids.insert(id, client_pid);
         state.waiting_since.insert(id, Instant::now());
         let position = state.queue.position(id).unwrap_or(0);
         self.log_event(
@@ -1021,6 +1061,7 @@ impl Daemon {
             state.queue.remove(id);
             state.waiters.remove(&id);
             state.targets.remove(&id);
+            state.client_pids.remove(&id);
             state.waiting_since.remove(&id);
             state.gpu_blocked.remove(&id);
         }
@@ -1087,6 +1128,7 @@ impl Daemon {
                 .targets
                 .remove(&waiter.id)
                 .unwrap_or(TargetSpec::Group { pgid: 0 });
+            let client_pid = state.client_pids.remove(&waiter.id).unwrap_or(0);
             let lock_path = self
                 .config
                 .state_dir
@@ -1103,6 +1145,9 @@ impl Daemon {
                 lock_path: lock_path.clone(),
                 state: LeaseState::Granted,
                 granted_at: Instant::now(),
+                client_pid,
+                last_heartbeat: None,
+                stale_signalled: false,
                 current_rss: 0,
                 peak_rss: 0,
                 peak_gpu: 0,
@@ -1137,6 +1182,7 @@ impl Daemon {
             } else {
                 // The client was gone; the lease never existed.
                 let _ = std::fs::remove_file(&lock_path);
+                state.client_pids.remove(&waiter.id);
             }
         }
     }
@@ -1665,9 +1711,11 @@ impl Daemon {
         IdleReason::Unattributed
     }
 
-    /// Release the leases whose clients are gone.
+    /// Release the leases whose clients are gone, and the leases whose
+    /// clients went silent.
     fn check_liveness(&self, state: &mut State) {
         let mut dead = Vec::new();
+        let mut stale = Vec::new();
         for lease in state.leases.iter() {
             match lease.state {
                 LeaseState::Granted => {
@@ -1675,16 +1723,33 @@ impl Daemon {
                         dead.push((lease.id, "the client never took the lock"));
                     }
                 }
-                LeaseState::Active => match lease::is_held(&lease.lock_path) {
-                    Ok(true) => {}
-                    Ok(false) => dead.push((lease.id, "the client is gone")),
-                    Err(error) => {
-                        self.log_event(
-                            "lease.probe_failed",
-                            json!({"lease": lease.id, "error": error.to_string()}),
-                        );
+                LeaseState::Active => {
+                    let silent_for = lease
+                        .last_heartbeat
+                        .map(|at| at.elapsed())
+                        .unwrap_or(Duration::ZERO);
+                    if silent_for > self.config.heartbeat_grace {
+                        // Alive by the lock, dead by the heartbeat. The lock
+                        // is the truth about *death*; the heartbeat is the
+                        // truth about *life*. A client that holds the lock
+                        // and has said nothing for a grace period is stuck,
+                        // and a stuck client's reservation is charged
+                        // forever unless the daemon acts (Hy4's fourth
+                        // failure mode).
+                        stale.push(lease.id);
+                        continue;
                     }
-                },
+                    match lease::is_held(&lease.lock_path) {
+                        Ok(true) => {}
+                        Ok(false) => dead.push((lease.id, "the client is gone")),
+                        Err(error) => {
+                            self.log_event(
+                                "lease.probe_failed",
+                                json!({"lease": lease.id, "error": error.to_string()}),
+                            );
+                        }
+                    }
+                }
             }
         }
         for (id, reason) in dead {
@@ -1703,6 +1768,84 @@ impl Daemon {
             }
             self.release_lease(state, id, "client-gone");
         }
+        for id in stale {
+            self.evict_silent_client(state, id);
+        }
+    }
+
+    /// A lease whose client has been silent past the grace period.
+    ///
+    /// The client's own pid — the socket's credentials, not a claim — says
+    /// which of the two failures this is:
+    ///
+    /// * **the client is gone** (its pid with nobody behind it): whatever
+    ///   holds the lock is an inherited descriptor, not a client. The lease
+    ///   is taken back at once, and the lock file goes with it, so the
+    ///   descriptor's lock has nothing left to guard.
+    /// * **the client is there but stuck**: it is asked to leave (SIGTERM —
+    ///   the same treatment a dead client's work gets), which drops the
+    ///   lock and releases the lease the honest way. If it is still stuck a
+    ///   grace period later, the lease is taken back anyway: an unwatched
+    ///   reservation is exactly what this daemon exists to prevent.
+    fn evict_silent_client(&self, state: &mut State, id: u64) {
+        let Some(index) = state.leases.iter().position(|l| l.id == id) else {
+            return;
+        };
+        let lease = &mut state.leases[index];
+        let client_alive = lease.client_pid > 0
+            && Path::new(&format!("/proc/{}", lease.client_pid)).exists();
+        let silent_for = lease
+            .last_heartbeat
+            .map(|at| at.elapsed())
+            .unwrap_or(Duration::ZERO);
+        if !lease.stale_signalled {
+            lease.stale_signalled = true;
+            self.log_event(
+                "lease.stale_client",
+                json!({
+                    "lease": lease.id,
+                    "label": lease.label,
+                    "client_pid": lease.client_pid,
+                    "client_alive": client_alive,
+                    "silent_s": silent_for.as_secs(),
+                }),
+            );
+            if client_alive {
+                // Ask the stuck client to leave; its death drops the lock
+                // and the lease releases the honest way.
+                let signalled =
+                    unsafe { libc::kill(lease.client_pid, libc::SIGTERM) == 0 };
+                self.log_event(
+                    "lease.stale_client_signalled",
+                    json!({"lease": lease.id, "client_pid": lease.client_pid, "signalled": signalled}),
+                );
+                return;
+            }
+        } else if client_alive && silent_for < self.config.heartbeat_grace * 2 {
+            // It was signalled and the grace has not doubled yet: give the
+            // SIGTERM time to work.
+            return;
+        }
+        // Either the client was already gone, or it ignored the SIGTERM for
+        // another full grace period. Take the lease back.
+        let (target, label) = (lease.target, lease.label.clone());
+        let signalled = signal_target(target, libc::SIGTERM);
+        self.log_event(
+            "lease.force_released",
+            json!({
+                "lease": id,
+                "label": label,
+                "reason": if client_alive {
+                    "the client kept the lock past its grace period after being asked to leave"
+                } else {
+                    "the lock is held but nobody is left to release it"
+                },
+                "client_pid": state.leases[index].client_pid,
+                "silent_s": silent_for.as_secs(),
+                "signalled": signalled,
+            }),
+        );
+        self.release_lease(state, id, "silent-client");
     }
 
     /// The watchdog: when the box runs short, take the memory back.
@@ -2041,6 +2184,34 @@ fn target_of(spec: TargetSpec) -> Target {
     match spec {
         TargetSpec::Group { pgid } => Target::Group(pgid),
         TargetSpec::Process { pid } => Target::Process(pid),
+    }
+}
+
+/// The pid of the process on the other end of a socket connection, as the
+/// kernel sees it.
+///
+/// This is the one fact about a client the daemon can act on without the
+/// client's cooperation: credentials are put on the connection by the
+/// kernel, so a client cannot misname itself, and a pid that no longer
+/// exists says the client is gone even while some inherited descriptor
+/// keeps its lock alive.
+fn peer_pid(stream: &UnixStream) -> i32 {
+    use std::os::unix::io::AsRawFd;
+    let mut credentials: libc::ucred = unsafe { std::mem::zeroed() };
+    let mut length = std::mem::size_of::<libc::ucred>() as libc::socklen_t;
+    let rc = unsafe {
+        libc::getsockopt(
+            stream.as_raw_fd(),
+            libc::SOL_SOCKET,
+            libc::SO_PEERCRED,
+            &mut credentials as *mut libc::ucred as *mut libc::c_void,
+            &mut length,
+        )
+    };
+    if rc == 0 {
+        credentials.pid as i32
+    } else {
+        0
     }
 }
 

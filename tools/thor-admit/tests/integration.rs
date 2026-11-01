@@ -1168,6 +1168,154 @@ fn a_dead_client_cannot_leak_a_lease() {
     );
 }
 
+/// The lease-holder helper: a client whose silence is up to the test.
+fn lease_holder(mode: &str, daemon: &DaemonUnderTest, label: &str, seconds: f64) -> Child {
+    Command::new("python3")
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/lease_holder.py"))
+        .arg(mode)
+        .arg(&daemon.socket)
+        .arg(label)
+        .arg(seconds.to_string())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the lease holder starts")
+}
+
+/// A client that holds its lease and never says another word is stuck, and
+/// a stuck client's lock never drops: the reservation would be charged
+/// forever. The heartbeat is the other half of the truth — the lock says
+/// the client is not dead, the heartbeat says it is not stuck — and the
+/// daemon gives a silent client a grace period before it acts (Hy4's
+/// fourth failure mode).
+#[test]
+fn a_silent_client_loses_its_lease() {
+    let daemon = DaemonUnderTest::start_named("silent-client", &[
+        "--floor",
+        "1G",
+        "--heartbeat-grace-secs",
+        "2",
+    ]);
+
+    let mut holder = lease_holder("silent", &daemon, "stuck.holder", 60.0);
+    let held = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(held, "the holder never took the lease: {}", daemon.log());
+
+    // It is silent for far longer than the grace period.
+    let gone = wait_until(20, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        gone,
+        "the silent client kept its lease; the log was:\n{}",
+        daemon.log()
+    );
+    assert!(
+        daemon.log().contains("lease.stale_client"),
+        "the daemon never named the silence: {}",
+        daemon.log()
+    );
+    // And the stuck client itself was asked to leave: its exit drops the
+    // lock, which is what actually released the lease.
+    assert!(
+        daemon.log().contains("lease.stale_client_signalled"),
+        "the stuck client was never signalled: {}",
+        daemon.log()
+    );
+    let _ = holder.kill();
+    let _ = holder.wait();
+}
+
+/// A lock can outlive its client: the file descriptor is inherited by a
+/// child, the client exits, and the lock is held with nobody left to
+/// release it. The daemon must not charge that reservation forever — and it
+/// tells this case from a stuck client by the client's own pid, which the
+/// socket's credentials put beyond argument.
+#[test]
+fn an_orphaned_lock_cannot_hold_a_reservation_forever() {
+    let daemon = DaemonUnderTest::start_named("orphaned-lock", &[
+        "--floor",
+        "1G",
+        "--heartbeat-grace-secs",
+        "2",
+    ]);
+
+    let mut holder = lease_holder("orphan", &daemon, "orphan.holder", 60.0);
+    let held = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(held, "the holder never took the lease: {}", daemon.log());
+    // The holder has already exited; only the inherited descriptor remains.
+    let _ = holder.wait();
+
+    let gone = wait_until(20, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        gone,
+        "an orphaned lock kept its reservation; the log was:\n{}",
+        daemon.log()
+    );
+    assert!(
+        daemon.log().contains("lease.force_released"),
+        "the daemon never took the orphaned lease back: {}",
+        daemon.log()
+    );
+}
+
+/// A client that heartbeats keeps its lease, however long it holds it.
+#[test]
+fn a_heartbeating_client_keeps_its_lease() {
+    let daemon = DaemonUnderTest::start_named("heartbeat-client", &[
+        "--floor",
+        "1G",
+        "--heartbeat-grace-secs",
+        "2",
+    ]);
+
+    // Ten seconds of holding with heartbeats every half-second: five times
+    // the grace period, which a silent client does not survive.
+    let mut holder = lease_holder("heartbeat", &daemon, "healthy.holder", 10.0);
+    let held = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(held, "the holder never took the lease: {}", daemon.log());
+
+    std::thread::sleep(Duration::from_secs(8));
+    let status = daemon.status();
+    assert_eq!(
+        status["leases"].as_array().map(|l| l.len()).unwrap_or(0),
+        1,
+        "the heartbeating client lost its lease; the log was:\n{}",
+        daemon.log()
+    );
+    assert!(
+        !daemon.log().contains("lease.stale_client"),
+        "the daemon called a heartbeating client silent: {}",
+        daemon.log()
+    );
+
+    let _ = holder.kill();
+    let _ = holder.wait();
+}
+
 #[test]
 fn the_daemon_costs_almost_nothing() {
     let daemon = DaemonUnderTest::start_named("daemon-overhead", &["--floor", "1G"]);

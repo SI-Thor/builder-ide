@@ -106,6 +106,8 @@ Daemon options (all have defaults):
   --scan-interval-ms <n>    how often the processes' memory is read (default 1000)
   --stop-grace-samples <n>  samples a watchdog-terminated lease is given
                             before the watchdog escalates to SIGKILL (default 8)
+  --heartbeat-grace-secs <n> how long a silent client keeps its lease
+                            (the client heartbeats every 5s; default 60)
   --min-victim-rss <size>   the smallest lease the watchdog will touch (default 2G)
   --socket <path>           the socket to listen on
   --state-dir <path>        where the lease files and the log live
@@ -349,6 +351,14 @@ fn run_daemon(args: &[String]) -> ExitCode {
             return ExitCode::from(2);
         }
     }
+    match options.number("heartbeat-grace-secs") {
+        Ok(Some(value)) => config.heartbeat_grace = Duration::from_secs(value),
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
     match options.number("idle-exit") {
         Ok(Some(value)) => config.idle_exit = Duration::from_secs(value),
         Ok(None) => {}
@@ -477,6 +487,7 @@ fn run_command(args: &[String]) -> ExitCode {
     };
     let outcome = match client::run_under_lease(
         &mut connection,
+        &socket,
         &label,
         peak,
         priority,
