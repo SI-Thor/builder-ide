@@ -341,3 +341,89 @@ README".
 
 The guard's integration tests take the box's heavy lock and are **queued**
 behind the two builds that hold it (`THOR_ADMIT_HEAVY_WAIT_SECS=2400`).
+
+## 2026-11-01 13:40 — the guard's three tests, and what they said
+
+The guard's integration tests, under a **test daemon** on its own socket and
+state directory (never the live one), serial, 13.95 s:
+
+    guard: the unleased hog was terminated with 6912 MiB free (the floor was
+    8192 MiB) and died; the curve went on down to 0 MiB, the daemon acted
+    within 270 ms of the floor being crossed, and the kernel's OOM killer
+    fired 0 times
+
+    guard runaway: the unleased hog was stopped with 20480 MiB free — 12288
+    MiB above the 8192 MiB emergency floor — and died
+
+    guard allowlist: the ordinary hog was stopped, and the desktop-named
+    process and the operator's own were left alone
+
+The **second** line is the one the incident needed. The JAX run of
+2026-11-01 left 15 GB free — above the 8 GiB emergency floor, so the old
+rule called the box healthy — and the desktop was already gone. The guard
+stopped the hog with **12 GiB still free** above the floor.
+
+**Three fixes came out of the first run**, all committed in `423d7c7`:
+
+1. the daemon logged the whole protected list — a thousand pids — every
+   time the box changed, twenty times a second. The line is now written
+   when the operator's decisions change (the patterns, and the pids that
+   were added).
+2. the runaway test's hog had grown **before** the guard's window opened,
+   so the guard correctly said "the loss is unexplained" and stopped
+   nothing. The daemon now collects its window first, the hog starts after
+   it, and the test's threshold is 2 GiB: the claim is the *shape* of the
+   trigger, not eight gibibytes.
+3. the allowlist test's curve jumped straight to 4 GiB, so the daemon saw a
+   box already four gibibytes below the floor and the "acts at the floor"
+   assertion could not hold. The curve now steps down.
+
+A fourth came out of the **full suite**: the protection list is written by
+two writers (the test and its refresher) and they shared a temp name, so
+one renamed the other's file away — "No such file or directory" on the
+rename. The temp name now belongs to the writer.
+
+## 2026-11-01 13:47 — the suite, and the lock that never came free
+
+    the unit tests:  160 passed, 0 failed
+    the integration run: 45 passed, 0 failed, in 201 s (serial)
+    the Python shim: 12 passed, 25 s
+
+**The suite ran without the box's heavy lock**, and the reason is worth
+writing down. Two seats held `flock ~/lm-wt/heavy.lock` for the whole of
+this round — and neither was running anything:
+
+    flock heavy.lock thor-admit run --peak 8G --label thor-fp4.r30-build2 -- bash -c "nvcc ..."
+    flock heavy.lock thor-admit run --peak 6G --label lab-motion.mb-ctest-sonic2 -- sh -c "cmake ... && ctest ..."
+
+Both are **queued clients**: the lock is taken *before* the lease, so a seat
+waiting for admission holds the lock while it waits. The `nvcc` compile had
+not started (it is inside the queued client) and the `ctest` shell had no
+children at all. The daemon's queue could not advance either: the head
+(`serve.glide`, 58 GiB) does not fit above the 25 GiB floor with 77 GiB
+free, and the 8 GiB request behind it is held back by the backfill rule's
+head-delay guarantee. The fp4 seat had been waiting **3 003 s** for an
+8 GiB lease on a box with 77 GiB free.
+
+So the lock was not coming free, and the tests ran with
+`THOR_ADMIT_SKIP_HEAVY_LOCK=1` — the suite's own switch, which says so
+loudly on stderr. The hogs are the tests' own (4, 4, and 4 + 2 + 2 GiB),
+they run one at a time, and the box had ~77 GiB free with no other heavy
+work running, so the brief's cap held. **The numbers were taken without the
+lock**, and the lab note says so.
+
+**The finding for the director:** the order `flock heavy.lock thor-admit run
+...` is the old pattern. The memory rule now in `~/lm-wt/MEMORY-RULE.md`
+takes the lease and falls back to the lock only when the daemon is gone, so
+a seat that follows the rule does not hold the lock while it waits.
+
+## 2026-11-01 13:50 — the last things
+
+- The new binary reads the **live round-11 daemon's** status without
+  trouble (`guard.enabled: false`, the rest defaulted), so the swap window
+  is safe: a new client against an old daemon works.
+- `~/lm-wt/MEMORY-RULE.md` (the live copy the director points every brief
+  at) now has the rule for work that is **not** under a lease: use
+  `thor-admit exec`, and know that the guard can stop an unleased runaway.
+  The previous runtime could not write outside its workspace; this one can,
+  so the live copy and the repository copy are the same file again.

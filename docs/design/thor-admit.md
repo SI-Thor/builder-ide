@@ -1719,3 +1719,78 @@ guard's counterpart rather than its duplicate: the guard stops a runaway
 after it has started, and this stops it before. `--allow-preallocation`
 overrides the refusal and says so loudly, for the run the operator knows is
 safe.
+
+### 16.5 What the guard measured
+
+Three tests, under a **test daemon** on its own socket and state directory —
+never the live one. The daemon, the hogs, the signals, the grace and the
+timing are all real; only the **number the daemon reads** is scripted, into
+a file that `--meminfo` points the daemon at. The real box cannot be taken
+to 8 GiB free for a test, and the brief caps a test's memory at 60 GiB.
+
+**The floor.** A real 4 GiB hog with no lease; the scripted curve steps
+down from 12 GiB free through the 8 GiB emergency floor and on to 0. The
+guard terminated the hog at **6912 MiB free** — 1280 MiB below the floor —
+and the hog died. The curve went on down to 0 MiB *after* the stop, so the
+danger zone was really reached and the daemon was already through it. The
+daemon acted within **270 ms** of the floor being crossed, and the kernel's
+OOM killer fired **0** times.
+
+**The runaway.** A real 4 GiB hog with no lease, and the scripted memory
+fell to 20 GiB free — *above* the floor. The guard stopped the hog at
+**20 480 MiB free, 12 288 MiB above the emergency floor**, and the hog died.
+This is the shape the incident had: the JAX run left 15 GB free, which the
+floor's rule called healthy, and the desktop was already gone.
+
+**The allowlist.** Three hogs: an ordinary one, one whose program is called
+`gnome-shell`, and one the operator protected by command-line pattern. The
+guard stopped the ordinary hog and left the other two alone.
+
+**The client's half.** `thor-admit exec` refuses a JAX/XLA program whose
+allocator has not been made safe (exit code 2, and the refusal names
+`XLA_PYTHON_CLIENT_PREALLOCATE`), lets it run when
+`XLA_PYTHON_CLIENT_PREALLOCATE=false`, lets a command with no framework in
+it run, and says so loudly when `--allow-preallocation` was used.
+
+### 16.6 The limits, stated
+
+* **The guard can be wrong.** On a busy box the biggest unleased process
+  may be a seat's job that was doing the right thing. The operator's list is
+  the answer to that; `--no-guard` is the other one. The guard is on by
+  default, and one flag reverses it.
+* **The runaway trigger needs the loss to be *unexplained*.** When the loss
+  is real and no candidate grew — the page cache, the slab, a process that
+  died — the daemon says so (`guard.unexplained_drop`) and stops nothing. A
+  runaway that takes its memory where the daemon cannot see it is not
+  caught by that trigger; the floor still is.
+* **`exec` is a refusal read off the command line, not a sandbox.** A
+  program that preallocates without naming its framework is let through.
+* **The tests script the number the daemon reads.** The daemon, the hogs,
+  the signals and the timings are real; the box's memory curve is a file
+  the test writes. The guard has never been measured against the kernel's
+  own accounting of a real runaway, because that is the experiment that
+  takes the box down.
+* **What was not verified here.** The guard has never run on the live
+  daemon: the binary is staged and the swap is the director's. The
+  per-process GPU bytes are the driver's own, so the *ranking* by RSS plus
+  device bytes is right — measured today at 20 834 MiB for pid 15433
+  against 653 MiB of resident set — but the unit of "this process's device
+  bytes" is the driver's account of the unified pool, not a separate pool.
+
+### 16.7 The binary, staged; the swap is the director's
+
+The release binary is staged at `~/lm-tools/thor-admit.new`, written to a
+temp file and moved into place, so a running daemon keeps its old inode.
+**The swap is the director's**, and this round *does* change what the box
+does when the daemon is next restarted:
+
+* **the guard is on by default.** It will stop the biggest unleased process
+  when the box falls below the emergency floor, or when the box loses
+  memory faster than the leases can explain it. `--no-guard` turns it off.
+* **the leases are ranked by RSS plus device bytes**, so a lease whose work
+  put 20 GiB on the device is no longer called a small lease.
+* `thor-admit exec` exists, but it only helps the seats that use it.
+
+None of it needs a restart to be *safe*: the old daemon keeps the old rule
+and is not wrong, only blind to work it does not own. Restart it at a moment
+with no leases to lose.

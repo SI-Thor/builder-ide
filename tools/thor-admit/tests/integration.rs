@@ -3721,7 +3721,13 @@ fn protect_everything_but(path: &Path, mine: &[i32]) {
         }
         lines.push(format!("pid {pid}"));
     }
-    let temporary = path.with_extension("tmp");
+    // The temp name belongs to the writer. The test and its refresher both
+    // write this file, and a shared temp name let one of them rename the
+    // other's file away — the suite's first run failed exactly that way,
+    // with "No such file or directory" on the rename.
+    static WRITER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let unique = WRITER.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let temporary = path.with_extension(format!("tmp.{}.{unique}", std::process::id()));
     std::fs::write(&temporary, lines.join("\n")).unwrap();
     std::fs::rename(&temporary, path).unwrap();
 }
@@ -4279,7 +4285,11 @@ fn the_guard_leaves_the_protected_processes_alone() {
     protect_everything_but(&protected, &[hog_pid, desktop_pid, listed_pid]);
     let mut lines = std::fs::read_to_string(&protected).unwrap_or_default();
     lines.push_str("\n# the operator's own: the model server\n*the-model-server*\n");
-    std::fs::write(&protected, lines).unwrap();
+    // Written under a temp name and renamed, for the same reason the pid
+    // list is: the daemon reads this file while it is being written.
+    let temporary = protected.with_extension("operator.tmp");
+    std::fs::write(&temporary, lines).unwrap();
+    std::fs::rename(&temporary, &protected).unwrap();
 
     // Wait until the hogs are holding memory.
     let deadline = Instant::now() + Duration::from_secs(30);
