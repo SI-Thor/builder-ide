@@ -447,6 +447,19 @@ Measured (`the_watchdog_stops_a_runaway_before_the_memory_runs_out`):
 | The kernel's OOM killer | **0 times** |
 | The hog | really stopped (state `T`), then killed after the grace period |
 
+The daemon's own log for that run — the number it acted on, and the
+ranking it used:
+
+```json
+{"event":"watchdog.stopped","label":"runaway","lease":1,"mem_available_bytes":7516192768,"rss_bytes":4296790016,"signalled":true}
+{"event":"watchdog.killed","label":"runaway","lease":1,"mem_available_bytes":0,"rss_bytes":4296790016,"signalled":true,"waited_ms":2241}
+```
+
+7 516 192 768 B is the value the daemon read (the scripted curve, at that
+moment) — the free memory it had when it stopped the hog. The box's
+*real* `MemAvailable` was about 105 GiB throughout: the hog's own 4 GiB
+were real memory, and the curve was the pressure on top of it.
+
 So the ordering the brief asks for is a fact about the rule, not a hope:
 the watchdog acts when the box crosses the emergency floor, and the
 emergency floor is above the 2 GB line.
