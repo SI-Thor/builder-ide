@@ -69,6 +69,7 @@ from .models import (
     Question,
     QuestionKind,
     judgment_from_distribution,
+    pack_hash,
     question_set_hash,
     state_hash,
 )
@@ -89,6 +90,7 @@ __all__ = [
     "JudgeCost",
     "GateDecision",
     "judgment_from_distribution",
+    "pack_hash",
     "question_set_hash",
     "state_hash",
     # the gate as policy

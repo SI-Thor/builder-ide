@@ -34,7 +34,8 @@ what acts on them is the caller's.
 
 from __future__ import annotations
 
-from typing import Mapping, Sequence
+import time
+from typing import Callable, Mapping, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -52,7 +53,7 @@ from .gate import (
     EscalationLadder,
     StandingGate,
 )
-from .models import JudgeCost, Judgment, Question, judgment_from_distribution, question_set_hash, state_hash
+from .models import JudgeCost, Judgment, Question, judgment_from_distribution, pack_hash, question_set_hash, state_hash
 from .ports import LedgerPort
 
 __all__ = [
@@ -74,6 +75,17 @@ _WIDE = 1.2345678901234567e-05
 #: the latency, the cost, the escalated-from name). The estimate has to
 #: bound the real row, so the slack is generous.
 _ESTIMATE_MARGIN_BYTES = 512
+
+
+class _DeadlineCommit:
+    """The never-wait commit's row author. Not a backend — the judge's
+    own record that a deadline stopped the walk and committed."""
+
+    name = "deadline"
+    model = "never-wait"
+
+
+_DEADLINE_COMMIT = _DeadlineCommit()
 
 
 class JudgeAnswer(BaseModel):
@@ -164,15 +176,31 @@ class Judge:
         *,
         at: str | None = None,
         now: float | None = None,
+        state_reader: Callable[[], str] | None = None,
+        deadline_seconds: float | None = None,
     ) -> JudgeAnswer:
         """Ask one pack over one state, under the confidence policy.
 
         Escalation is per question and the wire is the pack: each rung
-        is asked only the questions the previous rung fell short on,
-        over the same shared state. With a standing wired, the first
-        rung's fall-short-or-act word is the standing's; ``now`` is then
-        required, because a standing without the caller's clock cannot
-        replay.
+        is asked only the questions the previous rung fell short on.
+        With a ``state_reader`` wired — the caller's own read of the
+        shared state — every rung after the first **re-reads the current
+        state** and its row records its own state and pack hashes: an
+        escalated question is answered over the world as it is now, and
+        the row cites the state it actually asked over. With a standing
+        wired, the first rung's fall-short-or-act word is the standing's;
+        ``now`` is then required, because a standing without the
+        caller's clock cannot replay.
+
+        ``deadline_seconds`` is never-wait
+        (``docs/lab/exp-never-wait.md``): it bounds the walk — the first
+        ask is never refused the chance (the local rung is the fallback
+        the first mile commits), but past the deadline the ladder stops,
+        the best answer so far commits (below τ, so ``surfaced``), and a
+        rung asked within the deadline that returned past it is recorded
+        as a **supersede** beside the committed answer without changing
+        it. With nothing at all to commit, the refusal is loud, not a
+        stall.
         """
         if self.standing is not None and now is None:
             raise ValueError(
@@ -184,10 +212,19 @@ class Judge:
         if not pack:
             raise ValueError("a question pack is not empty")
         moment = at or self._clock()
-        pack_hash = question_set_hash(pack)
-        s_hash = state_hash(state)
+        answer_questions_hash = question_set_hash(pack)
+        answer_state_hash = state_hash(state)
+        started = time.monotonic() if deadline_seconds is not None else None
+
+        def budget_spent() -> bool:
+            return deadline_seconds is not None and (
+                time.monotonic() - started
+            ) >= deadline_seconds
 
         governing: dict[str, Judgment] = {}
+        # each question's most recent judgment — what a deadline commit
+        # has to draw on when the ladder stops
+        last_judgment: dict[str, Judgment] = {}
         pending = pack
         prev_backend: str | None = None
         attempts = 0
@@ -222,31 +259,88 @@ class Judge:
             # are written in ask order
             rung_records: list[dict] = []
             next_pending: list[Question] = []
+            walked_out = False
 
-            for sub_pack in plan_pack(
+            sub_packs = plan_pack(
                 pending,
                 task=task,
                 backend_name=backend.name,
                 model=backend.model,
                 standing=standing_governs,
-            ):
+            )
+            for chunk_index, sub_pack in enumerate(sub_packs):
+                # never-wait: past the deadline the ladder stops (the
+                # first ask is never refused the chance — it is the
+                # fallback the first mile commits)
+                if index > 0 and budget_spent():
+                    walked_out = True
+                    next_pending.extend(
+                        question for chunk in sub_packs[chunk_index:] for question in chunk
+                    )
+                    break
+                # escalation over the current state: the rungs after the
+                # first re-read the shared state through the caller's
+                # reader, and the row will cite what this attempt asked
+                # over — not the first rung's state
+                rung_state = (
+                    state_reader() if state_reader is not None and index > 0 else state
+                )
                 try:
-                    reply = backend.ask(state, sub_pack)
+                    reply = backend.ask(rung_state, sub_pack)
                 except JudgeRefusal as refusal:
                     rung_records.append(
                         dict(
                             refusal=True,
+                            state=rung_state,
                             questions=sub_pack,
                             reply=None,
                             refusal_error=refusal,
                             standing_words={},
                             judgments=(),
+                            supersede=False,
+                            late_by_seconds=None,
                         )
                     )
                     # the refused questions were not answered: the next
                     # rung (if there is one) is asked them whole
                     next_pending.extend(sub_pack)
                     continue
+
+                if index > 0 and budget_spent():
+                    # asked within the deadline, returned past it: the
+                    # supersede — a full row beside the committed
+                    # answer, which it does not change; the walk stops
+                    rung_records.append(
+                        dict(
+                            refusal=False,
+                            state=rung_state,
+                            questions=sub_pack,
+                            reply=reply,
+                            refusal_error=None,
+                            standing_words={},
+                            judgments={
+                                question.qid: judgment_from_distribution(
+                                    question=question,
+                                    backend=backend.name,
+                                    model=backend.model,
+                                    distribution=reply.distributions.get(
+                                        question.qid, {}
+                                    ),
+                                    confidence=reply.confidences.get(question.qid),
+                                ).model_copy(update={"tau": tau})
+                                for question in sub_pack
+                            },
+                            supersede=True,
+                            late_by_seconds=(
+                                time.monotonic() - started - deadline_seconds
+                            ),
+                        )
+                    )
+                    walked_out = True
+                    next_pending.extend(
+                        question for chunk in sub_packs[chunk_index:] for question in chunk
+                    )
+                    break
 
                 judged = {
                     question.qid: judgment_from_distribution(
@@ -290,21 +384,30 @@ class Judge:
                         governing[question.qid] = judgment  # surfaced
                         if standing_governs and standing_words.get(question.qid):
                             governed_by[question.qid] = standing_words[question.qid]
+                    last_judgment[question.qid] = judgment
                 if standing_governs:
                     standing_readings.update(standing_words)
                 rung_records.append(
                     dict(
                         refusal=False,
+                        state=rung_state,
                         questions=sub_pack,
                         reply=reply,
                         refusal_error=None,
                         standing_words=standing_words,
                         judgments=judged,
+                        supersede=False,
+                        late_by_seconds=None,
                     )
                 )
                 next_pending.extend(still_pending)
 
-            escalated_qids = {question.qid for question in next_pending}
+            # nothing is escalated away from when the walk stopped: the
+            # deadline committed (or the refusal refused), and the rows
+            # say which
+            escalated_qids = set() if walked_out else {
+                question.qid for question in next_pending
+            }
             standing_config = (
                 {
                     "tau": tau,
@@ -316,55 +419,82 @@ class Judge:
                 else None
             )
             for record in rung_records:
-                if record["refusal"]:
-                    self._record(
-                        task=task,
-                        state_hash=s_hash,
-                        pack_hash=pack_hash,
-                        questions=record["questions"],
-                        backend=backend,
-                        tau=tau,
-                        judgments=(),
-                        reply=None,
-                        escalated_from=prev_backend,
-                        refusal=record["refusal_error"],
-                        at=moment,
-                        tau_source=tau_source,
-                        standing_governed=standing_governs,
-                        tick=now if standing_governs else None,
-                        standing_config=standing_config,
-                    )
-                    continue
-                raw = record["judgments"]
-                row_judgments = tuple(
-                    raw[question.qid].model_copy(
-                        update={"escalated": question.qid in escalated_qids}
-                    )
-                    for question in record["questions"]
+                record_state = record["state"]
+                refusal_then_escalate = bool(
+                    record["refusal"]
+                    and index + 1 < len(self.rungs)
+                    and not walked_out
                 )
-                cost = backend.cost_of(record["reply"])
                 self._record(
                     task=task,
-                    state_hash=s_hash,
-                    pack_hash=pack_hash,
+                    state_hash=state_hash(record_state),
+                    pack_hash=pack_hash(record_state, record["questions"]),
                     questions=record["questions"],
                     backend=backend,
                     tau=tau,
-                    judgments=row_judgments,
+                    judgments=(
+                        tuple(
+                            record["judgments"][question.qid].model_copy(
+                                update={"escalated": question.qid in escalated_qids}
+                            )
+                            for question in record["questions"]
+                        )
+                        if record["judgments"]
+                        else ()
+                    ),
                     reply=record["reply"],
                     escalated_from=prev_backend,
-                    refusal=None,
+                    refusal=record["refusal_error"],
                     at=moment,
                     standing_words=record["standing_words"],
                     tau_source=tau_source,
                     standing_governed=standing_governs,
                     tick=now if standing_governs else None,
                     standing_config=standing_config,
+                    supersede=record["supersede"],
+                    late_by_seconds=record["late_by_seconds"],
+                    refusal_then_escalate=refusal_then_escalate,
+                    escalated_to=(
+                        self.rungs[index + 1][0] if refusal_then_escalate else None
+                    ),
                 )
-                total = total.added(cost)
-                attempts += 1
+                if not record["refusal"]:
+                    total = total.added(backend.cost_of(record["reply"]))
+                    attempts += 1
             prev_backend = name
             pending = tuple(next_pending)
+
+            if walked_out:
+                # never-wait: commit the best answer so far — below τ, so
+                # surfaced — and record the stop. The commit is over the
+                # current state, and its row says what it committed.
+                commit_state = (
+                    state_reader() if state_reader is not None else state
+                )
+                committed: list[str] = []
+                for question in pending:
+                    if question.qid in last_judgment:
+                        governing[question.qid] = last_judgment[
+                            question.qid
+                        ].model_copy(update={"escalated": False})
+                        committed.append(question.qid)
+                self._record(
+                    task=task,
+                    state_hash=state_hash(commit_state),
+                    pack_hash=pack_hash(commit_state, pending),
+                    questions=pending,
+                    backend=_DEADLINE_COMMIT,
+                    tau=tau,
+                    judgments=(),
+                    reply=None,
+                    escalated_from=prev_backend,
+                    refusal=None,
+                    at=moment,
+                    tau_source=tau_source,
+                    deadline_committed=True,
+                    committed_qids=committed,
+                )
+                break
 
         if len(governing) != len(pack):
             raise JudgeRefusal(
@@ -383,8 +513,8 @@ class Judge:
 
         return JudgeAnswer(
             task=task,
-            state_hash=s_hash,
-            questions_hash=pack_hash,
+            state_hash=answer_state_hash,
+            questions_hash=answer_questions_hash,
             judgments=ordered,
             attempts=attempts,
             surfaced=any(_surfaced(judgment) for judgment in ordered),
@@ -414,6 +544,12 @@ class Judge:
         standing_governed: bool = False,
         tick: float | None = None,
         standing_config: Mapping[str, float] | None = None,
+        supersede: bool = False,
+        late_by_seconds: float | None = None,
+        refusal_then_escalate: bool = False,
+        escalated_to: str | None = None,
+        deadline_committed: bool = False,
+        committed_qids: Sequence[str] | None = None,
     ) -> None:
         """One ``judge.verdict`` row per attempt — refused attempts included.
 
@@ -426,7 +562,13 @@ class Judge:
         gate — the ``tick`` and the ``standing_config`` (the bound τ,
         the band, the dwells) — because those are what a rebuild replays;
         and every row carries ``tau_source``, the provenance of the τ it
-        was judged under.
+        was judged under. A refused row carries
+        ``refusal_then_escalate`` — whether the ladder moved on to the
+        rung named in ``escalated_to`` — because a refusal that stopped
+        the ladder and a refusal the ladder walked past are different
+        edges. A superseded row (asked within the deadline, returned
+        past it) says so, with ``late_by_seconds``; a deadline commit
+        row says what it committed.
         """
         standing_words = standing_words or {}
         payload = _verdict_payload(
@@ -448,6 +590,12 @@ class Judge:
             standing_governed=standing_governed,
             tick=tick,
             standing_config=standing_config,
+            supersede=supersede,
+            late_by_seconds=late_by_seconds,
+            refusal_then_escalate=refusal_then_escalate,
+            escalated_to=escalated_to,
+            deadline_committed=deadline_committed,
+            committed_qids=committed_qids,
         )
         try:
             self.ledger.append(
@@ -487,6 +635,12 @@ def _verdict_payload(
     standing_governed: bool = False,
     tick: float | None = None,
     standing_config: Mapping[str, float] | None = None,
+    supersede: bool = False,
+    late_by_seconds: float | None = None,
+    refusal_then_escalate: bool = False,
+    escalated_to: str | None = None,
+    deadline_committed: bool = False,
+    committed_qids: Sequence[str] | None = None,
 ) -> dict[str, object]:
     """The ``judge.verdict`` row's payload, in its one canonical shape.
 
@@ -519,6 +673,10 @@ def _verdict_payload(
         "cost": cost.model_dump(),
         "escalated_from": escalated_from,
         "refused": refusal is not None,
+        "refusal_then_escalate": refusal_then_escalate,
+        "escalated_to": escalated_to,
+        "supersede": supersede,
+        "deadline_committed": deadline_committed,
         "tau": tau,
         "tau_source": tau_source,
         "standing_governed": standing_governed,
@@ -527,6 +685,10 @@ def _verdict_payload(
         payload["tick"] = tick
     if standing_config is not None:
         payload["standing_config"] = dict(standing_config)
+    if late_by_seconds is not None:
+        payload["late_by_seconds"] = late_by_seconds
+    if committed_qids is not None:
+        payload["committed_qids"] = list(committed_qids)
     if refusal is not None:
         payload["error"] = {"code": refusal.code, "detail": refusal.detail}
     return payload
@@ -578,6 +740,7 @@ def verdict_payload_estimate(
             {question.qid: "escalate" for question in questions} if standing else {}
         ),
         escalated_from=backend_name,
+        escalated_to=backend_name,
         refusal=None,
         latency_seconds=0.0,
         cost=JudgeCost(wall_seconds=0.0),

@@ -97,10 +97,15 @@ def test_a_pack_hash_binds_the_state_and_the_questions():
 def test_each_rung_re_reads_the_state_and_records_its_own_hashes(ledger):
     """The tick moved between the rungs: the second rung asks over the
     state as it is now, and its row says so — not the first rung's."""
-    states = iter(["scene at tick 0", "scene at tick 1"])
+    # the tick moved after the caller formed its pack: the reader's first
+    # read — the second rung's — returns the state as it is now
+    states = iter(["scene at tick 1", "scene at tick 2"])
 
     def d1_reply(question):
-        return UNCERTAIN
+        if question.qid == "tile":
+            return UNCERTAIN  # top probability 0.34, below τ
+        # a noul's confidence is its top raw reading: keep it below τ
+        return {"true": 0.35, "false": 0.34}
 
     def jev_reply(question):
         return CONFIDENT if question.qid == "tile" else {"true": 0.9, "false": 0.1}
@@ -123,7 +128,8 @@ def test_each_rung_re_reads_the_state_and_records_its_own_hashes(ledger):
     assert answer.state_hash == state_hash("scene at tick 0")
     assert answer.questions_hash == question_set_hash((TILES, ALIVE))
 
-    d1_row, jev_row = fold_judgments(ledger.events())
+    d1_row = fold_judgments(ledger.events(), backend="d1")[0]
+    jev_row = fold_judgments(ledger.events(), backend="jev")[0]
     # the second rung's row cites the state it actually asked over
     assert d1_row["state_hash"] == state_hash("scene at tick 0")
     assert jev_row["state_hash"] == state_hash("scene at tick 1")
@@ -184,10 +190,12 @@ def test_a_refusal_at_the_ladder_s_end_says_there_was_nowhere_to_go(ledger):
 
 
 def test_past_the_deadline_the_best_answer_so_far_commits(ledger):
-    """The local rung answered below τ; the deadline passes before the
-    cloud rung is asked; the below-τ answer commits (surfaced — the
-    caller decides), and the log records the deadline that committed it."""
-    d1 = ScriptedBackend("d1", "d1-2B", lambda q: UNCERTAIN)
+    """The local rung answered below τ but slowly; the deadline passes
+    before the cloud rung is asked; the below-τ answer commits (surfaced
+    — the caller decides), and the log records the deadline that
+    committed it. The first rung is the fallback: it commits whenever it
+    answered, late or not."""
+    d1 = ScriptedBackend("d1", "d1-2B", lambda q: UNCERTAIN, sleep=0.06)
     jev = ScriptedBackend("jev", "jev-latest", lambda q: CONFIDENT)
     judge = Judge(backend=d1, ladder=EscalationLadder([("jev", jev)]), ledger=ledger)
     answer = judge.judge("task", "state", (TILES,), deadline_seconds=0.05)
@@ -237,19 +245,25 @@ def test_a_late_answer_is_recorded_as_a_supersede_and_does_not_govern(ledger):
 
 
 def test_a_deadline_that_passes_before_any_answer_refuses_loudly(ledger):
-    class SlowBackend(ScriptedBackend):
-        def ask(self, state, questions):
-            time.sleep(0.06)
-            return super().ask(state, questions)
-
-    d1 = SlowBackend("d1", "d1-2B", lambda q: UNCERTAIN)
+    """A zero budget: the local rung refuses outright, so at the deadline
+    there is no best answer to commit — the walk stops and the caller is
+    told there is no answer, loudly, instead of being stalled by the
+    next rung."""
+    d1 = ScriptedBackend("d1", "d1-2B", lambda q: {})
     jev = ScriptedBackend("jev", "jev-latest", lambda q: CONFIDENT)
+
+    class RefusingBackend(ScriptedBackend):
+        def ask(self, state, questions):
+            self.calls.append([q.qid for q in questions])
+            raise JudgeRefusal("transport_error", "dead under the heavy lock")
+
+    d1 = RefusingBackend("d1", "d1-2B", lambda q: {})
     judge = Judge(backend=d1, ladder=EscalationLadder([("jev", jev)]), ledger=ledger)
     with pytest.raises(JudgeRefusal) as excinfo:
-        judge.judge("task", "state", (TILES,), deadline_seconds=0.02)
-    # the local rung had not answered when the deadline passed: there was
-    # nothing to commit, and the caller is told so, loudly
+        judge.judge("task", "state", (TILES,), deadline_seconds=0.0)
     assert excinfo.value.code == "no_backend"
+    # nothing further was asked once the budget was spent
+    assert jev.calls == []
 
 
 def test_without_a_deadline_nothing_of_this_appears(ledger):
