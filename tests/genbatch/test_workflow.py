@@ -215,6 +215,73 @@ def test_a_template_without_the_nodes_we_need_is_an_error(tmp_path):
         )
 
 
+def test_the_weight_dtype_is_a_parameter_and_not_a_template(tmp_path):
+    """The dtype is a knob on the workflow, not a different workflow.
+
+    One template, any dtype: the loader's ``weight_dtype`` is what ComfyUI
+    reads to decide how the weights are stored and which ops run, and it is
+    the request's business which one it wants.
+    """
+    template = load_template(_write_template(tmp_path, "trellis2.api.json", TEMPLATE))
+
+    workflow = build_trellis_workflow(
+        template,
+        image_name="crate.png",
+        seeds=(1, 2, 3),
+        steps=(12, 20, 12),
+        cfg=7.5,
+        sampler="euler",
+        scheduler="normal",
+        filename_prefix="genbatch/crate",
+        weight_dtype="fp8_e4m3fn_fast",
+    )
+
+    assert workflow["30"]["inputs"]["weight_dtype"] == "fp8_e4m3fn_fast"
+
+
+def test_the_default_dtype_leaves_the_template_alone(tmp_path):
+    """The default is the model's own dtype — bf16 — and it does not touch
+    the template's setting."""
+    payload = json.loads(json.dumps(TEMPLATE))
+    payload["30"]["inputs"]["weight_dtype"] = "default"
+    template = load_template(_write_template(tmp_path, "trellis2.api.json", payload))
+
+    workflow = build_trellis_workflow(
+        template,
+        image_name="crate.png",
+        seeds=(1, 2, 3),
+        steps=(12, 20, 12),
+        cfg=7.5,
+        sampler="euler",
+        scheduler="normal",
+        filename_prefix="genbatch/crate",
+    )
+
+    assert workflow["30"]["inputs"]["weight_dtype"] == "default"
+
+
+def test_a_template_without_a_loader_is_not_an_error(tmp_path):
+    """A template with no loader cannot be told a dtype; that is not a
+    failure, it is a template without a weight loader."""
+    payload = json.loads(json.dumps(TEMPLATE))
+    payload.pop("30")
+    template = load_template(_write_template(tmp_path, "trellis2.api.json", payload))
+
+    workflow = build_trellis_workflow(
+        template,
+        image_name="crate.png",
+        seeds=(1, 2, 3),
+        steps=(12, 20, 12),
+        cfg=7.5,
+        sampler="euler",
+        scheduler="normal",
+        filename_prefix="genbatch/crate",
+        weight_dtype="fp8_e4m3fn_fast",
+    )
+
+    assert "30" not in workflow
+
+
 def test_the_three_seeds_are_different_and_repeatable():
     seeds = trellis_seeds(4242)
 

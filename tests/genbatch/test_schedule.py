@@ -16,7 +16,12 @@ to know (docs/research/trellis-spike.md §4.3, §4.4, §9):
 
 from __future__ import annotations
 
+import json
+import statistics
+
 import pytest
+
+from core.night.cost.records import DATA_DIR
 
 from core.genbatch.models import PropRequest
 from core.genbatch.schedule import NightPlan
@@ -130,7 +135,7 @@ def test_the_costs_come_from_the_cost_model():
     image_task = next(task for task in plan.tasks if task.id == "img:crate")
     mesh_task = next(task for task in plan.tasks if task.id == "prop:crate")
     picture = model.band("prop.image")
-    prop = model.band("prop.512")
+    prop = model.band("prop.mesh.512")
 
     assert image_task.kind == "prop.image"
     assert image_task.ask_source == "model"
@@ -139,7 +144,7 @@ def test_the_costs_come_from_the_cost_model():
     assert image_task.cost_estimate.wall_minutes == pytest.approx(
         picture.p50.wall_minutes * 3)
 
-    assert mesh_task.kind == "prop.512"
+    assert mesh_task.kind == "prop.mesh.512"
     assert mesh_task.cost_estimate.gpu_minutes == pytest.approx(
         prop.p50.gpu_minutes * 3)
     assert mesh_task.cost_estimate.wall_minutes == pytest.approx(
@@ -165,9 +170,54 @@ def test_a_request_at_1024_is_priced_as_the_1024_prop():
     plan = NightPlan([PropRequest(id="big", prompt="a big crate", seeds=1, resolution=1024)])
     mesh_task = next(task for task in plan.tasks if task.id == "prop:big")
 
-    assert mesh_task.kind == "prop.1024"
+    assert mesh_task.kind == "prop.mesh.1024"
     assert mesh_task.cost_estimate.gpu_minutes == pytest.approx(
-        get_model().band("prop.1024").p50.gpu_minutes)
+        get_model().band("prop.mesh.1024").p50.gpu_minutes)
+
+
+def _the_second_nights_prop_gpu_seconds() -> float:
+    """The GPU lane the second mini-night's own prop jobs took.
+
+    Read from the recorded ledger extract, not from the cost model: the
+    point of the test below is that the *schedule* agrees with a
+    measurement, so the measurement has to come from somewhere else.
+    """
+    document = json.loads((DATA_DIR / "mini_night_2.json").read_text())
+    samples = [row for row in document["samples"] if row["kind"] == "prop"]
+    return statistics.median([float(row["gpu_seconds"]) for row in samples])
+
+
+def test_the_mesh_stage_is_priced_at_what_the_night_actually_spends():
+    """The regression: the mesh stage was priced at the bare generator.
+
+    The generator (``prop.512``) is the three KSamplers and the mesh tail,
+    from the spike's two runs.  The night's mesh stage is the generator
+    *plus* the decode stages, the repair and the measuring — and the second
+    mini-night's own ledger says that is 3.4x the generator's GPU lane.
+
+    Pricing the stage at the generator's band therefore sold the night's
+    rail 3.4x too cheap, and every night that planned against it planned
+    three times the work the box could do.  The ask now comes from the
+    night's own measurement, and this test holds it there.
+    """
+    plan = NightPlan([PropRequest(id="crate", prompt="a crate", seeds=1)])
+
+    gpu_minutes, _wall_minutes = plan.per_variant_cost("prop:crate")
+    ask_seconds = gpu_minutes * 60.0
+    measured_seconds = _the_second_nights_prop_gpu_seconds()
+
+    # The ask is the night's p50 plus the repair and the measuring, so it
+    # sits at the night's own number, never under it.
+    assert measured_seconds <= ask_seconds <= measured_seconds * 1.5
+
+
+def test_the_mesh_stage_is_not_priced_at_the_bare_generator():
+    """The bare generator's band is what the spike measured; it is not what
+    the night runs, so it is not what the stage may be priced at."""
+    plan = NightPlan([PropRequest(id="crate", prompt="a crate", seeds=1)])
+
+    assert plan.priced("prop:crate").kind != "prop.512"
+    assert plan.priced("prop:crate").kind != "prop.night"
 
 
 def test_the_executor_plans_the_same_price_the_task_asks_for():

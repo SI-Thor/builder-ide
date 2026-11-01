@@ -227,7 +227,7 @@ class CostModel:
     # -- the derived kinds ------------------------------------------------
 
     def _derived_kinds(self) -> tuple[str, ...]:
-        return ("prop.goal", "scene.goal", "plan.intention")
+        return ("prop.goal", "scene.goal", "plan.intention", "prop.mesh.512", "prop.mesh.1024")
 
     def _derived_band(self, kind: str, *, scene: str | None = None) -> CostBand:
         """The kinds that are built from the recorded ones.
@@ -237,12 +237,14 @@ class CostModel:
         coarse, fine, rendered. ``plan.intention`` — an agent's proposal on
         the night's slate: the proposal's own footprint, a slate row and
         the owner's decision on it; the night work it may seed is priced
-        by its own kind when the night runs it.
+        by its own kind when the night runs it. ``prop.mesh.512`` /
+        ``prop.mesh.1024`` — one prop's mesh stage, priced the way the night
+        runs it: the prompt window, the repair and the measuring.
         """
         if kind == "prop.goal":
             seeds = 3
             resolution = "512"
-            parts = [self.band("prop.image"), self.band("prop.night")]
+            parts = [self.band("prop.image"), self.band("prop.mesh.512")]
             verdict = self.band("critic.verdict")
             label = f"one prop goal, {seeds} variants at {resolution}³"
             note = (
@@ -250,6 +252,29 @@ class CostModel:
                 "the mini-night's shape (3 seeds a goal)"
             )
             iterations = seeds
+        elif kind in ("prop.mesh.512", "prop.mesh.1024"):
+            resolution = kind.rsplit(".", 1)[1]
+            parts = [
+                # the prompt window: the generator, the decode and the tail
+                self.band("prop.night.512"),
+                # the repair, which runs after the prompt returns
+                self.band("mesh.repair"),
+                # the measuring, which the critic's verdict reads
+                self.band("mesh.measure"),
+            ]
+            label = f"one prop's mesh stage at {resolution}³, as the night runs it"
+            note = (
+                "the second mini-night's own prompt window, plus the repair "
+                "and the measuring — the whole mesh stage, not just the "
+                "generator"
+            )
+            if resolution == "1024":
+                note += (
+                    "; the 1024³ band adds the generator's own measured "
+                    "resolution scaling (prop.1024 - prop.512) and assumes the "
+                    "night's other work does not scale with resolution"
+                )
+            iterations = 1
         elif kind == "scene.goal":
             scene_type = scene or "plain"
             parts = [
@@ -267,6 +292,9 @@ class CostModel:
 
         p50 = self._sum([band.p50 for band in parts], iterations=iterations)
         p95 = self._sum([band.p95 for band in parts], iterations=iterations)
+        if kind in ("prop.mesh.1024",):
+            p50 = self._at_resolution(p50, "p50")
+            p95 = self._at_resolution(p95, "p95")
         return CostBand(
             kind=kind,
             label=label,
@@ -318,6 +346,39 @@ class CostModel:
             p50=_end(),
             p95=_end(),
         )
+
+    def _at_resolution(self, estimate: CostEstimate, which: str) -> CostEstimate:
+        """The 1024³ mesh stage: the 512³ stage plus the generator's scaling.
+
+        The spike measured the same generator at both resolutions, so the
+        *sampling*'s scaling is measured (``prop.1024`` - ``prop.512``). The
+        night's other work — the decode stages, the repair, the measuring —
+        is taken to be resolution-independent.
+
+        **That assumption is generous to the night, and it says so.** The
+        spike's per-node table shows the mesh tail does not scale (the CPU
+        lane is flat) but the decode stages do (4-5x). So the 1024³ GPU lane
+        this band produces is a **lower bound**: the part of the GPU lane
+        that is the decode is priced as if it did not grow. The band is
+        marked ``derived`` and the note says which way it errs.
+        """
+        low = self.band("prop.512")
+        high = self.band("prop.1024")
+        pick = (lambda band: band.p50) if which == "p50" else (lambda band: band.p95)
+        lo = pick(low)
+        hi = pick(high)
+        scaled = estimate.model_copy(
+            update={
+                "gpu_minutes": estimate.gpu_minutes + hi.gpu_minutes - lo.gpu_minutes,
+                "cpu_lane_minutes": estimate.cpu_lane_minutes
+                + hi.cpu_lane_minutes
+                - lo.cpu_lane_minutes,
+                "wall_minutes": estimate.wall_minutes + hi.wall_minutes - lo.wall_minutes,
+            }
+        )
+        scaled.joules = self.data.rails.vin_w * scaled.wall_minutes * 60.0 / 1000.0
+        scaled.joules_above_idle = self._combine_joules(scaled)
+        return scaled
 
     def _sum(self, parts: Sequence[CostEstimate], *, iterations: int) -> CostEstimate:
         """Add the parts of a derived kind, then scale by the goal's depth."""

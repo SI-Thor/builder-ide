@@ -162,26 +162,36 @@ def refresh_sweep(source: Path | None = None, *, data_dir: Path = DATA_DIR) -> d
     }
 
 
-def refresh_night(ledger: Path, *, data_dir: Path = DATA_DIR) -> dict[str, Any]:
+def refresh_night(
+    ledger: Path,
+    *,
+    source: str = "mini_night",
+    data_dir: Path = DATA_DIR,
+) -> dict[str, Any]:
     """Re-extract a night's lane splits into the model's data.
 
     The ledger is the night runner's own audit log: the GPU lane and the CPU
     lane measured separately, one sample per job.
+
+    ``source`` names the night in the index — "mini_night" or
+    "mini_night_2" — so each night's extract lands in its own file and its
+    own entry in the index.
     """
     ledger = Path(ledger).expanduser()
     if not ledger.exists():
         raise FileNotFoundError(f"no ledger at {ledger}")
     index = _read_index(data_dir)
-    recorded = index.get("sources", {}).get("mini_night", {})
-    target = data_dir / recorded.get("file", "mini_night.json")
+    recorded = index.get("sources", {}).get(source, {})
+    target = data_dir / recorded.get("file", f"{source}.json")
+    doc = str(recorded.get("doc", "docs/lab/mini-night.md"))
 
-    document = extract(ledger)
+    document = extract(ledger, night=source, doc=doc)
     before = target.read_text(encoding="utf-8") if target.exists() else ""
     target.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n",
                       encoding="utf-8")
     index_path = data_dir / "recorded.json"
     text = index_path.read_text(encoding="utf-8")
-    text = _patch(text, ["sources", "mini_night"], {
+    text = _patch(text, ["sources", source], {
         "file": target.name,
         "origin": str(ledger),
         "jobs": document["jobs"],
@@ -243,6 +253,9 @@ def main() -> int:
                         type=Path, help="the sweep to re-pin (default: the recorded origin)")
     parser.add_argument("--ledger", type=Path, default=None,
                         help="a night's ledger to re-extract")
+    parser.add_argument("--night", default="mini_night",
+                        help="which night the ledger is: the source key it is "
+                        "recorded under (mini_night, mini_night_2, ...)")
     parser.add_argument("--check", action="store_true",
                         help="report whether the recording has moved on")
     parser.add_argument("--data-dir", type=Path, default=DATA_DIR,
@@ -254,7 +267,9 @@ def main() -> int:
         print(json.dumps(refresh_sweep(args.sweep, data_dir=args.data_dir), indent=2))
         said = True
     if args.ledger is not None:
-        print(json.dumps(refresh_night(args.ledger, data_dir=args.data_dir), indent=2))
+        print(json.dumps(
+            refresh_night(args.ledger, source=args.night, data_dir=args.data_dir),
+            indent=2))
         said = True
     if args.check or not said:
         print(json.dumps(check(data_dir=args.data_dir), indent=2))

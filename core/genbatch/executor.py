@@ -210,6 +210,7 @@ class PropExecutor:
                 scheduler=request.trellis_scheduler,
                 filename_prefix=f"genbatch/{request.id}_s{seed}",
                 resolution=32 if request.resolution <= 512 else 64,
+                weight_dtype=request.weight_dtype,
             )
         except WorkflowError as exc:
             return ExecutionPlan(outcome="failed", reason=str(exc))
@@ -312,6 +313,10 @@ class PropExecutor:
             "cfg": request.trellis_cfg,
             "sampler": request.trellis_sampler,
             "scheduler": request.trellis_scheduler,
+            # The dtype the weights were loaded in: part of the recipe,
+            # because a prop made in fp8 is not the same prop as one made
+            # in bf16.
+            "weight_dtype": request.weight_dtype,
             "workflow_sha256": self._templates.trellis.digest,
             "image_model": "sd_xl_base_1.0",
             "image_seed": seed,

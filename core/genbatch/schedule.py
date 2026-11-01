@@ -16,10 +16,19 @@ props ran at once and their tails fought over the same cores. So:
 **What each stage costs comes from the cost model** (``core/night/cost``),
 not from numbers typed in here: the image stage is priced as ``prop.image``
 (one 1024² picture) and the mesh stage as the TRELLIS.2 prop at the
-request's resolution (``prop.512`` / ``prop.1024`` — the sampling and the
-mesh tail). The ask is the model's p50 and the rail its p95, so the number
-the night plans against is the one the box was measured at, and it moves
-when the measurement moves.
+request's resolution (``prop.mesh.512`` / ``prop.mesh.1024`` — the generator,
+the decode, the mesh tail, the repair and the measuring, which is what the
+night's mesh stage actually *is*). The ask is the model's p50 and the rail
+its p95, so the number the night plans against is the one the box was
+measured at, and it moves when the measurement moves.
+
+**The mesh stage used to be priced at the bare generator** (``prop.512`` —
+the three KSamplers and the tail, from the spike's two runs). That was 3.4x
+under what the night actually spends: the generator is only the sampling,
+while the night's mesh stage also carries the decode stages, the repair and
+the measuring. ``prop.mesh.512`` is the second mini-night's own measurement of
+the whole stage, so the ask is now the night's own cost. The regression test
+in ``tests/genbatch/test_schedule.py`` holds that line.
 
 The plan is what the core's night runner is handed: a list of tasks, in
 order, and the iteration policy that says how many seeds each one tries.
@@ -48,9 +57,14 @@ MESH_MODEL = "trellis2"
 
 #: The cost model's job kinds for the two stages: one 1024² picture, and one
 #: TRELLIS.2 prop at the resolution the request asks for.
+#:
+#: The mesh kinds are the *stage*, not the generator: the prompt window the
+#: second mini-night measured, plus the repair and the measuring. The
+#: generator's own bands (``prop.512`` / ``prop.1024``) are what the spike
+#: measured, and they are the input to the 1024³ band, not the price.
 IMAGE_KIND = "prop.image"
-MESH_KIND = "prop.512"
-MESH_KIND_1024 = "prop.1024"
+MESH_KIND = "prop.mesh.512"
+MESH_KIND_1024 = "prop.mesh.1024"
 
 #: The resolution the mesh stage falls back to when the model has no measured
 #: price for the one the request asks for (512³ — the default, and the one

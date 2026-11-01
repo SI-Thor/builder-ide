@@ -72,6 +72,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=101)
     parser.add_argument("--prefix", default="trg")
+    parser.add_argument(
+        "--weight-dtype",
+        default="default",
+        help="what the mesh workflow's UNETLoader is told to load the weights "
+        "as. The default is 'default' — the checkpoint's own dtype. The fp8 "
+        "arms pass fp8_e4m3fn_fast: without this flag the workflow builder "
+        "would override the fp8 template's own setting and every arm would "
+        "silently run bf16 (that is exactly what the first fp8-fixed run "
+        "did).",
+    )
     args = parser.parse_args(argv)
 
     workflows = args.trellis_root / "workflows"
@@ -83,6 +93,7 @@ def main(argv: list[str] | None = None) -> int:
         "comfy_url": args.comfy_url,
         "template": args.template,
         "template_digest": trellis_template.digest,
+        "weight_dtype": args.weight_dtype,
         "seed": args.seed,
         "stages": {},
     }
@@ -133,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
         scheduler="normal",
         filename_prefix=f"{args.prefix}/prop_s{args.seed}",
         resolution=32,
+        weight_dtype=args.weight_dtype,
     )
     t0 = time.monotonic()
     mesh_result = _run(client, trellis_workflow, f"{args.prefix}-mesh")

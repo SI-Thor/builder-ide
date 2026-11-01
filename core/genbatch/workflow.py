@@ -166,15 +166,32 @@ def build_trellis_workflow(
     scheduler: str,
     filename_prefix: str,
     resolution: int = 32,
+    weight_dtype: str = "default",
 ) -> dict:
     """The mesh stage: a picture, and a mesh of it.
 
     The three samplers are the structure, shape and texture stages, in node
     order, and each gets its own seed.
+
+    ``weight_dtype`` is the dtype the TRELLIS.2 weights are loaded in —
+    ComfyUI's own vocabulary ("default", "fp8_e4m3fn", "fp8_e4m3fn_fast",
+    "fp8_e5m2").  It is a parameter rather than a template because the
+    template is the *shape* of the workflow and the dtype is a knob on the
+    same shape: one template, any dtype.
     """
     workflow = json.loads(json.dumps(template.workflow))
     _, load = _one(workflow, "LoadImage")
     load["inputs"]["image"] = image_name
+
+    # The dtype goes on the loader, if the template has one: a template
+    # without a loader cannot be told a dtype, and that is not an error.
+    # When it does have one, the dtype is set outright — a request that
+    # asked for fp8 and got bf16 would be a silent lie, and a ComfyUI that
+    # does not know the input says so by refusing the prompt.
+    unets = nodes_of_type(workflow, "UNETLoader")
+    if unets:
+        _, unet = unets[0]
+        unet["inputs"]["weight_dtype"] = weight_dtype
 
     samplers = nodes_of_type(workflow, "KSampler")
     if len(samplers) < 3:

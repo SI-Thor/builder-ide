@@ -16,6 +16,12 @@ Four files carry the measurements, all under ``core/night/cost/data/``:
     the mini-night's 18 jobs, with the GPU lane and the CPU lane measured
     separately. Extracted by ``core/night/cost/extract_mini_night.py``.
 
+``mini_night_2.json``
+    the second mini-night's 18 jobs and its 9 repair measurements, in the
+    same shape. It is the night that ran the whole pipeline — the generator,
+    the repair and the measuring — so it is what the mesh stage is priced
+    from.
+
 ``critic_verdict.json``
     the critic's verdict and the mesh measurement, timed on the box by
     ``core/night/cost/measure_critic.py``.
@@ -214,6 +220,20 @@ class RecordedData:
     mini_night: Mapping[str, Any]
     critic: Mapping[str, Any]
     rails: PowerRails
+    #: The other whole nights the model can read, by their source key.
+    nights: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+
+    def night(self, source: str) -> Mapping[str, Any]:
+        """One night's recorded document, by its source key."""
+        if source == "mini_night":
+            return self.mini_night
+        try:
+            return self.nights[source]
+        except KeyError:
+            raise KeyError(
+                f"no recorded night {source!r}; the model knows "
+                f"{sorted(set(self.nights) | {'mini_night'})}"
+            ) from None
 
     def job(self, kind: str) -> JobRecord:
         """The record for one job kind."""
@@ -250,9 +270,9 @@ class RecordedData:
                 samples = tuple(s for group in groups.values() for s in group)
             else:
                 samples = _sweep_samples(self.sweep_rows, stage)
-        elif source == "mini_night":
+        elif source == "mini_night" or source in self.nights:
             wanted = str((record.get("filter") or {}).get("kind", ""))
-            samples = _samples_from_mini_night(self.mini_night, wanted)
+            samples = _samples_from_mini_night(self.night(source), wanted)
         elif source == "critic":
             series = str(record.get("series", ""))
             samples = _samples_from_critic(self.critic, series)
@@ -286,6 +306,14 @@ def load_recorded(directory: Path | None = None) -> RecordedData:
     base = Path(directory) if directory is not None else DATA_DIR
     index = _read_json(base / "recorded.json")
     rails = index.get("power_rails") or {}
+    # Every night the index names as a source, read once.
+    nights: dict[str, Mapping[str, Any]] = {}
+    for source in (index.get("sources") or {}):
+        if not source.startswith("mini_night"):
+            continue
+        path = base / f"{source}.json"
+        if path.exists():
+            nights[source] = _read_json(path)
     return RecordedData(
         index=index,
         sweep_rows=tuple(_sweep_rows(base / "infinigen_sweep.tsv")),
@@ -298,4 +326,5 @@ def load_recorded(directory: Path | None = None) -> RecordedData:
             vin_sys_5v0_w=float(rails.get("vin_sys_5v0_w", 0.0)),
             idle_vin_w=float(rails.get("idle_vin_w", 0.0)),
         ),
+        nights=nights,
     )
