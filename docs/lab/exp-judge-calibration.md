@@ -5,7 +5,14 @@ server, no cloud key** — every vector below is a *recorded* probability
 vector, replayed from disk). **Continued 2026-11-01:** the bootstrap
 intervals (§5.1, §5.2) and the τ-gate analysis (§6) were added, and every
 number was re-measured on that day — the re-measurement reproduces the
-2026-10-31 numbers exactly, so nothing below moved.
+2026-10-31 numbers exactly, so nothing below moved. **Continued 2026-11-01
+(again, on the Thor):** §7 replays the 240 recorded sea-state steps with the
+two named conditions **swapped**, for the d1-2B and the d1-3B, recording the
+argmax and the full vector of every reply. It measures the both-order
+protocol instead of assuming it, and it **corrects the rows in §6** that the
+assumption produced: the protocol's catch rate is **24.6 %** on the 2B (not
+71.9 %), **2.5 %** on the 3B (not 38.5 %), and averaging the two vectors does
+not cancel the position.
 **Verdict: ONE DEFINITION OF CONFIDENCE IS NECESSARY AND NOT SUFFICIENT.
 MEASURED ON 1,470 RECORDED JUDGMENTS, THE CANONICAL DEFINITION (THE TOP
 PROBABILITY) MAKES TWO CELLS' CONFIDENCE **ANTI-CORRELATED** WITH BEING
@@ -558,29 +565,36 @@ whose answer cannot be read off the order.
 **The fix, in the judge.** The judge can also refuse to be fooled by the
 position: ask the same question with the two named conditions **in the
 other order** and escalate when the two answers disagree. Measured on the
-recording, for the d1-2B:
+recording, for the d1-2B, and **measured again on the reversed replay**
+(§7, where the reversed replies are recorded rather than assumed):
 
 | | the τ gate at τ = 0.8 | the both-order protocol |
 |---|---|---|
-| escalations | 168 of 240 | 208 of 240 |
-| the wrong judgments caught | 59 of 114 (51.8 %) | **82 of 114 (71.9 %)** |
-| the right judgments taxed | 109 of 126 (86.5 %) | 126 of 126 (100 %) |
+| escalations | 168 of 240 | **137 of 240** (§7) |
+| the wrong judgments caught | 59 of 114 (51.8 %) | **28 of 114 (24.6 %)** (§7) |
+| the right judgments taxed | 109 of 126 (86.5 %) | **109 of 126 (86.5 %)** (§7) |
 | calls a judgment | 1 | **2** |
-| added latency, p50 | — | **+32.21 ms** (the 3B: +50.70 ms) |
+| added latency, p50 | — | **+32.21 ms** on the recording's own box; **+73.4 ms** on the replay's (§7) |
 
-The protocol catches more of the errors, and it costs everything: it taxes
-every right answer and it doubles the calls. **The recording does not hold
-the reversed replies** — the trace asked each question in one order only —
-so the protocol's row is computed under one stated assumption: that the
-model treats the reversed prompt as the same question with the two named
-conditions **swapped**, so its answer follows the option it chose,
-renamed. Under that assumption the two orders disagree exactly when its
-answer was one of the two named conditions — and the recording shows the
-answer is the **first**-named condition in 208 of its 240 steps (and in
-**82 of 82** of the decoy-first ones) and the second-named one in
-**none** of them, so on this trace the two orders disagree exactly on
-those 208 steps. A recording of the reversed replies would settle it; that
-is a run on the Thor, and it is not run here.
+Measured, the protocol catches **fewer** of the errors than the τ gate does
+at τ = 0.8 (28 against 59), and it costs two calls a judgment. **The
+recording does not hold the reversed replies** — the trace asked each
+question in one order only — so this row was first computed under one stated
+assumption: that the model treats the reversed prompt as the same question
+with the two named conditions **swapped**, so its answer follows the option
+it chose, renamed. Under that assumption the two orders disagree exactly
+when its answer was one of the two named conditions — and the recording
+shows the answer is the **first**-named condition in 208 of its 240 steps
+(and in **82 of 82** of the decoy-first ones) and the second-named one in
+**none** of them, so on this trace the two orders would disagree exactly on
+those 208 steps.
+
+**§7 measured that assumption and it does not hold.** The reversed replies
+are now recorded: the 2B's two orders disagree on **137** steps, not 208 —
+43 steps name one condition twice, so their reversed prompt is byte-identical
+and they cannot disagree, and 28 more answer by content and keep their
+condition. The catch falls with it: **28 of 114 (24.6 %)**, not 82 of 114
+(71.9 %). The numbers in this table are §7's; the assumption is retired.
 
 **What the both-order protocol is worth.** Not a better gate — on this
 cell no gate is. It is a **diagnostic**: it turns "confidently wrong" into
@@ -588,13 +602,18 @@ cell no gate is. It is a **diagnostic**: it turns "confidently wrong" into
 instead of hiding behind a confident answer. And it says plainly what the
 τ gate would have done here: acted on the model's surest mistakes.
 
-**Its yield is a property of the model, not of the protocol.** The 3B
-answers positionally in 141 of its 240 steps against the 2B's 208, so the
-same protocol on the same task catches 62 of its 161 errors (**38.5 %**)
-against the 2B's 82 of 114 (71.9 %). A weaker leak buys a weaker
-diagnostic, and the 3B's τ gate is no better: at τ = 0.9 it catches
-47.6 % of the decoy-first errors against the 2B's 37.8 %. The protocol
-does not manufacture signal; it surfaces the signal that is there.
+**Its yield is a property of the model, not of the protocol — and the
+replay says which model.** The 3B answers positionally in 141 of its 240
+steps against the 2B's 208, so the same protocol on the same task catches
+62 of its 161 errors (**38.5 %**) against the 2B's 82 of 114 (71.9 %). A
+weaker leak buys a weaker diagnostic, and the 3B's τ gate is no better: at
+τ = 0.9 it catches 47.6 % of the decoy-first errors against the 2B's
+37.8 %. The protocol does not manufacture signal; it surfaces the signal
+that is there. **§7 corrects both of those rows**: the 3B's answers are
+**order-invariant** (its two orders disagree on 4 of its 240 steps), so the
+protocol catches **4 of its 161 errors (2.5 %)** — it has almost nothing to
+escalate — while the 2B's two orders disagree on 137 of 240 and it catches
+**28 of 114 (24.6 %)**.
 
 **Averaging the two confidences does not help, and the reason is the
 mechanism.** The confidence is a property of the *position*, so averaging
@@ -606,8 +625,294 @@ becomes the probability of the *pair*, not of the presentation. That is the
 same object as the τ gate's own finding in §5.3: on a binary, the raw
 floor is never below a half, because one of two options always holds at
 least half the mass. The both-order average on a binary *is* that floor.
+**§7 measured the averaged vector too, and it does not cancel the
+position**: on the 2B its AUC is **0.1332 [0.0922, 0.1800]**, *below* the
+canonical 0.2815 — further from the coin-flip line, not nearer it (§7.4).
 
-## 7. What this does not say
+## 7. The reversed replay
+
+The five points the "Limits of the both-order protocol" section (at the end
+of this note) left open are settled here, by one replay: the **240 recorded
+sea-state steps asked again with the two named conditions swapped**, for the
+d1-2B and the d1-3B, with the argmax and the full probability vector of
+every reply recorded. The scripts are in
+[`judge-reversed-scripts/`](judge-reversed-scripts/); the raw replies are in
+`judge-reversed-scripts/results/replay-d1-2B.json` and
+`…/replay-d1-3B.json`, and every number below is in
+`…/results/reversed-measurement.json`.
+
+**What was asked.** The state text of a step is two sentences, one per named
+condition: `The sea is <shown>: …. The sea is <other>: ….`. The reversed
+prompt is those two sentences the other way round. Nothing else moves — the
+question, its five criteria and their letters A–E, the ground truth (always
+the true condition) and the shape of the call. Half the steps ask the
+original prompt first and half ask the reversed one first, so "which
+condition the prompt named first" and "which call came first in the pair" are
+not the same variable. 480 calls a model.
+
+**The instrument, and its fidelity to the recording.** The d1-2B was asked on
+the box's resident thor-admit-served d1-2B Q8 server (port 8094, 8 slots,
+ctx 4096); the d1-3B was served for this run under a thor-admit lease (port
+8320, 2 slots, ctx 4096, the recorder's flags). Every live original-order
+reply was compared with the October recording, vector against vector:
+
+| model | compared | max abs diff | mean abs diff | the argmax is the same |
+|---|---|---|---|---|
+| d1-2B | 240 of 240 | **0.0** | 0.0 | **240 of 240** |
+| d1-3B | 240 of 240 | 0.0168 | 0.0017 | **240 of 240** |
+
+The d1-2B's live replies are the recorded vectors, exactly. The d1-3B's
+probabilities differ in the third decimal — the recording was made on a
+4096-context single-slot server and this one runs two 2048-token slots — but
+its **decisions are the same on every one of the 240 steps**, so the 3B's
+argmaxes and counts below are the recorded ones and its vectors carry that
+difference.
+
+**The determinism control.** 43 of the 240 steps name the *same* condition
+twice, so their reversed prompt is byte-identical and the reversal is a
+no-op there. Both models returned **byte-identical vectors on all 43**, which
+is the run's own check that the difference between the two orders is the
+prompt and not the run.
+
+**The box, beside the numbers.** The recording was made on a quiet box: at
+its start the load was 10.3, 115.3 GB of memory were available, 27.6 GB were
+resident, the GPU stood at 0 % and 53.7 °C, and the per-decision p50 was
+32.21 ms (the 3B: 50.68 ms, at 0 % and 52.3 °C). The replay ran on a busier
+one: 68.9 GB resident at its start (2.5× the recording's), the GPU at 0 % and
+57.0 °C when the first call was made and **97–98 %** for the rest of the
+run, 63.5–64.1 °C, the load between 8.6 and 10.7, the memory available
+between 71.2 and 87.9 GB. The 3B's replay ran with the GPU at 97 % throughout
+(64.3 → 68.3 °C, VDD_GPU 40.1 → 58.2 W). **The absolute latencies in §7.5
+are this box's, not the protocol's**; the recorded trace's p50 (32.21 ms) and
+the replay's (73.8 ms) are not the same measurement.
+
+**The leases.** `thor-admit serve` queues at priority 0 — nineteen other
+requests were ahead of the d1-3B's — while `thor-admit run --priority 1` is
+granted at the next memory spike, so the d1-3B server and both replay
+clients ran under `thor-admit run` leases (`judge-reversed-replay.serve-d1-3B`
+and `judge-reversed-replay.replay`, the latter waiting 133 s for room). The
+d1-2B needed no new server: the box's resident one answered.
+
+### 7.1 The positional share
+
+For each step, the reversed answer is compared with the two named
+conditions: did it name the condition the **reversed** prompt named first
+(**position**), the condition the **original** prompt named first
+(**content**), or a third option? Over the 197 steps whose prompt names two
+different conditions:
+
+| model | position | content | a third option |
+|---|---|---|---|
+| d1-2B | **169 (85.8 %)** | 28 (14.2 %) | **0** |
+| d1-3B | 95 (48.2 %) | **102 (51.8 %)** | **0** |
+
+Neither model ever answers with a condition the prompt did not name. The
+same tally by the prompt's order, with the original and the reversed reading
+side by side — "named the first-named condition" means the condition the
+prompt named first *in that reading*:
+
+| model | the prompt's order | n | original named the first | reversed named the first |
+|---|---|---|---|---|
+| d1-2B | truth-first | 158 | **126** | **17** |
+| d1-2B | decoy-first (two conditions) | 39 | **39** | 28 |
+| d1-3B | truth-first | 158 | **79** | **79** |
+| d1-3B | decoy-first (two conditions) | 39 | 19 | 23 |
+
+**The d1-2B answers by position.** On the truth-first prompts it named the
+truth 126 times; on *the same prompts with the two sentences swapped* it
+named the truth 17 times. A model that chose by content would not move; the
+2B moved on 141 of the 158. **The d1-3B answers by content**: it named the
+same condition in 236 of its 240 steps, and its truth-first tally is 79 and
+79 — the reversed prompt changed nothing.
+
+**Why the reversed accuracy is not the original's complement.** The d1-2B's
+accuracy is 0.5250 in the original reading and **0.0708** in the reversed
+one (the d1-3B's is 0.3292 in both). A perfectly positional model would
+score 0.4750 reversed — the decoy-first steps, where the first-named
+condition is the decoy, would come out right. They do not, because **the
+truth is not in those prompts at all**: the recorder names the shown
+condition and a neighbour of the truth, so on the 82 decoy-first steps no
+answer can be right (both readings score 0.0000 there, and the 2B's 17
+reversed-correct answers are all truth-first steps). This is a property of
+the trace, and it bounds what any gate can do on this cell: 82 of the 2B's
+114 errors are unwinnable, and a gate can only act on the 32 that are not.
+
+### 7.2 The real disagreement set
+
+The both-order protocol escalates when the two orders disagree. The
+disagreement set, measured:
+
+| | the assumption said | **d1-2B, measured** | **d1-3B, measured** |
+|---|---|---|---|
+| escalations | 208 (2B) / 141 (3B) | **137 of 240 (57.1 %)** | **4 of 240 (1.7 %)** |
+| the wrong judgments caught | 82 of 114 (71.9 %) | **28 of 114 (24.6 %)** | **4 of 161 (2.5 %)** |
+| the right judgments taxed | 126 of 126 (100 %) | **109 of 126 (86.5 %)** | **0 of 79 (0 %)** |
+
+**Why the assumption was wrong, in two parts.** It said the two orders
+disagree exactly when the answer was one of the two named conditions. (i)
+**43 steps name one condition twice**, so their reversed prompt is
+byte-identical and they cannot disagree whatever the model does. (ii) The
+model answers by **content** on 28 of the 2B's 197 two-condition steps and
+keeps its condition. 208 − 43 − 28 = **137**, the measured number.
+
+**Where the catch comes from, and where it cannot come from.** The 2B's 114
+errors are 32 truth-first steps (where it named the decoy in **both**
+readings — so the two orders agree and nothing is escalated) and 82
+decoy-first steps (where the truth is not in the prompt). Of those 82, 43
+are the no-op steps and 11 more answer by content: **28 disagree, 28 are
+caught, and 32 of the errors are invisible to the protocol.** Its ceiling on
+this cell is 39 of 114 (34.2 %) even if every two-condition decoy-first step
+disagreed.
+
+**The joint table — did the answer move, and from what to what?** For the
+d1-2B over the 240 steps: 17 named the truth in both readings, 109 named the
+truth and then an other, **0** named an other and then the truth, and 114
+named an other in both. The model never went from an "other" answer to the
+truth: it either kept its condition (the content cases) or moved to the
+other named condition (the position cases). For the d1-3B: 79 named the
+truth in both, 161 an other in both, and 0 changed their truth-status — the
+4 disagreements are steps where both readings were wrong and named different
+non-truth conditions.
+
+### 7.3 The average of the confidences, and the average of the vectors
+
+The AUC of the confidence against the judgment (the original reading's
+answer, right or wrong), with its bootstrap interval (2,000 draws, seed
+20261031):
+
+| what the gate reads | d1-2B | d1-3B |
+|---|---|---|
+| the original confidence (canonical) | 0.2815 [0.2167, 0.3474] | 0.3046 [0.2345, 0.3752] |
+| **the average of the two confidences** | **0.1104 [0.0640, 0.1628]** | 0.3518 [0.2855, 0.4207] |
+| **the average of the two vectors** (its top probability) | **0.1332 [0.0922, 0.1800]** | 0.3518 [0.2855, 0.4207] |
+
+**Neither un-inverts the AUC; on the 2B both make it worse.** The published
+0.2815 becomes 0.1104 (the average of the confidences) and 0.1332 (the
+average of the vectors) — both *further* from the coin-flip line, and both
+intervals wholly below it. On the 3B both move towards the coin-flip line
+(0.3046 → 0.3518) and stay below it; there the two averages are the *same
+number* (0.3518), because the 3B's two readings almost always share an argmax
+and then the averaged vector's top probability is exactly the average of the
+two confidences.
+
+**The mechanism, now that it is measured.** The 2B's errors are its
+*surest* steps — the decoy-first group carries a mean confidence of 0.8735
+against the truth-first group's 0.6826 — and every average of two
+confidences keeps that ordering, because both readings of a decoy-first step
+are confident and both readings of a truth-first step are not. The averaged
+vector does not cancel the position either: on the 94 steps where the two
+readings disagree, the original's top probability sits on the first-named
+condition and the reversed's on the second-named one, so their average
+spreads the mass over the pair and the top probability becomes "how sure is
+the model about the *pair*" — the raw floor §5.3 describes — which on the
+decoy-first steps is a high number about a wrong answer. **§6's proposal
+that averaging the vectors is what cancels the position is wrong**, and the
+measurement says why: the position is not in the *scale* of the confidence,
+it is in *which condition* the confidence is about.
+
+**No τ catches every wrong judgment** for either average, on either model
+(the sweeps' `caught_all` is false at every τ from 0.1 to 0.95).
+
+### 7.4 Sane budgets
+
+What a gate catches when it is allowed to escalate only a sane share of the
+traffic. The τ gate's τ is the largest one (on a 0.005 grid) whose
+escalation share stays under the budget; the both-order protocol is ranked
+by the original reading's confidence, least confident first, and spends the
+budget there — the ranking is not part of the published protocol, and the
+catch depends on it, which is why it is named.
+
+**d1-2B** (114 wrong, 126 right):
+
+| budget | the τ gate | the both-order protocol |
+|---|---|---|
+| 10 % | **cannot be set**: the largest τ under 10 % is 0.52 and it escalates **nothing** — the confidences jump to 0.525, where 27 steps (11.3 %) escalate and catch **0** of the 114 | 24 steps (10.0 %): catches **8 of 114 (7.0 %)**, taxes 16 of 126 (12.7 %) |
+| 20 % | τ = 0.625 → 44 steps (18.3 %): catches **8 of 114 (7.0 %)**, taxes 36 of 126 (28.6 %) | 48 steps (20.0 %): catches **8 of 114 (7.0 %)**, taxes 40 of 126 (31.7 %) |
+| 30 % | τ = 0.645 → 60 steps (25.0 %): catches **24 of 114 (21.1 %)**, taxes 36 of 126 (28.6 %) | 72 steps (30.0 %): catches **8 of 114 (7.0 %)**, taxes 64 of 126 (50.8 %) |
+| — (the protocol as published) | — | 137 steps (57.1 %): catches **28 of 114 (24.6 %)**, taxes 109 of 126 (86.5 %) |
+
+**Inside a sane budget the protocol is not better than the τ gate**: at 10 %
+and 20 % they catch the same 8 errors, and at 30 % the τ gate catches three
+times as many (24 against 8). The reason is the ranking: the errors are the
+*confident* ones, so a budget spent on the least confident steps spends it on
+the right answers. The protocol's edge appears only above half the traffic,
+and there it costs 86.5 % of the right answers to catch a quarter of the
+wrong ones.
+
+**d1-3B** (161 wrong, 79 right):
+
+| budget | the τ gate | the both-order protocol |
+|---|---|---|
+| 10 % | τ = 0.575 → 24 steps (10.0 %): catches **0 of 161**, taxes 24 of 79 (30.4 %) | 4 steps (1.7 %) — fewer than the budget allows: catches 4 of 161 (2.5 %), taxes 0 |
+| 20 % | τ = 0.705 → 39 steps (16.3 %): catches 15 of 161 (9.3 %), taxes 24 of 79 (30.4 %) | as above |
+| 30 % | τ = 0.71 → 66 steps (27.5 %): catches 42 of 161 (26.1 %), taxes 24 of 79 (30.4 %) | as above |
+
+The 3B has no disagreements to escalate, so the protocol is empty on it
+while the τ gate still has (inverted) signal to give.
+
+### 7.5 The latency
+
+**The two prompts cannot be one call.** `/v1/systemone` takes **one state
+per request** — the questions share the request's single state — so two
+prompts cannot be one HTTP request, and the endpoint's `n_variants` (which
+asks a choice in two orders, to cancel a preference for the first label) is
+applied to the LEV decision type and **not** to d1. The closest the box gets
+is two requests at the same time, and whether the server merges them into
+one batch is the server's business: llama.cpp sets `decision.no_batching`
+for the LFM3-d1, so on the d1-2B the two decision tasks are never merged into
+one graph.
+
+Measured on 120 pairs, interleaved — for each step the sequential pair and
+the concurrent pair are measured back to back, so both see the same load:
+
+| | one call | two calls in sequence | two calls at the same time | the concurrent pair's saving |
+|---|---|---|---|---|
+| d1-2B | p50 **73.8** / p95 **101.4** ms | p50 **147.2** / p95 **226.7** ms | p50 **139.9** / p95 **207.9** ms | **5.0 %** at p50 |
+| d1-3B | p50 **112.8** / p95 **168.6** ms | p50 **225.2** / p95 **330.3** ms | p50 **208.4** / p95 **278.6** ms | **7.5 %** at p50 |
+
+(box state beside: the 2B's replay ran with the GPU at 97–98 %, 69.8 GB
+resident, 63.5–64.1 °C; the 3B's with the GPU at 97 %, 64.3–68.3 °C,
+VDD_GPU 40–58 W. The recorded trace's own per-decision p50 was 32.21 ms and
+50.68 ms with the GPU at 0–15 % and 27.7 GB resident — so the added cost of
+the second call is **+73.4 ms** (2B) and **+112.4 ms** (3B) at p50 *on this
+box*, against the +32.21 ms and +50.70 ms the recording's idle box implies.)
+
+**The concurrent pair is not a batched pair.** Inside the concurrent pair
+each call takes about **1.55× as long** as it does alone (the 2B: p50 115.0 ms
+against 73.8 ms; the 3B: p50 174.0 ms against 112.8 ms) — which is what two
+calls sharing one saturated GPU look like, not what one batch looks like.
+The pair still costs ~1.9× a single call (147.2 ms against 73.8 ms) either
+way, so the protocol's second call buys its information at full price.
+
+### 7.6 What this changes
+
+1. **The decoy-first finding's mechanism is settled, and it differs by
+   model.** The d1-2B's inverted confidence is a **position** leak (85.8 % of
+   its two-condition steps follow the prompt's order; the truth-first
+   prompts score 126 in the original reading and 17 in the reversed one). The
+   d1-3B's is **not** — its answers are order-invariant (236 of 240 steps
+   unchanged), so its inverted confidence is about the content of the state,
+   not about the order of the sentences.
+2. **The both-order protocol's catch rate is 24.6 % on the 2B and 2.5 % on
+   the 3B**, not the 71.9 % and 38.5 % the assumption produced. §6's row is
+   retired; the assumption is retired with it.
+3. **Averaging the vectors does not cancel the position** (0.1332 on the 2B,
+   below the canonical 0.2815). The proposal in §6 is refuted by the
+   measurement, and the reason is that the position is in *which condition*
+   the confidence is about, not in the confidence's scale.
+4. **Inside a sane escalation budget the protocol is no better than the τ
+   gate** (7 % against 7 % at 20 %, 7 % against 21 % at 30 %), because the
+   errors are the confident ones.
+5. **The recommendation is unchanged in its direction, and now has its
+   numbers.** Do not route on this cell's confidence; the gate's sign is
+   wrong and no τ fixes it. The fix is upstream, in the prompt — a question
+   whose answer cannot be read off the order. The both-order protocol stays
+   what §6 called it, a **diagnostic**: it turns "confidently wrong" into
+   "undecided" on 57 % of the 2B's steps, at two calls a judgment, and it
+   catches 28 of 114 errors. It is not a gate, and on the d1-3B it is not
+   even a diagnostic.
+
+## 8. What this does not say
 
 * **It does not say the d1 models are useless.** It says their confidence
   is not a routing signal *on the sea-state task*, where the prompt
@@ -621,7 +926,10 @@ least half the mass. The both-order average on a binary *is* that floor.
   disagreement or by the bandit's estimate — which is the seed's own
   fallback, and the tiles rig already has one (`core/tiles/ope`, and the
   cold-start rig's own numbers: the bandit 0.7867 against the judge-only
-  arm's 0.6900).
+  arm's 0.6900). **Model disagreement is now measured too, and it is not a
+  free substitute**: on the sea-state cell the both-order disagreement turns
+  57 % of the 2B's steps into undecided and catches 24.6 % of its errors
+  (§7), and on the 3B it is nearly empty.
 * **It does not say the recalibration fixes the models.** It fixes the
   *scale* of their confidence. The clef `tile` cell's accuracy is 0.5833
   before the recalibration and 0.5833 after it; what moved is the Brier
@@ -645,13 +953,13 @@ least half the mass. The both-order average on a binary *is* that floor.
   test, which builds a night whose confidence stops separating and checks
   that the morning carries one line for it.
 
-## 8. Reproducing it
+## 9. Reproducing it
 
 ```bash
 # the suites (no network, no GPU, no LLM)
 .venv/bin/python -m pytest -q tests/judge/test_calibration.py   # 54 tests
 .venv/bin/python -m pytest -q tests/judge/test_tracking.py      # 23 tests
-.venv/bin/python -m pytest -q tests/judge                       # 187 tests
+.venv/bin/python -m pytest -q tests/judge                       # 209 tests
 
 # the measurement (replays the recorded vectors; writes the JSON)
 .venv/bin/python docs/lab/judge-calibration-scripts/measure_calibration.py
@@ -678,12 +986,37 @@ state.
 The clef results live on another machine's worktree; copy them in, or
 point the script at that path.
 
+**§7's replay, on the Thor.** §7 is the one part of this note that *asks a
+model*: the 240 recorded steps were asked again with the two named
+conditions swapped, on a served d1, and the replies were recorded.
+
+```bash
+# the replay (needs a served d1; under a lease, on a shared box)
+python3 docs/lab/judge-reversed-scripts/replay_reversed.py \
+  --model d1-2B --port 8094 --out docs/lab/judge-reversed-scripts/results/replay-d1-2B.json
+python3 docs/lab/judge-reversed-scripts/replay_reversed.py \
+  --model d1-3B --port 8320 --out docs/lab/judge-reversed-scripts/results/replay-d1-3B.json
+
+# the analysis (CPU, no model; reads the two replies and the October trace)
+.venv/bin/python docs/lab/judge-reversed-scripts/measure_reversed.py
+```
+
+It reads the October trace
+(`/home/caseydigennaro/lm-wt/liquid-study/results/exp_c_trace_d1-*.json`) and
+writes `docs/lab/judge-reversed-scripts/results/replay-d1-2B.json`,
+`…/replay-d1-3B.json` (every reply, the fidelity check against the
+recording, the box state and the latency) and
+`…/results/reversed-measurement.json` (every number in §7). The scripts and
+what they read are in
+[`judge-reversed-scripts/`](judge-reversed-scripts/); the suite for them is
+`tests/judge/test_reversed_replay.py`.
+
 The whole core, on the ProArt at this commit: **1,669 passed, 13 skipped,
 16 deselected** (the deselected are the opt-in real-engine run). The
 `pxr` collection error in `tests/usd` is pre-existing — the USD extra's
 wheels are not installed here.
 
-## 9. The verdict
+## 10. The verdict
 
 **One definition of confidence is necessary and not sufficient.** The
 mechanism the seed asked for is built and measured: one function computes
@@ -743,12 +1076,13 @@ What the measurement adds, on 1,470 recorded judgments:
    sea-state prompt names the decoy first in 35 % of the steps, and the
    model's certainty is about *which condition the prompt named* — so the
    gate's escalations land on the right answers and its acts on the wrong
-   ones (§6). The fix is upstream, in the prompt; the judge's own version
-   of it — ask both orders and escalate when they disagree — catches more
-   of the errors (71.9 % against 51.8 % at τ = 0.8) at twice the calls
-   and the full tax of every right answer, and the recording does not hold
-   the reversed replies, so that row is computed under a stated
-   assumption.
+   ones (§6). The fix is upstream, in the prompt. The judge's own version
+   of it — ask both orders and escalate when they disagree — **was measured,
+   not assumed** (§7): it catches **24.6 %** of the 2B's errors (28 of 114,
+   against 51.8 % at τ = 0.8) at twice the calls and an 86.5 % tax, and
+   **2.5 %** of the 3B's (4 of 161), because the 3B's answers do not move
+   when the prompt's order does. Inside a 10–30 % escalation budget it is no
+   better than the τ gate (§7.4). It stays a **diagnostic**, not a gate.
 
 The practical consequence for the builder: **the confidence gate's τ is a
 per-cell parameter with a measured value, not a default.** `core/judge`
@@ -766,9 +1100,16 @@ to stop using.
 CPU-only; the vectors were recorded on the Thor (the liquid study, the
 tiles rig) and on Cloudflare's Workers AI (the clef cascade), and their
 own box states are in their own files. The scripts are in
-[`judge-calibration-scripts/`](judge-calibration-scripts/).*
+[`judge-calibration-scripts/`](judge-calibration-scripts/). §7 was recorded
+on the **Thor** on 2026-11-01 (aarch64, CUDA 13.2, 122 GB unified) — the
+replay's own box state is in §7 and in the replies' file; its scripts are in
+[`judge-reversed-scripts/`](judge-reversed-scripts/).*
 
 ## Limits of the both-order protocol (Hy4 adversarial review, 2026-11-01)
+**Answered by §7** (the replay named in this section's last paragraph was
+run on 2026-11-01; the review is kept as it was written, and the answers are
+at the end of it).
+
 The 71.9% catch rate is not yet a gate:
 - it assumes a purely positional model, and no reversed replies were recorded;
 - the protocol escalates 208 of 240 steps (86.7%) and taxes every right answer;
@@ -824,5 +1165,15 @@ One replay settles all five points below: the 240 recorded steps with the two na
    name a shown state first). Measure whether argmax follows position or the    
    decoy’s content; if content, the both-order protocol fails and the fix is    
    upstream (prompt), not the judge.                                            
+
+### What the replay answered (2026-11-01, §7)
+
+| the review's point | the measurement |
+|---|---|
+| 1 · the swap assumption (a purely positional model) | **Half right, and the halves are different models.** The d1-2B follows the position on **169 of its 197 two-condition steps (85.8 %)**; the d1-3B answers by content (**102 of 197, 51.8 %**) and keeps the same condition on **236 of 240 steps**. The 2B's two orders disagree on **137** steps (not 208: 43 name one condition twice, so their reversed prompt is identical, and 28 answer by content); the 3B's on **4**. The catch is **28 of 114 (24.6 %)** on the 2B and **4 of 161 (2.5 %)** on the 3B — the 71.9 % and the 38.5 % are retired (§7.2). |
+| 2 · "average the confidence" fails by the document's own mechanism | **Confirmed, and measured.** The averaged confidence's AUC is **0.1104 [0.0640, 0.1628]** on the 2B — *further* below the coin-flip line than the canonical 0.2815 — and **0.3518 [0.2855, 0.4207]** on the 3B. No τ catches every wrong judgment at any τ from 0.1 to 0.95 (§7.3). |
+| 3 · the averaged-vector gate was unmeasured | **Measured, and it does not cancel the position.** The averaged vector's AUC is **0.1332 [0.0922, 0.1800]** on the 2B (below the canonical 0.2815) and 0.3518 on the 3B. §6's proposal that averaging the vectors is what cancels the position is **wrong**, and the reason is in §7.3: the position is in *which condition* the confidence is about, not in its scale. |
+| 4 · latency and cost were assumed | **Measured.** `/v1/systemone` takes **one state per request**, so the two prompts cannot be one call; the endpoint's two-order `n_variants` does not apply to d1, and llama.cpp sets `no_batching` for the LFM3-d1. Two requests **at the same time** save **5.0 %** (2B) and **7.5 %** (3B) at p50 on the replay's box — each call takes ~1.55× as long inside the pair — so the pair costs ~1.9× a single call either way. The p50s (73.8 ms for one call, 147.2 ms for the pair on the 2B) are the **loaded** box's: the GPU at 97–98 % and 69.8 GB resident, against the recording's idle 0–15 % and 27.7 GB (§7.5). The escalation counts are the measured ones: 137 of 240 (57.1 %), not 208. |
+| 5 · content/salience rather than position | **Both, and the model decides which.** The d1-2B is the positional one (85.8 % of its two-condition steps follow the prompt's order; its truth-first prompts score 126 in the original reading and 17 in the reversed one). The d1-3B is the content one: its answers do not move when the order does, so its inverted confidence is about the state's content, not the prompt's order — and on that cell the protocol is empty. The fresh controlled set this point asked for is therefore not needed for the recorded trace: the reversed replay answers it on the trace itself. |           
 
 
