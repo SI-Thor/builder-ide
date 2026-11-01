@@ -831,38 +831,38 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
 
     // Wait for the watchdog to act.
     let deadline = Instant::now() + Duration::from_secs(60);
-    let mut stopped_at_available = None;
+    let mut terminated_at_available = None;
     let mut min_available = u64::MAX;
     while Instant::now() < deadline {
         let available = mem_available();
         min_available = min_available.min(available);
-        // The event carries the free memory at the moment of the stop.
+        // The event carries the free memory at the moment of the termination.
         for line in daemon.log().lines() {
-            if !line.contains("\"watchdog.stopped\"") {
+            if !line.contains("\"watchdog.terminated\"") {
                 continue;
             }
             if let Ok(event) = serde_json::from_str::<Value>(line) {
-                stopped_at_available = event["mem_available_bytes"].as_u64();
+                terminated_at_available = event["mem_available_bytes"].as_u64();
             }
             break;
         }
-        if stopped_at_available.is_some() {
+        if terminated_at_available.is_some() {
             break;
         }
         std::thread::sleep(Duration::from_millis(50));
     }
 
-    let Some(available_at_stop) = stopped_at_available else {
+    let Some(available_at_stop) = terminated_at_available else {
         let _ = hog.kill();
         let _ = hog.wait();
-        panic!("the watchdog did not stop the hog; the log was:\n{}", daemon.log());
+        panic!("the watchdog did not terminate the hog; the log was:\n{}", daemon.log());
     };
 
-    // The whole point: the box was stopped while there was still a lot of
+    // The whole point: the box was acted on while there was still a lot of
     // memory free — long before the kernel's OOM killer would have run.
     assert!(
         available_at_stop > 2 * GIB,
-        "the hog was stopped with only {} MiB free, which is inside the OOM zone",
+        "the hog was terminated with only {} MiB free, which is inside the OOM zone",
         available_at_stop / (1024 * 1024)
     );
     assert_eq!(
@@ -871,41 +871,9 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         "the kernel's OOM killer fired; the watchdog was too late"
     );
 
-    // The hog must actually be stopped, not merely signalled. The hog is
-    // the command the client spawned, in its own process group: the group's
-    // leader *is* the hog, and that is the pid the watchdog signalled.
-    let deadline = Instant::now() + Duration::from_secs(5);
-    let mut hog_pid = 0i64;
-    let mut saw_stopped = false;
-    while Instant::now() < deadline {
-        let status = daemon.status();
-        if let Some(lease) = status["leases"].as_array().and_then(|leases| leases.first()) {
-            hog_pid = lease["pgid"].as_i64().unwrap_or(0);
-            let state = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")).unwrap_or_default();
-            let code = state
-                .rfind(')')
-                .map(|close| {
-                    state[close + 1..]
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or("")
-                        .to_string()
-                })
-                .unwrap_or_default();
-            if code == "T" || code == "t" {
-                saw_stopped = true;
-                break;
-            }
-        }
-        std::thread::sleep(Duration::from_millis(20));
-    }
-    assert!(
-        saw_stopped,
-        "the runaway was never stopped (pid {hog_pid}); the log was:\n{}",
-        daemon.log()
-    );
-
-    // And then it dies: the watchdog kills it once the grace period is out.
+    // The hog must actually die: the watchdog terminated it (SIGTERM, not a
+    // stop — a stopped process keeps its memory, which on this box buys
+    // nothing), so the client reaps it, releases the lease and exits.
     let deadline = Instant::now() + Duration::from_secs(20);
     let mut died = false;
     while Instant::now() < deadline {
@@ -915,25 +883,30 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    assert!(died, "the runaway was stopped but never killed");
     assert!(
-        daemon.log().contains("watchdog.killed"),
-        "the daemon did not log the kill; the log was:\n{}",
+        died,
+        "the runaway was terminated but never died; the log was:\n{}",
+        daemon.log()
+    );
+    // And the memory it held is booked back: the lease is released only
+    // after the client reaped the process, so the daemon's picture and the
+    // kernel's agree again.
+    assert!(
+        wait_until(10, || daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)),
+        "the terminated lease was not released; the log was:\n{}",
         daemon.log()
     );
     eprintln!(
-        "watchdog: the runaway was stopped with {} MiB free (the emergency floor was \
-         {} MiB) and killed {} ms later; the kernel's OOM killer fired {} times",
+        "watchdog: the runaway was terminated with {} MiB free (the emergency floor was \
+         {} MiB) and died, with the kernel's OOM killer firing {} times; the box's \
+         lowest reading was {} MiB",
         available_at_stop / (1024 * 1024),
         emergency / (1024 * 1024),
-        daemon
-            .log()
-            .lines()
-            .find(|line| line.contains("\"watchdog.killed\""))
-            .and_then(|line| serde_json::from_str::<Value>(line).ok())
-            .and_then(|event| event["waited_ms"].as_u64())
-            .unwrap_or(0),
-        oom_kills() - oom_before
+        oom_kills() - oom_before,
+        min_available / (1024 * 1024),
     );
 
     let _ = hog.kill();
@@ -947,8 +920,11 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
 /// Driving the **real** box to 2 GiB free would take about 100 GiB of
 /// allocation. The brief caps a test's memory at 60 GiB, and the box is
 /// also running a seat's work, so the memory **curve** is scripted here:
-/// the daemon, the hog, the SIGSTOP, the SIGTERM and the timing are all
-/// real; only the number the daemon reads is written by the test.
+/// the daemon, the hog, the SIGTERM and the timing are all real; only the
+/// number the daemon reads is written by the test.
+///
+/// The watchdog terminates (never stops: the box has no swap, so a stopped
+/// process keeps its memory and the emergency gets worse while it waits).
 #[test]
 fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let total = 122 * GIB;
@@ -1015,7 +991,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let mut observed_at = None;
     while Instant::now() < deadline {
         for line in daemon.log().lines() {
-            if !line.contains("\"watchdog.stopped\"") {
+            if !line.contains("\"watchdog.terminated\"") {
                 continue;
             }
             if let Ok(event) = serde_json::from_str::<Value>(line) {
@@ -1032,7 +1008,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let Some(available_at_stop) = stopped_at else {
         let _ = hog.kill();
         let _ = hog.wait();
-        panic!("the watchdog did not stop the hog; the log was:\n{}", daemon.log());
+        panic!("the watchdog did not terminate the hog; the log was:\n{}", daemon.log());
     };
 
     // Let the curve finish: it has to reach the danger zone *after* the
@@ -1041,11 +1017,11 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let curve = steps.lock().unwrap().clone();
     let lowest = curve.last().map(|(available, _)| *available).unwrap_or(0);
 
-    // The brief's line: the hog was stopped while there was still more than
-    // 2 GiB free.
+    // The brief's line: the hog was terminated while there was still more
+    // than 2 GiB free.
     assert!(
         available_at_stop > 2 * GIB,
-        "the hog was stopped with only {} MiB free, which is inside the OOM zone",
+        "the hog was terminated with only {} MiB free, which is inside the OOM zone",
         available_at_stop / (1024 * 1024)
     );
     // It acted because the box was short, and it acted at once: the daemon
@@ -1059,46 +1035,22 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         floor / (1024 * 1024)
     );
     // The curve really did go past the 2 GiB line, and it did so after the
-    // stop: the daemon acted before the box was in trouble.
+    // termination: the daemon acted before the box was in trouble.
     assert!(
         lowest <= 2 * GIB,
         "the curve only reached {} MiB free, so the danger zone was never reached",
         lowest / (1024 * 1024)
     );
 
-    // The hog must actually be stopped, not merely signalled.
-    let deadline = Instant::now() + Duration::from_secs(10);
+    // The hog must actually die: a termination is not a stop. The client
+    // reaps the SIGTERM'd process, releases the lease and exits.
     let mut hog_pid = 0i64;
-    let mut saw_stopped = false;
-    while Instant::now() < deadline {
+    {
         let status = daemon.status();
         if let Some(lease) = status["leases"].as_array().and_then(|leases| leases.first()) {
             hog_pid = lease["pgid"].as_i64().unwrap_or(0);
-            let state = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")).unwrap_or_default();
-            let code = state
-                .rfind(')')
-                .map(|close| {
-                    state[close + 1..]
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or("")
-                        .to_string()
-                })
-                .unwrap_or_default();
-            if code == "T" || code == "t" {
-                saw_stopped = true;
-                break;
-            }
         }
-        std::thread::sleep(Duration::from_millis(20));
     }
-    assert!(
-        saw_stopped,
-        "the runaway was never stopped (pid {hog_pid}); the log was:\n{}",
-        daemon.log()
-    );
-
-    // And then it dies.
     let deadline = Instant::now() + Duration::from_secs(20);
     let mut died = false;
     while Instant::now() < deadline {
@@ -1108,10 +1060,9 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    assert!(died, "the runaway was stopped but never killed");
     assert!(
-        daemon.log().contains("watchdog.killed"),
-        "the daemon did not log the kill; the log was:\n{}",
+        died,
+        "the runaway was terminated but never died; the log was:\n{}",
         daemon.log()
     );
     assert_eq!(
@@ -1120,7 +1071,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         "the kernel's OOM killer fired; the watchdog was too late"
     );
 
-    // And nothing is left behind. A hog that was stopped and never killed
+    // And nothing is left behind. A hog that was terminated and never died
     // would sit on the box holding its memory with nobody watching it.
     let deadline = Instant::now() + Duration::from_secs(5);
     while Instant::now() < deadline && hog_pid > 0 && Path::new(&format!("/proc/{hog_pid}")).exists() {
@@ -1132,8 +1083,18 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
             libc::kill(-(hog_pid as i32), libc::SIGCONT);
             libc::kill(-(hog_pid as i32), libc::SIGTERM);
         }
-        panic!("the hog {hog_pid} was still there after the watchdog killed it");
+        panic!("the hog {hog_pid} was still there after the watchdog terminated it");
     }
+    // And the daemon let go of the reservation only after the process was
+    // reaped: the memory is back when the process is, not before.
+    assert!(
+        wait_until(10, || daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)),
+        "the terminated lease was never released; the log was:\n{}",
+        daemon.log()
+    );
 
     // How fast: the curve crossed the floor, and the daemon acted after it.
     // The number is an upper bound — the log is polled every 20 ms.
@@ -1146,7 +1107,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         _ => Duration::ZERO,
     };
     eprintln!(
-        "low water: the hog was stopped with {} MiB free (the floor was {} MiB) and the \
+        "low water: the hog was terminated with {} MiB free (the floor was {} MiB) and the \
          curve went on down to {} MiB; the daemon acted within {} ms of the floor being \
          crossed, and the kernel's OOM killer fired {} times",
         available_at_stop / (1024 * 1024),
@@ -1449,12 +1410,12 @@ fn the_watchdog_leaves_small_leases_alone() {
     let state = std::fs::read_to_string(format!("/proc/{small_pid}/stat")).unwrap_or_default();
     let close = state.rfind(')').unwrap_or(0);
     let code = state[close + 1..].split_whitespace().next().unwrap_or("");
-    assert_ne!(
-        code, "T",
-        "the watchdog stopped a lease that was too small to be the cause"
+    assert_eq!(
+        code, "S",
+        "the small lease's process is {code:?} rather than peacefully sleeping"
     );
     assert!(
-        !daemon.log().contains("watchdog.stopped"),
+        !daemon.log().contains("watchdog.terminated"),
         "the watchdog acted on a small lease"
     );
 

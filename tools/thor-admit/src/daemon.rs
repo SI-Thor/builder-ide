@@ -93,7 +93,8 @@ pub struct Config {
     /// need to be as fast as the memory sample. When the box falls below
     /// the emergency floor, the daemon scans anyway.
     pub scan_interval: Duration,
-    /// How many samples the victim is given to come back before it is killed.
+    /// How many samples the watchdog's victim is given to exit after its
+    /// `SIGTERM` before the watchdog escalates to `SIGKILL`.
     pub stop_grace_samples: u32,
     /// The smallest lease the watchdog will touch. The box's own services are
     /// not leases at all, so they are never candidates; this floor is the
@@ -204,10 +205,14 @@ struct Lease {
     peak_gpu: u64,
     /// The peak the client measured itself (its `rusage`).
     reported_peak: Option<u64>,
-    /// The watchdog has stopped this lease.
-    stopped: bool,
-    stopped_at: Option<Instant>,
-    /// The watchdog has killed this lease.
+    /// The watchdog has asked this lease's work to terminate (`SIGTERM`).
+    ///
+    /// The ask is sent once. The memory comes back when the process is
+    /// actually gone — the client reaps its child and releases, or the lock
+    /// drops when the client dies — and until then the reservation stays
+    /// charged, because the pages are still taken.
+    terminated_at: Option<Instant>,
+    /// The watchdog has escalated to `SIGKILL` after the grace period.
     killed: bool,
 }
 
@@ -499,7 +504,7 @@ impl Daemon {
     fn stop_presence_jobs(&self) {
         let state = self.state.lock().unwrap();
         for job in state.presence.running.iter() {
-            let signalled = signal_group(job.pgid, libc::SIGTERM);
+            let signalled = terminate_group(job.pgid);
             self.log_event(
                 "presence.stopped_with_daemon",
                 json!({"id": job.id, "signalled": signalled}),
@@ -938,8 +943,7 @@ impl Daemon {
                 peak_rss: 0,
                 peak_gpu: 0,
                 reported_peak: None,
-                stopped: false,
-                stopped_at: None,
+                terminated_at: None,
                 killed: false,
             };
 
@@ -1044,7 +1048,7 @@ impl Daemon {
         // running work must not disagree.
         if let Some(running) = state.presence.running_job(id) {
             let pgid = running.pgid;
-            let signalled = signal_group(pgid, libc::SIGTERM);
+            let signalled = terminate_group(pgid);
             self.log_event(
                 "presence.removed_running",
                 json!({"id": id, "signalled": signalled}),
@@ -1173,7 +1177,9 @@ impl Daemon {
             let job = state.presence.running_job(victim).unwrap();
             (job.pgid, job.tier(state), job.label(state))
         };
-        let signalled = signal_group(pgid, libc::SIGTERM);
+        // The job may be frozen by the GPU pre-emption; terminate_group
+        // continues it so the SIGTERM is actually delivered.
+        let signalled = terminate_group(pgid);
         if let Some(job) = state.presence.running.iter_mut().find(|j| j.id == victim) {
             job.terminating = true;
         }
@@ -1544,7 +1550,18 @@ impl Daemon {
         }
     }
 
-    /// The watchdog: when the box runs short, stop the largest lease.
+    /// The watchdog: when the box runs short, take the memory back.
+    ///
+    /// The box has **no swap**, so a `SIGSTOP`ed process keeps every page it
+    /// took — `MemAvailable` does not move an inch while the victim sits
+    /// stopped, and the emergency gets worse while the daemon waits (this is
+    /// the first of Hy4's failure modes). Memory comes back only when the
+    /// process is *gone*. So the watchdog never stops a lease for memory: it
+    /// terminates the largest one outright (`SIGTERM`), and escalates to
+    /// `SIGKILL` when the grace period passes and the process is somehow
+    /// still there. The reservation stays charged until the lease is
+    /// released, which happens after the client has reaped its child — the
+    /// memory is only "back" when the process is.
     fn watchdog(&self, state: &mut State) {
         if state.mem.mem_available >= self.config.emergency_floor {
             return;
@@ -1570,56 +1587,58 @@ impl Daemon {
             return;
         };
 
-        let (target, label, current_rss, stopped, stopped_at) = {
+        let (target, label, current_rss, reserved, terminated_at, killed) = {
             let lease = state.leases.iter().find(|l| l.id == victim_id).unwrap();
             (
                 lease.target,
                 lease.label.clone(),
                 lease.current_rss,
-                lease.stopped,
-                lease.stopped_at,
+                lease.peak_bytes,
+                lease.terminated_at,
+                lease.killed,
             )
         };
 
-        if !stopped {
-            let signalled = signal_target(target, libc::SIGSTOP);
+        // It has not been asked to leave yet: ask it now.
+        if terminated_at.is_none() {
+            let signalled = signal_target(target, libc::SIGTERM);
             self.log_event(
-                "watchdog.stopped",
+                "watchdog.terminated",
                 json!({
                     "lease": victim_id,
                     "label": label,
                     "rss_bytes": current_rss,
+                    "reserved_bytes": reserved,
                     "mem_available_bytes": state.mem.mem_available,
                     "signalled": signalled,
                 }),
             );
             if let Some(lease) = state.leases.iter_mut().find(|l| l.id == victim_id) {
-                lease.stopped = true;
-                lease.stopped_at = Some(Instant::now());
+                lease.terminated_at = Some(Instant::now());
             }
             return;
         }
 
-        // It was stopped and the box is still short: give it the grace
-        // period, then kill it.
+        // It was asked, and the box is still short. Give it the grace
+        // period, then take the memory back the only way left.
         let grace = Duration::from_millis(
             self.config.sample_interval.as_millis() as u64 * self.config.stop_grace_samples as u64,
         );
-        let waited = stopped_at.map(|at| at.elapsed()).unwrap_or_default();
-        if waited < grace {
+        let waited = terminated_at.map(|at| at.elapsed()).unwrap_or_default();
+        if killed || waited < grace {
             return;
         }
-        let signalled = signal_target(target, libc::SIGTERM);
-        // A stopped process never sees its SIGTERM until it runs again.
-        let _ = signal_target(target, libc::SIGCONT);
+        let signalled = signal_target(target, libc::SIGKILL);
         self.log_event(
             "watchdog.killed",
             json!({
                 "lease": victim_id,
                 "label": label,
                 "rss_bytes": current_rss,
+                "reserved_bytes": reserved,
                 "mem_available_bytes": state.mem.mem_available,
                 "waited_ms": waited.as_millis() as u64,
+                "signal": "SIGKILL",
                 "signalled": signalled,
             }),
         );
@@ -1634,20 +1653,6 @@ impl Daemon {
             return;
         };
         let lease = state.leases.remove(index);
-        // A lease that the watchdog stopped must not be left frozen. A
-        // stopped process keeps its memory, and once the lease is over
-        // nobody is watching it any more: an unwatched hog holding tens of
-        // gigabytes is exactly what this daemon exists to prevent. So the
-        // work is asked to stop (SIGTERM) and then let go (SIGCONT) — a
-        // stopped process never sees its SIGTERM until it runs again.
-        if lease.stopped {
-            let signalled = signal_target(lease.target, libc::SIGTERM);
-            let _ = signal_target(lease.target, libc::SIGCONT);
-            self.log_event(
-                "lease.released_while_stopped",
-                json!({"lease": lease.id, "signalled": signalled}),
-            );
-        }
         let (peak, peak_source) = lease.measured_peak();
         let mut record = PeakRecord::new(&lease.label, &lease.label, peak);
         record.peak_gpu_bytes = if lease.peak_gpu > 0 {
@@ -1946,6 +1951,19 @@ pub fn signal_group(pgid: i32, signal: i32) -> bool {
         return false;
     }
     unsafe { libc::kill(-pgid, signal) == 0 }
+}
+
+/// Terminate a presence job's process group: `SIGTERM`, then `SIGCONT`.
+///
+/// The `SIGCONT` is not decoration. A job the GPU pre-emption stopped is
+/// frozen, and a frozen process never sees its `SIGTERM` — the signal sits
+/// pending while the job keeps every page it took, and the memory the
+/// pre-emption was for never comes back (Hy4's first failure mode, in the
+/// corner where the two pre-emptions meet).
+pub fn terminate_group(pgid: i32) -> bool {
+    let signalled = signal_group(pgid, libc::SIGTERM);
+    let _ = signal_group(pgid, libc::SIGCONT);
+    signalled
 }
 
 /// The presence queue, as the status shows it.

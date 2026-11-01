@@ -102,7 +102,8 @@ Daemon options (all have defaults):
   --emergency-floor <size>  below this, the watchdog acts     (default 8G)
   --sample-interval-ms <n>  how often the box is sampled      (default 250)
   --scan-interval-ms <n>    how often the processes' memory is read (default 1000)
-  --stop-grace-samples <n>  samples before a stopped lease is killed (default 8)
+  --stop-grace-samples <n>  samples a watchdog-terminated lease is given
+                            before the watchdog escalates to SIGKILL (default 8)
   --min-victim-rss <size>   the smallest lease the watchdog will touch (default 2G)
   --socket <path>           the socket to listen on
   --state-dir <path>        where the lease files and the log live
