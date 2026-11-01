@@ -112,3 +112,14 @@ The result: the fiction gets cheaper and sharper at once, with detail flowing to
 4. **study:** the sweep, hardware experiments, parity and benchmark suites.
 
 A time ledger reports how each hour was spent, by tier.
+
+## The room is the anti-GAN (Casey, 2026-10-31)
+
+"The room is the anti-GAN: it turns a lesson into a dance." (After "The Bridge Builder", SuperInstance/AI-Writings: Keys holds a bass line under a boy's uncertain notes and the room wakes.)
+
+A GAN learns through opposition: the discriminator's job is to catch the generator out, and the generator's to fool it. It works, but it is a duel, and duels are unstable (mode collapse, oscillation). The room learns through **call and response**: the steady player answers, holds the foundation, and makes the next attempt safer to try. The learner improves by joining, not by losing.
+
+**What it means for our critics:**
+- **A continuation, not only a verdict.** A critic's output carries the next move ("the lantern wants to sit lower, nearer the crate"), so a rejection becomes the next phrase. The tiles' loop already does this ("write a better one; here is why it lost"); the rule extends to every critic.
+- **Harmony as the reward:** agreement with the room (peers, the canon, the human's keep or undo), not a win against an adversary.
+- **It still plays in tune.** Support is not "anything goes". MiniMax's measured result stands: a consistency-only critic certifies ghosts, so the plausibility side remains, delivered as guidance rather than as a fight.
