@@ -336,6 +336,39 @@ def test_a_failed_render_carries_the_engines_last_words(venv_home):
             subject="harbor.crates", rung=2, seed=42))
 
 
+def test_a_relative_output_dir_is_resolved_before_the_cli_sees_it(
+        venv_home, monkeypatch):
+    """The run C lesson: the CLI runs with the clone as its cwd, so a
+    relative scratch path is resolved twice — the render lands where the
+    seam never looks, and the seam calls a healthy render a silent no-op
+    (run C's "missing" PNG sat in the clone all along). The scratch is
+    resolved once, at the door, for render and trace both."""
+    runner = CliDouble()
+    monkeypatch.chdir(venv_home)
+    rt = Venv2Runtime(
+        python=venv_home / ".venv" / "bin" / "python",
+        generators=GENERATORS,
+        output_dir="engine/scratch",  # the run C shape: relative
+        repo=venv_home / "src" / "infinigen-upstream",
+        repo_name="princeton-vl/infinigen",
+        runner=runner,
+    )
+    engine = Infinigen2Engine(pin=rt.engine_pin(), runtime=rt)
+    engine.render_preview(PreviewRequest(
+        recipe=fjellvik(engine.describe().pin),
+        version_hash="sha256:" + "a" * 64,
+        subject="harbor.crates", rung=2, seed=42))
+    out_arg = Path(runner.argvs[-1][runner.argvs[-1].index("--output") + 1])
+    assert out_arg.is_absolute()
+    assert out_arg == (venv_home / "engine" / "scratch" / "render" /
+                       "harbor_crates-42-960x540-16spp")
+    engine.generate_stage(StageRequest(
+        recipe=fjellvik(engine.describe().pin),
+        version_hash="sha256:" + "a" * 64, stage="objects"))
+    for argv in (a for a in runner.argvs if "--trace" in a):
+        assert Path(argv[argv.index("--output") + 1]).is_absolute()
+
+
 class SilentCli(CliDouble):
     """A CLI that exits 0 and writes nothing — the run C shape, whatever
     its trigger was that morning: a manifest that no longer resolves the

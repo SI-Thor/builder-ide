@@ -176,6 +176,8 @@ class Venv2Runtime:
       Rule 1: a generator reference is a *name the adapter resolves*; an
       unresolved name is refused, never guessed;
     * ``output_dir`` — scratch for the CLI's own outputs, wiped per request;
+      held **absolute**, because the subprocess's cwd is the clone and a
+      relative scratch would be resolved twice, in two places;
     * ``repo`` / ``repo_name`` — the clone the venv's infinigen came from
       (the pin's commit; without a clone the dist version names it) and the
       pin's repo name;
@@ -201,7 +203,12 @@ class Venv2Runtime:
         self._repo = Path(repo) if repo is not None else None
         self._repo_name = repo_name
         self._generators = dict(generators)
-        self._output_dir = Path(output_dir)
+        # Absolute, before any child sees it: the CLI runs with the clone as
+        # its cwd, so a relative scratch is resolved twice — the render lands
+        # where the seam never looks, and a healthy render is mourned as a
+        # silent no-op (the run C lesson: its "missing" PNG sat in the clone
+        # all along).
+        self._output_dir = Path(output_dir).resolve()
         self._runner = runner if runner is not None else SubprocessRunner()
         self._report: PackageReport | None = None
         if not self._python.is_file():
