@@ -164,6 +164,29 @@ def daemon(tmp_path: Path):
         instance.stop()
 
 
+def _child_of(pid: int) -> int | None:
+    """A child of a process, found by reading the kernel's parent links.
+
+    ``flock(1)`` forks — the parent takes the lock and the child runs the
+    command — so a test that wants the seat needs the seat's pid, not the
+    flock process's.
+    """
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry}/stat", encoding="utf-8") as handle:
+                stat = handle.read()
+        except OSError:
+            continue
+        close = stat.rfind(")")
+        fields = stat[close + 1 :].split()
+        # After the comm field: the state, then the parent.
+        if len(fields) > 1 and fields[1].isdigit() and int(fields[1]) == pid:
+            return int(entry)
+    return None
+
+
 @needs_binary
 def test_a_lease_is_held_and_given_back(daemon: Daemon):
     with lease("1G", "shim-test", socket_path_override=daemon.socket) as held:
@@ -374,7 +397,8 @@ def test_a_lease_that_inherited_the_box_lock_gives_it_back_while_it_waits(
         script = (
             "import os, sys, time\n"
             "from thor_admit import lease\n"
-            "with lease('40G', 'shim-queued', socket_path_override=sys.argv[1]):\n"
+            "with lease('40G', 'shim-queued', socket_path_override=sys.argv[1], "
+            "lock=sys.argv[2]):\n"
             "    print('held', flush=True)\n"
             "    time.sleep(3)\n"
             "print('done', flush=True)\n"
@@ -382,7 +406,15 @@ def test_a_lease_that_inherited_the_box_lock_gives_it_back_while_it_waits(
         environment = dict(os.environ)
         environment["PYTHONPATH"] = str(CRATE / "python")
         child = subprocess.Popen(
-            ["flock", str(lock), sys.executable, "-c", script, str(daemon.socket)],
+            [
+                "flock",
+                str(lock),
+                sys.executable,
+                "-c",
+                script,
+                str(daemon.socket),
+                str(lock),
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=environment,
@@ -404,9 +436,16 @@ def test_a_lease_that_inherited_the_box_lock_gives_it_back_while_it_waits(
         )
 
         # Make room: the lease is granted and the lock is taken back.
+        #
+        # The holder is the **shim**, not the `flock(1)` process: `flock(1)`
+        # forks — the parent takes the lock and the child runs the command —
+        # and the shim is the one that re-took the lock. The kernel records
+        # the process that called `flock(2)`.
+        shim_pid = _child_of(child.pid)
+        assert shim_pid is not None, "the flock process has no child"
         daemon.set_available(121 * 1024**3)
         assert child.stdout.readline().strip() == "held", "the lease was not granted"
-        assert _lock_holder(lock) == child.pid, "the lock was not taken back"
+        assert _lock_holder(lock) == shim_pid, "the lock was not taken back"
 
         assert child.stdout.readline().strip() == "done"
         child.wait(timeout=20)

@@ -95,27 +95,66 @@ def default_lock_path() -> Path:
     return Path(os.path.expanduser("~/lm-wt/heavy.lock"))
 
 
-def _lock_holder(path: Path) -> int | None:
-    """The pid holding ``path``'s flock, according to the kernel.
+def _flocked_files() -> set[tuple[int, int, int]]:
+    """The files on the box that are flock-locked.
 
-    ``/proc/locks`` is the kernel's own record: every lock on the box, with
-    the pid that took it and the device and inode of the file. ``None`` means
-    the lock is free (or the file is not there).
+    The kernel's own record: every lock, with the device and inode of the
+    file it is on. ``/proc/locks`` writes the device as ``major:minor`` in
+    hex and the inode in decimal.
     """
-    try:
-        info = os.stat(path)
-    except OSError:
-        return None
-    wanted = "{:02x}:{:02x}:{}".format(
-        os.major(info.st_dev), os.minor(info.st_dev), info.st_ino
-    )
+    locked: set[tuple[int, int, int]] = set()
     try:
         with open("/proc/locks", encoding="utf-8") as handle:
             for line in handle:
                 fields = line.split()
                 if len(fields) < 6 or fields[1] != "FLOCK":
                     continue
-                if fields[5] != wanted:
+                parts = fields[5].split(":")
+                if len(parts) != 3:
+                    continue
+                try:
+                    locked.add((int(parts[0], 16), int(parts[1], 16), int(parts[2])))
+                except ValueError:
+                    continue
+    except OSError:
+        return locked
+    return locked
+
+
+def _file_key(path: Path) -> tuple[int, int, int] | None:
+    """A file's identity, as ``/proc/locks`` writes it."""
+    try:
+        info = os.stat(path)
+    except OSError:
+        return None
+    return (os.major(info.st_dev), os.minor(info.st_dev), info.st_ino)
+
+
+def _lock_holder(path: Path) -> int | None:
+    """The pid holding ``path``'s flock, according to the kernel.
+
+    ``None`` means the lock is free (or the file is not there). The pid is
+    the process that *called* ``flock(2)`` — which, for the
+    ``flock(1) file command`` form, is the parent that took the lock and
+    left the command to run in a child.
+    """
+    key = _file_key(path)
+    if key is None:
+        return None
+    try:
+        with open("/proc/locks", encoding="utf-8") as handle:
+            for line in handle:
+                fields = line.split()
+                if len(fields) < 6 or fields[1] != "FLOCK":
+                    continue
+                parts = fields[5].split(":")
+                if len(parts) != 3:
+                    continue
+                try:
+                    found = (int(parts[0], 16), int(parts[1], 16), int(parts[2]))
+                except ValueError:
+                    continue
+                if found != key:
                     continue
                 try:
                     return int(fields[4])
@@ -127,16 +166,19 @@ def _lock_holder(path: Path) -> int | None:
 
 
 def _inherited_lock_fd(path: Path) -> int | None:
-    """The descriptor this process already holds ``path``'s lock on.
+    """The descriptor this process holds a flock on, for one named file.
 
-    ``flock(1)`` opens the file, takes the lock and execs the command it was
-    given, so the descriptor comes into the seat's process through the exec.
-    The descriptor is found by the file it points at: ``/proc/self/fd`` names
-    them all, and ``os.stat`` on the link gives the device and inode.
+    The test is on the **descriptor**, not on the pid: ``flock(1)`` forks —
+    the parent takes the lock and the child runs the command — so the
+    kernel's record in ``/proc/locks`` names the parent, not this process.
+
+    So: the file is flock-locked on the box, and this process can take the
+    lock on its own descriptor *without waiting* — which is true only when
+    the lock is held by this open file description. A lock held by a
+    different description blocks even in the same process.
     """
-    try:
-        info = os.stat(path)
-    except OSError:
+    key = _file_key(path)
+    if key is None or key not in _flocked_files():
         return None
     try:
         entries = os.listdir("/proc/self/fd")
@@ -148,8 +190,18 @@ def _inherited_lock_fd(path: Path) -> int | None:
             stat = os.stat(f"/proc/self/fd/{number}")
         except (OSError, ValueError):
             continue
-        if stat.st_dev == info.st_dev and stat.st_ino == info.st_ino:
-            return number
+        if (
+            os.major(stat.st_dev),
+            os.minor(stat.st_dev),
+            stat.st_ino,
+        ) != key:
+            continue
+        try:
+            fcntl.flock(number, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            # Somebody else's description holds it: leave it alone.
+            return None
+        return number
     return None
 
 
@@ -341,8 +393,6 @@ def lease(
     if fallback not in candidates:
         candidates.append(fallback)
     for candidate in candidates:
-        if _lock_holder(candidate) != os.getpid():
-            continue
         descriptor = _inherited_lock_fd(candidate)
         if descriptor is None:
             continue
