@@ -1,6 +1,6 @@
 # Making the real generator's fp8 path run — and what it costs when it does
 
-**2026-10-31, 10:27 → 15:45 PDT on the Thor.** The follow-up the graph
+**2026-10-31, 10:27 → 16:10 PDT on the Thor.** The follow-up the graph
 experiment asked for. Its finding was that the fused fp8 path *never runs*:
 all 9,460 `fp8_linear` calls returned `None` because the weights arrive
 bfloat16 — ComfyUI's dynamic VRAM loader assigns the checkpoint's tensors
@@ -24,16 +24,22 @@ until fp8 earns its place.
    calls, both rounds, zero declined** — against 28,380 calls *all declined*
    in the control arm that reproduces today's box. The weights the path is
    handed are `torch.float8_e4m3fn`.
-2. **It is not faster.** In the clean round — the round whose dtype-free
-   image stage (the same SDXL work in every arm) agrees to **0.1 ms**
-   between arms — the fused fp8 path is **7–31 % slower per mesh step** than
-   bf16 (structure 589→632 ms, sparse-batched 1,633→2,135 ms, sparse-single
-   915→1,060 ms). Round 1 ordered the arms the other way, and its image
-   control spread 268–454 ms for identical work: that ordering was the box's
-   noise, not the dtype's. Part of the fused path's handicap is named: the
-   sparse stages' narrow linears (K = 8) cannot run the fp8 GEMM (it needs
-   K divisible by 16), so they **raise and fall back on every call** — 72
-   exception fallbacks in one arm's log.
+2. **The fused path runs, and it is the slowest way to run fp8.** In the
+   clean round — the round whose dtype-free image stage (the same SDXL work
+   in every arm) agrees to **1.1 ms** across all three arms — the fused fp8
+   path is **7–31 % slower per mesh step than plain bf16** (structure
+   589→632 ms, sparse-batched 1,633→2,135 ms, sparse-single 915→1,060 ms).
+   The surprise is the third arm: the *declined* path — ComfyUI's
+   manual-cast fallback, quantising on the fly — beats bf16 on the sparse
+   steps (1,241 ms, −24 %) and matches it on the dense ones. The fp8 GEMM
+   can win on this box; **the fused path loses to its own fallback**, paying
+   per-call `QuantizedTensor` dispatch and a named fallback: the sparse
+   stages' narrow linears (K = 8) cannot run the fp8 GEMM (it needs K
+   divisible by 16), so the fused path **raises and falls back on every
+   call that touches one** — 72 exception fallbacks in one arm's log.
+   Round 1 ordered the arms the other way, and its image control spread
+   268–454 ms for identical work: that ordering was the box's noise, not
+   the dtype's.
 3. **Memory moves the wrong way for a unified-memory box.** The fp8 arm's
    GPU peak reserve is ~1 GB smaller (7.9–8.0 GB against bf16's 7.6–9.1 GB),
    but its **host RSS is 22 GB against bf16's 7 GB** — the fp8 staging the
@@ -119,30 +125,45 @@ input shape; `summarize_arms.py` groups them into the picture stage and the
 mesh stage's dense/sparse, batched/single signatures. Median GPU span per
 stage:
 
-| stage (steps per seed) | bf16 r1 | bf16 r2 | fp8-fixed r1 | fp8-fixed r2 | fp8-declined r1 |
-|---|---:|---:|---:|---:|---:|
-| **image — the control** (30) | 278.3 | **267.4** | 453.7 | **267.3** | 268.3 |
-| structure, batched (9) | 948.0 | 589.0 | 755.8 | 631.5 | 616.4 |
-| structure, single (3) | 584.4 | 274.0 | 384.7 | 537.4 | 312.5 |
-| sparse, batched (15) | 2,737.5 | 1,632.7 | 2,085.0 | 2,134.7 | 1,242.1 |
-| sparse, single (17) | 1,020.6 | 915.0 | 1,181.6 | 1,060.4 | 733.6 |
+| stage (steps per seed) | bf16 r1 | bf16 r2 | fp8-fixed r1 | fp8-fixed r2 | fp8-declined r1 | fp8-declined r2 |
+|---|---:|---:|---:|---:|---:|---:|
+| **image — the control** (30) | 278.3 | 267.4 | 453.7 | **267.3** | 268.3 | **266.3** |
+| structure, batched (9) | 948.0 | 589.0 | 755.8 | 631.5 | 616.4 | 615.3 |
+| structure, single (3) | 584.4 | 274.0 | 384.7 | 537.4 | 312.5 | 311.0 |
+| sparse, batched (15) | 2,737.5 | 1,632.7 | 2,085.0 | 2,134.7 | 1,242.1 | 1,240.8 |
+| sparse, single (17) | 1,020.6 | 915.0 | 1,181.6 | 1,060.4 | 733.6 | 734.7 |
 
 **Read the control row first.** The image stage runs the *same* SDXL work,
 same seeds, same workflow, in every arm — the dtype only touches the mesh
-workflow's loader. In round 2 it agrees to **0.1 ms** between bf16 and
-fp8-fixed: that round, the box treated both arms equally, and there the
+workflow's loader. In round 2 all three controls sit within **1.1 ms** of
+each other: that round, the box treated the arms equally, and there the
 fused fp8 path is **7 % slower on the dense structure steps and 16–31 %
-slower on the sparse steps**. In round 1 the control spread **268–454 ms**
-for identical work — the box's load moved under the arms — and round 1's
+slower on the sparse steps** than plain bf16 — while the *declined* path
+(ComfyUI's manual-cast fallback) matches bf16 on the dense steps and beats
+it by **24 % on the sparse-batched steps**, reproducibly (declined r1 and
+r2 agree to 0.2 %). In round 1 the control spread **268–454 ms** for
+identical work — the box's load moved under the arms — and round 1's
 apparent fp8 win inverts as soon as the control says which arm the box was
-noisy for. The interleaving keeps the drift off one arm's label; the control
-is what lets you *see* it.
+noisy for. The interleaving keeps the drift off one arm's label; the
+control is what lets you *see* it.
 
-Where the fused path loses, it loses for a nameable reason on top of the
-GEMM's own: the sparse stages' narrow linears (K = 8) cannot run the fp8
-GEMM — it needs the trailing dimension divisible by 16 — so the fused path
-**raises, catches, and falls back on every call that touches one** (72
-fallbacks in one arm's log), paying the exception and the dequantise both.
+Two findings hide in the clean round's comparison, and they point in
+opposite directions:
+
+* **The fp8 GEMM can win here.** The declined arm quantises the weights to
+  fp8 at staging and runs the fp8 matmul through the manual-cast path —
+  and its sparse steps, the longest in the prop, are reproducibly **24 %
+  faster** than bf16's. The narrow-linears story is not "fp8 can't do these
+  shapes"; it is "the *fused* path can't".
+* **The fused path loses to its own fallback.** Same template, same ops,
+  same shapes — the only difference is that the fix makes the weights fp8,
+  so `fp8_linear` proceeds instead of returning `None`. Measured, proceeding
+  is the slower choice: +3 % on the dense steps, **+44–72 % on the sparse
+  steps** against the manual path. The per-call
+  `QuantizedTensor` dispatch, plus the K = 8 linears raising and falling
+  back every call (72 fallbacks in one arm's log), costs more than
+  quantising on the fly does. The path the spike wanted to reach is real,
+  and on this stack it is the slow one.
 
 ## 4. Peak memory
 
@@ -153,7 +174,7 @@ process's own):
 |---|---:|---:|---:|
 | bf16 (r1 / r2) | 7.7 / 6.9 GB | **9.1 / 7.6 GB** | **7.0 / 6.8 GB** |
 | fp8-fixed (r1 / r2) | 7.0 / 7.0 GB | 7.9 / 8.0 GB | **22.0 / 22.2 GB** |
-| fp8-declined (r1) | 5.8 GB | 6.5 GB | 7.0 GB |
+| fp8-declined (r1 / r2) | 5.8 / 6.4 GB | 6.5 / 6.8 GB | 7.0 / 6.7 GB |
 
 The fp8 arm's GPU reserve is consistently ~1 GB under bf16's — the weights
 are half the bytes — but its **host RSS is 15 GB over bf16's** and steady at
@@ -176,13 +197,16 @@ so the medians carry the comparison and the spread carries the honesty:
 | fp8-declined r1 | 154.5 | 180.4 | 312.9 | 180.4 |
 | bf16 r2 | 168.9 | 159.3 | 201.6 | 168.9 |
 | fp8-fixed r2 | 353.1 | 178.1 | 187.4 | 187.4 |
+| fp8-declined r2 | 150.9 | 125.0 | 166.1 | 150.9 |
 
 fp8-fixed r2's seed 101 (353 s) is a load burst, not the dtype: its image
 stage — the dtype-free control — matched bf16's to 0.1 ms that round, and
 its mesh GPU lane (77.4 s against 46.1 s) caught the burst the boxstate
-file records (load 9.8 at the arm's start). No arm's median wins by more
-than the control says the box moved. **The wall-time verdict is the same as
-the per-step one: no win.**
+file records (load 9.8 at the arm's start). The declined arm's 151 s median
+is the fastest in the table and the disqualifier stands next to it: that is
+the arm whose seed-102 silhouette IoU is 0.557. **The wall-time verdict
+matches the per-step one for the path the brief asked about: the fused path
+wins nothing.**
 
 ## 6. The gate: is the prop still the prop?
 
@@ -222,15 +246,23 @@ in fp8 is not the same prop, and the recipe is where that has to be true.
 * **Keep the fix; don't flip the default.** `fp8_real` makes "fp8" mean one
   thing — without it, the fp8 template silently quantises on the fly and
   bends the prop worse than the fused path does (IoU 0.557). With it, the
-  path at least runs as labelled. But the gate failed and the speed is
-  against it: **the night's props stay bf16.**
+  path at least runs as labelled, and the counters say which one you got.
+  But the gate failed and the speed is against it: **the night's props stay
+  bf16.**
+* **The fused path is the slow way to run fp8 on this stack.** The fp8 GEMM
+  itself wins on the sparse stages — the manual-cast fallback's steps are
+  reproducibly 24 % faster than bf16's — but the fused path, the thing the
+  fix reaches, loses to that same fallback by 44–72 % on the same steps. If
+  fp8's sparse-stage speed is ever wanted, the experiment to run is
+  "fp8 weights without the fused dispatch" — and the quality gate would
+  have to pass first, which neither fp8 arm managed.
 * **fp8 is not the Thor win here.** The spike's §7.3 hoped the fused path
   would cut the host's scale work; the graph experiment showed the scales
-  were under 1 % of a path that never ran; this one ran it and the steps got
-  *slower* — the sparse stages' narrow linears fall back per call, and the
-  dense steps' fp8 GEMM does not beat bf16's at these shapes on sm_110. The
-  memory trade is +14 GB of host staging against −1 GB of GPU reserve. The
-  fp8 experiment is done: **measured, and a no.**
+  were under 1 % of a path that never ran; this one ran it, and the path
+  is the slowest way to run the model — against bf16, against its own
+  fallback, and behind a quality gate it fails. The memory trade is
+  +14 GB of host staging against −1 GB of GPU reserve. The fp8 experiment
+  is done: **measured, and a no.**
 * **The host staging is the next Thor-native target.** 22 GB of RSS for a
   10 GB checkpoint, growing with loads rather than per model — the dynamic
   loader's staging is where the box's memory actually goes. That, not the
