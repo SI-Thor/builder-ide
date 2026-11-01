@@ -8,7 +8,7 @@
 #
 #   1. the scripted checks (the baseline row, no model, no network);
 #   2. d1-2B: the local decision model with its projector, under the box's
-#      shared lock, asked the fixed question per class;
+#      admission daemon, asked the fixed question per class;
 #   3. clef-flash: the cloud decision model, through the throwaway Worker
 #      that holds the AI binding (nothing is deployed);
 #   4. the hybrid with each delegate — the checks first, the delegate only on
@@ -17,13 +17,19 @@
 #
 # The box's state is captured beside the numbers, and every resident model is
 # stopped when its stage ends.
+#
+# The heavy stage takes a lease with the admission daemon (`thor-admit run`),
+# and the local model takes one of its own with `thor-admit serve`. The old
+# shared flock is the stopgap for when the daemon's binary is missing — see
+# ~/lm-wt/MEMORY-RULE.md — not the default.
 set -uo pipefail
 
 HERE="$(dirname "$0")"
 ROOT="$(cd "$HERE/../../.." && pwd)"
 cd "$ROOT"
 
-PY="${PY:-$HOME/lm-wt/critic-select/.venv/bin/python}"
+PY="${PY:-$ROOT/.venv/bin/python}"
+ADMIT="${ADMIT:-$HOME/lm-tools/thor-admit}"
 export CRITIC_BLENDER_PYTHON="${CRITIC_BLENDER_PYTHON:-$HOME/src/infinigen-thor/.venv/bin/python}"
 
 RESULTS="$HERE/results"
@@ -50,8 +56,9 @@ echo "=== the scripted checks: the baseline row ==="
 # -- 2. the local decision model ----------------------------------------------
 echo
 echo "=== d1-2B: the local decision model with its projector ==="
-echo "(the whole stage runs under the box's shared lock)"
-flock "$HOME/lm-wt/heavy.lock" bash "$HERE/run_d1_stage.sh"
+echo "(the stage takes a lease with the box's admission daemon)"
+"$ADMIT" run --tier live --peak 8G --label critic-delegate.d1-stage -- \
+  bash "$HERE/run_d1_stage.sh"
 
 # -- 3. the cloud decision model ----------------------------------------------
 echo

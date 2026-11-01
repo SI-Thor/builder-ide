@@ -16,6 +16,8 @@ applies the edit the verdict carries, and measures what happened:
 
     python docs/lab/critic-delegate-scripts/continuation_test.py --delegate d1
     python docs/lab/critic-delegate-scripts/continuation_test.py --delegate clef
+    python docs/lab/critic-delegate-scripts/continuation_test.py --delegate d1 \
+        --endpoint http://127.0.0.1:8131
 
 The edited frames are written next to the results, so the pictures can be
 looked at as well as measured.
@@ -55,14 +57,37 @@ def _floating_gap(image) -> float:
     return 0.0
 
 
+def _probability(outcome) -> float | None:
+    """The delegate's own probability for the floating class, whichever
+    delegate answered: the local one records ``d1_probability`` and the cloud
+    one ``clef_probability``, and the flag is cleared when the answer falls
+    below the gate."""
+    if outcome is None:
+        return None
+    measured = outcome.measured or {}
+    for key in ("d1_probability", "clef_probability"):
+        if key in measured:
+            return float(measured[key])
+    return None
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--delegate", default="d1")
+    parser.add_argument(
+        "--endpoint",
+        default=None,
+        help="the delegate's endpoint (the local server's port is read back "
+        "from the admission daemon, so it is not always the default one)",
+    )
     parser.add_argument("--manifest", default=str(MANIFEST))
     args = parser.parse_args()
 
     members, bases = load_set(args.manifest, CACHE)
-    critic, reason = resolve_critic("hybrid", delegate=args.delegate)
+    kwargs = {"delegate": args.delegate}
+    if args.endpoint:
+        kwargs["endpoint"] = args.endpoint
+    critic, reason = resolve_critic("hybrid", **kwargs)
     if reason:
         print(f"! {reason} — the scripted critic answered")
     hybrid = getattr(critic, "critic", critic)
@@ -73,7 +98,7 @@ def main() -> int:
     for member in members:
         if member.layer not in critic.layers or not member.derived_path:
             continue
-        verdict = critic.score(member, bases=bases)
+        verdict = critic.score(member, bases=bases, cache_dir=CACHE)
         outcome = verdict.outcome("floating_blob")
         if outcome is None or not outcome.fired:
             continue
@@ -98,7 +123,7 @@ def main() -> int:
         save_rgb(edited_path, edited)
 
         edited_member = replace(member, derived_path=str(edited_path))
-        after = critic.score(edited_member, bases=bases)
+        after = critic.score(edited_member, bases=bases, cache_dir=CACHE)
         after_outcome = after.outcome("floating_blob")
 
         before_checks = run_image_checks(image)
@@ -119,24 +144,30 @@ def main() -> int:
                 "defect": member.defect,
                 "flagged": True,
                 "edit": edit.as_dict(),
+                "metres_per_pixel": (
+                    edit.drop_m / edit.drop_px
+                    if edit.drop_px and edit.drop_m is not None
+                    else None
+                ),
+                "scene_mesh": member.mesh_path,
                 "edited_path": str(edited_path),
                 "checks_gap_before": gap_before,
                 "checks_gap_after": gap_after,
                 "checks_fired_after": [
                     c.check for c in after_checks if c.fired
                 ],
-                "delegate_after": (
-                    after_outcome.measured.get("d1_probability")
-                    if after_outcome
-                    else None
-                ),
+                "delegate_after": _probability(after_outcome),
                 "delegate_after_detail": after_outcome.detail if after_outcome else None,
                 "cleared": bool(after_outcome and not after_outcome.fired),
             }
         )
+        metres = (
+            f"{edit.drop_m:.2f} m" if edit.drop_m is not None else "no metres (no scene)"
+        )
         print(
             f"  {member.member_id} {member.defect}: "
-            f"edit drop={edit.drop_px} px onto {edit.support.kind} "
+            f"edit drop={edit.drop_px} px ({metres}) "
+            f"onto {edit.support.kind} "
             f"(row {edit.support.row}) -> "
             f"checks gap {gap_before:.4f} -> {gap_after:.4f}, "
             f"flag cleared: {rows[-1]['cleared']}"
