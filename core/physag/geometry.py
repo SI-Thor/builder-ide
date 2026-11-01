@@ -379,20 +379,29 @@ class SurfaceDistance:
                 self.normals = -self.normals
 
         # The triangles each vertex is part of, padded to a fixed width so
-        # that the candidates can be gathered in one array.
+        # that the candidates can be gathered in one array. The pairs are
+        # generated in triangle order and sorted by vertex with a stable
+        # sort, so each vertex's triangles arrive in the same order the
+        # per-triangle walk would have given, and the padding keeps the
+        # first ``width`` of them.
         counts = np.zeros(self.vertices.shape[0], dtype=np.int64)
         np.add.at(counts, self.triangles.ravel(), 1)
         width = max(int(counts.max()) if counts.size else 0, 1)
+        pair_vertex = self.triangles.ravel()
+        pair_triangle = np.repeat(
+            np.arange(self.triangles.shape[0], dtype=np.int64), 3
+        )
+        order = np.argsort(pair_vertex, kind="stable")
+        sorted_vertex = pair_vertex[order]
+        sorted_triangle = pair_triangle[order]
+        starts = np.zeros(self.vertices.shape[0] + 1, dtype=np.int64)
+        np.cumsum(counts, out=starts[1:])
+        within = np.arange(sorted_vertex.shape[0], dtype=np.int64) - starts[sorted_vertex]
+        keep = within < width
         self.vertex_triangles = np.full(
             (self.vertices.shape[0], width), -1, dtype=np.int64
         )
-        filled = np.zeros(self.vertices.shape[0], dtype=np.int64)
-        for t_index in range(self.triangles.shape[0]):
-            for vertex in self.triangles[t_index]:
-                slot = filled[int(vertex)]
-                if slot < width:
-                    self.vertex_triangles[int(vertex), slot] = t_index
-                    filled[int(vertex)] = slot + 1
+        self.vertex_triangles[sorted_vertex[keep], within[keep]] = sorted_triangle[keep]
 
 
     def __call__(self, points: np.ndarray) -> np.ndarray:
@@ -481,7 +490,11 @@ class SurfaceDistance:
             w = np.where(total != 0, vc / safe_total, 0.0)
             closest[interior] = (a + v[:, :, None] * ab + w[:, :, None] * ac)[interior]
 
-        distances = np.linalg.norm(p - closest, axis=2)
+        # The slots left invalid keep whatever ``np.empty`` put there, and
+        # the norm over them can overflow on its way to a value the two
+        # masks below throw away — so the warning they raise is noise.
+        with np.errstate(over="ignore", invalid="ignore"):
+            distances = np.linalg.norm(p - closest, axis=2)
         # A candidate whose corner data was degenerate can leave a nan in
         # its distance, and the min over a row with a nan in it is a nan:
         # the nan candidates are the invalid ones or the degenerate ones,

@@ -48,7 +48,6 @@ from core.physag.geometry import (
     convex_hull,
     inside_mesh,
     distance_to_hull,
-    distance_to_surface,
     distance_to_union,
     hull_metrics,
     inside_mesh,
@@ -877,6 +876,10 @@ def _hollow_depth(
     if not pieces or material.is_empty:
         return 0.0
 
+    # One surface structure for the whole measure: building it per piece
+    # would rebuild the same trees for every piece, and on a generated
+    # mesh that is minutes of construction repeated thirty times.
+    surface = SurfaceDistance(material)
     deepest = 0.0
     for piece in pieces:
         if piece.is_empty or piece.volume <= 0.0:
@@ -884,7 +887,7 @@ def _hollow_depth(
         points = _sample_piece(piece, samples_per_piece)
         if points.shape[0] == 0:
             continue
-        distances = distance_to_surface(points, material)
+        distances = surface(points)
         finite = distances[np.isfinite(distances)]
         if finite.size:
             deepest = max(deepest, float(np.max(finite)))

@@ -126,7 +126,12 @@ def build_delivery(
         verified["total_mass_kg"] = round(built.total_mass_kg, 4)
         verified["collider_volume_m3"] = round(built.collider_volume_m3, 9)
         verified["mesh_volume_m3"] = round(built.mesh_volume_m3, 9)
-        verified["collider_volume_ratio"] = round(built.volume_ratio, 6)
+        # An open mesh has no volume for the ratio to divide by, and the
+        # record says so rather than inventing a number: the guards that
+        # do work on an open mesh carry the score instead.
+        verified["collider_volume_ratio"] = (
+            None if built.volume_ratio is None else round(built.volume_ratio, 6)
+        )
         verified["bodies"] = list(built.bodies)
         verified["joints"] = list(built.joints)
         verified["actuator"] = built.actuator
