@@ -17,6 +17,7 @@
 //! * [`tier`] — the four tiers the work falls into.
 //! * [`presence`] — the registered work that runs when the box has room.
 //! * [`ledger`] — where the box's time went, and why it was idle.
+//! * [`flow`] — the flow signal a publisher writes, and the daemon records.
 //! * [`history`] — the learned peaks, as JSON lines.
 //! * [`protocol`] — the socket protocol the CLI and the Python shim speak.
 //! * [`serve`] — the registry that loads a model once per box.
@@ -27,6 +28,7 @@ pub mod admission;
 pub mod client;
 pub mod clock;
 pub mod daemon;
+pub mod flow;
 pub mod gpu;
 pub mod history;
 pub mod lease;

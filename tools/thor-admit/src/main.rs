@@ -28,8 +28,14 @@ use thor_admit::sizes::{human, Size};
 use thor_admit::tier::Tier;
 
 static STOP: AtomicBool = AtomicBool::new(false);
+static RELOAD: AtomicBool = AtomicBool::new(false);
 
-extern "C" fn on_signal(_signal: libc::c_int) {
+extern "C" fn on_signal(signal: libc::c_int) {
+    // Only flag-setting is safe in a handler; the watcher threads act.
+    if signal == libc::SIGHUP {
+        RELOAD.store(true, Ordering::SeqCst);
+        return;
+    }
     STOP.store(true, Ordering::SeqCst);
 }
 
@@ -48,6 +54,7 @@ fn main() -> ExitCode {
         "peaks" => run_peaks(&args[1..]),
         "presence" => run_presence(&args[1..]),
         "ledger" => run_ledger(&args[1..]),
+        "reload" => run_reload(&args[1..]),
         "stop" => run_stop(&args[1..]),
         "help" | "--help" | "-h" => {
             print_help();
@@ -75,7 +82,9 @@ thor-admit — a memory-admission daemon for the Thor
   thor-admit serve <model> --port <n> [--peak <size|auto>] [--tier <tier>] -- <command>
         Run a shared model server under a lease, or return the port of one
         that is already answering. A model is loaded once per box, not once
-        per seat: the second caller gets the first's port and runs nothing.
+        per seat: the registry is keyed on the model file (path + hash) and
+        the command's other flags, so the same model under any name is one
+        server, and a variant whose flags really differ is its own.
 
   thor-admit status [--json]
         Show the leases, the free memory, the queue and the presence work.
@@ -84,15 +93,21 @@ thor-admit — a memory-admission daemon for the Thor
         Show the learned peaks: the p50 and p95 of each label's history.
 
   thor-admit presence add --tier <tier> --peak <size|auto> --label <name>
-                         [--resumable] -- <command>
-        Register work that runs when the box has room for it.
+                         [--resumable] [--disabled] -- <command>
+        Register work that runs when the box has room for it. --disabled
+        registers it without running it (an example, or held-over work).
   thor-admit presence list [--json]
         Show the registered work and what it is doing.
   thor-admit presence remove <id>
         Take a job out of the presence queue.
 
   thor-admit ledger [--json] [--hours <n>]
-        Show where the box's time went, by tier, and why it was idle.
+        Show where the box's time went, by tier and by label, and why it
+        was idle.
+
+  thor-admit reload
+        Ask the running daemon to re-read its peak history and its presence
+        queue (SIGHUP does the same). For an edit made by hand.
 
   thor-admit stop
         Ask the running daemon to stop.
@@ -127,6 +142,8 @@ Daemon options (all have defaults):
   --no-stop-on-client-gone  leave a dead client's command running (default: stop it)
   --no-presence             do not run the presence queue (default: run it)
   --presence-file <path>    where the presence queue is kept
+  --flow-file <path>        where the flow signal is published, if anyone
+                            publishes one (default <state-dir>/flow.json)
   --ledger <path>           where the ledger's hours are written
   --ledger-interval-ms <n>  how often the CPU's counters are read (default 1000)
   --gpu-busy-threshold <n>  the GPU's busy share at which live work takes
@@ -307,12 +324,16 @@ fn run_daemon(args: &[String]) -> ExitCode {
         config.history = config.state_dir.join("peaks.jsonl");
         config.presence_file = config.state_dir.join("presence.json");
         config.ledger = config.state_dir.join("ledger.jsonl");
+        config.flow_file = config.state_dir.join("flow.json");
     }
     if let Some(value) = options.get("history") {
         config.history = PathBuf::from(value);
     }
     if let Some(value) = options.get("presence-file") {
         config.presence_file = PathBuf::from(value);
+    }
+    if let Some(value) = options.get("flow-file") {
+        config.flow_file = PathBuf::from(value);
     }
     if let Some(value) = options.get("ledger") {
         config.ledger = PathBuf::from(value);
@@ -406,6 +427,7 @@ fn run_daemon(args: &[String]) -> ExitCode {
     unsafe {
         libc::signal(libc::SIGINT, on_signal as *const () as libc::sighandler_t);
         libc::signal(libc::SIGTERM, on_signal as *const () as libc::sighandler_t);
+        libc::signal(libc::SIGHUP, on_signal as *const () as libc::sighandler_t);
         libc::signal(libc::SIGPIPE, libc::SIG_IGN);
     }
 
@@ -424,8 +446,20 @@ fn run_daemon(args: &[String]) -> ExitCode {
         let daemon = std::sync::Arc::clone(&daemon);
         std::thread::spawn(move || loop {
             std::thread::sleep(Duration::from_millis(100));
+            if RELOAD.swap(false, Ordering::SeqCst) {
+                // SIGHUP: re-read the history and the presence queue, so an
+                // edit made by hand reaches a daemon that is mid-flight.
+                daemon.reload();
+                continue;
+            }
             if STOP.load(Ordering::SeqCst) {
                 daemon.stop();
+            }
+            // The daemon's own word matters as much as the signal's: after
+            // an idle exit the clock has already stopped, and a watcher
+            // that waited only for a signal would keep the process — and
+            // with it the socket's lock — alive with nothing behind it.
+            if daemon.is_stopped() {
                 return;
             }
         })
@@ -536,10 +570,16 @@ fn run_command(args: &[String]) -> ExitCode {
 
 /// `thor-admit serve <model> --port <n> [--peak S|auto] [--tier T] -- <command>`
 ///
-/// The seat's side of the shared-model registry. Three answers, in order:
+/// The seat's side of the shared-model registry. The registry is keyed on
+/// what the command identifies — the **model file** (path + content hash)
+/// and the **config tuple** (the command's other flags) — not on the name
+/// the seat types, so `d1-2B`, `d1-2B-baseline` and `d1-2B-batch` are three
+/// names for one server when the command is the same, and a variant only
+/// when its flags really differ. Three answers, in order:
 ///
-/// 1. the model is already answering on a registered port — say the port
-///    and run nothing (this is the point: a model is loaded once per box);
+/// 1. this model file under these flags is already answering on a
+///    registered port — say the port and run nothing (this is the point: a
+///    model is loaded once per box);
 /// 2. the port is answering but nobody registered it — say so and stop,
 ///    because starting a second server on that port cannot work;
 /// 3. nothing — take a live lease (`serve.<model>`) and run the server
@@ -603,8 +643,29 @@ fn run_serve(args: &[String]) -> ExitCode {
     }
     let registry = thor_admit::serve::Registry::new(&state_dir_for(&socket));
 
-    // 1. Somebody is already serving this model.
-    if let Some(entry) = registry.find(&model) {
+    // What this command actually is: the model file (path + hash) and the
+    // flags around it. The name the seat typed is not in it.
+    let key = thor_admit::serve::key_for(&command);
+    match key.basis {
+        "file" => eprintln!(
+            "thor-admit: {model:?} is the model {} (hash {}), flags {:?}",
+            key.model_file.as_ref().map(|path| path.display().to_string()).unwrap_or_default(),
+            key.model_hash.as_deref().unwrap_or("-"),
+            key.config
+        ),
+        _ => eprintln!(
+            "thor-admit: {model:?} named no model file; keying on the command {:?}",
+            key.config
+        ),
+    }
+
+    // 1. Somebody is already serving this model under these flags.
+    if let Some(entry) = registry.find(&key.key) {
+        eprintln!(
+            "thor-admit: {model:?} is {:?} already serving on port {} — \
+             same model file, same flags; nothing to load",
+            entry.model, entry.port
+        );
         return report_serve(&model, entry.port, "existing", options.has("json"));
     }
     // 2. The port is taken by something the registry does not know.
@@ -630,11 +691,12 @@ fn run_serve(args: &[String]) -> ExitCode {
     let watcher = {
         let recorded = std::sync::Arc::clone(&recorded);
         let registry = thor_admit::serve::Registry::new(&state_dir_for(&socket));
+        let key = key.clone();
         let model = model.clone();
         std::thread::spawn(move || {
             for _ in 0..480 {
                 if thor_admit::serve::port_answers(port) {
-                    registry.record(thor_admit::serve::entry(&model, port));
+                    registry.record(thor_admit::serve::entry(&key, &model, port));
                     recorded.store(true, std::sync::atomic::Ordering::SeqCst);
                     return;
                 }
@@ -664,7 +726,7 @@ fn run_serve(args: &[String]) -> ExitCode {
     // stays is harmless — `find` probes the port — but the file should not
     // remember servers that are not there.
     if recorded.load(std::sync::atomic::Ordering::SeqCst) {
-        registry.remove(&model);
+        registry.remove(&key.key);
     }
     if !recorded.load(std::sync::atomic::Ordering::SeqCst) {
         eprintln!(
@@ -769,10 +831,15 @@ fn run_status(args: &[String]) -> ExitCode {
     }
     println!("presence: {}", report.presence.len());
     for job in &report.presence {
+        let label = if job.enabled {
+            job.label.clone()
+        } else {
+            format!("{} (disabled)", job.label)
+        };
         println!(
-            "  #{} {:<16} {:<12} peak {:>8}  {:<10}  runs {}  preempted {}",
+            "  #{} {:<28} {:<12} peak {:>8}  {:<10}  runs {}  preempted {}",
             job.id,
-            job.label,
+            label,
             job.tier.as_str(),
             human(job.peak_bytes),
             job.state,
@@ -901,10 +968,23 @@ fn run_presence(args: &[String]) -> ExitCode {
                     return ExitCode::from(1);
                 }
             };
-            match connection.presence_add(&label, tier, peak, options.has("resumable"), rest.to_vec())
-            {
+            match connection.presence_add(
+                &label,
+                tier,
+                peak,
+                options.has("resumable"),
+                !options.has("disabled"),
+                rest.to_vec(),
+            ) {
                 Ok((id, label, tier)) => {
-                    println!("thor-admit: registered #{id} {label:?} as {tier}");
+                    if options.has("disabled") {
+                        println!(
+                            "thor-admit: registered #{id} {label:?} as {tier} (disabled: \
+                             it stays registered and does not run)"
+                        );
+                    } else {
+                        println!("thor-admit: registered #{id} {label:?} as {tier}");
+                    }
                     ExitCode::SUCCESS
                 }
                 Err(error) => {
@@ -960,6 +1040,7 @@ fn run_presence(args: &[String]) -> ExitCode {
                             tier: job.spec.tier,
                             peak_bytes: job.spec.peak_bytes,
                             resumable: job.spec.resumable,
+                            enabled: job.spec.enabled,
                             state: job.state.as_str().to_string(),
                             command: job.spec.command.join(" "),
                             pgid: 0,
@@ -997,10 +1078,15 @@ fn print_presence_jobs(jobs: &[thor_admit::protocol::PresenceReport], json: bool
         return ExitCode::SUCCESS;
     }
     for job in jobs {
+        let label = if job.enabled {
+            job.label.clone()
+        } else {
+            format!("{} (disabled)", job.label)
+        };
         println!(
-            "  #{} {:<16} {:<12} peak {:>8}  {:<10}  runs {}  preempted {}  {}",
+            "  #{} {:<28} {:<12} peak {:>8}  {:<10}  runs {}  preempted {}  {}",
             job.id,
-            job.label,
+            label,
             job.tier.as_str(),
             human(job.peak_bytes),
             job.state,
@@ -1121,6 +1207,37 @@ fn print_ledger_table(buckets: &[Bucket]) {
             println!("  {reason:<24} {seconds:>8.0}s");
         }
     }
+    let labels: Vec<(&String, &thor_admit::ledger::LabelStat)> = last
+        .by_label
+        .iter()
+        .filter(|(_, stat)| stat.running_s > 0.0 || stat.preempted_s > 0.0)
+        .collect();
+    if !labels.is_empty() {
+        println!("\nby label (the last hour, {}):", last.hour);
+        for (label, stat) in labels {
+            println!(
+                "  {label:<28} ran {:>7.0}s  preempted {:>7.0}s",
+                stat.running_s, stat.preempted_s
+            );
+        }
+    }
+    if last.flow.samples > 0 {
+        println!(
+            "\nflow, as published (the last hour, {}): {} samples, confidence min {}, mean {}, \
+             sign at the end {}",
+            last.hour,
+            last.flow.samples,
+            last.flow
+                .confidence_min
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_else(|| "-".to_string()),
+            last.flow
+                .confidence_mean
+                .map(|value| format!("{value:.2}"))
+                .unwrap_or_else(|| "-".to_string()),
+            last.flow.sign.as_deref().unwrap_or("-"),
+        );
+    }
 }
 
 fn run_stop(args: &[String]) -> ExitCode {
@@ -1135,6 +1252,43 @@ fn run_stop(args: &[String]) -> ExitCode {
     match client::stop_daemon(&socket) {
         Ok(()) => {
             println!("thor-admit: the daemon was asked to stop");
+            ExitCode::SUCCESS
+        }
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            ExitCode::from(1)
+        }
+    }
+}
+
+/// `thor-admit reload`: ask a running daemon to re-read what it reads from
+/// disk — the peak history and the presence queue.
+///
+/// Both live in the daemon's memory once loaded, so an edit made by hand
+/// (an operator cleaning no-op records out of the history, a night runner
+/// rewriting the queue) is invisible to the daemon until it reloads. The
+/// alternative is a restart, and a restart waits for a box with no leases.
+fn run_reload(args: &[String]) -> ExitCode {
+    let options = Options::parse(args);
+    let socket = match socket_path(&options) {
+        Ok(socket) => socket,
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let mut connection = match Client::connect(&socket) {
+        Ok(connection) => connection,
+        Err(error) => {
+            eprintln!("thor-admit: the daemon is not running on {socket:?} ({error})");
+            return ExitCode::from(1);
+        }
+    };
+    match connection.reload() {
+        Ok((peaks, presence)) => {
+            println!(
+                "thor-admit: reloaded: {peaks} peak records, {presence} presence jobs"
+            );
             ExitCode::SUCCESS
         }
         Err(error) => {
