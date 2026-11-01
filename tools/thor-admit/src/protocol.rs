@@ -106,6 +106,14 @@ pub enum Request {
     },
     /// The client holds the lease's lock now.
     Held { lease: u64 },
+    /// The client is still there, still working, still holding the lock.
+    ///
+    /// The lock alone cannot say this: a client can hang — deadlocked,
+    /// stopped, wedged — and a hung client's lock never drops, so its
+    /// reservation would be charged forever. The heartbeat is the client
+    /// saying "alive" on a schedule; the daemon decides what a silent client
+    /// means (Hy4's fourth failure mode).
+    Heartbeat { lease: u64 },
     /// The lease is over.
     Release {
         lease: u64,
@@ -171,11 +179,16 @@ pub struct StatusReport {
     pub mem_available_bytes: u64,
     pub floor_bytes: u64,
     pub emergency_floor_bytes: u64,
+    /// The least the GPU's own allocation pool must keep free.
+    pub gpu_floor_bytes: u64,
     pub leases: Vec<LeaseReport>,
     pub queue: Vec<QueueReport>,
     pub gpu_source: String,
     pub gpu_visible: bool,
     pub gpu_box_used_bytes: Option<u64>,
+    /// The GPU's own allocation pool as `tegrastats`' `lfb` sees it, when it
+    /// is visible. This is the number the `--gpu-floor` rule is applied to.
+    pub gpu_largest_free_block_bytes: Option<u64>,
     pub uptime_s: f64,
     /// How many memory samples the daemon has taken.
     pub samples: u64,

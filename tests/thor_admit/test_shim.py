@@ -147,11 +147,14 @@ def test_the_peak_is_recorded_for_the_label(daemon: Daemon):
 
 @needs_binary
 def test_auto_uses_what_the_label_learned(daemon: Daemon):
-    with lease("2G", "shim-auto", socket_path_override=daemon.socket):
-        pass
+    # auto refuses to guess until the label has three runs behind it.
+    for _ in range(3):
+        with lease("2G", "shim-auto", socket_path_override=daemon.socket):
+            pass
 
     with lease("auto", "shim-auto", socket_path_override=daemon.socket) as held:
         assert held.peak_bytes > 0
+        # The learned peak is what the shim measured, not what it asked for.
         assert held.peak_bytes != 2 * 1024**3
 
 

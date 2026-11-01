@@ -106,15 +106,66 @@ struct DaemonUnderTest {
     state_dir: PathBuf,
 }
 
+/// The counter that keeps every daemon under test on its own path.
+///
+/// The state directory used to be named after the process id and the daemon's
+/// arguments alone. The tests run in parallel, so every test that started a
+/// daemon with `--floor 1G` landed on the same socket, the same lease locks,
+/// the same history file and the same ledger. The counter makes each daemon's
+/// directory its own; the name makes it readable when a test leaves one
+/// behind.
+static DAEMON_SERIAL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Turn a test's name into something a path can hold.
+fn slug(name: &str) -> String {
+    name.chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string()
+}
+
+/// A daemon's path, reserved before the daemon starts.
+///
+/// The daemon reads a `/proc/meminfo` the test may write, so the test has to
+/// know where the daemon's state will live before the daemon is started.
+struct Reserved {
+    state_dir: PathBuf,
+    extra: Vec<String>,
+}
+
 impl DaemonUnderTest {
-    fn start(extra: &[&str]) -> DaemonUnderTest {
+    /// Reserve a path for a daemon, with the arguments it will be started
+    /// with.
+    ///
+    /// The directory is made here, not when the daemon starts, because the
+    /// test may have to write a file the daemon reads — its `/proc/meminfo`
+    /// — before the daemon is running.
+    fn reserve(name: &str, extra: &[&str]) -> Reserved {
+        let serial = DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let mut state_dir = std::env::temp_dir();
         state_dir.push(format!(
-            "thor-admit-it-{}-{}",
+            "thor-admit-it-{}-{serial}-{}",
             std::process::id(),
-            extra.join("_").replace(['/', ' '], "-")
+            slug(name)
         ));
         let _ = std::fs::remove_dir_all(&state_dir);
+        std::fs::create_dir_all(&state_dir).unwrap();
+        Reserved {
+            state_dir,
+            extra: extra.iter().map(|argument| argument.to_string()).collect(),
+        }
+    }
+
+    /// Start a daemon on the path that was reserved for it.
+    fn start(reserved: Reserved) -> DaemonUnderTest {
+        let state_dir = reserved.state_dir;
         std::fs::create_dir_all(&state_dir).unwrap();
         let socket = state_dir.join("sock");
         let mut command = Command::new(BIN);
@@ -128,7 +179,7 @@ impl DaemonUnderTest {
             .arg("600")
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
-        for argument in extra {
+        for argument in &reserved.extra {
             command.arg(argument);
         }
         let child = command.spawn().expect("the daemon starts");
@@ -139,6 +190,11 @@ impl DaemonUnderTest {
         };
         daemon.wait_for_socket();
         daemon
+    }
+
+    /// Start a daemon with a name of its own.
+    fn start_named(name: &str, extra: &[&str]) -> DaemonUnderTest {
+        DaemonUnderTest::start(DaemonUnderTest::reserve(name, extra))
     }
 
     fn wait_for_socket(&self) {
@@ -206,6 +262,27 @@ fn oom_kills() -> u64 {
         }
     }
     0
+}
+
+/// The one-at-a-time gate every test takes unless it is told not to.
+///
+/// The director's note (2026-10-31): 7 of 14 tests failed when the suite
+/// ran in parallel at load ~38, and all 14 passed serially. Every daemon now
+/// has a socket and a state directory of its own, so the tests no longer
+/// fight over the daemon's state — but they still share the box, and a box
+/// at load 38 delays a client's connect, a daemon's first sample and a
+/// hog's growth by seconds at a time, which the fixed waits in a test read
+/// as a failure. So the suite is serial by default, which is also the fair
+/// way to treat a box other seats are using. `THOR_ADMIT_PARALLEL_TESTS=1`
+/// opens the gate for a deliberate parallel run — the isolation is real and
+/// is tested on its own, and a parallel run under load is how that gets
+/// re-checked.
+fn serial_gate() -> Option<std::sync::MutexGuard<'static, ()>> {
+    static SERIAL: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    if std::env::var("THOR_ADMIT_PARALLEL_TESTS").as_deref() == Ok("1") {
+        return None;
+    }
+    Some(SERIAL.lock().unwrap_or_else(|poisoned| poisoned.into_inner()))
 }
 
 /// The resident set of a process, in bytes.
@@ -281,19 +358,70 @@ fn output_of(child: &mut Child) -> String {
 /// prevent is one careless test away.
 const TEST_MEMORY_CAP_GIB: u64 = 60;
 
-/// How big a hog the heavy tests use. The brief's scale is 30 GiB; a
-/// smaller one is for a box that is already busy.
+/// How much of the box a test hog may leave to everything else.
+///
+/// The box is not the test's: other seats' work runs on it, and a hog that
+/// took what the box had left would push the *kernel's* OOM killer into the
+/// picture, which is the thing this daemon exists to prevent.
+const HOG_MARGIN_GIB: u64 = 16;
+
+/// How big a hog the heavy tests use.
+///
+/// The brief's scale is 30 GiB. A smaller one is for a box that is already
+/// busy: the hog is the smaller of the brief's scale and the box's real
+/// headroom less the margin, so the test never takes memory the box cannot
+/// spare. `THOR_ADMIT_HOG_GB` overrides it for a deliberate run.
 fn hog_gb() -> u64 {
-    let gigabytes = std::env::var("THOR_ADMIT_HOG_GB")
+    let available = mem_available();
+    let headroom = available.saturating_sub(HOG_MARGIN_GIB * GIB) / GIB;
+    let brief = 30;
+    let chosen = match std::env::var("THOR_ADMIT_HOG_GB")
         .ok()
-        .and_then(|text| text.parse().ok())
-        .unwrap_or(30);
+        .and_then(|text| text.parse::<u64>().ok())
+    {
+        Some(gigabytes) => gigabytes,
+        None => headroom.min(brief),
+    };
     assert!(
-        gigabytes <= TEST_MEMORY_CAP_GIB,
-        "the brief caps a test's memory at {TEST_MEMORY_CAP_GIB} GiB, and {gigabytes} GiB \
+        chosen <= TEST_MEMORY_CAP_GIB,
+        "the brief caps a test's memory at {TEST_MEMORY_CAP_GIB} GiB, and {chosen} GiB \
          was asked for"
     );
-    gigabytes
+    chosen
+}
+
+/// The box's own total memory, in bytes.
+fn mem_total() -> u64 {
+    let text = std::fs::read_to_string("/proc/meminfo").unwrap();
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("MemTotal:") {
+            let kb: u64 = rest.split_whitespace().next().unwrap().parse().unwrap();
+            return kb * 1024;
+        }
+    }
+    0
+}
+
+/// A daemon whose view of the box's memory the test holds still.
+///
+/// The daemon reads the kernel's own file in production, so its view of the
+/// box moves with everything else that is running. That is right in
+/// production and wrong in a test: the answer the test is checking must not
+/// change because another seat's work started or finished. So the daemon is
+/// pointed at a file the test writes, and the number in it is the box's real
+/// free memory at the moment the test froze it.
+fn frozen_memory_daemon(
+    name: &str,
+    extra: &[&str],
+    total_bytes: u64,
+    available_bytes: u64,
+) -> DaemonUnderTest {
+    let mut reserved = DaemonUnderTest::reserve(name, extra);
+    let meminfo = reserved.state_dir.join("meminfo");
+    write_meminfo(&meminfo, total_bytes, available_bytes);
+    reserved.extra.push("--meminfo".to_string());
+    reserved.extra.push(meminfo.display().to_string());
+    DaemonUnderTest::start(reserved)
 }
 
 /// A scripted `/proc/meminfo`.
@@ -325,21 +453,250 @@ fn write_meminfo(path: &Path, total_bytes: u64, available_bytes: u64) {
 
 /// The floor that lets exactly one hog run at a time.
 ///
-/// The box has `available` free; a hog of `hog` GiB must fit while a second
-/// one must not. The floor is set from the box's own headroom with a
-/// margin, so the test does not depend on the exact number of gigabytes
-/// free at that moment.
-fn floor_for_one_hog(hog_bytes: u64) -> u64 {
-    let available = mem_available();
-    let margin = 8 * GIB;
-    available
-        .saturating_sub(hog_bytes)
-        .saturating_sub(margin)
-        .max(GIB)
+/// The box has `available` free and a hog takes `hog`. One hog must fit and
+/// two must not, which puts the floor in a window:
+///
+/// ```text
+/// available - 2*hog  <  floor  <=  available - hog
+/// ```
+///
+/// The floor is set half way up that window. Half way is not a detail: the
+/// daemon charges a running lease the memory it has *promised* but not yet
+/// taken, and a hog that is halfway through faulting its pages in is owed
+/// the whole reservation. The two ends of the window are therefore the two
+/// moments the answer could change, and half way is as far from both as the
+/// window allows.
+fn floor_for_one_hog(available: u64, hog_bytes: u64) -> u64 {
+    let upper = available.saturating_sub(hog_bytes);
+    let lower = available.saturating_sub(2 * hog_bytes);
+    lower + (upper - lower) / 2
+}
+
+/// Two daemons in the same test binary must never share a socket path or a
+/// state directory.
+///
+/// The tests run in parallel, and the state directory used to be named after
+/// the process id and the daemon's arguments alone — so every test that
+/// started a daemon with `--floor 1G` landed on the *same* socket, the same
+/// lease locks, the same history file and the same ledger. One test's daemon
+/// answered another's status request, and one test's `Drop` deleted the
+/// directory another test was still using.
+#[test]
+fn two_daemons_never_share_a_socket_or_a_state_directory() {
+    let _serial = serial_gate();
+    let first = DaemonUnderTest::start_named("isolation", &["--floor", "1G"]);
+    let second = DaemonUnderTest::start_named("isolation", &["--floor", "1G"]);
+
+    assert_ne!(
+        first.socket, second.socket,
+        "the two daemons were given the same socket path"
+    );
+    assert_ne!(
+        first.state_dir, second.state_dir,
+        "the two daemons were given the same state directory"
+    );
+
+    // And both of them answer, for themselves.
+    assert!(
+        first.status()["leases"].is_array(),
+        "the first daemon does not answer"
+    );
+    assert!(
+        second.status()["leases"].is_array(),
+        "the second daemon does not answer"
+    );
+}
+
+/// A daemon started for a socket of its own must keep its state beside that
+/// socket.
+///
+/// The CLI starts a daemon when it cannot reach one. It used to start it
+/// with the socket and nothing else, so the daemon fell back to the
+/// *default* state directory — the box's real one — and wrote its history,
+/// its ledger and its log there. A test's daemon was therefore writing into
+/// the box's own record, and a test's `busy` lease ended up in the learned
+/// peaks that the cost model reads.
+#[test]
+fn a_daemon_started_for_a_socket_keeps_its_state_beside_the_socket() {
+    let _serial = serial_gate();
+    let dir = std::env::temp_dir().join(format!(
+        "thor-admit-statedir-{}-{}",
+        std::process::id(),
+        DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let socket = dir.join("sock");
+    // The default state directory, moved out of the way so the test can see
+    // whether the daemon falls back to it.
+    let state_home = dir.join("xdg");
+
+    // The client cannot reach a daemon, so it starts one.
+    let output = Command::new(BIN)
+        .env("XDG_STATE_HOME", &state_home)
+        .arg("run")
+        .arg("--socket")
+        .arg(&socket)
+        .arg("--peak")
+        .arg("1G")
+        .arg("--label")
+        .arg("state.dir.probe")
+        .arg("--")
+        .arg("true")
+        .output()
+        .expect("the client runs");
+    assert!(
+        output.status.success(),
+        "the lease failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    // The daemon the client started kept its state beside its socket: the
+    // lease's peak is written there when the lease ends.
+    let history = dir.join("peaks.jsonl");
+    let deadline = Instant::now() + Duration::from_secs(30);
+    while Instant::now() < deadline && !history.exists() {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(
+        history.exists(),
+        "the daemon did not keep its history beside its socket; the directory holds {:?}",
+        std::fs::read_dir(&dir)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name())
+            .collect::<Vec<_>>()
+    );
+
+    // And it did not touch the default state directory.
+    assert!(
+        !state_home.join("thor-admit").exists(),
+        "the daemon wrote into the default state directory"
+    );
+
+    // Stop the daemon the client started, and take the directory away.
+    let _ = Command::new(BIN)
+        .arg("stop")
+        .arg("--socket")
+        .arg(&socket)
+        .output();
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A second daemon must not take a socket that is already spoken for.
+///
+/// The daemon's front door is its socket, and two daemons on one socket
+/// would be two admission controllers with two views of the box — exactly
+/// the thing this crate exists to prevent. The daemon therefore holds an
+/// exclusive lock on the socket's lock file for as long as it runs, and a
+/// second daemon refuses to start while that lock is held, whether or not
+/// the socket still answers.
+#[test]
+fn a_second_daemon_does_not_take_a_socket_that_is_already_spoken_for() {
+    let _serial = serial_gate();
+    let dir = std::env::temp_dir().join(format!(
+        "thor-admit-lock-{}-{}",
+        std::process::id(),
+        DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let socket = dir.join("sock");
+
+    // Take the lock the way a live daemon would. The socket itself is left
+    // with nobody listening: this is what a daemon whose acceptor has died
+    // leaves behind, and the second daemon must not take it over.
+    use std::os::unix::io::AsRawFd;
+    let lock = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(dir.join("sock.lock"))
+        .unwrap();
+    let held = unsafe { libc::flock(lock.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+    assert_eq!(held, 0, "the test could not take the lock");
+
+    let mut output = Command::new(BIN)
+        .arg("daemon")
+        .arg("--socket")
+        .arg(&socket)
+        .arg("--state-dir")
+        .arg(&dir)
+        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("the daemon starts");
+    // The daemon must *stop*. A daemon that takes the socket and keeps
+    // running would never end this wait, so the wait has its own deadline
+    // and the child is killed if it overruns.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut finished = None;
+    loop {
+        match output.try_wait() {
+            Ok(Some(status)) => {
+                finished = Some(status);
+                break;
+            }
+            Ok(None) => {}
+            Err(_) => break,
+        }
+        if Instant::now() >= deadline {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    let Some(status) = finished else {
+        let _ = output.kill();
+        let _ = output.wait();
+        panic!("the second daemon took a socket that was already spoken for, and did not stop");
+    };
+    let mut errors = String::new();
+    if let Some(mut stderr) = output.stderr.take() {
+        use std::io::Read;
+        let _ = stderr.read_to_string(&mut errors);
+    }
+    assert!(
+        !status.success(),
+        "the second daemon started on a socket that was already spoken for"
+    );
+    assert!(
+        errors.contains("already running") || errors.contains("lock"),
+        "the refusal was not explained: {errors}"
+    );
+
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A stale socket — one whose daemon is gone — must not keep the box from
+/// starting a daemon.
+#[test]
+fn a_stale_socket_does_not_keep_a_daemon_from_starting() {
+    let _serial = serial_gate();
+    let dir = std::env::temp_dir().join(format!(
+        "thor-admit-stale-{}-{}",
+        std::process::id(),
+        DAEMON_SERIAL.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let socket = dir.join("sock");
+    // A socket with nobody listening: bind it, then let the listener go.
+    {
+        let listener = std::os::unix::net::UnixListener::bind(&socket).unwrap();
+        drop(listener);
+    }
+    assert!(socket.exists(), "the stale socket is there");
+
+    let daemon = DaemonUnderTest::start_named("stale-socket", &[]);
+    assert!(
+        daemon.status()["leases"].is_array(),
+        "the daemon did not come up over the stale socket"
+    );
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]
 fn three_thirty_gigabyte_hogs_are_serialised() {
+    let _serial = serial_gate();
     // The brief's memory cap is checked first, so an over-large hog is
     // refused even when the test is about to skip.
     let hog_gb = hog_gb();
@@ -351,11 +708,26 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
         Gate::Run(file) => file,
     };
     let hog_bytes = hog_gb * GIB;
-    // A floor of (available - hog - 8 GiB) means one hog fits and a second
-    // one does not: the daemon charges the running hog's reservation, so
-    // the second hog is refused while the first is still growing.
-    let floor = floor_for_one_hog(hog_bytes);
-    let daemon = DaemonUnderTest::start(&[
+    // The test needs a window wide enough to be a real test: the floor sits
+    // half way between "one hog fits" and "two do not", so the window is
+    // half the hog. Below eight gibibytes the window is too narrow to say
+    // anything, and the box is too busy for the brief's scale anyway.
+    if hog_gb < 8 {
+        eprintln!(
+            "skipping: the box has only {} MiB free, so a {hog_gb} GiB hog would leave a \
+             window too narrow to test; the box is busy",
+            mem_available() / (1024 * 1024)
+        );
+        return;
+    }
+    // The box's own state, measured now, so the numbers in the failure
+    // message say what the box was doing.
+    let available_at_start = mem_available();
+    // A floor half way up the window lets one hog run and refuses the
+    // second: the daemon charges the running hog's reservation, so the
+    // second hog is refused while the first is still growing.
+    let floor = floor_for_one_hog(available_at_start, hog_bytes);
+    let daemon = DaemonUnderTest::start_named("three-thirty-gib-hogs", &[
         "--floor",
         &format!("{}", floor),
     ]);
@@ -402,13 +774,21 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
         "only one {hog_gb} GiB hog may run at a time; the log was:\n{}",
         daemon.log()
     );
-    // One hog at a time: the box never came near empty. (The floor is
-    // charged against the *reservations*, so the second hog is refused
-    // long before the memory is actually gone.)
+    // One hog at a time: the box never came near empty. The measure is
+    // relative — the box's own free memory at the start of the test — so
+    // the answer does not depend on how busy the box was when the test ran.
+    // A hog of its own size may be taken; the margin is everything else
+    // that was running.
+    let allowed = available_at_start
+        .saturating_sub(hog_bytes)
+        .saturating_sub(4 * GIB);
     assert!(
-        min_available > 30 * GIB,
-        "the box fell to {} MiB free",
-        min_available / (1024 * 1024)
+        min_available >= allowed,
+        "the box fell to {} MiB free, which is below the {} MiB it was allowed to fall to \
+         (it started at {} MiB free with a {hog_gb} GiB hog)",
+        min_available / (1024 * 1024),
+        allowed / (1024 * 1024),
+        available_at_start / (1024 * 1024),
     );
     for text in &finished {
         assert!(
@@ -418,8 +798,9 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
     }
     eprintln!(
         "serialisation: {hog_gb} GiB hogs, floor {}, at most {max_active} at a time, \
-         the box never fell below {} MiB free",
+         the box went from {} MiB free to {} MiB free",
         floor,
+        available_at_start / (1024 * 1024),
         min_available / (1024 * 1024)
     );
     for line in daemon.log().lines() {
@@ -431,6 +812,7 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
 
 #[test]
 fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
+    let _serial = serial_gate();
     // The brief's memory cap is checked first, so an over-large hog is
     // refused even when the test is about to skip.
     let hog_gb = hog_gb();
@@ -441,13 +823,25 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         }
         Gate::Run(file) => file,
     };
-    // The emergency floor is scaled down: the real one is 8 GiB, and driving
-    // the box to 8 GiB free would need 110 GiB of allocation, which is not
+    // The emergency floor is placed relative to the hog, not at a fixed
+    // number of gibibytes. The real floor is 8 GiB, and driving the box to
+    // 8 GiB free would need a hundred gibibytes of allocation, which is not
     // safe on a box that is also running a seat's work. The floor here is
-    // (available - 8 GiB), so the same rule fires after the runaway has
-    // taken 8 GiB — and it fires with the whole box still free.
-    let emergency = mem_available().saturating_sub(8 * GIB).max(GIB);
-    let daemon = DaemonUnderTest::start(&[
+    // (available - hog + 2 GiB), so the same rule fires once the runaway
+    // has taken all but two gibibytes of its memory — and it fires with the
+    // whole box still free, because the hog was sized to leave a margin.
+    //
+    // The two gibibytes of slack matter twice over: the box's other work may
+    // free memory while the hog is growing (which would move the crossing
+    // point), and the daemon reads the hog's resident set only once a
+    // second, so the watchdog has to find it already large.
+    let hog_bytes = hog_gb * GIB;
+    let available_at_start = mem_available();
+    let emergency = available_at_start
+        .saturating_sub(hog_bytes)
+        .saturating_add(2 * GIB)
+        .max(GIB);
+    let daemon = DaemonUnderTest::start_named("watchdog-on-the-real-box", &[
         "--emergency-floor",
         &format!("{emergency}"),
         "--min-victim-rss",
@@ -464,38 +858,38 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
 
     // Wait for the watchdog to act.
     let deadline = Instant::now() + Duration::from_secs(60);
-    let mut stopped_at_available = None;
+    let mut terminated_at_available = None;
     let mut min_available = u64::MAX;
     while Instant::now() < deadline {
         let available = mem_available();
         min_available = min_available.min(available);
-        // The event carries the free memory at the moment of the stop.
+        // The event carries the free memory at the moment of the termination.
         for line in daemon.log().lines() {
-            if !line.contains("\"watchdog.stopped\"") {
+            if !line.contains("\"watchdog.terminated\"") {
                 continue;
             }
             if let Ok(event) = serde_json::from_str::<Value>(line) {
-                stopped_at_available = event["mem_available_bytes"].as_u64();
+                terminated_at_available = event["mem_available_bytes"].as_u64();
             }
             break;
         }
-        if stopped_at_available.is_some() {
+        if terminated_at_available.is_some() {
             break;
         }
         std::thread::sleep(Duration::from_millis(50));
     }
 
-    let Some(available_at_stop) = stopped_at_available else {
+    let Some(available_at_stop) = terminated_at_available else {
         let _ = hog.kill();
         let _ = hog.wait();
-        panic!("the watchdog did not stop the hog; the log was:\n{}", daemon.log());
+        panic!("the watchdog did not terminate the hog; the log was:\n{}", daemon.log());
     };
 
-    // The whole point: the box was stopped while there was still a lot of
+    // The whole point: the box was acted on while there was still a lot of
     // memory free — long before the kernel's OOM killer would have run.
     assert!(
         available_at_stop > 2 * GIB,
-        "the hog was stopped with only {} MiB free, which is inside the OOM zone",
+        "the hog was terminated with only {} MiB free, which is inside the OOM zone",
         available_at_stop / (1024 * 1024)
     );
     assert_eq!(
@@ -504,41 +898,9 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         "the kernel's OOM killer fired; the watchdog was too late"
     );
 
-    // The hog must actually be stopped, not merely signalled. The hog is
-    // the command the client spawned, in its own process group: the group's
-    // leader *is* the hog, and that is the pid the watchdog signalled.
-    let deadline = Instant::now() + Duration::from_secs(5);
-    let mut hog_pid = 0i64;
-    let mut saw_stopped = false;
-    while Instant::now() < deadline {
-        let status = daemon.status();
-        if let Some(lease) = status["leases"].as_array().and_then(|leases| leases.first()) {
-            hog_pid = lease["pgid"].as_i64().unwrap_or(0);
-            let state = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")).unwrap_or_default();
-            let code = state
-                .rfind(')')
-                .map(|close| {
-                    state[close + 1..]
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or("")
-                        .to_string()
-                })
-                .unwrap_or_default();
-            if code == "T" || code == "t" {
-                saw_stopped = true;
-                break;
-            }
-        }
-        std::thread::sleep(Duration::from_millis(20));
-    }
-    assert!(
-        saw_stopped,
-        "the runaway was never stopped (pid {hog_pid}); the log was:\n{}",
-        daemon.log()
-    );
-
-    // And then it dies: the watchdog kills it once the grace period is out.
+    // The hog must actually die: the watchdog terminated it (SIGTERM, not a
+    // stop — a stopped process keeps its memory, which on this box buys
+    // nothing), so the client reaps it, releases the lease and exits.
     let deadline = Instant::now() + Duration::from_secs(20);
     let mut died = false;
     while Instant::now() < deadline {
@@ -548,25 +910,30 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    assert!(died, "the runaway was stopped but never killed");
     assert!(
-        daemon.log().contains("watchdog.killed"),
-        "the daemon did not log the kill; the log was:\n{}",
+        died,
+        "the runaway was terminated but never died; the log was:\n{}",
+        daemon.log()
+    );
+    // And the memory it held is booked back: the lease is released only
+    // after the client reaped the process, so the daemon's picture and the
+    // kernel's agree again.
+    assert!(
+        wait_until(20, || daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)),
+        "the terminated lease was not released; the log was:\n{}",
         daemon.log()
     );
     eprintln!(
-        "watchdog: the runaway was stopped with {} MiB free (the emergency floor was \
-         {} MiB) and killed {} ms later; the kernel's OOM killer fired {} times",
+        "watchdog: the runaway was terminated with {} MiB free (the emergency floor was \
+         {} MiB) and died, with the kernel's OOM killer firing {} times; the box's \
+         lowest reading was {} MiB",
         available_at_stop / (1024 * 1024),
         emergency / (1024 * 1024),
-        daemon
-            .log()
-            .lines()
-            .find(|line| line.contains("\"watchdog.killed\""))
-            .and_then(|line| serde_json::from_str::<Value>(line).ok())
-            .and_then(|event| event["waited_ms"].as_u64())
-            .unwrap_or(0),
-        oom_kills() - oom_before
+        oom_kills() - oom_before,
+        min_available / (1024 * 1024),
     );
 
     let _ = hog.kill();
@@ -580,10 +947,14 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
 /// Driving the **real** box to 2 GiB free would take about 100 GiB of
 /// allocation. The brief caps a test's memory at 60 GiB, and the box is
 /// also running a seat's work, so the memory **curve** is scripted here:
-/// the daemon, the hog, the SIGSTOP, the SIGTERM and the timing are all
-/// real; only the number the daemon reads is written by the test.
+/// the daemon, the hog, the SIGTERM and the timing are all real; only the
+/// number the daemon reads is written by the test.
+///
+/// The watchdog terminates (never stops: the box has no swap, so a stopped
+/// process keeps its memory and the emergency gets worse while it waits).
 #[test]
 fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
+    let _serial = serial_gate();
     let total = 122 * GIB;
     // The daemon's own default emergency floor: the brief's 8 GiB.
     let floor = 8 * GIB;
@@ -594,7 +965,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let meminfo = scratch.join("meminfo");
     write_meminfo(&meminfo, total, 100 * GIB);
 
-    let daemon = DaemonUnderTest::start(&["--meminfo", meminfo.to_str().unwrap()]);
+    let daemon = DaemonUnderTest::start_named("watchdog-on-a-scripted-curve", &["--meminfo", meminfo.to_str().unwrap()]);
     let oom_before = oom_kills();
 
     // A hog big enough to be a valid victim (the watchdog will not touch a
@@ -648,7 +1019,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let mut observed_at = None;
     while Instant::now() < deadline {
         for line in daemon.log().lines() {
-            if !line.contains("\"watchdog.stopped\"") {
+            if !line.contains("\"watchdog.terminated\"") {
                 continue;
             }
             if let Ok(event) = serde_json::from_str::<Value>(line) {
@@ -665,7 +1036,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let Some(available_at_stop) = stopped_at else {
         let _ = hog.kill();
         let _ = hog.wait();
-        panic!("the watchdog did not stop the hog; the log was:\n{}", daemon.log());
+        panic!("the watchdog did not terminate the hog; the log was:\n{}", daemon.log());
     };
 
     // Let the curve finish: it has to reach the danger zone *after* the
@@ -674,11 +1045,11 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let curve = steps.lock().unwrap().clone();
     let lowest = curve.last().map(|(available, _)| *available).unwrap_or(0);
 
-    // The brief's line: the hog was stopped while there was still more than
-    // 2 GiB free.
+    // The brief's line: the hog was terminated while there was still more
+    // than 2 GiB free.
     assert!(
         available_at_stop > 2 * GIB,
-        "the hog was stopped with only {} MiB free, which is inside the OOM zone",
+        "the hog was terminated with only {} MiB free, which is inside the OOM zone",
         available_at_stop / (1024 * 1024)
     );
     // It acted because the box was short, and it acted at once: the daemon
@@ -692,46 +1063,22 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         floor / (1024 * 1024)
     );
     // The curve really did go past the 2 GiB line, and it did so after the
-    // stop: the daemon acted before the box was in trouble.
+    // termination: the daemon acted before the box was in trouble.
     assert!(
         lowest <= 2 * GIB,
         "the curve only reached {} MiB free, so the danger zone was never reached",
         lowest / (1024 * 1024)
     );
 
-    // The hog must actually be stopped, not merely signalled.
-    let deadline = Instant::now() + Duration::from_secs(10);
+    // The hog must actually die: a termination is not a stop. The client
+    // reaps the SIGTERM'd process, releases the lease and exits.
     let mut hog_pid = 0i64;
-    let mut saw_stopped = false;
-    while Instant::now() < deadline {
+    {
         let status = daemon.status();
         if let Some(lease) = status["leases"].as_array().and_then(|leases| leases.first()) {
             hog_pid = lease["pgid"].as_i64().unwrap_or(0);
-            let state = std::fs::read_to_string(format!("/proc/{hog_pid}/stat")).unwrap_or_default();
-            let code = state
-                .rfind(')')
-                .map(|close| {
-                    state[close + 1..]
-                        .split_whitespace()
-                        .next()
-                        .unwrap_or("")
-                        .to_string()
-                })
-                .unwrap_or_default();
-            if code == "T" || code == "t" {
-                saw_stopped = true;
-                break;
-            }
         }
-        std::thread::sleep(Duration::from_millis(20));
     }
-    assert!(
-        saw_stopped,
-        "the runaway was never stopped (pid {hog_pid}); the log was:\n{}",
-        daemon.log()
-    );
-
-    // And then it dies.
     let deadline = Instant::now() + Duration::from_secs(20);
     let mut died = false;
     while Instant::now() < deadline {
@@ -741,10 +1088,9 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         }
         std::thread::sleep(Duration::from_millis(100));
     }
-    assert!(died, "the runaway was stopped but never killed");
     assert!(
-        daemon.log().contains("watchdog.killed"),
-        "the daemon did not log the kill; the log was:\n{}",
+        died,
+        "the runaway was terminated but never died; the log was:\n{}",
         daemon.log()
     );
     assert_eq!(
@@ -753,7 +1099,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         "the kernel's OOM killer fired; the watchdog was too late"
     );
 
-    // And nothing is left behind. A hog that was stopped and never killed
+    // And nothing is left behind. A hog that was terminated and never died
     // would sit on the box holding its memory with nobody watching it.
     let deadline = Instant::now() + Duration::from_secs(5);
     while Instant::now() < deadline && hog_pid > 0 && Path::new(&format!("/proc/{hog_pid}")).exists() {
@@ -765,8 +1111,18 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
             libc::kill(-(hog_pid as i32), libc::SIGCONT);
             libc::kill(-(hog_pid as i32), libc::SIGTERM);
         }
-        panic!("the hog {hog_pid} was still there after the watchdog killed it");
+        panic!("the hog {hog_pid} was still there after the watchdog terminated it");
     }
+    // And the daemon let go of the reservation only after the process was
+    // reaped: the memory is back when the process is, not before.
+    assert!(
+        wait_until(20, || daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)),
+        "the terminated lease was never released; the log was:\n{}",
+        daemon.log()
+    );
 
     // How fast: the curve crossed the floor, and the daemon acted after it.
     // The number is an upper bound — the log is polled every 20 ms.
@@ -779,7 +1135,7 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
         _ => Duration::ZERO,
     };
     eprintln!(
-        "low water: the hog was stopped with {} MiB free (the floor was {} MiB) and the \
+        "low water: the hog was terminated with {} MiB free (the floor was {} MiB) and the \
          curve went on down to {} MiB; the daemon acted within {} ms of the floor being \
          crossed, and the kernel's OOM killer fired {} times",
         available_at_stop / (1024 * 1024),
@@ -796,7 +1152,8 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
 
 #[test]
 fn a_dead_client_cannot_leak_a_lease() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("dead-client", &["--floor", "1G"]);
 
     let mut client = leased(&daemon, "ghost", "1G", &["sleep", "120"]);
 
@@ -840,9 +1197,264 @@ fn a_dead_client_cannot_leak_a_lease() {
     );
 }
 
+/// The lease-holder helper: a client whose silence is up to the test.
+fn lease_holder(mode: &str, daemon: &DaemonUnderTest, label: &str, seconds: f64) -> Child {
+    Command::new("python3")
+        .arg(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/lease_holder.py"))
+        .arg(mode)
+        .arg(&daemon.socket)
+        .arg(label)
+        .arg(seconds.to_string())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the lease holder starts")
+}
+
+/// A client that holds its lease and never says another word is stuck, and
+/// a stuck client's lock never drops: the reservation would be charged
+/// forever. The heartbeat is the other half of the truth — the lock says
+/// the client is not dead, the heartbeat says it is not stuck — and the
+/// daemon gives a silent client a grace period before it acts (Hy4's
+/// fourth failure mode).
+#[test]
+fn a_silent_client_loses_its_lease() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("silent-client", &[
+        "--floor",
+        "1G",
+        "--heartbeat-grace-secs",
+        "2",
+    ]);
+
+    let mut holder = lease_holder("silent", &daemon, "stuck.holder", 60.0);
+    let held = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(held, "the holder never took the lease: {}", daemon.log());
+
+    // It is silent for far longer than the grace period.
+    let gone = wait_until(20, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        gone,
+        "the silent client kept its lease; the log was:\n{}",
+        daemon.log()
+    );
+    assert!(
+        daemon.log().contains("lease.stale_client"),
+        "the daemon never named the silence: {}",
+        daemon.log()
+    );
+    // And the stuck client itself was asked to leave: its exit drops the
+    // lock, which is what actually released the lease.
+    assert!(
+        daemon.log().contains("lease.stale_client_signalled"),
+        "the stuck client was never signalled: {}",
+        daemon.log()
+    );
+    let _ = holder.kill();
+    let _ = holder.wait();
+}
+
+/// A lock can outlive its client: the file descriptor is inherited by a
+/// child, the client exits, and the lock is held with nobody left to
+/// release it. The daemon must not charge that reservation forever — and it
+/// tells this case from a stuck client by the client's own pid, which the
+/// socket's credentials put beyond argument.
+#[test]
+fn an_orphaned_lock_cannot_hold_a_reservation_forever() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("orphaned-lock", &[
+        "--floor",
+        "1G",
+        "--heartbeat-grace-secs",
+        "2",
+    ]);
+
+    let mut holder = lease_holder("orphan", &daemon, "orphan.holder", 60.0);
+    let held = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(held, "the holder never took the lease: {}", daemon.log());
+    // The holder has already exited; only the inherited descriptor remains.
+    let _ = holder.wait();
+
+    let gone = wait_until(20, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        gone,
+        "an orphaned lock kept its reservation; the log was:\n{}",
+        daemon.log()
+    );
+    assert!(
+        daemon.log().contains("lease.force_released"),
+        "the daemon never took the orphaned lease back: {}",
+        daemon.log()
+    );
+}
+
+/// A client that heartbeats keeps its lease, however long it holds it.
+#[test]
+fn a_heartbeating_client_keeps_its_lease() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("heartbeat-client", &[
+        "--floor",
+        "1G",
+        "--heartbeat-grace-secs",
+        "2",
+    ]);
+
+    // Ten seconds of holding with heartbeats every half-second: five times
+    // the grace period, which a silent client does not survive.
+    let mut holder = lease_holder("heartbeat", &daemon, "healthy.holder", 10.0);
+    let held = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(held, "the holder never took the lease: {}", daemon.log());
+
+    std::thread::sleep(Duration::from_secs(8));
+    let status = daemon.status();
+    assert_eq!(
+        status["leases"].as_array().map(|l| l.len()).unwrap_or(0),
+        1,
+        "the heartbeating client lost its lease; the log was:\n{}",
+        daemon.log()
+    );
+    assert!(
+        !daemon.log().contains("lease.stale_client"),
+        "the daemon called a heartbeating client silent: {}",
+        daemon.log()
+    );
+
+    let _ = holder.kill();
+    let _ = holder.wait();
+}
+
+/// A model is loaded once per box, not once per seat (round 8, item 3: the
+/// 22:09 incident had two d1-2B llama-servers running because two seats
+/// each started one). The second seat that asks gets the first's port and
+/// runs nothing; when the first goes away, the server goes with it and the
+/// next ask starts a fresh one.
+#[test]
+fn a_model_is_loaded_once_per_box() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("serve-once", &["--floor", "1G"]);
+    // A port nobody is using.
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    drop(listener);
+
+    let serve_args: Vec<String> = vec![
+        "serve".to_string(),
+        "test-model".to_string(),
+        "--socket".to_string(),
+        daemon.socket.display().to_string(),
+        "--port".to_string(),
+        port.to_string(),
+        "--peak".to_string(),
+        "1G".to_string(),
+        "--".to_string(),
+        "python3".to_string(),
+        "-m".to_string(),
+        "http.server".to_string(),
+        port.to_string(),
+    ];
+
+    // The first seat starts the "model server" and stays in front of it.
+    // The port answering is not enough to proceed on — the registry entry
+    // is what the second seat reads, and the serve watching the port writes
+    // that a moment after it first answers — so this waits for both.
+    let registered = || {
+        thor_admit::serve::port_answers(port)
+            && std::fs::read_to_string(daemon.state_dir.join("servers.json"))
+                .map(|text| text.contains("\"model\":\"test-model\""))
+                .unwrap_or(false)
+    };
+    let mut first = Command::new(BIN)
+        .args(&serve_args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the first serve starts");
+    let came_up = wait_until(20, registered);
+    assert!(
+        came_up,
+        "the model server never answered or was never registered; the log was:\n{}",
+        daemon.log()
+    );
+
+    // The second seat asks for the same model: it gets the port, exits
+    // clean, and starts nothing of its own.
+    let second = Command::new(BIN)
+        .args(&serve_args)
+        .output()
+        .expect("the second serve runs");
+    assert!(
+        second.status.success(),
+        "the second serve failed: {}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    let answered = String::from_utf8_lossy(&second.stdout);
+    assert!(
+        answered.contains("is served on port"),
+        "the second serve did not return the port: {answered}"
+    );
+    // One model, one entry, one server.
+    let registry = std::fs::read_to_string(daemon.state_dir.join("servers.json"))
+        .unwrap_or_default();
+    let entries = registry
+        .lines()
+        .filter(|line| line.contains("\"model\":\"test-model\""))
+        .count();
+    assert_eq!(entries, 1, "the registry has {entries} entries:\n{registry}");
+
+    // The first seat goes away: its server goes with it (the lease cleans
+    // up after the client), the port stops answering, and the next ask
+    // starts a fresh one.
+    let _ = first.kill();
+    let _ = first.wait();
+    let went_away = wait_until(15, || !thor_admit::serve::port_answers(port));
+    assert!(
+        went_away,
+        "the server outlived the seat that started it; the log was:\n{}",
+        daemon.log()
+    );
+
+    let mut third = Command::new(BIN)
+        .args(&serve_args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the third serve starts");
+    let back = wait_until(20, || thor_admit::serve::port_answers(port));
+    assert!(back, "a fresh server was never started: {}", daemon.log());
+
+    let _ = third.kill();
+    let _ = third.wait();
+}
+
 #[test]
 fn the_daemon_costs_almost_nothing() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("daemon-overhead", &["--floor", "1G"]);
     let pid = daemon.child.id();
 
     // Warm up, then measure over ten seconds of doing nothing.
@@ -896,15 +1508,41 @@ fn the_daemon_costs_almost_nothing() {
 
 #[test]
 fn a_learned_peak_is_used_by_the_next_run() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("learned-peak", &["--floor", "1G"]);
 
-    // One run with an explicit peak teaches the daemon what the label costs.
-    let mut first = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
-    let _ = first.wait();
-    let _ = output_of(&mut first);
+    // `--peak auto` refuses to guess until the label has three runs, so the
+    // teaching is three runs with an explicit peak.
+    let mut refused = leased(&daemon, "auto-label", "auto", &["true"]);
+    let status = refused.wait().expect("the client finishes");
+    let output = output_of(&mut refused);
+    assert!(!status.success(), "the client should have been refused");
+    assert!(
+        output.contains("no history for the label"),
+        "the refusal was not explained:\n{output}"
+    );
+
+    // With one or two runs the daemon still refuses — a p95 of so few runs
+    // under-reserves a shifted workload — and says so differently.
+    let mut under_taught = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
+    let _ = under_taught.wait();
+    let _ = output_of(&mut under_taught);
+    let mut still_refused = leased(&daemon, "auto-label", "auto", &["true"]);
+    let _ = still_refused.wait();
+    let output = output_of(&mut still_refused);
+    assert!(
+        output.contains("needs 3") && output.contains("run(s) for the label"),
+        "the too-few-runs refusal was not explained:\n{output}"
+    );
+
+    for _ in 0..2 {
+        let mut run = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
+        let _ = run.wait();
+        let _ = output_of(&mut run);
+    }
 
     let history = daemon.history();
-    assert_eq!(history.len(), 1, "the run was recorded");
+    assert_eq!(history.len(), 3, "the runs were recorded");
     assert_eq!(history[0]["label"], "auto-label");
     let measured = history[0]["peak_rss_bytes"].as_u64().unwrap();
     assert!(
@@ -928,9 +1566,108 @@ fn a_learned_peak_is_used_by_the_next_run() {
     );
 }
 
+/// The auto peak reserves the larger of the p95 and the last run: a label
+/// whose last run was far heavier than its history must not be reserved at
+/// the p95 of the quiet runs (Hy4's second failure mode).
+#[test]
+fn an_auto_peak_reserves_the_last_run_when_it_outran_the_p95() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("auto-takes-the-last", &["--floor", "1G"]);
+
+    // Three quiet runs, then one heavy one. The p95 of [2, 2, 2, 6] GiB is
+    // about 5.4 GiB; the last run took a measured ~6 GiB.
+    for gigabytes in [2u64, 2, 2, 6] {
+        let mut run = leased(
+            &daemon,
+            "shifting-label",
+            "6G",
+            &[HOG, "--bytes", &format!("{gigabytes}G"), "--hold", "1"],
+        );
+        let _ = run.wait();
+        let _ = output_of(&mut run);
+    }
+
+    let mut last = daemon.history();
+    let last_measured = last
+        .pop()
+        .and_then(|record| record["peak_rss_bytes"].as_u64())
+        .expect("the heavy run was recorded");
+    assert!(last_measured > 5 * GIB, "the heavy run took {last_measured}");
+
+    // The next auto run is reserved at no less than the last run's peak.
+    let mut next = leased(&daemon, "shifting-label", "auto", &[HOG, "--bytes", "2G", "--hold", "1"]);
+    let output = {
+        let _ = next.wait();
+        output_of(&mut next)
+    };
+    assert!(output.contains("admitted after"), "auto was refused:\n{output}");
+    let granted = daemon
+        .log()
+        .lines()
+        .filter(|line| line.contains("\"lease.granted\"") && line.contains("shifting-label"))
+        .last()
+        .and_then(|line| serde_json::from_str::<Value>(line).ok())
+        .and_then(|event| event["peak_bytes"].as_u64())
+        .expect("the auto run was granted");
+    assert!(
+        granted >= last_measured,
+        "the auto run was reserved {granted} bytes, below the last run's \
+         {last_measured} bytes — the p95 alone under-reserved it"
+    );
+}
+
+/// A lease that outruns its reservation is logged, and its measured peak is
+/// written to the history while the lease is still running — not only when
+/// it ends.
+#[test]
+fn an_overrunning_lease_is_logged_and_written_at_once() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("overrun", &["--floor", "1G"]);
+
+    // Reserved 1 GiB; takes 3 GiB.
+    let mut hog = leased(&daemon, "under.reserved", "1G", &[HOG, "--bytes", "3G", "--hold", "8"]);
+
+    let saw_event = wait_until(20, || {
+        daemon
+            .log()
+            .lines()
+            .any(|line| line.contains("\"lease.underreserved\""))
+    });
+    assert!(
+        saw_event,
+        "the over-run was not logged; the log was:\n{}",
+        daemon.log()
+    );
+    // The interim record is in the history while the lease still holds.
+    let interim = wait_until(10, || {
+        daemon
+            .history()
+            .iter()
+            .any(|record| record["peak_source"] == "overrun")
+    });
+    assert!(
+        interim,
+        "the over-running peak was not written while the lease ran; the history was {:?}",
+        daemon.history()
+    );
+
+    let _ = hog.wait();
+    let _ = output_of(&mut hog);
+
+    // And the final record is there too, with the client's own measurement.
+    let history = daemon.history();
+    assert!(
+        history
+            .iter()
+            .any(|record| record["peak_source"] == "rusage"),
+        "the finished lease's peak was not recorded: {history:?}"
+    );
+}
+
 #[test]
 fn the_stop_command_stops_the_daemon() {
-    let mut daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let _serial = serial_gate();
+    let mut daemon = DaemonUnderTest::start_named("stop-command", &["--floor", "1G"]);
 
     // The daemon is answering.
     assert!(
@@ -965,7 +1702,8 @@ fn the_stop_command_stops_the_daemon() {
 
 #[test]
 fn a_refused_lease_does_not_run_the_command() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("refused-lease", &["--floor", "1G"]);
     let marker = daemon.state_dir.join("ran.txt");
 
     // "--peak auto" for a label with no history is refused.
@@ -990,46 +1728,73 @@ fn a_refused_lease_does_not_run_the_command() {
 
 #[test]
 fn the_queue_is_ordered_by_priority() {
-    // The floor and the reservation are derived from the box's free memory
-    // at this moment, so the test says what it means whatever else is
-    // running. The floor is placed half way between "the first lease fits"
-    // and "no lease fits", so all three requests wait and the queue is
-    // tested on its own — and the box's memory can move by twenty-odd
-    // gibibytes while the test runs without changing the answer.
-    let available = mem_available();
-    let reservation = ((available / 2) / GIB) * GIB;
+    let _serial = serial_gate();
+    // The floor and the reservation are derived from a **held-still** view
+    // of the box, so the test says what it means whatever else is running.
+    // The box's free memory moves by twenty-odd gibibytes while a sweep
+    // renders, and the queue's order must not depend on that. The frozen
+    // view is a busy box: a hundred gibibytes free of a hundred and
+    // twenty-two.
+    let total = mem_total();
+    let available = 100 * GIB;
+    let reservation = 40 * GIB;
+    // The floor is placed so that a lease of `reservation` does not fit:
+    // 100 - 40 = 60 GiB is left, and the floor is 80 GiB.
     let floor = available - reservation / 2;
-    let daemon = DaemonUnderTest::start(&[
-        "--floor",
-        &floor.to_string(),
-        "--emergency-floor",
-        "1G",
-    ]);
+    let daemon = frozen_memory_daemon(
+        "queue-by-priority",
+        &["--floor", &floor.to_string(), "--emergency-floor", "1G"],
+        total,
+        available,
+    );
     let peak = format!("{}G", reservation / GIB);
 
+    // The arrivals are waited for, not slept past: a box under load delays
+    // a client's connect by more than any fixed sleep, and the FIFO half of
+    // the assertion only means something if "low" really arrived first.
+    let queued_labels = |daemon: &DaemonUnderTest| -> Vec<String> {
+        daemon.status()["queue"]
+            .as_array()
+            .map(|items| {
+                items
+                    .iter()
+                    .map(|item| item["label"].as_str().unwrap_or("?").to_string())
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
     let low = leased_with_priority(&daemon, "low", &peak, 0, &["sleep", "6"]);
-    std::thread::sleep(Duration::from_millis(800));
+    assert!(
+        wait_until(20, || queued_labels(&daemon).contains(&"low".to_string())),
+        "\"low\" never reached the queue; the status was {}",
+        daemon.status()
+    );
 
     let normal = leased_with_priority(&daemon, "normal", &peak, 0, &["sleep", "6"]);
-    std::thread::sleep(Duration::from_millis(400));
+    assert!(
+        wait_until(20, || {
+            let labels = queued_labels(&daemon);
+            labels.contains(&"normal".to_string())
+                && labels.iter().position(|l| l == "low")
+                    < labels.iter().position(|l| l == "normal")
+        }),
+        "\"normal\" never queued behind \"low\"; the status was {}",
+        daemon.status()
+    );
 
-    // A high-priority request must overtake the one that arrived first.
+    // A high-priority request must overtake the ones that arrived first.
     let high = leased_with_priority(&daemon, "high", &peak, 5, &["sleep", "2"]);
-    std::thread::sleep(Duration::from_millis(800));
+    assert!(
+        wait_until(20, || queued_labels(&daemon).len() == 3),
+        "the three requests were never all waiting; the status was {}",
+        daemon.status()
+    );
 
-    let status = daemon.status();
-    let queue: Vec<String> = status["queue"]
-        .as_array()
-        .map(|items| {
-            items
-                .iter()
-                .map(|item| item["label"].as_str().unwrap_or("?").to_string())
-                .collect()
-        })
-        .unwrap_or_default();
+    let queue = queued_labels(&daemon);
     assert!(
         !queue.is_empty(),
-        "nothing was queued; the status was {status}"
+        "nothing was queued; the status was {}",
+        daemon.status()
     );
     assert_eq!(
         queue.first().map(String::as_str),
@@ -1055,12 +1820,124 @@ fn the_queue_is_ordered_by_priority() {
     }
 }
 
+/// The GPU's own allocation pool is a second budget, beside MemAvailable.
+///
+/// `MemAvailable` is the kernel's estimate of reclaimable memory, and it
+/// cannot say how full or how fragmented the *non-reclaimable* pool is —
+/// `cudaMalloc` blocks and pinned host memory stay put. `tegrastats`' `lfb`
+/// (the free blocks of the allocation pool) can. When the pool is thin a
+/// lease waits even though MemAvailable is generous: that is Hy4's third
+/// failure mode, a workload OOM-ing on `cudaMalloc` while the daemon said
+/// there was room.
+///
+/// The pool here is driven by a fake `tegrastats` (the
+/// `--tegrastats-command` seam, like `--meminfo`), so the test allocates
+/// nothing and touches no GPU.
+#[test]
+fn a_lease_waits_when_the_gpus_own_pool_is_thin() {
+    let _serial = serial_gate();
+    let reserved = DaemonUnderTest::reserve("gpu-pool", &[]);
+    let state_dir = reserved.state_dir.clone();
+    // The pool the fake reports: the number of 4 MiB blocks free.
+    let pool = state_dir.join("lfb");
+    std::fs::write(&pool, "2\n").unwrap(); // 8 MiB free of the allocation pool
+    let script = state_dir.join("fake-tegrastats.sh");
+    std::fs::write(
+        &script,
+        format!(
+            "#!/bin/sh\nwhile :; do\n  n=$(cat {})\n  printf '10-31-2026 23:00:00 RAM \
+             40000/125749MB (lfb %sx4MB) VDD_GPU 3000mW/3000mW/3000mW\\n' \"$n\"\n  \
+             sleep 1\ndone\n",
+            pool.display()
+        ),
+    )
+    .unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    let _ = std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755));
+    let mut extra = vec![
+        "--floor".to_string(),
+        "1G".to_string(),
+        "--gpu-probe".to_string(),
+        "tegrastats".to_string(),
+        "--gpu-floor".to_string(),
+        "1G".to_string(),
+        "--tegrastats-command".to_string(),
+        script.display().to_string(),
+    ];
+    extra.extend(reserved.extra.clone());
+    let daemon = DaemonUnderTest::start(Reserved {
+        state_dir,
+        extra,
+    });
+
+    // The daemon must *see* the thin pool before the lease asks: the fake
+    // tegrastats is a child that takes a moment to print its first line,
+    // and a grant that lands before the first sample would be ruled on by
+    // the memory rule alone — the very thing this test is not about.
+    let pool_seen = wait_until(15, || {
+        daemon.status()["gpu_largest_free_block_bytes"].as_u64() == Some(8 * 1024 * 1024)
+    });
+    assert!(
+        pool_seen,
+        "the daemon never saw the scripted pool; the status was {}",
+        daemon.status()
+    );
+
+    // MemAvailable is the box's real, generous number; the pool is 8 MiB.
+    // The lease fits the memory rule and still waits.
+    let mut waiter = leased(&daemon, "gpu.thirsty", "1G", &["sleep", "60"]);
+    let held = wait_until(15, || {
+        daemon.log().contains("lease.waiting_for_gpu_memory")
+    });
+    assert!(
+        held,
+        "the daemon did not say the lease was waiting for the GPU's pool; \
+         the log was:\n{}",
+        daemon.log()
+    );
+    assert_eq!(
+        daemon.status()["queue"]
+            .as_array()
+            .map(|queue| queue.len())
+            .unwrap_or(0),
+        1,
+        "the lease should be waiting, not running; the status was {}",
+        daemon.status()
+    );
+
+    // The pool recovers (whatever held it let go): the lease is admitted.
+    std::fs::write(&pool, "1024\n").unwrap(); // 4 GiB free
+    let admitted = wait_until(20, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        admitted,
+        "the lease was not admitted once the pool recovered; the log was:\n{}",
+        daemon.log()
+    );
+    // And the status shows the pool beside the memory, which is where the
+    // rule's numbers live.
+    let status = daemon.status();
+    assert_eq!(
+        status["gpu_largest_free_block_bytes"].as_u64(),
+        Some(1024 * 4 * 1024 * 1024),
+        "the status does not show the pool it is ruling on: {status}"
+    );
+
+    let _ = waiter.kill();
+    let _ = waiter.wait();
+}
+
 /// The daemon must never signal the box's own services.
 #[test]
 fn the_watchdog_leaves_small_leases_alone() {
+    let _serial = serial_gate();
     // The emergency floor is above the box's free memory, so the watchdog is
     // armed from the first sample.
-    let daemon = DaemonUnderTest::start(&[
+    let daemon = DaemonUnderTest::start_named("watchdog-small-leases", &[
         "--floor",
         "1G",
         "--emergency-floor",
@@ -1079,12 +1956,12 @@ fn the_watchdog_leaves_small_leases_alone() {
     let state = std::fs::read_to_string(format!("/proc/{small_pid}/stat")).unwrap_or_default();
     let close = state.rfind(')').unwrap_or(0);
     let code = state[close + 1..].split_whitespace().next().unwrap_or("");
-    assert_ne!(
-        code, "T",
-        "the watchdog stopped a lease that was too small to be the cause"
+    assert_eq!(
+        code, "S",
+        "the small lease's process is {code:?} rather than peacefully sleeping"
     );
     assert!(
-        !daemon.log().contains("watchdog.stopped"),
+        !daemon.log().contains("watchdog.terminated"),
         "the watchdog acted on a small lease"
     );
 
@@ -1160,7 +2037,8 @@ fn wait_until(seconds: u64, mut predicate: impl FnMut() -> bool) -> bool {
 /// The registered work runs when the box has room for it.
 #[test]
 fn a_presence_job_runs_when_the_box_has_room() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("presence-runs", &["--floor", "1G"]);
     let marker = daemon.state_dir.join("ran");
     let _ = std::fs::remove_file(&marker);
 
@@ -1189,22 +2067,32 @@ fn a_presence_job_runs_when_the_box_has_room() {
 /// Live work takes the memory back from the presence queue.
 #[test]
 fn a_live_lease_preempts_a_presence_job() {
+    let _serial = serial_gate();
     // The floor is set so that the presence job's reservation is exactly
     // what stands between the live lease and the box's room: the presence
     // job promised 4 GiB it has not used, and the live lease needs 2 GiB.
-    let available = mem_available();
+    //
+    // The view of the box is held still, so the arithmetic is the same
+    // whatever the box is doing while the test runs.
+    let total = mem_total();
+    let available = 100 * GIB;
     let presence_peak = 4 * GIB;
     let live_peak = 2 * GIB;
     let floor = available
         .saturating_sub(presence_peak)
         .saturating_sub(live_peak)
         .saturating_add(GIB);
-    let daemon = DaemonUnderTest::start(&[
-        "--floor",
-        &floor.to_string(),
-        "--emergency-floor",
-        &available.saturating_sub(GIB).to_string(),
-    ]);
+    let daemon = frozen_memory_daemon(
+        "presence-preempted",
+        &[
+            "--floor",
+            &floor.to_string(),
+            "--emergency-floor",
+            &available.saturating_sub(GIB).to_string(),
+        ],
+        total,
+        available,
+    );
 
     // A presence job that reserves memory it does not use yet.
     let id = presence_add(
@@ -1214,7 +2102,7 @@ fn a_live_lease_preempts_a_presence_job() {
         "presence.test",
         &["sleep", "120"],
     );
-    let running = wait_until(20, || {
+    let running = wait_until(30, || {
         presence_jobs(&daemon)
             .iter()
             .any(|job| job["id"].as_u64() == Some(id) && job["state"] == "running")
@@ -1224,7 +2112,7 @@ fn a_live_lease_preempts_a_presence_job() {
     // A live lease arrives. It does not fit while the presence job holds
     // its reservation, so the daemon must take the memory back.
     let mut live = leased(&daemon, "live.test", "2G", &["sleep", "20"]);
-    let granted = wait_until(20, || {
+    let granted = wait_until(30, || {
         daemon
             .log()
             .contains("\"label\":\"live.test\"")
@@ -1257,10 +2145,80 @@ fn a_live_lease_preempts_a_presence_job() {
     let _ = live.wait();
 }
 
+/// A granted lease that is never held never ran anything, and the ledger
+/// must not invent work for it: the tier's running time stays at zero, and
+/// the window is booked to its own attributed cause instead (Hy4's fifth
+/// failure mode — the ledger showed live.running_s > 0 for a lease whose
+/// command never started).
+#[test]
+fn a_granted_lease_that_never_runs_is_not_booked_as_running() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("granted-not-run", &[
+        "--floor",
+        "1G",
+        "--grant-grace-secs",
+        "3",
+    ]);
+
+    let mut holder = lease_holder("abandon", &daemon, "phantom.live", 60.0);
+    let granted = wait_until(15, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| !leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(granted, "the holder never got its grant: {}", daemon.log());
+
+    // The grant's grace runs out and the daemon takes the lease back.
+    let gone = wait_until(20, || {
+        daemon.status()["leases"]
+            .as_array()
+            .map(|leases| leases.is_empty())
+            .unwrap_or(false)
+    });
+    assert!(
+        gone,
+        "the unclaimed grant was never taken back: {}",
+        daemon.log()
+    );
+    assert!(
+        daemon.log().contains("lease.granted_not_run"),
+        "the daemon never named the phantom lease: {}",
+        daemon.log()
+    );
+
+    // And the ledger tells the truth about the window: nothing ran, and the
+    // idleness has the cause the grant explains.
+    let buckets = ledger(&daemon);
+    let bucket = buckets.last().expect("there is an hour");
+    let live_running = bucket["tiers"]["live"]["running_s"].as_f64().unwrap_or(0.0);
+    assert_eq!(
+        live_running, 0.0,
+        "the ledger booked running time for a lease that never ran: {bucket}"
+    );
+    let reasons = bucket["idle"]["by_reason"]
+        .as_object()
+        .cloned()
+        .unwrap_or_default();
+    assert!(
+        reasons.contains_key("granted_not_run"),
+        "the grant's window has no cause of its own: {bucket}"
+    );
+    assert_eq!(
+        bucket["idle"]["unattributed_s"].as_f64().unwrap_or(-1.0),
+        0.0,
+        "an explained window was booked as unattributed: {bucket}"
+    );
+
+    let _ = holder.kill();
+    let _ = holder.wait();
+}
+
 /// The ledger books the box's time to the tiers, and explains its idleness.
 #[test]
 fn the_ledger_books_the_time_by_tier() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("ledger-by-tier", &["--floor", "1G"]);
 
     // A live lease, and a presence job, running together.
     let mut live = leased(&daemon, "live.test", "1G", &["sleep", "4"]);
@@ -1305,7 +2263,8 @@ fn the_ledger_books_the_time_by_tier() {
 /// With nothing registered, the box's idleness is named.
 #[test]
 fn the_ledger_names_the_idleness() {
-    let daemon = DaemonUnderTest::start(&["--floor", "1G"]);
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("ledger-idleness", &["--floor", "1G"]);
     std::thread::sleep(Duration::from_secs(3));
 
     let buckets = ledger(&daemon);

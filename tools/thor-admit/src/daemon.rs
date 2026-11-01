@@ -56,13 +56,46 @@ pub const DEFAULT_SCAN_INTERVAL: Duration = Duration::from_millis(1000);
 pub const DEFAULT_MEMINFO: &str = "/proc/meminfo";
 /// The default smallest lease the watchdog will touch.
 pub const DEFAULT_MIN_VICTIM_RSS: u64 = 2 * 1024 * 1024 * 1024;
-/// How long a granted lease may sit unlocked before the daemon gives up on it.
-const GRANT_GRACE: Duration = Duration::from_secs(30);
-/// The default busy share of the GPU at which live work takes the GPU from
+/// The default grace a client's silence gets before the daemon acts: six
+/// missed heartbeats at the client's one-every-five-seconds, plus slack for
+/// a box under load.
+pub const DEFAULT_HEARTBEAT_GRACE: Duration = Duration::from_secs(60);
+/// The default grace a grant gets before the daemon gives up on the client
+/// ever taking the lock.
+pub const DEFAULT_GRANT_GRACE: Duration = Duration::from_secs(30);
+/// The default GPU's busy share of the GPU at which live work takes the GPU from
 /// the presence queue.
 pub const DEFAULT_GPU_BUSY_THRESHOLD: u8 = 50;
 /// The default interval for reading the CPU's counters.
 pub const DEFAULT_LEDGER_INTERVAL: Duration = Duration::from_secs(1);
+/// The default floor for the GPU's own allocation pool (`tegrastats`' `lfb`):
+/// the least that must stay free of `cudaMalloc` blocks and pinned host
+/// memory, which no amount of `MemAvailable` can reclaim.
+pub const DEFAULT_GPU_FLOOR: u64 = 2 * 1024 * 1024 * 1024;
+/// How many runs a label needs before `--peak auto` will speak.
+///
+/// A p95 of two runs is a guess wearing a percentile's clothes: one shifted
+/// workload and the reservation is half of what the label costs. Three runs
+/// is the smallest sample whose p95 has seen the label misbehave once and
+/// still survived (Hy4's second failure mode: the p95 reserved too little,
+/// the box blew through the emergency floor before the watchdog could act).
+pub const MIN_AUTO_RUNS: usize = 3;
+/// How much a running lease must grow beyond what it has already over-run
+/// before another interim peak is written.
+const OVERRUN_WRITE_STEP: u64 = 512 * 1024 * 1024;
+
+/// How far a lease may exceed its reservation before the over-run watch
+/// speaks: 2 % of the reservation, at least 128 MiB.
+///
+/// A lease that reserved exactly what it meant to use still measures a
+/// little over its number — the runtime itself, the allocator's own pages —
+/// and calling that an over-run would cry wolf on every honest lease. The
+/// tolerance is what the watch is *not* about: it is after the gross
+/// under-reservations, the 40 GiB reserved against a 55 GiB reality, where
+/// the box has no swap to absorb the difference.
+fn overrun_tolerance(reserved: u64) -> u64 {
+    (reserved / 50).max(128 * 1024 * 1024)
+}
 
 /// How the daemon is set up.
 #[derive(Clone, Debug)]
@@ -93,7 +126,8 @@ pub struct Config {
     /// need to be as fast as the memory sample. When the box falls below
     /// the emergency floor, the daemon scans anyway.
     pub scan_interval: Duration,
-    /// How many samples the victim is given to come back before it is killed.
+    /// How many samples the watchdog's victim is given to exit after its
+    /// `SIGTERM` before the watchdog escalates to `SIGKILL`.
     pub stop_grace_samples: u32,
     /// The smallest lease the watchdog will touch. The box's own services are
     /// not leases at all, so they are never candidates; this floor is the
@@ -123,6 +157,23 @@ pub struct Config {
     /// Let live work stop the presence queue's jobs so that live work can
     /// have the GPU.
     pub gpu_preempt: bool,
+    /// How long an active lease's client may stay silent — no heartbeat,
+    /// no release — before the daemon decides the client is stuck and takes
+    /// the lease back. The lock alone is not liveness: a hung client's lock
+    /// never drops.
+    pub heartbeat_grace: Duration,
+    /// How long a granted lease may sit unclaimed before the daemon gives
+    /// up on the client ever taking the lock.
+    pub grant_grace: Duration,
+    /// The least the GPU's own allocation pool must keep free (see
+    /// [`DEFAULT_GPU_FLOOR`]). Applied only when something can see the pool.
+    pub gpu_floor: u64,
+    /// The `tegrastats` to run, when it is not the one on the `PATH`.
+    ///
+    /// It is a test seam, like `meminfo`: the real daemon runs the real
+    /// `tegrastats`, and a test runs a script that prints a pool the test
+    /// controls, so the GPU rule can be driven without touching the GPU.
+    pub tegrastats_command: Option<PathBuf>,
 }
 
 impl Default for Config {
@@ -148,6 +199,10 @@ impl Default for Config {
             ledger_interval: DEFAULT_LEDGER_INTERVAL,
             gpu_busy_threshold: DEFAULT_GPU_BUSY_THRESHOLD,
             gpu_preempt: true,
+            heartbeat_grace: DEFAULT_HEARTBEAT_GRACE,
+            grant_grace: DEFAULT_GRANT_GRACE,
+            gpu_floor: DEFAULT_GPU_FLOOR,
+            tegrastats_command: None,
         }
     }
 }
@@ -199,15 +254,31 @@ struct Lease {
     lock_path: PathBuf,
     state: LeaseState,
     granted_at: Instant,
+    /// The client that asked for this lease, from the socket's own
+    /// credentials — the process the daemon signals when the client goes
+    /// silent, and the one whose death explains a dropped lock.
+    client_pid: i32,
+    /// When the client last said it was alive (`held` or a heartbeat).
+    last_heartbeat: Option<Instant>,
+    /// The daemon has already signalled this lease's silent client.
+    stale_signalled: bool,
     current_rss: u64,
     peak_rss: u64,
     peak_gpu: u64,
     /// The peak the client measured itself (its `rusage`).
     reported_peak: Option<u64>,
-    /// The watchdog has stopped this lease.
-    stopped: bool,
-    stopped_at: Option<Instant>,
-    /// The watchdog has killed this lease.
+    /// The running peak already written to the history by the over-run
+    /// watch, so an over-running lease is on record while it is still
+    /// running — even if the box, or the daemon, does not outlive it.
+    overrun_written: u64,
+    /// The watchdog has asked this lease's work to terminate (`SIGTERM`).
+    ///
+    /// The ask is sent once. The memory comes back when the process is
+    /// actually gone — the client reaps its child and releases, or the lock
+    /// drops when the client dies — and until then the reservation stays
+    /// charged, because the pages are still taken.
+    terminated_at: Option<Instant>,
+    /// The watchdog has escalated to `SIGKILL` after the grace period.
     killed: bool,
 }
 
@@ -235,6 +306,8 @@ struct AcquireRequest {
     priority: i32,
     tier: Tier,
     target: TargetSpec,
+    /// The asking client's pid, from the socket's credentials.
+    client_pid: i32,
 }
 
 /// What a client asked for when it registered a presence job.
@@ -333,10 +406,15 @@ struct State {
     waiters: HashMap<u64, Sender<Response>>,
     /// What each waiting request wants to lease.
     targets: HashMap<u64, TargetSpec>,
+    /// Who asked for each waiting request, so the lease can carry the
+    /// client's pid from the queue to the grant.
+    client_pids: HashMap<u64, i32>,
     /// When each waiting request arrived.
     waiting_since: HashMap<u64, Instant>,
-    /// Requests that arrived and are not handled yet.
-    inbox: Vec<(Request, Sender<Response>)>,
+    /// Requests that arrived and are not handled yet: the request, the
+    /// client that sent it (its pid, from the socket's credentials), and
+    /// where the answer goes.
+    inbox: Vec<(i32, Request, Sender<Response>)>,
     next_id: u64,
     mem: MemInfo,
     gpu: GpuSample,
@@ -351,6 +429,9 @@ struct State {
     ledger: Ledger,
     /// When the CPU's counters were last read.
     last_cpu_read: Instant,
+    /// The waiters the GPU's own pool is holding up, so each is logged once
+    /// rather than every sample.
+    gpu_blocked: std::collections::HashSet<u64>,
 }
 
 /// A child process that keeps printing the GPU's view.
@@ -379,6 +460,46 @@ pub struct Daemon {
     /// The daemon's own log. It has its own lock so that a log line can be
     /// written while the state lock is held.
     log: Mutex<Option<std::fs::File>>,
+    /// The lock on the socket's lock file.
+    ///
+    /// It is held for as long as the daemon runs, and it is what makes
+    /// "one daemon per socket" a fact rather than a hope: two daemons on one
+    /// socket would be two admission controllers with two views of the box,
+    /// which is the thing this crate exists to prevent. The kernel drops the
+    /// lock when the daemon dies, whatever killed it.
+    ///
+    /// Nothing reads it: the descriptor *is* the lock.
+    #[allow(dead_code)]
+    socket_lock: std::fs::File,
+}
+
+/// The peak `--peak auto` reserves for a label: the larger of the p95 and
+/// the last run, once the label has enough runs to be believed.
+///
+/// The p95 alone is not enough. The p95 says what the label *usually*
+/// costs; the last run says what it cost the last time the workload looked
+/// like this one. A label whose last run overran its history — a bigger
+/// scene, a longer batch — is exactly the label a p95-only reservation
+/// would under-reserve, and an under-reserved lease on a box with no swap
+/// arrives at the emergency floor with the watchdog already late.
+fn learned_peak(state: &State, label: &str) -> Result<u64, String> {
+    let runs = state.history.runs(label);
+    if runs == 0 {
+        return Err(format!(
+            "no history for the label {label:?}, so there is no learned peak; \
+             run it once with an explicit --peak"
+        ));
+    }
+    if runs < MIN_AUTO_RUNS {
+        return Err(format!(
+            "only {runs} run(s) for the label {label:?}; --peak auto needs {MIN_AUTO_RUNS} \
+             before it will guess, because a p95 of so few runs under-reserves a shifted \
+             workload; give it an explicit --peak until then"
+        ));
+    }
+    let p95 = state.history.p95(label).unwrap_or(0);
+    let last = state.history.last(label).unwrap_or(0);
+    Ok(p95.max(last))
 }
 
 impl Daemon {
@@ -386,6 +507,7 @@ impl Daemon {
     pub fn new(config: Config) -> std::io::Result<Arc<Daemon>> {
         std::fs::create_dir_all(&config.state_dir)?;
         std::fs::create_dir_all(config.state_dir.join("leases"))?;
+        let socket_lock = take_socket_lock(&config.socket)?;
         let history = History::load(&config.history);
         let log = std::fs::OpenOptions::new()
             .create(true)
@@ -397,10 +519,10 @@ impl Daemon {
             queue: Queue::new(),
             waiters: HashMap::new(),
             targets: HashMap::new(),
+            client_pids: HashMap::new(),
             waiting_since: HashMap::new(),
             inbox: Vec::new(),
-            next_id: 1,
-            mem: MemInfo::read().unwrap_or_default(),
+            next_id: 1,            mem: MemInfo::read().unwrap_or_default(),
             gpu: GpuSample::default(),
             gpu_source: config.gpu_probe.as_str().to_string(),
             samples: 0,
@@ -415,6 +537,7 @@ impl Daemon {
             },
             ledger: Ledger::new(&config.ledger),
             last_cpu_read: Instant::now(),
+            gpu_blocked: std::collections::HashSet::new(),
         };
         Ok(Arc::new(Daemon {
             config,
@@ -424,6 +547,7 @@ impl Daemon {
             listener: Mutex::new(None),
             log: Mutex::new(log),
             gpu_watch: Mutex::new(Vec::new()),
+            socket_lock,
         }))
     }
 
@@ -486,7 +610,7 @@ impl Daemon {
     fn stop_presence_jobs(&self) {
         let state = self.state.lock().unwrap();
         for job in state.presence.running.iter() {
-            let signalled = signal_group(job.pgid, libc::SIGTERM);
+            let signalled = terminate_group(job.pgid);
             self.log_event(
                 "presence.stopped_with_daemon",
                 json!({"id": job.id, "signalled": signalled}),
@@ -504,6 +628,17 @@ impl Daemon {
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::AddrInUse,
                     "another thor-admit daemon is already running",
+                ));
+            }
+            // The socket answers nobody, but the lock on it may still be
+            // held by a daemon whose acceptor has died. The lock is the
+            // truth: it is dropped by the kernel when the daemon dies, and
+            // it is held for as long as the daemon lives.
+            if socket_lock_is_held(&self.config.socket)? {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::AddrInUse,
+                    "another thor-admit daemon is already running: it holds the lock on \
+                     this socket, so it is alive even though the socket answers nobody",
                 ));
             }
             let _ = std::fs::remove_file(&self.config.socket);
@@ -542,13 +677,35 @@ impl Daemon {
                 Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
                     std::thread::sleep(Duration::from_millis(20));
                 }
-                Err(_) => return,
+                Err(error) => {
+                    // The front door is broken. A daemon that cannot answer
+                    // is worse than one that is not there: it keeps sampling
+                    // the box and looking alive to everything that checks.
+                    // So it says why and stops.
+                    if accept_error_is_fatal(&error) {
+                        self.log_event(
+                            "daemon.acceptor_failed",
+                            json!({
+                                "error": error.to_string(),
+                                "kind": format!("{:?}", error.kind()),
+                            }),
+                        );
+                        self.stop();
+                        return;
+                    }
+                    std::thread::sleep(Duration::from_millis(20));
+                }
             }
         }
     }
 
     /// Serve one client connection.
     fn serve(self: Arc<Self>, stream: UnixStream) {
+        // Who is talking: the socket's own credentials. The daemon never
+        // trusts the client to name itself — the pid is what the kernel put
+        // on the connection, and it is how a silent client is told apart
+        // from a dead one.
+        let peer = peer_pid(&stream);
         let reader = BufReader::new(match stream.try_clone() {
             Ok(stream) => stream,
             Err(_) => return,
@@ -572,7 +729,7 @@ impl Daemon {
             let (reply_tx, reply_rx) = channel::<Response>();
             {
                 let mut state = self.state.lock().unwrap();
-                state.inbox.push((request, reply_tx));
+                state.inbox.push((peer, request, reply_tx));
                 state.last_activity = Instant::now();
                 self.wake.notify_all();
             }
@@ -635,7 +792,7 @@ impl Daemon {
 
         // 1. What the clients asked for.
         let inbox = std::mem::take(&mut state.inbox);
-        for (request, reply) in inbox {
+        for (peer, request, reply) in inbox {
             match request {
                 Request::Acquire {
                     label,
@@ -651,12 +808,20 @@ impl Daemon {
                         priority,
                         tier,
                         target,
+                        client_pid: peer,
                     },
                     reply,
                 ),
                 Request::Held { lease } => {
                     if let Some(found) = state.leases.iter_mut().find(|l| l.id == lease) {
                         found.state = LeaseState::Active;
+                        found.last_heartbeat = Some(Instant::now());
+                    }
+                    let _ = reply.send(Response::Ok);
+                }
+                Request::Heartbeat { lease } => {
+                    if let Some(found) = state.leases.iter_mut().find(|l| l.id == lease) {
+                        found.last_heartbeat = Some(Instant::now());
                     }
                     let _ = reply.send(Response::Ok);
                 }
@@ -737,16 +902,61 @@ impl Daemon {
         if has_work && (state.samples % scan_every == 0 || urgent) {
             let procs = procscan::scan();
             let gpu = state.gpu.clone();
+            let mut overruns = Vec::new();
             for lease in state.leases.iter_mut() {
                 let usage = procscan::usage_for(target_of(lease.target), &procs);
                 lease.current_rss = usage.rss_bytes;
                 lease.peak_rss = lease.peak_rss.max(usage.rss_bytes);
                 lease.peak_gpu = lease.peak_gpu.max(gpu.for_pids(&usage.pids));
+                // The over-run watch. A lease past its reservation is the
+                // number the admission rule was wrong by, and the fact is
+                // worth more than the log line: the peak goes into the
+                // history *now*, while the lease is still running, so the
+                // next `--peak auto` reserves it even if this run takes the
+                // daemon with it. The first crossing writes; each further
+                // half-gibibyte of growth writes again.
+                if lease.peak_rss
+                    > lease.peak_bytes.saturating_add(overrun_tolerance(lease.peak_bytes))
+                    && (lease.overrun_written == 0
+                        || lease.peak_rss >= lease.overrun_written + OVERRUN_WRITE_STEP)
+                {
+                    overruns.push((
+                        lease.id,
+                        lease.label.clone(),
+                        lease.peak_bytes,
+                        lease.peak_rss,
+                        lease.peak_gpu,
+                    ));
+                    lease.overrun_written = lease.peak_rss;
+                }
             }
             for job in state.presence.running.iter_mut() {
                 let usage = procscan::usage_for(Target::Group(job.pgid), &procs);
                 job.current_rss = usage.rss_bytes;
                 job.peak_rss = job.peak_rss.max(usage.rss_bytes);
+            }
+            for (id, label, reserved, peak_rss, peak_gpu) in overruns {
+                self.log_event(
+                    "lease.underreserved",
+                    json!({
+                        "lease": id,
+                        "label": label,
+                        "reserved_bytes": reserved,
+                        "peak_rss_bytes": peak_rss,
+                        "over_by_bytes": peak_rss.saturating_sub(reserved),
+                        "mem_available_bytes": state.mem.mem_available,
+                    }),
+                );
+                let mut record = PeakRecord::new(&label, &label, peak_rss);
+                record.peak_source = "overrun".to_string();
+                record.peak_gpu_bytes = if peak_gpu > 0 { Some(peak_gpu) } else { None };
+                record.gpu_visible =
+                    state.gpu_source != "off" && !state.gpu_source.contains("unavailable");
+                record.mem_total_bytes = state.mem.mem_total;
+                record.floor_bytes = self.config.floor;
+                if let Err(error) = state.history.append(record) {
+                    self.log_event("history.write_failed", json!({"error": error.to_string()}));
+                }
             }
         }
 
@@ -774,6 +984,8 @@ impl Daemon {
                 json!({
                     "mem_available_bytes": state.mem.mem_available,
                     "mem_total_bytes": state.mem.mem_total,
+                    "gpu_largest_free_block_bytes": state.gpu.largest_free_block,
+                    "gpu_box_used_bytes": state.gpu.box_used_bytes,
                     "leases": state.leases.len(),
                     "waiting": state.queue.len(),
                     "presence_running": state.presence.running.len(),
@@ -797,18 +1009,14 @@ impl Daemon {
             priority,
             tier,
             target,
+            client_pid,
         } = request;
         let peak_bytes = match peak {
             PeakArg::Bytes(bytes) => bytes,
-            PeakArg::Auto => match state.history.p95(&label) {
-                Some(p95) => p95,
-                None => {
-                    let _ = reply.send(Response::Rejected {
-                        reason: format!(
-                            "no history for the label {label:?}, so there is no learned peak; \
-                             run it once with an explicit --peak"
-                        ),
-                    });
+            PeakArg::Auto => match learned_peak(state, &label) {
+                Ok(learned) => learned,
+                Err(reason) => {
+                    let _ = reply.send(Response::Rejected { reason });
                     return;
                 }
             },
@@ -816,10 +1024,15 @@ impl Daemon {
 
         let id = state.next_id;
         state.next_id += 1;
+        // The GPU promise is learned, not asked for: the label's own history
+        // says how much device memory it holds, and the GPU's pool has to
+        // have room for that on top of the GPU floor.
+        let peak_gpu = state.history.learned_gpu(&label).unwrap_or(0);
         let waiter = Waiter {
             id,
             label: label.clone(),
             peak_bytes,
+            peak_gpu,
             priority,
             tier,
             seq: 0,
@@ -827,6 +1040,7 @@ impl Daemon {
         state.queue.push(waiter);
         state.waiters.insert(id, reply.clone());
         state.targets.insert(id, target);
+        state.client_pids.insert(id, client_pid);
         state.waiting_since.insert(id, Instant::now());
         let position = state.queue.position(id).unwrap_or(0);
         self.log_event(
@@ -852,7 +1066,32 @@ impl Daemon {
             state.queue.remove(id);
             state.waiters.remove(&id);
             state.targets.remove(&id);
+            state.client_pids.remove(&id);
             state.waiting_since.remove(&id);
+            state.gpu_blocked.remove(&id);
+        }
+    }
+
+    /// The admission rule as it stands right now: the memory rule, plus the
+    /// GPU's own pool when something can see it.
+    fn admission_now(&self, state: &State) -> Admission {
+        Admission {
+            available: state.mem.mem_available,
+            floor: self.config.floor,
+            gpu_available: state.gpu.largest_free_block,
+            gpu_floor: self.config.gpu_floor,
+        }
+    }
+
+    /// The memory rule alone, for the questions that are only about memory:
+    /// would the live lease fit without the presence queue, is there room
+    /// for registered work. The GPU side of those questions is the GPU
+    /// pre-emption's business, not the memory pre-emption's.
+    fn memory_admission(&self, state: &State) -> Admission {
+        Admission {
+            gpu_available: None,
+            gpu_floor: 0,
+            ..self.admission_now(state)
         }
     }
 
@@ -863,13 +1102,30 @@ impl Daemon {
                 return;
             };
             let leases = self.charged_memory(state);
-            let admission = Admission {
-                available: state.mem.mem_available,
-                floor: self.config.floor,
-            };
-            if !admission.admits(&leases, waiter.peak_bytes) {
+            let admission = self.admission_now(state);
+            // A waiter that fits the memory rule but not the GPU's own pool
+            // is waiting for a *different* thing, and the log should say so
+            // once rather than every 250 ms.
+            if admission.admits(&leases, waiter.peak_bytes)
+                && !admission.gpu_admits(waiter.peak_gpu)
+                && state.gpu_blocked.insert(waiter.id)
+            {
+                self.log_event(
+                    "lease.waiting_for_gpu_memory",
+                    json!({
+                        "lease": waiter.id,
+                        "label": waiter.label,
+                        "gpu_free_bytes": state.gpu.largest_free_block,
+                        "gpu_floor_bytes": self.config.gpu_floor,
+                        "label_gpu_peak_bytes": waiter.peak_gpu,
+                        "gpu_source": state.gpu_source,
+                    }),
+                );
+            }
+            if !admission.admits_lease(&leases, waiter.peak_bytes, waiter.peak_gpu) {
                 return;
             }
+            state.gpu_blocked.remove(&waiter.id);
             let waiter = state.queue.pop().expect("the queue had a waiter");
             let reply = state.waiters.remove(&waiter.id);
             state.waiting_since.remove(&waiter.id);
@@ -877,6 +1133,7 @@ impl Daemon {
                 .targets
                 .remove(&waiter.id)
                 .unwrap_or(TargetSpec::Group { pgid: 0 });
+            let client_pid = state.client_pids.remove(&waiter.id).unwrap_or(0);
             let lock_path = self
                 .config
                 .state_dir
@@ -893,12 +1150,15 @@ impl Daemon {
                 lock_path: lock_path.clone(),
                 state: LeaseState::Granted,
                 granted_at: Instant::now(),
+                client_pid,
+                last_heartbeat: None,
+                stale_signalled: false,
                 current_rss: 0,
                 peak_rss: 0,
                 peak_gpu: 0,
                 reported_peak: None,
-                stopped: false,
-                stopped_at: None,
+                overrun_written: 0,
+                terminated_at: None,
                 killed: false,
             };
 
@@ -927,6 +1187,7 @@ impl Daemon {
             } else {
                 // The client was gone; the lease never existed.
                 let _ = std::fs::remove_file(&lock_path);
+                state.client_pids.remove(&waiter.id);
             }
         }
     }
@@ -966,15 +1227,10 @@ impl Daemon {
         }
         let peak_bytes = match peak {
             PeakArg::Bytes(bytes) => bytes,
-            PeakArg::Auto => match state.history.p95(&label) {
-                Some(p95) => p95,
-                None => {
-                    let _ = reply.send(Response::Rejected {
-                        reason: format!(
-                            "no history for the label {label:?}, so there is no learned peak; \
-                             register it once with an explicit --peak"
-                        ),
-                    });
+            PeakArg::Auto => match learned_peak(state, &label) {
+                Ok(learned) => learned,
+                Err(reason) => {
+                    let _ = reply.send(Response::Rejected { reason });
                     return;
                 }
             },
@@ -1003,7 +1259,7 @@ impl Daemon {
         // running work must not disagree.
         if let Some(running) = state.presence.running_job(id) {
             let pgid = running.pgid;
-            let signalled = signal_group(pgid, libc::SIGTERM);
+            let signalled = terminate_group(pgid);
             self.log_event(
                 "presence.removed_running",
                 json!({"id": id, "signalled": signalled}),
@@ -1101,10 +1357,7 @@ impl Daemon {
         if state.presence.running.is_empty() {
             return;
         }
-        let admission = Admission {
-            available: state.mem.mem_available,
-            floor: self.config.floor,
-        };
+        let admission = self.memory_admission(state);
         let with_presence = self.charged_memory(state);
         if admission.admits(&with_presence, waiter.peak_bytes) {
             // It fits already. Nothing to pre-empt.
@@ -1132,7 +1385,9 @@ impl Daemon {
             let job = state.presence.running_job(victim).unwrap();
             (job.pgid, job.tier(state), job.label(state))
         };
-        let signalled = signal_group(pgid, libc::SIGTERM);
+        // The job may be frozen by the GPU pre-emption; terminate_group
+        // continues it so the SIGTERM is actually delivered.
+        let signalled = terminate_group(pgid);
         if let Some(job) = state.presence.running.iter_mut().find(|j| j.id == victim) {
             job.terminating = true;
         }
@@ -1227,10 +1482,7 @@ impl Daemon {
             // Live work is waiting. The presence queue waits behind it.
             return;
         }
-        let admission = Admission {
-            available: state.mem.mem_available,
-            floor: self.config.floor,
-        };
+        let admission = self.admission_now(state);
         loop {
             let Some(job) = state.presence.queue.next_runnable().cloned() else {
                 return;
@@ -1240,7 +1492,11 @@ impl Daemon {
                 return;
             }
             let charged = self.charged_memory(state);
-            if !admission.admits(&charged, job.spec.peak_bytes) {
+            // Registered work has to clear both rules too: the box's memory,
+            // and the GPU's own pool against whatever device memory this
+            // label has historically held.
+            let job_gpu = state.history.learned_gpu(&job.spec.label).unwrap_or(0);
+            if !admission.admits_lease(&charged, job.spec.peak_bytes, job_gpu) {
                 return;
             }
             let lock_path = self
@@ -1367,15 +1623,16 @@ impl Daemon {
         let mut running_tiers: Vec<Tier> = Vec::new();
         let mut preempted_tiers: Vec<Tier> = Vec::new();
         for lease in state.leases.iter() {
-            // A lease is booked from the **grant**, not from the client's
-            // confirmation. The memory is committed at the grant — that is
-            // exactly what the admission rule charges — and the client's
-            // "held" arrives a tick later, so counting only the confirmed
-            // leases would leave a sample of the box looking idle while a
-            // lease was already committed to it.
-            if matches!(lease.state, LeaseState::Granted | LeaseState::Active)
-                && !running_tiers.contains(&lease.tier)
-            {
+            // A lease is booked from the moment the client **holds** it. A
+            // lease that was granted but never held never ran anything, so
+            // booking its grant as running time would invent work — the
+            // ledger would say live ran for an hour in which a phantom
+            // lease sat unclaimed (Hy4's fifth failure mode). The grant's
+            // window is not lost: below, the box's idleness in it is booked
+            // to `granted_not_run`, an attributed cause, so the committed
+            // memory still explains the empty-looking box without being
+            // called work.
+            if lease.state == LeaseState::Active && !running_tiers.contains(&lease.tier) {
                 running_tiers.push(lease.tier);
             }
         }
@@ -1423,6 +1680,16 @@ impl Daemon {
     /// running and is not stopped — is the one the ledger cannot explain, and
     /// it is the number that should be zero.
     fn idle_reason(&self, state: &State) -> IdleReason {
+        if state
+            .leases
+            .iter()
+            .any(|lease| lease.state == LeaseState::Granted)
+        {
+            // Memory is committed to a lease nobody has held. The box is
+            // not doing nothing; it is waiting on a grant that may never be
+            // claimed, and that is its own cause.
+            return IdleReason::GrantedNotRun;
+        }
         if !state.queue.is_empty() {
             // Live work is waiting for room.
             return IdleReason::WaitingForMemory;
@@ -1437,10 +1704,7 @@ impl Daemon {
         if registered.is_empty() {
             return IdleReason::NoWorkRegistered;
         }
-        let admission = Admission {
-            available: state.mem.mem_available,
-            floor: self.config.floor,
-        };
+        let admission = self.memory_admission(state);
         let charged = self.charged_memory(state);
         let fits = registered
             .iter()
@@ -1463,26 +1727,45 @@ impl Daemon {
         IdleReason::Unattributed
     }
 
-    /// Release the leases whose clients are gone.
+    /// Release the leases whose clients are gone, and the leases whose
+    /// clients went silent.
     fn check_liveness(&self, state: &mut State) {
         let mut dead = Vec::new();
+        let mut stale = Vec::new();
         for lease in state.leases.iter() {
             match lease.state {
                 LeaseState::Granted => {
-                    if lease.granted_at.elapsed() > GRANT_GRACE {
+                    if lease.granted_at.elapsed() > self.config.grant_grace {
                         dead.push((lease.id, "the client never took the lock"));
                     }
                 }
-                LeaseState::Active => match lease::is_held(&lease.lock_path) {
-                    Ok(true) => {}
-                    Ok(false) => dead.push((lease.id, "the client is gone")),
-                    Err(error) => {
-                        self.log_event(
-                            "lease.probe_failed",
-                            json!({"lease": lease.id, "error": error.to_string()}),
-                        );
+                LeaseState::Active => {
+                    let silent_for = lease
+                        .last_heartbeat
+                        .map(|at| at.elapsed())
+                        .unwrap_or(Duration::ZERO);
+                    if silent_for > self.config.heartbeat_grace {
+                        // Alive by the lock, dead by the heartbeat. The lock
+                        // is the truth about *death*; the heartbeat is the
+                        // truth about *life*. A client that holds the lock
+                        // and has said nothing for a grace period is stuck,
+                        // and a stuck client's reservation is charged
+                        // forever unless the daemon acts (Hy4's fourth
+                        // failure mode).
+                        stale.push(lease.id);
+                        continue;
                     }
-                },
+                    match lease::is_held(&lease.lock_path) {
+                        Ok(true) => {}
+                        Ok(false) => dead.push((lease.id, "the client is gone")),
+                        Err(error) => {
+                            self.log_event(
+                                "lease.probe_failed",
+                                json!({"lease": lease.id, "error": error.to_string()}),
+                            );
+                        }
+                    }
+                }
             }
         }
         for (id, reason) in dead {
@@ -1501,9 +1784,98 @@ impl Daemon {
             }
             self.release_lease(state, id, "client-gone");
         }
+        for id in stale {
+            self.evict_silent_client(state, id);
+        }
     }
 
-    /// The watchdog: when the box runs short, stop the largest lease.
+    /// A lease whose client has been silent past the grace period.
+    ///
+    /// The client's own pid — the socket's credentials, not a claim — says
+    /// which of the two failures this is:
+    ///
+    /// * **the client is gone** (its pid with nobody behind it): whatever
+    ///   holds the lock is an inherited descriptor, not a client. The lease
+    ///   is taken back at once, and the lock file goes with it, so the
+    ///   descriptor's lock has nothing left to guard.
+    /// * **the client is there but stuck**: it is asked to leave (SIGTERM —
+    ///   the same treatment a dead client's work gets), which drops the
+    ///   lock and releases the lease the honest way. If it is still stuck a
+    ///   grace period later, the lease is taken back anyway: an unwatched
+    ///   reservation is exactly what this daemon exists to prevent.
+    fn evict_silent_client(&self, state: &mut State, id: u64) {
+        let Some(index) = state.leases.iter().position(|l| l.id == id) else {
+            return;
+        };
+        let lease = &mut state.leases[index];
+        let client_alive = lease.client_pid > 0
+            && Path::new(&format!("/proc/{}", lease.client_pid)).exists();
+        let silent_for = lease
+            .last_heartbeat
+            .map(|at| at.elapsed())
+            .unwrap_or(Duration::ZERO);
+        if !lease.stale_signalled {
+            lease.stale_signalled = true;
+            self.log_event(
+                "lease.stale_client",
+                json!({
+                    "lease": lease.id,
+                    "label": lease.label,
+                    "client_pid": lease.client_pid,
+                    "client_alive": client_alive,
+                    "silent_s": silent_for.as_secs(),
+                }),
+            );
+            if client_alive {
+                // Ask the stuck client to leave; its death drops the lock
+                // and the lease releases the honest way.
+                let signalled =
+                    unsafe { libc::kill(lease.client_pid, libc::SIGTERM) == 0 };
+                self.log_event(
+                    "lease.stale_client_signalled",
+                    json!({"lease": lease.id, "client_pid": lease.client_pid, "signalled": signalled}),
+                );
+                return;
+            }
+        } else if client_alive && silent_for < self.config.heartbeat_grace * 2 {
+            // It was signalled and the grace has not doubled yet: give the
+            // SIGTERM time to work.
+            return;
+        }
+        // Either the client was already gone, or it ignored the SIGTERM for
+        // another full grace period. Take the lease back.
+        let (target, label) = (lease.target, lease.label.clone());
+        let signalled = signal_target(target, libc::SIGTERM);
+        self.log_event(
+            "lease.force_released",
+            json!({
+                "lease": id,
+                "label": label,
+                "reason": if client_alive {
+                    "the client kept the lock past its grace period after being asked to leave"
+                } else {
+                    "the lock is held but nobody is left to release it"
+                },
+                "client_pid": state.leases[index].client_pid,
+                "silent_s": silent_for.as_secs(),
+                "signalled": signalled,
+            }),
+        );
+        self.release_lease(state, id, "silent-client");
+    }
+
+    /// The watchdog: when the box runs short, take the memory back.
+    ///
+    /// The box has **no swap**, so a `SIGSTOP`ed process keeps every page it
+    /// took — `MemAvailable` does not move an inch while the victim sits
+    /// stopped, and the emergency gets worse while the daemon waits (this is
+    /// the first of Hy4's failure modes). Memory comes back only when the
+    /// process is *gone*. So the watchdog never stops a lease for memory: it
+    /// terminates the largest one outright (`SIGTERM`), and escalates to
+    /// `SIGKILL` when the grace period passes and the process is somehow
+    /// still there. The reservation stays charged until the lease is
+    /// released, which happens after the client has reaped its child — the
+    /// memory is only "back" when the process is.
     fn watchdog(&self, state: &mut State) {
         if state.mem.mem_available >= self.config.emergency_floor {
             return;
@@ -1529,56 +1901,58 @@ impl Daemon {
             return;
         };
 
-        let (target, label, current_rss, stopped, stopped_at) = {
+        let (target, label, current_rss, reserved, terminated_at, killed) = {
             let lease = state.leases.iter().find(|l| l.id == victim_id).unwrap();
             (
                 lease.target,
                 lease.label.clone(),
                 lease.current_rss,
-                lease.stopped,
-                lease.stopped_at,
+                lease.peak_bytes,
+                lease.terminated_at,
+                lease.killed,
             )
         };
 
-        if !stopped {
-            let signalled = signal_target(target, libc::SIGSTOP);
+        // It has not been asked to leave yet: ask it now.
+        if terminated_at.is_none() {
+            let signalled = signal_target(target, libc::SIGTERM);
             self.log_event(
-                "watchdog.stopped",
+                "watchdog.terminated",
                 json!({
                     "lease": victim_id,
                     "label": label,
                     "rss_bytes": current_rss,
+                    "reserved_bytes": reserved,
                     "mem_available_bytes": state.mem.mem_available,
                     "signalled": signalled,
                 }),
             );
             if let Some(lease) = state.leases.iter_mut().find(|l| l.id == victim_id) {
-                lease.stopped = true;
-                lease.stopped_at = Some(Instant::now());
+                lease.terminated_at = Some(Instant::now());
             }
             return;
         }
 
-        // It was stopped and the box is still short: give it the grace
-        // period, then kill it.
+        // It was asked, and the box is still short. Give it the grace
+        // period, then take the memory back the only way left.
         let grace = Duration::from_millis(
             self.config.sample_interval.as_millis() as u64 * self.config.stop_grace_samples as u64,
         );
-        let waited = stopped_at.map(|at| at.elapsed()).unwrap_or_default();
-        if waited < grace {
+        let waited = terminated_at.map(|at| at.elapsed()).unwrap_or_default();
+        if killed || waited < grace {
             return;
         }
-        let signalled = signal_target(target, libc::SIGTERM);
-        // A stopped process never sees its SIGTERM until it runs again.
-        let _ = signal_target(target, libc::SIGCONT);
+        let signalled = signal_target(target, libc::SIGKILL);
         self.log_event(
             "watchdog.killed",
             json!({
                 "lease": victim_id,
                 "label": label,
                 "rss_bytes": current_rss,
+                "reserved_bytes": reserved,
                 "mem_available_bytes": state.mem.mem_available,
                 "waited_ms": waited.as_millis() as u64,
+                "signal": "SIGKILL",
                 "signalled": signalled,
             }),
         );
@@ -1593,18 +1967,18 @@ impl Daemon {
             return;
         };
         let lease = state.leases.remove(index);
-        // A lease that the watchdog stopped must not be left frozen. A
-        // stopped process keeps its memory, and once the lease is over
-        // nobody is watching it any more: an unwatched hog holding tens of
-        // gigabytes is exactly what this daemon exists to prevent. So the
-        // work is asked to stop (SIGTERM) and then let go (SIGCONT) — a
-        // stopped process never sees its SIGTERM until it runs again.
-        if lease.stopped {
-            let signalled = signal_target(lease.target, libc::SIGTERM);
-            let _ = signal_target(lease.target, libc::SIGCONT);
+        if lease.state == LeaseState::Granted {
+            // Granted, never held, now gone: the command never ran. The
+            // ledger has been booking this window as granted_not_run; the
+            // event names it once, plainly, for anyone reading the log.
             self.log_event(
-                "lease.released_while_stopped",
-                json!({"lease": lease.id, "signalled": signalled}),
+                "lease.granted_not_run",
+                json!({
+                    "lease": lease.id,
+                    "label": lease.label,
+                    "reason": reason,
+                    "granted_s": lease.granted_at.elapsed().as_secs_f64(),
+                }),
             );
         }
         let (peak, peak_source) = lease.measured_peak();
@@ -1768,9 +2142,21 @@ impl Daemon {
 
     /// `tegrastats`: one child, printing the Tegra's own memory view.
     fn spawn_tegrastats_watch(&self) -> Option<GpuWatch> {
-        let mut command = std::process::Command::new("tegrastats");
+        let mut command = match &self.config.tegrastats_command {
+            Some(path) => {
+                let mut command = std::process::Command::new(path);
+                // The real tegrastats takes an interval; a test double takes
+                // nothing, but accepting the arguments keeps the seam honest.
+                command.args(["--interval", "1000"]);
+                command
+            }
+            None => {
+                let mut command = std::process::Command::new("tegrastats");
+                command.args(["--interval", "1000"]);
+                command
+            }
+        };
         command
-            .args(["--interval", "1000"])
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::null());
         let mut child = command.spawn().ok()?;
@@ -1828,6 +2214,34 @@ fn target_of(spec: TargetSpec) -> Target {
     match spec {
         TargetSpec::Group { pgid } => Target::Group(pgid),
         TargetSpec::Process { pid } => Target::Process(pid),
+    }
+}
+
+/// The pid of the process on the other end of a socket connection, as the
+/// kernel sees it.
+///
+/// This is the one fact about a client the daemon can act on without the
+/// client's cooperation: credentials are put on the connection by the
+/// kernel, so a client cannot misname itself, and a pid that no longer
+/// exists says the client is gone even while some inherited descriptor
+/// keeps its lock alive.
+fn peer_pid(stream: &UnixStream) -> i32 {
+    use std::os::unix::io::AsRawFd;
+    let mut credentials: libc::ucred = unsafe { std::mem::zeroed() };
+    let mut length = std::mem::size_of::<libc::ucred>() as libc::socklen_t;
+    let rc = unsafe {
+        libc::getsockopt(
+            stream.as_raw_fd(),
+            libc::SOL_SOCKET,
+            libc::SO_PEERCRED,
+            &mut credentials as *mut libc::ucred as *mut libc::c_void,
+            &mut length,
+        )
+    };
+    if rc == 0 {
+        credentials.pid as i32
+    } else {
+        0
     }
 }
 
@@ -1907,6 +2321,19 @@ pub fn signal_group(pgid: i32, signal: i32) -> bool {
     unsafe { libc::kill(-pgid, signal) == 0 }
 }
 
+/// Terminate a presence job's process group: `SIGTERM`, then `SIGCONT`.
+///
+/// The `SIGCONT` is not decoration. A job the GPU pre-emption stopped is
+/// frozen, and a frozen process never sees its `SIGTERM` — the signal sits
+/// pending while the job keeps every page it took, and the memory the
+/// pre-emption was for never comes back (Hy4's first failure mode, in the
+/// corner where the two pre-emptions meet).
+pub fn terminate_group(pgid: i32) -> bool {
+    let signalled = signal_group(pgid, libc::SIGTERM);
+    let _ = signal_group(pgid, libc::SIGCONT);
+    signalled
+}
+
 /// The presence queue, as the status shows it.
 fn presence_reports(state: &State) -> Vec<PresenceReport> {
     state
@@ -1977,15 +2404,77 @@ fn status_report(state: &State, config: &Config) -> StatusReport {
         mem_available_bytes: state.mem.mem_available,
         floor_bytes: config.floor,
         emergency_floor_bytes: config.emergency_floor,
+        gpu_floor_bytes: config.gpu_floor,
         leases,
         queue,
         gpu_source: state.gpu_source.clone(),
         gpu_visible: state.gpu_source != "off" && !state.gpu_source.contains("unavailable"),
         gpu_box_used_bytes: state.gpu.box_used_bytes,
+        gpu_largest_free_block_bytes: state.gpu.largest_free_block,
         uptime_s: state.started.elapsed().as_secs_f64(),
         samples: state.samples,
         presence: presence_reports(state),
     }
+}
+
+/// The path of the lock file that goes with a socket.
+///
+/// The daemon's front door is its socket, and two daemons on one socket
+/// would be two admission controllers with two views of the box. The socket
+/// alone cannot say who owns it: a daemon that dies leaves the socket file
+/// behind, and a daemon whose acceptor has died leaves a socket that
+/// answers nobody while the daemon is still running. The lock file can say
+/// it, because the kernel drops the lock when the daemon dies.
+pub fn socket_lock_path(socket: &Path) -> PathBuf {
+    let mut path = socket.as_os_str().to_os_string();
+    path.push(".lock");
+    PathBuf::from(path)
+}
+
+/// Take the exclusive lock on a socket's lock file.
+///
+/// The descriptor is the lock: as long as it is open, the lock is held, and
+/// the kernel releases it whatever kills the daemon.
+fn take_socket_lock(socket: &Path) -> std::io::Result<std::fs::File> {
+    use std::os::unix::io::AsRawFd;
+    let path = socket_lock_path(socket);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(&path)?;
+    let rc = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+    if rc != 0 {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::AddrInUse,
+            format!(
+                "another thor-admit daemon is already running: it holds the lock on {}",
+                path.display()
+            ),
+        ));
+    }
+    Ok(file)
+}
+
+/// Is somebody holding the lock on this socket's lock file?
+fn socket_lock_is_held(socket: &Path) -> std::io::Result<bool> {
+    use std::os::unix::io::AsRawFd;
+    let path = socket_lock_path(socket);
+    let file = match std::fs::OpenOptions::new().read(true).write(true).open(&path) {
+        Ok(file) => file,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error),
+    };
+    let rc = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) };
+    if rc == 0 {
+        unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_UN) };
+        return Ok(false);
+    }
+    Ok(true)
 }
 
 /// Write one JSON line to a socket.
@@ -1994,4 +2483,47 @@ fn write_line(stream: &mut UnixStream, response: &Response) -> std::io::Result<(
     text.push('\n');
     stream.write_all(text.as_bytes())?;
     stream.flush()
+}
+
+/// Should the accept loop give up on this error?
+///
+/// The listener is non-blocking, so "would block" is the normal "nothing is
+/// waiting yet" and a signal is a signal: neither is a reason to stop. Any
+/// other error means the front door is broken, and a daemon that cannot
+/// answer is worse than a daemon that is not there: it keeps sampling the
+/// box, keeps its log moving, and looks alive to everything that checks. So
+/// the daemon stops instead.
+pub fn accept_error_is_fatal(error: &std::io::Error) -> bool {
+    !matches!(
+        error.kind(),
+        std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+    )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_transient_accept_error_is_not_fatal() {
+        assert!(!accept_error_is_fatal(&std::io::Error::from(
+            std::io::ErrorKind::WouldBlock
+        )));
+        assert!(!accept_error_is_fatal(&std::io::Error::from(
+            std::io::ErrorKind::Interrupted
+        )));
+    }
+
+    #[test]
+    fn any_other_accept_error_is_fatal() {
+        // The acceptor dying quietly is how a daemon ends up alive, still
+        // sampling the box, and answering nobody. The box would then have an
+        // admission controller that looks fine and is not there.
+        assert!(accept_error_is_fatal(&std::io::Error::from(
+            std::io::ErrorKind::InvalidInput
+        )));
+        assert!(accept_error_is_fatal(&std::io::Error::from(
+            std::io::ErrorKind::ConnectionAborted
+        )));
+    }
 }
