@@ -16,6 +16,13 @@ custom node is the patch; `run_arms.sh` runs the grid). The dtype is now a
 request parameter, `PropRequest.weight_dtype`, default `default` — bf16 —
 until fp8 earns its place.
 
+**Hypothesis.** If the weights the loader assigns are cast to the fp8 dtype
+the model was built for, the fused path runs — and on paper it should win:
+the spike's §7.3 measured bf16 matmuls where fp8 tensor-core work should be,
+and half the weight bytes should show up as both speed and memory. The gate
+is the bit the paper does not cover: a prop made through fp8 kernels is
+only a win if it is still the prop.
+
 **What it found:**
 
 1. **The fix works.** With `fp8_real` installed, the arm that asks for
