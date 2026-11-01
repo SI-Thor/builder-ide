@@ -43,6 +43,49 @@ thor-admit run --tier live --peak 20G --label <what-the-work-is> -- <command...>
   Two seats must not each start the same model — that was half of the
   22:09 incident.
 
+## When the work changes phase: give the memory back
+
+A lease reserves the peak it was given, and it is charged that promise
+until it ends — even after the heavy part is over. On 2026-11-01 a seat
+held 40 GiB with a measured peak of 0.2 GiB for two hours, and the queue
+behind it went nowhere.
+
+If your work has phases, say so with the lease:
+
+```bash
+thor-admit run --tier live --peak 40G --label trellis -- bash -c '
+  load_weights                      # the heavy part
+  thor-admit phase "$THOR_ADMIT_LEASE" --peak 8G    # give the rest back
+  render_scene'
+```
+
+`THOR_ADMIT_LEASE` is the lease's own id, put in the command's
+environment by `thor-admit run`. From Python, the shim has it too:
+
+```python
+from thor_admit import lease, phase
+
+with lease("40G", "trellis") as held:
+    load_weights()
+    phase(held, "8G")
+```
+
+A shrink is always allowed (never below what the run has already touched);
+a grow the box has no room for is refused, and the lease keeps the promise
+it has. The daemon also **names** a lease that holds far more than it
+uses — `thor-admit status` marks it `over-reserved` and prints the peak it
+would fit in. That is the daemon asking; you decide, because only you
+know whether the work will spike again.
+
+## The queue is fair, but it is not a railcar
+
+Requests are admitted first in, first out, with priorities in front. **A
+request behind a head that cannot fit may be admitted first**, because a
+queue that waits for a head that will not fit is a queue that does nothing.
+Two asks for the same model waiting side by side become **one** promise,
+so a model server is loaded once per box even when several seats ask at
+once.
+
 ## The fallback: the daemon is gone
 
 `thor-admit run` starts the daemon itself if it cannot reach one, so the
@@ -84,8 +127,9 @@ with lease("20G", "trellis"):
 
 ## What a seat gets for following this
 
-The queue is fair (FIFO, priorities in front), the box never falls below
-the floor for unadmitted work, the peaks the seats declare become the cost
-model's memory column, and the daemon's ledger says where the box's hours
-went. `thor-admit status` shows the leases, the free memory and the queue;
-`thor-admit ledger` shows the hours by tier.
+The queue is fair (FIFO, priorities in front, and a request behind a head
+that cannot fit is let past rather than left to rot), the box never falls
+below the floor for unadmitted work, the peaks the seats declare become the
+cost model's memory column, and the daemon's ledger says where the box's
+hours went. `thor-admit status` shows the leases, the free memory and the
+queue; `thor-admit ledger` shows the hours by tier.

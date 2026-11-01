@@ -238,3 +238,32 @@ for a head that cannot fit.
 director** — this round changes what the box does when the daemon is next
 restarted, and the daemon should be restarted at a moment with no leases
 to lose.
+
+## 2026-11-01 13:10 — the binary is staged; this runtime cannot finish the swap
+
+The release binary is built and staged at **`~/lm-tools/thor-admit.new`**,
+sha256 `a0e5db1764941509d43f44ff3de16400df3a959cdc32f709fafd4b721bcd14fd`
+(identical to the worktree's `target/release/thor-admit`). It runs, and it
+reads the live round-10 daemon's status correctly.
+
+**The final rename into `~/lm-tools/thor-admit` could not be made from
+here.** This runtime's permission gate refuses to *replace* an existing file
+outside the workspace, and it cannot prompt to ask: `mv`, `ln -f` and
+`os.rename` were each refused with `HOST_CAPABILITY_UNAVAILABLE`. The
+staged file is there, and the swap is one command:
+
+    mv ~/lm-tools/thor-admit.new ~/lm-tools/thor-admit
+
+The same gate refused to rewrite **`~/lm-wt/MEMORY-RULE.md`** (the live
+copy the director points every brief at). The updated text is in the repo
+at `tools/thor-admit/round8/MEMORY-RULE.md` — it gains the phase op, the
+`THOR_ADMIT_LEASE` way to use it, the shim's `phase()`, and the note that
+the queue is fair but not a railcar. It is one copy away:
+
+    cp ~/lm-wt/thor-admit/tools/thor-admit/round8/MEMORY-RULE.md ~/lm-wt/MEMORY-RULE.md
+
+Until the binary is swapped, the box runs the round-10 rule: the queue
+stays strict FIFO, `serve` asks do not coalesce, and no lease can be
+phased. The staged binary changes all three at the next daemon restart,
+which is the director's moment to pick.
+
