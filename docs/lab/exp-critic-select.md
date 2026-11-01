@@ -215,23 +215,31 @@ two members carry one image member and one mesh member, and the probe only
 trains on image members — so no probe's training set ever held a near-copy
 of the picture it was scored on.
 
-The forward pass costs ~0.9 s per picture on the Thor (bf16, CUDA); with the
-features cached the head's verdict is 1–70 ms.
-
 **The graphed path, and where it applies.** The probe is the only candidate
 whose verdict is a neural forward pass, so "graphed zero-copy where it
-applies" applies to it and to nothing else in this bake-off. The box already
-has that path measured (`docs/lab/exp-critic-cuda-graph.md`): on real Cycles
-renders the PNG path costs **61–8,984 ms per verdict** (B = 1…8), the
-zero-copy device-resident path **7.9–106 ms** eager, and **6.1–84.6 ms inside
-a CUDA Graph** — 8.7× at 480p B = 1 — with the graph's verdict
-**bit-identical** to the eager verdict in every configuration. The bake-off's
-probe did not use it: it paid the plain forward once per picture and cached
-the features on disk, which is why the table's per-verdict numbers are
-already the cached path. The graph changes the cost of the *first* pass over
-a new picture — what a night meets when the set grows — and it changes
-nothing about the probe's verdict: a floating object does not move the
-embedding, so the probe misses it however fast the forward is.
+applies" applies to it and to nothing else in this bake-off. Measured on the
+set's own 21 pictures (`run_dino_graph.py`, the GPU's clock warmed first and
+recorded beside the numbers, as `docs/lab/IDEAS.md`'s rule asks): the
+**forward is 6.2 ms**, and the whole per-picture path — the PNG decode, the
+processor's normalisation, the host-to-device copy, the forward — is
+**26.6 ms eager** and **24.2 ms with the forward captured in a CUDA Graph**,
+with the graph's descriptor **bit-identical** to the eager one on every
+picture.
+
+The earlier lab measured the same path at render resolution and batch size
+(`docs/lab/exp-critic-cuda-graph.md`): the PNG path costs 61–8,984 ms per
+verdict (B = 1…8), the zero-copy device-resident path 7.9–106 ms eager, and
+**6.1–84.6 ms inside a CUDA Graph**, bit-identical in every configuration.
+Here the picture is already a 224×224 PNG, so the decode and the
+normalisation dominate the 24 ms and the graph can only take the launch
+overhead off a 6 ms forward: the win is smaller than at 4K, and the
+bit-exactness is the same.
+
+The graph changes the cost of the *first* pass over a picture — what a night
+meets when the set grows — and it changes nothing about the probe's verdict:
+a floating object does not move the embedding, so the probe misses it
+however fast the forward is. With the features cached on disk — which is
+what the bake-off's numbers below are — the head's verdict is **1–70 ms**.
 
 ### Jev (the cloud judge)
 
