@@ -97,6 +97,8 @@ class PropFeatures:
 
     #: How big the thing is. Logarithmic, because a mug and a cathedral are
     #: both ordinary and their volumes differ by nine orders of magnitude.
+    #: The volume is the one the object **occupies**, so a hollow mug and
+    #: a solid mug of the same size read the same.
     log_volume: float
     #: ``area / volume^(2/3)`` — 4.836 for a sphere, higher for anything
     #: with a surface. A shape far below the sphere's bound is not
@@ -105,8 +107,12 @@ class PropFeatures:
     #: Longest axis over shortest. A real object has a range; a noise blob
     #: is round in every direction and a splinter is not round at all.
     elongation: float
-    #: The volume over the bounding box's volume. A solid fills a good part
-    #: of its box; a shell fills almost none of it.
+    #: The volume the object occupies over the bounding box's volume. A
+    #: real object fills a good part of the space its own box holds —
+    #: hollow or solid — and a thing that barely occupies its box is not a
+    #: thing. Measured against the shell's own volume this reads a real
+    #: mug at 0.05 and a solid toy mug at 0.68, which is how a prior
+    #: fitted on generated solids came to call every real object a ghost.
     fill_ratio: float
     #: How far the centre of mass sits from the middle of the box, in
     #: diagonals. A real object is roughly where it looks like it is.
@@ -140,8 +146,21 @@ def features_from_report(report: MeshReport) -> PropFeatures:
     A mesh that is not a closed solid still gets features — the numbers are
     what they are, and a ghost with a broken surface should be judged on
     its surface too.
+
+    **The volume the features are measured against is the volume the
+    object occupies**, when the mesh layer measured it
+    (:attr:`~core.genbatch.mesh.MeshReport.occupied_volume`). That is the
+    envelope of a shell, not the material in it: a real mug is 43 cm³ of
+    ceramic inside a 500 cm³ cylinder, and a prior that reads the ceramic
+    calls every real object a ghost (docs/lab/exp-critic-shells.md). When
+    no occupancy was measured the signed volume is used, which is the same
+    number for a solid and the wrong one for a shell.
     """
-    volume = max(float(report.volume), 1e-12)
+    occupied = report.occupied_volume
+    if occupied is None:
+        volume = max(float(report.volume), 1e-12)
+    else:
+        volume = max(float(occupied), 1e-12)
     area = max(float(report.area), 0.0)
     extent = [max(float(axis), 1e-12) for axis in report.extent]
     longest = max(extent)
@@ -149,7 +168,10 @@ def features_from_report(report: MeshReport) -> PropFeatures:
     box_volume = max(extent[0] * extent[1] * extent[2], 1e-12)
     diagonal = max(float(report.diagonal), 1e-12)
 
-    centre = np.asarray(report.centre_of_mass, dtype=np.float64)
+    if report.occupied_centre is not None:
+        centre = np.asarray(report.occupied_centre, dtype=np.float64)
+    else:
+        centre = np.asarray(report.centre_of_mass, dtype=np.float64)
     box_centre = (
         np.asarray(report.bbox_min, dtype=np.float64)
         + np.asarray(report.bbox_max, dtype=np.float64)
@@ -232,20 +254,42 @@ class PlausibilityScore:
     cluster: int
     #: The per-feature tail probabilities, within that group.
     percentiles: tuple[float, ...]
-    #: The standardised distance to that group's centre. A prop far from
-    #: every centre is off the manifold of real objects.
+    #: The distance to that group's centre, in **that group's own spread**.
+    #: A prop far from every centre is off the manifold of real objects.
     distance: float
 
 
 class ReferencePrior:
     """A prior over the features of real objects.
 
-    Fitted on the approved assets. The set is **grouped** first (k-means on
-    the standardised features, seeded, so the fit is reproducible), and each
-    group keeps its own per-feature percentiles. A prop is compared with
-    the group it most resembles — which is what makes the prior multimodal
-    in the way the world is: a plank and a mug are both ordinary, and a
-    single distribution over the pooled set would call one of them a ghost.
+    Fitted on the approved assets. The set is **grouped** first — by kind
+    when the kinds are known, and otherwise by k-means on the standardised
+    features (seeded, so the fit is reproducible) — and each group keeps its
+    own per-feature percentiles. A prop is compared with the group it most
+    resembles — which is what makes the prior multimodal in the way the
+    world is: a plank and a mug are both ordinary, and a single
+    distribution over the pooled set would call one of them a ghost.
+
+    **The kinds, when they are known.** A kind is a kind of object: a mug
+    is a mug, a plank is a plank, and the sampled real objects are real
+    objects. Passing ``labels`` makes the groups the kinds, and that is
+    not a convenience — the score is a **rank inside a group**, so a group
+    of ``n`` members cannot score below ``0.5 / (n + 1)`` and the
+    threshold (0.05) needs **ten** members before a group can express it
+    at all. The sampled real assets are 37 categories for 38 packages, so
+    splitting them by category would leave every kind holding one object
+    and the threshold unreachable. They are one kind: *a real object*.
+
+    **A prop is matched to its kind in that kind's own scale.** The
+    distance to a group's centre is measured in the group's own spread,
+    not in the pooled one. The pooled spread belongs to the population
+    that is widest — the real objects, whose log volume runs over fourteen
+    orders of magnitude — and against that yardstick a thin real pole
+    sits nearer to the toy planks' centre than to the real objects' centre,
+    and is then judged against a group of generated planks it does not
+    belong to. In its own kind's scale it is far from the toy planks (their
+    spread is narrow) and near the real objects (their spread is wide),
+    which is the comparison the prior means to make.
     """
 
     def __init__(
@@ -254,11 +298,14 @@ class ReferencePrior:
         *,
         clusters: int = 2,
         seed: int = 0,
+        labels: Sequence[str] | None = None,
     ) -> None:
         if len(reference) < 2:
             raise ValueError("a prior needs at least two approved objects")
         if clusters < 1:
             raise ValueError("clusters is a count")
+        if labels is not None and len(labels) != len(reference):
+            raise ValueError("every reference object needs a label")
         self.reference = tuple(reference)
         self._matrix = np.array(
             [features.as_vector() for features in self.reference], dtype=np.float64
@@ -268,20 +315,31 @@ class ReferencePrior:
         self._scale = np.where(spread > 1e-12, spread, 1.0)
         self._standardised = (self._matrix - self._centre) / self._scale
 
-        self._centroids, self._assignment = self._fit(
-            self._standardised, min(clusters, len(self.reference)), seed
-        )
+        if labels is None:
+            self._centroids, self._assignment = self._fit(
+                self._standardised, min(clusters, len(self.reference)), seed
+            )
+        else:
+            self._assignment, self._centroids = self._by_kind(labels)
         self._groups: list[np.ndarray] = [
             self._standardised[self._assignment == index]
             for index in range(self._centroids.shape[0])
         ]
         self._group_sizes = [len(group) for group in self._groups]
+        # Each group's own spread: the yardstick a prop is matched with.
+        self._spreads = np.array(
+            [
+                np.where(group.std(axis=0) > 1e-12, group.std(axis=0), 1.0)
+                for group in self._groups
+            ],
+            dtype=np.float64,
+        )
         # How atypical each approved object is within its own group. This
         # population is what the prop's own atypicality is ranked against.
         self._atypicality = np.array(
             [
-                self._atypicality_of(row)
-                for row in self._standardised
+                self._atypicality_index(row, self._groups[kind])
+                for row, kind in zip(self._standardised, self._assignment)
             ],
             dtype=np.float64,
         )
@@ -293,9 +351,23 @@ class ReferencePrior:
             [self._raw_score(row) for row in self._standardised], dtype=np.float64
         )
 
+    def _by_kind(self, labels: Sequence[str]) -> tuple[np.ndarray, np.ndarray]:
+        """The groups, when the kinds are known: one group per kind."""
+        kinds = sorted(set(labels))
+        index = {kind: position for position, kind in enumerate(kinds)}
+        assignment = np.array([index[label] for label in labels], dtype=np.int64)
+        centroids = np.array(
+            [
+                self._standardised[assignment == position].mean(axis=0)
+                for position in range(len(kinds))
+            ],
+            dtype=np.float64,
+        )
+        return assignment, centroids
+
     def _atypicality_of(self, row: np.ndarray) -> float:
         """The atypicality of a reference member within its own group."""
-        cluster, group = self._nearest_group(row)
+        group = self._groups[int(self._nearest_kind(row))]
         if len(group) == 0:
             return 0.0
         return self._atypicality_index(row, group)
@@ -367,10 +439,16 @@ class ReferencePrior:
         logs = np.log(np.clip(tails, 1e-12, None))
         return float(np.exp(logs.mean()))
 
+    def _nearest_kind(self, row: np.ndarray) -> int:
+        """The group a row most resembles, in that group's own scale."""
+        distances = np.linalg.norm(
+            (self._centroids - row[None, :]) / self._spreads, axis=1
+        )
+        return int(np.argmin(distances))
+
     def _nearest_group(self, row: np.ndarray) -> tuple[int, np.ndarray]:
         """Which group of approved objects a row resembles, and the group."""
-        distances = np.linalg.norm(self._centroids - row[None, :], axis=1)
-        cluster = int(np.argmin(distances))
+        cluster = self._nearest_kind(row)
         return cluster, self._groups[cluster]
 
     def _raw_score(self, row: np.ndarray) -> float:
@@ -421,8 +499,7 @@ class ReferencePrior:
     def score(self, features: PropFeatures) -> PlausibilityScore:
         """How ordinary a prop looks, and beside what."""
         row = (features.as_vector() - self._centre) / self._scale
-        distances = np.linalg.norm(self._centroids - row[None, :], axis=1)
-        cluster = int(np.argmin(distances))
+        cluster = self._nearest_kind(row)
         group = self._groups[cluster]
         if len(group) == 0:
             return PlausibilityScore(
@@ -431,6 +508,9 @@ class ReferencePrior:
         tails = tuple(float(value) for value in self._tails(row, group))
         atypicality = self._atypicality_index(row, group)
         score = percentile_against(atypicality, self._group_atypicality[cluster])
+        distances = np.linalg.norm(
+            (self._centroids - row[None, :]) / self._spreads, axis=1
+        )
         return PlausibilityScore(
             score=float(score),
             cluster=cluster,
