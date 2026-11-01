@@ -463,6 +463,15 @@ hold, the model on the one class they do not. It costs **one model call on
 673 ms, and it degrades to the checks — visibly, on the verdict's face —
 whenever the model cannot be reached.
 
+**What it makes possible.** A night that scores variants can now ask a model
+the one question the checks cannot answer, so a floating prop stops being a
+variant that looks fine and reaches the morning report. And because the
+critic is a parameter with a default, the next candidate — a smaller local
+model, a better question, a critic that reads the mesh too — is measured
+against this same table and swapped in without the night's code changing.
+The table is the acceptance test: the next candidate has to hold the band
+on the same set, with the same counting rule, on a set that has grown.
+
 The next honest thing to measure is the class the set does not cover yet:
 **the set is 30 members over 26 distinct bases** — the 21 image members on 21
 distinct bases, so no two pictures in it are the same picture — but the
