@@ -268,6 +268,7 @@ class FallbackCritic:
                 bases=bases,
                 thresholds=thresholds,
                 cache_dir=cache_dir,
+                blender_python=blender_python,
             )
         except Exception as exc:  # noqa: BLE001 - any failure is a fallback
             verdict = self._scripted.score(
@@ -275,6 +276,7 @@ class FallbackCritic:
                 bases=bases,
                 thresholds=thresholds,
                 cache_dir=cache_dir,
+                blender_python=blender_python,
             )
             reason = (
                 f"the {self._critic.name} critic could not answer "
