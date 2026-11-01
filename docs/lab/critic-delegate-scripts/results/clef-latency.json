@@ -1,0 +1,29 @@
+{
+ "member": "mem_718023ba022732d4",
+ "rows": [
+  {
+   "label": "one question",
+   "questions": 1,
+   "wall_median_ms": 4157.828683000844,
+   "edge_median_ms": 385.0,
+   "transport_median_ms": 3775.8286830008437,
+   "walls_ms": [
+    5461,
+    4158,
+    3404
+   ]
+  },
+  {
+   "label": "six questions",
+   "questions": 6,
+   "wall_median_ms": 4948.911614003009,
+   "edge_median_ms": 553.0,
+   "transport_median_ms": 4271.586829996406,
+   "walls_ms": [
+    4949,
+    8236,
+    4825
+   ]
+  }
+ ]
+}

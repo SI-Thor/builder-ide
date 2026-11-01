@@ -1,0 +1,1794 @@
+{
+ "candidate": "clef",
+ "critic": "clef",
+ "layers": [
+  "image"
+ ],
+ "members": [
+  {
+   "member_id": "mem_21488ad67db1666b",
+   "base_id": "arctic-s1",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 769.45,
+   "cpu_ms": 22.156,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.955 (0.8 s wall, 538 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.9554,
+      "clef_seconds": 0.769100810000964,
+      "clef_worker_ms": 538.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.011 (0.8 s wall, 538 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0112,
+      "clef_seconds": 0.769100810000964,
+      "clef_worker_ms": 538.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.376 (0.8 s wall, 538 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.3761,
+      "clef_seconds": 0.769100810000964,
+      "clef_worker_ms": 538.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.066 (0.8 s wall, 538 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0661,
+      "clef_seconds": 0.769100810000964,
+      "clef_worker_ms": 538.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.011 (0.8 s wall, 538 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0109,
+      "clef_seconds": 0.769100810000964,
+      "clef_worker_ms": 538.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.014 (0.8 s wall, 538 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.014,
+      "clef_seconds": 0.769100810000964,
+      "clef_worker_ms": 538.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f95ee685896a09c0",
+   "base_id": "arctic-s4",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 3223.321,
+   "cpu_ms": 6.308,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.007 (3.2 s wall, 804 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.007,
+      "clef_seconds": 3.2179593299988483,
+      "clef_worker_ms": 804.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.245 (3.2 s wall, 804 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2447,
+      "clef_seconds": 3.2179593299988483,
+      "clef_worker_ms": 804.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.040 (3.2 s wall, 804 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0404,
+      "clef_seconds": 3.2179593299988483,
+      "clef_worker_ms": 804.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.178 (3.2 s wall, 804 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.178,
+      "clef_seconds": 3.2179593299988483,
+      "clef_worker_ms": 804.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.171 (3.2 s wall, 804 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1712,
+      "clef_seconds": 3.2179593299988483,
+      "clef_worker_ms": 804.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.091 (3.2 s wall, 804 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0909,
+      "clef_seconds": 3.2179593299988483,
+      "clef_worker_ms": 804.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9aa7eec1d2c8f19d",
+   "base_id": "arctic-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 4819.962,
+   "cpu_ms": 7.22,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.007 (4.8 s wall, 900 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0075,
+      "clef_seconds": 4.81340911100051,
+      "clef_worker_ms": 900.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.116 (4.8 s wall, 900 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1158,
+      "clef_seconds": 4.81340911100051,
+      "clef_worker_ms": 900.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.093 (4.8 s wall, 900 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0927,
+      "clef_seconds": 4.81340911100051,
+      "clef_worker_ms": 900.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.095 (4.8 s wall, 900 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0953,
+      "clef_seconds": 4.81340911100051,
+      "clef_worker_ms": 900.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.208 (4.8 s wall, 900 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2083,
+      "clef_seconds": 4.81340911100051,
+      "clef_worker_ms": 900.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.071 (4.8 s wall, 900 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0709,
+      "clef_seconds": 4.81340911100051,
+      "clef_worker_ms": 900.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b5828303072b1a3c",
+   "base_id": "arctic-s6",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2559.151,
+   "cpu_ms": 5.886,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.006 (2.6 s wall, 541 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0061,
+      "clef_seconds": 2.5541766679998545,
+      "clef_worker_ms": 541.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.087 (2.6 s wall, 541 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0867,
+      "clef_seconds": 2.5541766679998545,
+      "clef_worker_ms": 541.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.823 (2.6 s wall, 541 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.8225,
+      "clef_seconds": 2.5541766679998545,
+      "clef_worker_ms": 541.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.103 (2.6 s wall, 541 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1028,
+      "clef_seconds": 2.5541766679998545,
+      "clef_worker_ms": 541.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.613 (2.6 s wall, 541 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.6132,
+      "clef_seconds": 2.5541766679998545,
+      "clef_worker_ms": 541.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.084 (2.6 s wall, 541 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0844,
+      "clef_seconds": 2.5541766679998545,
+      "clef_worker_ms": 541.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_307101c469654adf",
+   "base_id": "arctic-s7",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2557.37,
+   "cpu_ms": 7.967,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.006 (2.6 s wall, 545 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0065,
+      "clef_seconds": 2.550320450001891,
+      "clef_worker_ms": 545.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.210 (2.6 s wall, 545 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2099,
+      "clef_seconds": 2.550320450001891,
+      "clef_worker_ms": 545.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.098 (2.6 s wall, 545 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0977,
+      "clef_seconds": 2.550320450001891,
+      "clef_worker_ms": 545.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.072 (2.6 s wall, 545 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0722,
+      "clef_seconds": 2.550320450001891,
+      "clef_worker_ms": 545.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.141 (2.6 s wall, 545 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1406,
+      "clef_seconds": 2.550320450001891,
+      "clef_worker_ms": 545.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.175 (2.6 s wall, 545 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1748,
+      "clef_seconds": 2.550320450001891,
+      "clef_worker_ms": 545.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f2de39875e8a21f9",
+   "base_id": "arctic-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2571.003,
+   "cpu_ms": 7.499,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.007 (2.6 s wall, 569 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0071,
+      "clef_seconds": 2.5645269100023143,
+      "clef_worker_ms": 569.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.073 (2.6 s wall, 569 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0728,
+      "clef_seconds": 2.5645269100023143,
+      "clef_worker_ms": 569.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.050 (2.6 s wall, 569 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0497,
+      "clef_seconds": 2.5645269100023143,
+      "clef_worker_ms": 569.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.086 (2.6 s wall, 569 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0865,
+      "clef_seconds": 2.5645269100023143,
+      "clef_worker_ms": 569.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.141 (2.6 s wall, 569 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1407,
+      "clef_seconds": 2.5645269100023143,
+      "clef_worker_ms": 569.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.046 (2.6 s wall, 569 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0464,
+      "clef_seconds": 2.5645269100023143,
+      "clef_worker_ms": 569.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_adc321874fe5a328",
+   "base_id": "canyon-s1",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2610.37,
+   "cpu_ms": 10.675,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.015 (2.6 s wall, 674 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0148,
+      "clef_seconds": 2.6006984720006585,
+      "clef_worker_ms": 674.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.037 (2.6 s wall, 674 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.037,
+      "clef_seconds": 2.6006984720006585,
+      "clef_worker_ms": 674.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.503 (2.6 s wall, 674 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.5027,
+      "clef_seconds": 2.6006984720006585,
+      "clef_worker_ms": 674.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.125 (2.6 s wall, 674 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.125,
+      "clef_seconds": 2.6006984720006585,
+      "clef_worker_ms": 674.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.891 (2.6 s wall, 674 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.8913,
+      "clef_seconds": 2.6006984720006585,
+      "clef_worker_ms": 674.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.276 (2.6 s wall, 674 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2763,
+      "clef_seconds": 2.6006984720006585,
+      "clef_worker_ms": 674.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_718023ba022732d4",
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2669.236,
+   "cpu_ms": 6.542,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.008 (2.7 s wall, 488 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0081,
+      "clef_seconds": 2.663731562002795,
+      "clef_worker_ms": 488.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.061 (2.7 s wall, 488 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0614,
+      "clef_seconds": 2.663731562002795,
+      "clef_worker_ms": 488.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.672 (2.7 s wall, 488 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.6717,
+      "clef_seconds": 2.663731562002795,
+      "clef_worker_ms": 488.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.157 (2.7 s wall, 488 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1565,
+      "clef_seconds": 2.663731562002795,
+      "clef_worker_ms": 488.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.716 (2.7 s wall, 488 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.7155,
+      "clef_seconds": 2.663731562002795,
+      "clef_worker_ms": 488.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.705 (2.7 s wall, 488 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.7049,
+      "clef_seconds": 2.663731562002795,
+      "clef_worker_ms": 488.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_006310cbdf937f74",
+   "base_id": "canyon-s5",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2257.726,
+   "cpu_ms": 13.005,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.009 (2.2 s wall, 470 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.009,
+      "clef_seconds": 2.2459987590009405,
+      "clef_worker_ms": 470.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.068 (2.2 s wall, 470 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0677,
+      "clef_seconds": 2.2459987590009405,
+      "clef_worker_ms": 470.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.119 (2.2 s wall, 470 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1192,
+      "clef_seconds": 2.2459987590009405,
+      "clef_worker_ms": 470.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.097 (2.2 s wall, 470 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0968,
+      "clef_seconds": 2.2459987590009405,
+      "clef_worker_ms": 470.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.180 (2.2 s wall, 470 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1797,
+      "clef_seconds": 2.2459987590009405,
+      "clef_worker_ms": 470.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.015 (2.2 s wall, 470 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0155,
+      "clef_seconds": 2.2459987590009405,
+      "clef_worker_ms": 470.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_e5097025648d7b9c",
+   "base_id": "canyon-s6",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 542.946,
+   "cpu_ms": 1.279,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.955 (0.5 s wall, 416 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.9554,
+      "clef_seconds": 0.5425400530002662,
+      "clef_worker_ms": 416.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.011 (0.5 s wall, 416 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0112,
+      "clef_seconds": 0.5425400530002662,
+      "clef_worker_ms": 416.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.376 (0.5 s wall, 416 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.3761,
+      "clef_seconds": 0.5425400530002662,
+      "clef_worker_ms": 416.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.066 (0.5 s wall, 416 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0661,
+      "clef_seconds": 0.5425400530002662,
+      "clef_worker_ms": 416.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.011 (0.5 s wall, 416 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0109,
+      "clef_seconds": 0.5425400530002662,
+      "clef_worker_ms": 416.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.014 (0.5 s wall, 416 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.014,
+      "clef_seconds": 0.5425400530002662,
+      "clef_worker_ms": 416.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_966194306043c892",
+   "base_id": "canyon-s7",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2246.26,
+   "cpu_ms": 11.65,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.008 (2.2 s wall, 566 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0084,
+      "clef_seconds": 2.235789393998857,
+      "clef_worker_ms": 566.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.129 (2.2 s wall, 566 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1285,
+      "clef_seconds": 2.235789393998857,
+      "clef_worker_ms": 566.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.067 (2.2 s wall, 566 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0672,
+      "clef_seconds": 2.235789393998857,
+      "clef_worker_ms": 566.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.058 (2.2 s wall, 566 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0578,
+      "clef_seconds": 2.235789393998857,
+      "clef_worker_ms": 566.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.091 (2.2 s wall, 566 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0908,
+      "clef_seconds": 2.235789393998857,
+      "clef_worker_ms": 566.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.014 (2.2 s wall, 566 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0142,
+      "clef_seconds": 2.235789393998857,
+      "clef_worker_ms": 566.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_9d6d264ba8126d40",
+   "base_id": "canyon-s8",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "scripted",
+   "latency_ms": 2897.991,
+   "cpu_ms": 1170.93,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.4864 (threshold 0.02) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "mean_luma": 0.4864424467086792
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "0 isolated outliers (threshold 250) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "fireflies": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 3 px (0.0006% of the frame) at (259, 103, 261, 103); threshold 1.00% \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "flat_area": 3.0,
+      "flat_frac": 5.787037037037037e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 200x120 px whose weakest side steps by 0.128 \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "seam_strength": 0.1279614706834956
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_65684b3ca047a1ae",
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2091.108,
+   "cpu_ms": 2.975,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.008 (2.1 s wall, 563 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.008,
+      "clef_seconds": 2.088911487997393,
+      "clef_worker_ms": 563.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.033 (2.1 s wall, 563 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0325,
+      "clef_seconds": 2.088911487997393,
+      "clef_worker_ms": 563.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.782 (2.1 s wall, 563 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.7822,
+      "clef_seconds": 2.088911487997393,
+      "clef_worker_ms": 563.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.146 (2.1 s wall, 563 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1462,
+      "clef_seconds": 2.088911487997393,
+      "clef_worker_ms": 563.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.848 (2.1 s wall, 563 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.8483,
+      "clef_seconds": 2.088911487997393,
+      "clef_worker_ms": 563.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.251 (2.1 s wall, 563 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2505,
+      "clef_seconds": 2.088911487997393,
+      "clef_worker_ms": 563.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f718dd9be64c17e4",
+   "base_id": "coast-s2",
+   "defect": "holes",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 4036.385,
+   "cpu_ms": 5.642,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.008 (4.0 s wall, 873 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0084,
+      "clef_seconds": 4.032045141000708,
+      "clef_worker_ms": 873.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.089 (4.0 s wall, 873 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0891,
+      "clef_seconds": 4.032045141000708,
+      "clef_worker_ms": 873.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.472 (4.0 s wall, 873 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.4723,
+      "clef_seconds": 4.032045141000708,
+      "clef_worker_ms": 873.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.144 (4.0 s wall, 873 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1444,
+      "clef_seconds": 4.032045141000708,
+      "clef_worker_ms": 873.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.382 (4.0 s wall, 873 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.3823,
+      "clef_seconds": 4.032045141000708,
+      "clef_worker_ms": 873.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.206 (4.0 s wall, 873 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2062,
+      "clef_seconds": 4.032045141000708,
+      "clef_worker_ms": 873.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_5dce9a3310b1eba5",
+   "base_id": "coast-s4",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 4725.22,
+   "cpu_ms": 4.81,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.008 (4.7 s wall, 1178 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0079,
+      "clef_seconds": 4.7214175750013965,
+      "clef_worker_ms": 1178.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.345 (4.7 s wall, 1178 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.3452,
+      "clef_seconds": 4.7214175750013965,
+      "clef_worker_ms": 1178.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.118 (4.7 s wall, 1178 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1182,
+      "clef_seconds": 4.7214175750013965,
+      "clef_worker_ms": 1178.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.042 (4.7 s wall, 1178 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.042,
+      "clef_seconds": 4.7214175750013965,
+      "clef_worker_ms": 1178.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.281 (4.7 s wall, 1178 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2814,
+      "clef_seconds": 4.7214175750013965,
+      "clef_worker_ms": 1178.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.091 (4.7 s wall, 1178 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0909,
+      "clef_seconds": 4.7214175750013965,
+      "clef_worker_ms": 1178.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_1d6e6ecc9529fb17",
+   "base_id": "coast-s5",
+   "defect": "texture_swap",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "scripted",
+   "latency_ms": 2240.795,
+   "cpu_ms": 1396.775,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.3914 (threshold 0.02) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "mean_luma": 0.3914242088794708
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "2 isolated outliers (threshold 250) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "fireflies": 2.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 3 px (0.0006% of the frame) at (186, 36, 186, 38); threshold 1.00% \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "flat_area": 3.0,
+      "flat_frac": 5.787037037037037e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": true,
+     "detail": "a block 228x84 px whose weakest side steps by 0.756 (threshold 0.33) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "seam_strength": 0.7558819006019211
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "watertight",
+     "fired": true,
+     "detail": "1 prop(s) have a hollow shell (inward faces): LeafFactoryMaple(1490699).sp \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "open_shells": 1.0,
+      "worst_inward": 0.7175367339624895
+     },
+     "applicable": true
+    },
+    {
+     "check": "scale_bounds",
+     "fired": false,
+     "detail": "every prop within 6.0x its family's median size (831 props in 14 families) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "scale_offenders": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "edge_cut",
+     "fired": false,
+     "detail": "no prop cut through the middle by the picture's edge (831 props checked) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "cut_objects": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_d5c1c6cc24413705",
+   "base_id": "coast-s6",
+   "defect": "floating_object",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 4765.006,
+   "cpu_ms": 4.69,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.008 (4.8 s wall, 868 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0078,
+      "clef_seconds": 4.761129251000966,
+      "clef_worker_ms": 868.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.085 (4.8 s wall, 868 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0846,
+      "clef_seconds": 4.761129251000966,
+      "clef_worker_ms": 868.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.085 (4.8 s wall, 868 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0849,
+      "clef_seconds": 4.761129251000966,
+      "clef_worker_ms": 868.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.092 (4.8 s wall, 868 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0924,
+      "clef_seconds": 4.761129251000966,
+      "clef_worker_ms": 868.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.282 (4.8 s wall, 868 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2818,
+      "clef_seconds": 4.761129251000966,
+      "clef_worker_ms": 868.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (4.8 s wall, 868 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0203,
+      "clef_seconds": 4.761129251000966,
+      "clef_worker_ms": 868.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_b521f152359d1cde",
+   "base_id": "coast-s7",
+   "defect": null,
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "scripted",
+   "latency_ms": 2691.138,
+   "cpu_ms": 802.457,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "mean luminance 0.3269 (threshold 0.02) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "mean_luma": 0.3268614113330841
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "3 isolated outliers (threshold 250) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "fireflies": 3.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "largest single-colour region 4 px (0.0008% of the frame) at (44, 43, 44, 46); threshold 1.00% \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "flat_area": 4.0,
+      "flat_frac": 7.71604938271605e-06
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "no uniform dark blob inside a surface (contrast \u2265 0.12) \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "holes": 0.0,
+      "hole_area": 0.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "a block 156x68 px whose weakest side steps by 0.177 \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "seam_strength": 0.17668525077988814
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "no object hanging in empty space \u2014 the clef critic could not answer (HTTPError: HTTP Error 500: Internal Server Error) \u2014 the scripted checks answered",
+     "measured": {
+      "floating_area": 0.0,
+      "gap": 0.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_202aa986e4168c4c",
+   "base_id": "coast-s8",
+   "defect": "black_frame",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 740.955,
+   "cpu_ms": 0.918,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.955 (0.7 s wall, 440 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.9554,
+      "clef_seconds": 0.7406413249991601,
+      "clef_worker_ms": 440.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.011 (0.7 s wall, 440 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0112,
+      "clef_seconds": 0.7406413249991601,
+      "clef_worker_ms": 440.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.376 (0.7 s wall, 440 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.3761,
+      "clef_seconds": 0.7406413249991601,
+      "clef_worker_ms": 440.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.066 (0.7 s wall, 440 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0661,
+      "clef_seconds": 0.7406413249991601,
+      "clef_worker_ms": 440.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.011 (0.7 s wall, 440 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0109,
+      "clef_seconds": 0.7406413249991601,
+      "clef_worker_ms": 440.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.014 (0.7 s wall, 440 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.014,
+      "clef_seconds": 0.7406413249991601,
+      "clef_worker_ms": 440.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_8bb3f801d0caa8b4",
+   "base_id": "desert-s1",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 3813.079,
+   "cpu_ms": 4.344,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.008 (3.8 s wall, 1047 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0084,
+      "clef_seconds": 3.8094606019985804,
+      "clef_worker_ms": 1047.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": true,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.622 (3.8 s wall, 1047 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.622,
+      "clef_seconds": 3.8094606019985804,
+      "clef_worker_ms": 1047.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.059 (3.8 s wall, 1047 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0593,
+      "clef_seconds": 3.8094606019985804,
+      "clef_worker_ms": 1047.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.091 (3.8 s wall, 1047 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0915,
+      "clef_seconds": 3.8094606019985804,
+      "clef_worker_ms": 1047.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.172 (3.8 s wall, 1047 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1718,
+      "clef_seconds": 3.8094606019985804,
+      "clef_worker_ms": 1047.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.051 (3.8 s wall, 1047 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0515,
+      "clef_seconds": 3.8094606019985804,
+      "clef_worker_ms": 1047.0
+     },
+     "applicable": true
+    }
+   ]
+  },
+  {
+   "member_id": "mem_f187020297fd5c58",
+   "base_id": "arctic-s2",
+   "defect": "noise_fireflies",
+   "layer": "image",
+   "label": "verdict@clef",
+   "degraded": "clef",
+   "latency_ms": 2183.088,
+   "cpu_ms": 2.409,
+   "checks": [
+    {
+     "check": "black_frame",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.012 (2.2 s wall, 493 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0118,
+      "clef_seconds": 2.1814052230001835,
+      "clef_worker_ms": 493.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "fireflies",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.339 (2.2 s wall, 493 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.3386,
+      "clef_seconds": 2.1814052230001835,
+      "clef_worker_ms": 493.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "flat_patch",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.210 (2.2 s wall, 493 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.2102,
+      "clef_seconds": 2.1814052230001835,
+      "clef_worker_ms": 493.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "dark_holes",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.121 (2.2 s wall, 493 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1211,
+      "clef_seconds": 2.1814052230001835,
+      "clef_worker_ms": 493.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "patch_seam",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.139 (2.2 s wall, 493 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.1394,
+      "clef_seconds": 2.1814052230001835,
+      "clef_worker_ms": 493.0
+     },
+     "applicable": true
+    },
+    {
+     "check": "floating_blob",
+     "fired": false,
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.032 (2.2 s wall, 493 ms at the edge, 1192 input tokens)",
+     "measured": {
+      "clef_probability": 0.0318,
+      "clef_seconds": 2.1814052230001835,
+      "clef_worker_ms": 493.0
+     },
+     "applicable": true
+    }
+   ]
+  }
+ ],
+ "table": {
+  "night": null,
+  "label": "verdict@scripted",
+  "in_band": false,
+  "band": {
+   "fp_bound": 0.1
+  },
+  "layers": [
+   "image"
+  ],
+  "totals": {
+   "tp": 9,
+   "fp": 0,
+   "fn": 6,
+   "tn": 36,
+   "fp_rate": 0.0,
+   "fn_rate": 0.4
+  },
+  "rows": [
+   {
+    "defect": "black_frame",
+    "check": "black_frame",
+    "tp": 3,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 3,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "noise_fireflies",
+    "check": "fireflies",
+    "tp": 1,
+    "fp": 0,
+    "fn": 3,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.75,
+    "members": 4,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "missing_object",
+    "check": "flat_patch",
+    "tp": 2,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "holes",
+    "check": "dark_holes",
+    "tp": 0,
+    "fp": 0,
+    "fn": 2,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 1.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "texture_swap",
+    "check": "patch_seam",
+    "tp": 2,
+    "fp": 0,
+    "fn": 0,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.0,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "floating_object",
+    "check": "floating_blob",
+    "tp": 1,
+    "fp": 0,
+    "fn": 1,
+    "tn": 6,
+    "fp_rate": 0.0,
+    "fn_rate": 0.5,
+    "members": 2,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "wrong_scale",
+    "check": "scale_bounds",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "hollow_mesh",
+    "check": "watertight",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   },
+   {
+    "defect": "clipped_geometry",
+    "check": "edge_cut",
+    "tp": 0,
+    "fp": 0,
+    "fn": 0,
+    "tn": 0,
+    "fp_rate": null,
+    "fn_rate": null,
+    "members": 0,
+    "clean": 6,
+    "label": "verdict@scripted"
+   }
+  ]
+ },
+ "fallback_reason": null,
+ "kwargs": {},
+ "box": {
+  "kernel": "6.8.12-1021-tegra",
+  "arch": "aarch64",
+  "mem_available_gib": 23.05,
+  "gpu": "NVIDIA Thor"
+ }
+}

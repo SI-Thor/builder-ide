@@ -1,0 +1,43 @@
+0.00.044.146 I srv  llama_server: initializing ...
+0.00.044.166 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.044.627 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.047.077 I srv    load_model: loading model '/home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf'
+0.01.156.924 I cmn          init: llama threadpool init, n_threads = 14
+0.01.224.338 I srv          init: decision model type: lfm3-d1
+0.01.224.360 W srv    load_model: cap image_max_tokens (original=4096) to 256 (n_ubatch = 512) because the model processes the prompt in one ubatch
+0.01.224.361 W srv    load_model: increase n_ubatch (-ub) to increase vision token budget
+0.01.297.876 I srv    load_model: loaded multimodal model, '/home/caseydigennaro/models/d1-2B/mmproj-d1-2B-Q8_0.gguf'
+0.01.297.917 W srv    load_model: speculative decoding not supported by this context
+0.01.297.918 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+0.01.297.979 I srv    load_model: decision model: prompt cache disabled by default, use `--cache-ram N` to enable it
+0.01.303.810 W srv          init: chat template supports preserving reasoning, it is enabled by default (may use more tokens, disable via --no-reasoning-preserve)
+0.01.303.882 I srv  server_run_i: model loaded
+0.01.303.892 I srv  server_on_li: listening on http://127.0.0.1:8131
+0.33.500.462 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.33.500.503 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.33.728.960 I slot      release: id  0 | task 0 | stop processing: n_tokens = 298, truncated = 0
+0.39.238.928 I slot get_availabl: id  1 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.39.238.948 I slot launch_slot_: id  1 | task 2 | processing task, is_child = 0
+0.39.361.582 I slot      release: id  1 | task 2 | stop processing: n_tokens = 298, truncated = 0
+0.41.035.965 I slot get_availabl: id  2 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.41.035.987 I slot launch_slot_: id  2 | task 4 | processing task, is_child = 0
+0.41.132.605 I slot      release: id  2 | task 4 | stop processing: n_tokens = 298, truncated = 0
+0.42.408.164 I slot get_availabl: id  3 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.42.408.184 I slot launch_slot_: id  3 | task 6 | processing task, is_child = 0
+0.42.512.377 I slot      release: id  3 | task 6 | stop processing: n_tokens = 298, truncated = 0
+0.44.861.379 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 298, t_last = 32637503677
+0.44.861.403 I slot launch_slot_: id  0 | task 8 | processing task, is_child = 0
+0.44.971.798 I slot      release: id  0 | task 8 | stop processing: n_tokens = 298, truncated = 0
+0.47.357.356 I slot get_availabl: id  1 | task -1 | selected slot by LRU, n_tokens = 298, t_last = 32643136300
+0.47.357.452 I slot launch_slot_: id  1 | task 10 | processing task, is_child = 0
+0.47.463.365 I slot      release: id  1 | task 10 | stop processing: n_tokens = 298, truncated = 0
+0.52.944.888 I slot get_availabl: id  2 | task -1 | selected slot by LRU, n_tokens = 298, t_last = 32644907323
+0.52.944.977 I slot launch_slot_: id  2 | task 12 | processing task, is_child = 0
+0.53.056.419 I slot      release: id  2 | task 12 | stop processing: n_tokens = 298, truncated = 0
+0.55.435.399 I slot get_availabl: id  3 | task -1 | selected slot by LRU, n_tokens = 298, t_last = 32646287096
+0.55.435.454 I slot launch_slot_: id  3 | task 14 | processing task, is_child = 0
+0.55.545.531 I slot      release: id  3 | task 14 | stop processing: n_tokens = 298, truncated = 0
+0.56.406.982 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 298, t_last = 32648746570
+0.56.407.082 I slot launch_slot_: id  0 | task 16 | processing task, is_child = 0
+0.56.496.488 I slot      release: id  0 | task 16 | stop processing: n_tokens = 298, truncated = 0
+1.16.188.607 I srv    operator(): operator(): cleaning up before exit...

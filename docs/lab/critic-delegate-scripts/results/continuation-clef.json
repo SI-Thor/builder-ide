@@ -1,0 +1,131 @@
+{
+ "delegate": "clef",
+ "fallback_reason": null,
+ "rows": [
+  {
+   "member_id": "mem_307101c469654adf",
+   "base_id": "arctic-s7",
+   "defect": "holes",
+   "flagged": true,
+   "edit": {
+    "op": "lower_object",
+    "target": "floating_blob",
+    "box": [
+     345,
+     45,
+     393,
+     82
+    ],
+    "support": {
+     "kind": "terrain",
+     "label": "terrain",
+     "row": 355,
+     "source": "frame"
+    },
+    "drop_px": 273,
+    "drop_frame_heights": 0.505556,
+    "drop_m": null,
+    "evidence": {
+     "relief": 0.054226,
+     "span": 0.570435,
+     "support_row": 355.0
+    }
+   },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
+   "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_307101c469654adf-edited.png",
+   "checks_gap_before": 0.1259259259259259,
+   "checks_gap_after": 0.6407407407407407,
+   "checks_fired_after": [
+    "dark_holes",
+    "floating_blob"
+   ],
+   "delegate_after": null,
+   "delegate_after_detail": "an object of 623 px hangs with 0.64 frame heights of open space under it",
+   "cleared": false
+  },
+  {
+   "member_id": "mem_718023ba022732d4",
+   "base_id": "canyon-s4",
+   "defect": "floating_object",
+   "flagged": true,
+   "edit": {
+    "op": "lower_object",
+    "target": "floating_blob",
+    "box": [
+     94,
+     70,
+     187,
+     181
+    ],
+    "support": {
+     "kind": "unknown",
+     "label": "unknown",
+     "row": 443,
+     "source": "frame"
+    },
+    "drop_px": 262,
+    "drop_frame_heights": 0.485185,
+    "drop_m": null,
+    "evidence": {
+     "relief": 0.018862,
+     "span": 0.681635,
+     "support_row": 443.0
+    }
+   },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
+   "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_718023ba022732d4-edited.png",
+   "checks_gap_before": 0.1037037037037037,
+   "checks_gap_after": 0.0,
+   "checks_fired_after": [],
+   "delegate_after": 0.1554,
+   "delegate_after_detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.155 (3.0 s wall, 516 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+   "cleared": true
+  },
+  {
+   "member_id": "mem_65684b3ca047a1ae",
+   "base_id": "coast-s1",
+   "defect": "missing_object",
+   "flagged": true,
+   "edit": {
+    "op": "lower_object",
+    "target": "floating_blob",
+    "box": [
+     784,
+     353,
+     861,
+     366
+    ],
+    "support": {
+     "kind": "terrain",
+     "label": "terrain",
+     "row": 479,
+     "source": "frame"
+    },
+    "drop_px": 113,
+    "drop_frame_heights": 0.209259,
+    "drop_m": null,
+    "evidence": {
+     "relief": 0.07056,
+     "span": 0.637515,
+     "support_row": 479.0
+    }
+   },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
+   "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_65684b3ca047a1ae-edited.png",
+   "checks_gap_before": 0.17962962962962964,
+   "checks_gap_after": 0.0,
+   "checks_fired_after": [
+    "flat_patch",
+    "dark_holes"
+   ],
+   "delegate_after": null,
+   "delegate_after_detail": "no object hanging in empty space",
+   "cleared": true
+  }
+ ],
+ "cleared": 2,
+ "total": 3
+}

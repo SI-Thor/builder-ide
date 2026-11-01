@@ -1,9 +1,17 @@
-"""The local vision-language model as a critic: one fixed yes/no question per class.
+"""A local vision-language model as a critic: one fixed yes/no question per class.
 
-The model is the Thor's own copy of **Muse Glimmer 30B** (Apache-2.0) with its
-perception encoder, served by llama.cpp on loopback. It is asked the *same*
-question for every frame — one yes/no question per defect class — and its
-answer is the verdict.
+The model is served by llama.cpp on loopback and is asked the *same* question
+for every frame — one yes/no question per defect class — and its answer is
+the verdict. The questions live in
+:mod:`core.critic.candidates.questions`, because the decision-model
+delegates ask the same words.
+
+**There is no default model.** The candidate used to default to the Thor's
+copy of **Muse Glimmer 30B**, and that default is gone: a 30 B model is a
+large resident load on a box the project shares, and the rule (B2) is that
+no language model runs on the Thor. A caller that wants this candidate must
+say which model it is talking to, so the weights are a decision on the
+caller's side rather than a hidden default.
 
 Three things make it a fair candidate rather than a toy:
 
@@ -13,8 +21,7 @@ Three things make it a fair candidate rather than a toy:
 * **The model sees the picture and nothing else.** No scripted
   measurements, no thresholds, no hints about which class is planted. It is
   a *pixel* critic: whatever it gets right, it got from the image.
-* **It is local.** The verdict costs no money and no network, and the
-  weights are already on the box.
+* **It is local.** The verdict costs no money and no network.
 
 The class it is most likely to be *asked* about is the one the scripted
 checks miss — ``floating_object`` — because that is the class the checks
@@ -35,6 +42,7 @@ from ..checks import Thresholds
 from ..critic import ReferenceCritic
 from ..models import DEFECT_TARGETS, IMAGE_DEFECTS, CheckOutcome, CriticVerdict
 from ..set import MemberRecipe
+from .questions import CLASS_QUESTIONS
 
 __all__ = ["VLM_CLASSES", "VLM_QUESTIONS", "VLMCritic", "ask_vlm"]
 
@@ -44,34 +52,8 @@ __all__ = ["VLM_CLASSES", "VLM_QUESTIONS", "VLMCritic", "ask_vlm"]
 #: defect, so there is no picture of them to look at.
 VLM_CLASSES: tuple[str, ...] = tuple(IMAGE_DEFECTS)
 
-#: The fixed question per class. Every frame is asked the same words.
-VLM_QUESTIONS: dict[str, str] = {
-    "black_frame": (
-        "Does this image show a completely black picture with no visible scene? "
-        "Answer yes or no."
-    ),
-    "noise_fireflies": (
-        "Does this image show bright isolated speckles scattered over the "
-        "picture, like dust or fireflies in a render? Answer yes or no."
-    ),
-    "missing_object": (
-        "Does this image show a missing object — a flat, empty patch where "
-        "something should be, as if a prop failed to render? Answer yes or no."
-    ),
-    "holes": (
-        "Does this image show holes — dark empty gaps or pits in a surface? "
-        "Answer yes or no."
-    ),
-    "texture_swap": (
-        "Does this image show a rectangular block of texture that does not "
-        "belong, as if a patch of the surface came from a different picture? "
-        "Answer yes or no."
-    ),
-    "floating_object": (
-        "Does this image show an object floating in mid-air, detached from "
-        "the ground or hanging in empty space? Answer yes or no."
-    ),
-}
+#: The fixed question per class, shared with the decision-model delegates.
+VLM_QUESTIONS: dict[str, str] = dict(CLASS_QUESTIONS)
 
 #: The default endpoint — the loopback llama.cpp server.
 DEFAULT_ENDPOINT = "http://127.0.0.1:8123/v1"
@@ -87,7 +69,7 @@ def ask_vlm(
     image_path: str | Path,
     question: str,
     *,
-    model: str = "muse-glimmer-30b",
+    model: str,
     timeout: float = 300.0,
     max_tokens: int = 512,
 ) -> tuple[str, float, dict[str, Any]]:
@@ -164,7 +146,7 @@ class VLMCritic:
         self,
         *,
         endpoint: str = DEFAULT_ENDPOINT,
-        model: str = "muse-glimmer-30b",
+        model: str,
         classes: Sequence[str] = VLM_CLASSES,
         timeout: float = 300.0,
     ) -> None:

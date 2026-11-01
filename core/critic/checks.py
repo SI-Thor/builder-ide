@@ -632,6 +632,38 @@ def _check_floating_blob(image: np.ndarray, t: Thresholds) -> CheckOutcome:
     where the check saw foreground and it merged with the ground. Half of
     the planted copies were thrown away that way.
     """
+    found = _floating_candidate(image, t)
+
+    detail_text = "no object hanging in empty space"
+    fired = False
+    best = 0
+    best_gap = 0.0
+    if found is not None:
+        comp, best_gap, _mask, _detail, _next_row = found
+        fired = True
+        best = comp.size
+    if fired:
+        detail_text = (
+            f"an object of {best} px hangs with {best_gap:.2f} frame heights "
+            f"of open space under it"
+        )
+    return CheckOutcome(
+        check="floating_blob",
+        fired=fired,
+        detail=detail_text,
+        measured={"floating_area": float(best), "gap": best_gap},
+    )
+
+
+def _floating_candidate(image: np.ndarray, t: Thresholds):
+    """The thing the floating check fires on.
+
+    The check and the **support probe** (:mod:`core.critic.surface`) must
+    agree on which thing is meant, so the selection lives here once and both
+    use it: the same mask, the same filters, the same gap.
+
+    Returns ``(component, gap, mask, detail, next_row)`` or ``None``.
+    """
     g = luma(image)
     detail = local_std(g, 9)
     background = box_mean(g, t.float_window)
@@ -642,11 +674,6 @@ def _check_floating_blob(image: np.ndarray, t: Thresholds) -> CheckOutcome:
     _, found = components(mask)
     # Where the empty space under each row ends: the next detailed row.
     next_row = next_true_row(detail > t.float_smooth_max)
-
-    detail_text = "no object hanging in empty space"
-    fired = False
-    best = 0
-    best_gap = 0.0
     for comp in found:
         # The object's size is its **box**, not the number of pixels in its
         # outline: the mask finds a thing's edges, so a tree's crown is a
@@ -663,21 +690,8 @@ def _check_floating_blob(image: np.ndarray, t: Thresholds) -> CheckOutcome:
         gap = _open_gap(next_row, comp, h)
         if gap < t.float_min_gap:
             continue  # the ground is right under it: a bump, not a floater
-        fired = True
-        best = comp.size
-        best_gap = gap
-        break
-    if fired:
-        detail_text = (
-            f"an object of {best} px hangs with {best_gap:.2f} frame heights "
-            f"of open space under it"
-        )
-    return CheckOutcome(
-        check="floating_blob",
-        fired=fired,
-        detail=detail_text,
-        measured={"floating_area": float(best), "gap": best_gap},
-    )
+        return comp, gap, mask, detail, next_row
+    return None
 
 
 def _surrounding_detail(detail: np.ndarray, comp: Any) -> float:

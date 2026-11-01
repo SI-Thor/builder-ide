@@ -46,3 +46,12 @@ docs/lab/critic-select-scripts/results/*.log
 
 # The Rust crate's build output (tools/thor-admit is a standalone crate).
 tools/thor-admit/target/
+
+# The delegate bake-off's runtime state and its derived frames. The port the
+# admission daemon handed back and the pid in front of the server are the
+# running box's state, not the experiment's; the edited frames are derived
+# images, the same kind of cache as the set's own (the recipe and the script
+# are the source of truth, and the numbers are in the JSONs beside them).
+docs/lab/critic-delegate-scripts/results/d1.port
+docs/lab/critic-delegate-scripts/results/d1.pid
+docs/lab/critic-delegate-scripts/results/*-edited.png

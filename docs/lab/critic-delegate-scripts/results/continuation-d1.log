@@ -1,0 +1,7 @@
+the hybrid's delegate: d1
+  mem_307101c469654adf holes: edit drop=273 px (no metres (no scene)) onto terrain (row 355) -> checks gap 0.1259 -> 0.6407, flag cleared: False
+  mem_718023ba022732d4 floating_object: edit drop=262 px (no metres (no scene)) onto unknown (row 443) -> checks gap 0.1037 -> 0.0000, flag cleared: True
+  mem_65684b3ca047a1ae missing_object: edit drop=113 px (no metres (no scene)) onto terrain (row 479) -> checks gap 0.1796 -> 0.0000, flag cleared: True
+
+cleared 2 of 3 flagged members
+wrote /home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/continuation-d1.json

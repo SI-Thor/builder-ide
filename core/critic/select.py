@@ -35,6 +35,7 @@ from .critic import ReferenceCritic, ScriptedReferenceCritic
 
 __all__ = [
     "CRITIC_DEFAULT",
+    "HYBRID_DELEGATE",
     "SCRIPTED_OUT_OF_BAND",
     "CriticSpec",
     "CANDIDATES",
@@ -50,6 +51,18 @@ __all__ = [
 #: in this package. They are the fallback for every candidate, and the
 #: baseline row in the published table.
 CRITIC_DEFAULT = "scripted"
+
+#: The hybrid's delegate when nobody names one: the **local decision model**
+#: (``d1-2B`` with its projector), which sees the frame and answers a typed
+#: yes/no question per class.
+#:
+#: It used to be the 30 B vision-language model, and that default is gone for
+#: two reasons that are measurements, not preferences: a 30 B model is a large
+#: resident load on a box the project shares and the rule (B2) is that no
+#: language model runs on the Thor, and the local decision model answers the
+#: same question about the same frame in a small fraction of the time
+#: (``docs/lab/exp-critic-delegate.md``).
+HYBRID_DELEGATE = "d1"
 
 #: The defect classes the scripted critic is **out of band** on, as the
 #: published table measures it: ``floating_object`` (one miss of two
@@ -101,6 +114,18 @@ def _build_vlm(**kwargs: Any) -> ReferenceCritic:
     return VLMCritic(**kwargs)
 
 
+def _build_d1(**kwargs: Any) -> ReferenceCritic:
+    from .candidates.d1 import D1Critic
+
+    return D1Critic(**kwargs)
+
+
+def _build_clef(**kwargs: Any) -> ReferenceCritic:
+    from .candidates.clef import ClefCritic
+
+    return ClefCritic(**kwargs)
+
+
 def _build_jev(**kwargs: Any) -> ReferenceCritic:
     from .candidates.jev import JevCritic
 
@@ -110,7 +135,7 @@ def _build_jev(**kwargs: Any) -> ReferenceCritic:
 def _build_hybrid(**kwargs: Any) -> ReferenceCritic:
     from .hybrid import HybridCritic
 
-    delegate_name = kwargs.pop("delegate", "vlm")
+    delegate_name = kwargs.pop("delegate", HYBRID_DELEGATE)
     escalate = kwargs.pop("escalate", None)
     if escalate is None:
         escalate = SCRIPTED_OUT_OF_BAND
@@ -143,8 +168,31 @@ CANDIDATES: tuple[CriticSpec, ...] = (
     CriticSpec(
         name="vlm",
         layers=("image",),
-        summary="a local vision-language model asked one fixed yes/no question per class",
+        summary=(
+            "a local vision-language model asked one fixed yes/no question per class "
+            "(no default model: the caller says which one)"
+        ),
         build=_build_vlm,
+        takes_classes=True,
+    ),
+    CriticSpec(
+        name="d1",
+        layers=("image",),
+        summary=(
+            "d1-2B with its mmproj, a local decision model that sees the frame "
+            "(one typed yes/no question per class)"
+        ),
+        build=_build_d1,
+        takes_classes=True,
+    ),
+    CriticSpec(
+        name="clef",
+        layers=("image",),
+        summary=(
+            "clef-flash on Workers AI, a cloud decision model with the image "
+            "(one typed yes/no question per class)"
+        ),
+        build=_build_clef,
         takes_classes=True,
     ),
     CriticSpec(

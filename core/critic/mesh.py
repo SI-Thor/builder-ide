@@ -46,6 +46,7 @@ __all__ = [
     "MeshProbeError",
     "probe_scene",
     "probe_script_path",
+    "blender_python_from_env",
     "apply_mesh_defect",
     "scale_object",
     "hollow_object",
@@ -68,6 +69,18 @@ class MeshProbeError(RuntimeError):
 def probe_script_path() -> Path:
     """The path of the probe script the subprocess runs."""
     return DEFAULT_PROBE_SCRIPT
+
+
+def blender_python_from_env() -> str | None:
+    """The bpy-capable interpreter, named by the environment.
+
+    One place knows the names the critic's seat set: the Infinigen
+    checkout's virtualenv on the Thor. ``None`` means nobody has said where
+    the geometry probe's interpreter is, and the probe refuses to guess.
+    """
+    return os.environ.get("CRITIC_BLENDER_PYTHON") or os.environ.get(
+        "CRITIC_INFINIGEN_PYTHON"
+    )
 
 
 def probe_scene(

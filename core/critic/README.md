@@ -34,8 +34,10 @@ core/critic/
   critic.py        the critic seam: score the set, fold the FP/FN table
   select.py        which critic scores the set — the parameter, the default, the fallback
   hybrid.py        the scripted checks first, the model only where they are out of band
+  edits.py         the continuation vocabulary: typed edits a builder can apply
+  surface.py       the support probe: the surface below a floating thing, and the drop
   service.py       the chosen critic behind the core's `Critic` seam (the night)
-  candidates/      the model candidates: dino.py, vlm.py, jev.py
+  candidates/      the model candidates: dino.py, vlm.py, d1.py, clef.py, jev.py, questions.py
   grow.py          the set grows nightly — the function the night runner calls
   publish.py       write the table to CALIBRATION.md
   selection.json   the measured comparison of the candidates (the bake-off's output)
@@ -58,8 +60,9 @@ core/critic/
   the weights went missing — falls back at score time, one member at a time:
   `select.FallbackCritic` puts the checks behind the chosen critic, so the
   night still gets a table and the verdict says which critic made it;
-* the **registry** is data — `scripted`, `dino-probe`, `vlm`, `jev`,
-  `hybrid` — and the name on the verdict always says which one answered.
+* the **registry** is data — `scripted`, `dino-probe`, `vlm`, `d1`, `clef`,
+  `jev`, `hybrid` — and the name on the verdict always says which one
+  answered.
 
 ```bash
 # score the set with the default (the scripted checks)
@@ -85,11 +88,63 @@ work of two critics that cannot be told apart — and a verdict the checks
 made *instead of* the model is marked **degraded**, so a night that could
 not reach its model says so.
 
+**The delegate is a decision model now.** The hybrid's default delegate is
+`d1-2B` with its multimodal projector (`candidates/d1.py`): a *local* model
+that sees the frame and answers a typed yes/no question per class. The other
+one is `clef-flash` on Workers AI (`candidates/clef.py`), the same questions
+asked in the cloud. The 30 B vision-language model is **no longer anybody's
+default** — `candidates/vlm.py` cannot even be built without being told which
+model it is, so a caller that forgets says so instead of quietly loading a
+17 GB language model onto a shared box (the rule, B2: no language models on
+the Thor). The numbers behind the swap are in
+[`docs/lab/exp-critic-delegate.md`](../../docs/lab/exp-critic-delegate.md).
+
 A critic that reads pixels cannot judge a defect that lives in the
 geometry, and the reference set never re-renders a mesh defect — so the
 fold measures such a critic on the **image layer only**, and the table
 says which layers it covered. Those members are neither a miss nor a clean
 control: they were never looked at.
+
+## The verdict carries the next move
+
+A verdict that only says what is wrong is a complaint. The design doc's "the
+room is the anti-GAN" rule says the critic answers with a **continuation**:
+what to do about it, in a closed, typed vocabulary the builder can apply
+without understanding the critic.
+
+Today there is one edit, `lower_object`: put the thing that is floating down
+onto the surface below it. The edit carries **which surface** (the support)
+and **how far** (the drop distance), both measured by the **support probe**
+(`surface.py`) and both in the frame's own units — pixels and frame heights,
+the units the edit is applied in — plus metres when a metric probe can reach
+the scene.
+
+The **metre** value comes from the **geometry probe** (`mesh.py`): the scene's
+camera gives the picture's scale at the scene's depth (0.011–0.064 m/px over
+the scenes measured on the Thor), and `drop_m` is the pixel drop times that
+scale. When the scene is not on the box there is nothing to measure against,
+and the edit carries the frame's units and says so — `drop_m` is `null`
+rather than a guess.
+
+```python
+edit = {
+    "op": "lower_object",
+    "target": "floating_blob",
+    "box": [94, 70, 187, 181],          # the thing, in the frame's pixels
+    "support": {"kind": "unknown", "row": 443, "source": "frame"},
+    "drop_px": 262,                      # how far down
+    "drop_frame_heights": 0.485,
+    "drop_m": None,
+    "evidence": {"relief": 0.019, "span": 0.682, "support_row": 443.0},
+}
+```
+
+The vocabulary is closed (`edits.py`): a builder's recipe may only name one
+of the ops and one of the support kinds, and an edit round-trips through its
+dictionary form. The edit is a **proposal**: the critic never moves anything
+— `edits.apply_edit` is what "applying it" means in the frame's domain (the
+thing is cut out, the space it leaves is filled with the frame's own colour,
+and the thing is pasted onto the surface), and the builder makes the move.
 
 ## The selection
 
@@ -103,6 +158,18 @@ The write-up — the hypothesis, the setup, the tables, the reasoning and the
 reproduce steps — is [`docs/lab/exp-critic-select.md`](../../docs/lab/exp-critic-select.md),
 and the scripts that produced the numbers are in
 [`docs/lab/critic-select-scripts/`](../../docs/lab/critic-select-scripts/).
+
+**The delegate was swapped after that bake-off.** The selection above chose a
+30 B vision-language model as the hybrid's delegate; the second bake-off
+replaced it with a 2 B decision model that sees the frame
+([`docs/lab/exp-critic-delegate.md`](../../docs/lab/exp-critic-delegate.md),
+scripts in [`docs/lab/critic-delegate-scripts/`](../../docs/lab/critic-delegate-scripts/)),
+because B2 forbids language models on the Thor. The two rows to read
+together are the ones that say what the swap cost (the delegate's own call:
+**1.31 s** median for the six questions `d1-2B` asks of a frame, against
+**15.0 s per question** for the 30 B) and what it did not move (the
+`floating_object` row, which is still one miss in two — and the reason is in
+the write-up: the member that is missed does not *show* a floating object).
 
 ## Running it
 

@@ -19,12 +19,17 @@ of two critics that cannot be told apart.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Sequence
 
 from .checks import Thresholds
 from .critic import ReferenceCritic, ScriptedReferenceCritic
+from .edits import Edit
+from .imaging import load_rgb
+from .mesh import blender_python_from_env, probe_scene
 from .models import DEFECT_TARGETS, CheckOutcome, CriticVerdict
 from .set import MemberRecipe
+from .surface import scene_scale, suggest_edit
 
 __all__ = ["HybridCritic", "escalated_classes"]
 
@@ -116,6 +121,7 @@ class HybridCritic:
             bases=bases,
             thresholds=thresholds,
             cache_dir=cache_dir,
+            blender_python=blender_python,
         )
         targets = {
             DEFECT_TARGETS[defect]
@@ -227,7 +233,77 @@ class HybridCritic:
             # stood in and the verdict says so ("scripted" is the engine's
             # name for the fallback mode).
             degraded="scripted" if fell_back else self.name,
+            edits=self._continuation(
+                member,
+                merged,
+                cache_dir=cache_dir,
+                blender_python=blender_python,
+            ),
         )
+
+    def _continuation(
+        self,
+        member: MemberRecipe,
+        checks: Sequence[CheckOutcome],
+        *,
+        cache_dir: str | Path | None = None,
+        blender_python: str | None = None,
+    ) -> tuple[Edit, ...]:
+        """The next move, when the verdict says something is floating.
+
+        A verdict that only says *what is wrong* is a complaint. The
+        continuation says what to do about it, in the closed vocabulary of
+        :mod:`core.critic.edits`: the support surface below the thing and
+        the distance to drop it, both measured by the support probe.
+
+        It is proposed, never applied — the builder makes that move.
+        """
+        if not any(c.check == "floating_blob" and c.fired for c in checks):
+            return ()
+        if not member.derived_path:
+            return ()
+        try:
+            image = load_rgb(member.derived_path)
+        except OSError:
+            return ()
+        edit = suggest_edit(
+            image,
+            metres_per_pixel=self._scale(
+                member,
+                cache_dir=cache_dir,
+                blender_python=blender_python,
+            ),
+        )
+        return (edit,) if edit is not None else ()
+
+    def _scale(
+        self,
+        member: MemberRecipe,
+        *,
+        cache_dir: str | Path | None = None,
+        blender_python: str | None = None,
+    ) -> float | None:
+        """Metres per pixel, from the scene's own camera (the geometry probe).
+
+        The frame's own units — pixels and frame heights — are exact and need
+        no scene. The **metre** value needs the scene the picture came from:
+        the probe measures the camera's frame, and the camera's frame at the
+        scene's depth divided by the picture's width is the scale of the
+        picture. When the scene's ``.blend`` is on the box the number is
+        measured; when it is not, the edit stays in the frame's units and
+        says so, rather than carrying a metre value nobody measured.
+        """
+        if not member.mesh_path:
+            return None
+        try:
+            stats = probe_scene(
+                member.mesh_path,
+                python=blender_python or blender_python_from_env(),
+                cache_dir=cache_dir,
+            )
+        except Exception:  # noqa: BLE001 - no scene is not a failure
+            return None
+        return scene_scale(stats)
 
     def _stand_in(self, scripted: CriticVerdict, note: str) -> CriticVerdict:
         """The checks' answer stands, and the verdict says why the model did not.
@@ -257,6 +333,7 @@ class HybridCritic:
         checks: Sequence[CheckOutcome],
         *,
         degraded: str | None = None,
+        edits: Sequence[Edit] = (),
     ) -> CriticVerdict:
         """The hybrid's verdict: the checks' member identity, the hybrid's name."""
         return CriticVerdict(
@@ -267,4 +344,5 @@ class HybridCritic:
             label=f"verdict@{self.name}",
             degraded=degraded or self.name,
             layer=scripted.layer,
+            edits=tuple(edits),
         )
