@@ -1321,3 +1321,76 @@ fn the_ledger_names_the_idleness() {
         "some idle time had no cause the ledger could name: {bucket}"
     );
 }
+
+/// The daemon's log is chained, and a post-mortem's after-the-fact "fix" of
+/// a line is named by its seq. The floor is what this box can clear, not
+/// what the Thor can: the test is about the log's chain, not the admission
+/// arithmetic, and it must run the same on a 3 GiB CI box and on the box
+/// itself.
+#[test]
+fn the_daemons_log_is_chained_and_an_edit_is_named() {
+    let mut daemon = DaemonUnderTest::start(&["--floor", "64M", "--emergency-floor", "512M"]);
+
+    // One lease through its whole life, so the log has decisions in it.
+    let mut client = leased(&daemon, "chain-test", "64M", &["/bin/true"]);
+    let _ = output_of(&mut client);
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while Instant::now() < deadline {
+        if daemon.log().contains("lease.released") {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+
+    // Stop the daemon cleanly, the way an operator would, so the log is
+    // flushed and final.
+    let _ = Command::new(BIN)
+        .arg("stop")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .output();
+    let _ = daemon.child.wait();
+
+    // The log every line carries its number and the chain.
+    let log = daemon.log();
+    assert!(log.contains("\"seq\":"), "the log is not chained:\n{log}");
+    assert!(log.contains("\"chain\":"), "the log is not chained:\n{log}");
+
+    // The CLI verifies what the daemon wrote.
+    let verify = |log_text: &str| -> (bool, String) {
+        let path = daemon.state_dir.join("daemon.log");
+        std::fs::write(&path, log_text).unwrap();
+        let output = Command::new(BIN)
+            .arg("verify")
+            .arg("--log")
+            .arg(&path)
+            .output()
+            .expect("the verify runs");
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        (output.status.success(), text)
+    };
+    let (held, text) = verify(&log);
+    assert!(held, "verify rejected the daemon's own log:\n{text}");
+    assert!(text.contains("chain intact"), "verify said:\n{text}");
+
+    // An after-the-fact edit — a post-mortem that "fixes" a number —
+    // breaks the chain at the line it touched, by its seq.
+    let edited = log.lines().map(|line| {
+        let value: Value = serde_json::from_str(line).unwrap_or(Value::Null);
+        if value["event"] == "lease.granted" {
+            let mut changed = value.clone();
+            changed["peak_bytes"] = serde_json::json!(1);
+            serde_json::to_string(&changed).unwrap()
+        } else {
+            line.to_string()
+        }
+    });
+    let tampered: Vec<String> = edited.collect();
+    let (held, text) = verify(&tampered.join("\n"));
+    assert!(!held, "verify passed an edited log:\n{text}");
+    assert!(text.contains("broke at seq"), "verify said:\n{text}");
+}

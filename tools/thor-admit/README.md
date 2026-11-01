@@ -142,6 +142,49 @@ per core, and the idle time broken into **causes**:
 gap. It is reported on its own, so that "the ledger explains everything"
 and "the box had nothing to do" stay two different sentences.
 
+## The log is chained
+
+Every line the daemon writes to its own `daemon.log` carries two extra
+fields, `seq` (its number, unique across restarts) and `chain` (a running
+FNV-1a hash folded over the line's own bytes and every line before it).
+The fold covers the exact bytes of the line as serialized *without* the
+two fields, so a verifier can recompute it from the file alone — no key,
+no sidecar, nothing to back up:
+
+```bash
+thor-admit verify                 # the daemon's log, in the default state dir
+thor-admit verify --log PATH      # one file, wherever it was copied to
+thor-admit verify --json
+```
+
+```text
+/home/casey/.local/state/thor-admit/daemon.log: 412 chained lines, chain intact (head 9f42a1c0d83b5e17)
+```
+
+A chain that breaks is named, by seq and reason:
+
+```text
+daemon.log: chain broke at seq 281: the line was edited after it was written
+```
+
+Three reasons are named: an **edit** after the fact (a post-mortem that
+"fixes" a granted peak), **numbering** that jumped or restarted (lines
+removed, or a truncated log the daemon appended to), and a line that is
+**not a chained event** at all (a splice, or a hand-written line). A
+restart resumes the chain from the file's tail — the seqs keep counting
+and `verify` passes over the whole file, restarts and all. Lines an older
+daemon wrote before the chain existed are a reported prefix, not a
+failure: the chain speaks only for the lines it covers.
+
+What the chain is **not**: cryptography. FNV-1a is a mixer, not a MAC; an
+adversary who can rewrite the whole file can re-chain it. The threat
+model is the honest one — truncated logs, after-the-fact edits, splice
+mistakes, the wrong file copied into the bug report. The mixer's
+constants are the same ones the ecology's kernel uses
+(`ecology_core::journal::fnv1a64`, in the ecology-thor repo), so a chain
+walked here and a chain walked there agree byte-for-byte on identical
+input.
+
 ## The rules, in one paragraph
 
 A lease **reserves** the peak it was given. The daemon admits a lease only
@@ -171,6 +214,12 @@ cargo test --test integration -- --test-threads=1 --nocapture \
     a_live_lease_preempts_a_presence_job \
     the_ledger_books_the_time_by_tier \
     the_ledger_names_the_idleness
+
+# the log's chain: the real daemon's own log verifies through the CLI,
+# and an after-the-fact edit is named by its seq (runs on any box: the
+# floor is the test's own, sized for a 3 GiB CI box)
+cargo test --test integration -- --test-threads=1 \
+    the_daemons_log_is_chained_and_an_edit_is_named
 
 # a smoke test of the CLI, end to end (light: it allocates nothing)
 python3 smoke-cli.py

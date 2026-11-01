@@ -47,6 +47,7 @@ fn main() -> ExitCode {
         "peaks" => run_peaks(&args[1..]),
         "presence" => run_presence(&args[1..]),
         "ledger" => run_ledger(&args[1..]),
+        "verify" => run_verify(&args[1..]),
         "stop" => run_stop(&args[1..]),
         "help" | "--help" | "-h" => {
             print_help();
@@ -87,6 +88,11 @@ thor-admit — a memory-admission daemon for the Thor
 
   thor-admit ledger [--json] [--hours <n>]
         Show where the box's time went, by tier, and why it was idle.
+
+  thor-admit verify [--state-dir <path>] [--log <path>] [--json]
+        Walk the daemon's log and check its hash chain: every line, in
+        order, numbered and folded. Says where the chain broke, or the
+        head it ends on.
 
   thor-admit stop
         Ask the running daemon to stop.
@@ -890,6 +896,107 @@ fn print_ledger_table(buckets: &[Bucket]) {
         for (reason, seconds) in &last.idle.by_reason {
             println!("  {reason:<24} {seconds:>8.0}s");
         }
+    }
+}
+
+/// `verify`: walk a chained file (the daemon's log by default) and say
+/// whether the chain holds, line by line. One file or the other breaking
+/// is exit 1, so a script can gate a bug report on it.
+fn run_verify(args: &[String]) -> ExitCode {
+    let options = Options::parse(args);
+    let paths: Vec<PathBuf> = match options.get("log") {
+        // An explicit file: walk exactly that one. The ledger's hours can
+        // be checked by naming the file, and a copied log by naming it.
+        Some(path) => vec![PathBuf::from(path)],
+        None => {
+            let state_dir = match options.get("state-dir") {
+                Some(dir) => PathBuf::from(dir),
+                None => Config::default().state_dir,
+            };
+            vec![state_dir.join("daemon.log")]
+        }
+    };
+    let mut held = true;
+    let mut report = serde_json::Map::new();
+    for path in &paths {
+        // A file that does not exist is not a failure: `verify` answers
+        // "is this the whole file?", and a box whose ledger has not rolled
+        // an hour yet has nothing to check. A script that needs the file
+        // to exist can test that itself.
+        if !path.exists() {
+            if options.has("json") {
+                report.insert(
+                    path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+                    serde_json::json!({
+                        "log": path.display().to_string(),
+                        "exists": false,
+                    }),
+                );
+            } else {
+                println!("{}: not present, nothing to verify", path.display());
+            }
+            continue;
+        }
+        match thor_admit::journal::verify(path) {
+            Ok(intact) => {
+                if options.has("json") {
+                    report.insert(
+                        path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+                        serde_json::json!({
+                            "log": path.display().to_string(),
+                            "chained": intact.chained,
+                            "unchained": intact.unchained,
+                            "head": format!("{:016x}", intact.head),
+                        }),
+                    );
+                } else {
+                    print!("{}: {} chained lines", path.display(), intact.chained);
+                    if intact.unchained > 0 {
+                        print!(", {} unchained (an older daemon's prefix)", intact.unchained);
+                    }
+                    println!(", chain intact (head {:016x})", intact.head);
+                }
+            }
+            Err(broke) => {
+                held = false;
+                let why = match broke.reason {
+                    thor_admit::journal::Reason::Edited => {
+                        "the line was edited after it was written"
+                    }
+                    thor_admit::journal::Reason::Numbering => {
+                        "the numbering jumped: lines removed, or a fresh chain mid-file"
+                    }
+                    thor_admit::journal::Reason::Malformed => {
+                        "not a chained line (malformed JSON, or an unchained line after the chain started)"
+                    }
+                };
+                if options.has("json") {
+                    report.insert(
+                        path.file_name().unwrap_or_default().to_string_lossy().to_string(),
+                        serde_json::json!({
+                            "log": path.display().to_string(),
+                            "broke_at_seq": broke.seq,
+                            "reason": why,
+                        }),
+                    );
+                } else {
+                    println!(
+                        "{}: chain broke at seq {}: {}",
+                        path.display(),
+                        broke.seq,
+                        why
+                    );
+                }
+            }
+        }
+    }
+    if options.has("json") {
+        println!("{}", client::json_line(&serde_json::Value::Object(report)));
+    }
+    if held {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
     }
 }
 

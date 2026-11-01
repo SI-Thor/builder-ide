@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""A smoke test of the CLI: the tiers, the presence queue and the ledger.
+"""A smoke test of the CLI: the tiers, the presence queue, the ledger and
+the log's chain.
 
 Everything it does is light: the presence job is a `sleep`, the lease is a
 `sleep`, and nothing allocates memory.
@@ -20,6 +21,12 @@ STATE = Path("/tmp/thor-admit-smoke")
 def run(*args: str) -> str:
     out = subprocess.run([str(BIN), *args], capture_output=True, text=True)
     return (out.stdout + out.stderr).strip()
+
+
+def run_checked(*args: str) -> tuple[int, str]:
+    """Run and keep the exit code, for the commands a script gates on."""
+    out = subprocess.run([str(BIN), *args], capture_output=True, text=True)
+    return out.returncode, (out.stdout + out.stderr).strip()
 
 
 def main() -> int:
@@ -64,6 +71,17 @@ def main() -> int:
         print("\n$ thor-admit ledger --json (the hour being kept)")
         print(json.dumps(json.loads(run("ledger", "--socket", str(socket), "--json")),
                          indent=2)[:1200])
+
+        # The chain, checked the way a script would gate on it: exit 0 and
+        # a named head. (The ledger file has no closed hour yet — a bucket
+        # is written at the hour's rollover — so verify reports the daemon
+        # log and says the ledger is not present, which is not a failure.)
+        print("\n$ thor-admit verify")
+        code, text = run_checked("verify", "--state-dir", str(STATE))
+        print(text)
+        if code != 0 or "chain intact" not in text:
+            print("verify did not pass on the daemon's own log")
+            return 1
         return 0
     finally:
         daemon.terminate()

@@ -32,6 +32,7 @@ use crate::admission::{Admission, LeaseMemory};
 use crate::clock;
 use crate::gpu::{GpuProbe, GpuSample};
 use crate::history::{History, PeakRecord};
+use crate::journal::Chain;
 use crate::lease::{self, LeaseLock};
 use crate::ledger::{IdleReason, Ledger, Sample};
 use crate::meminfo::MemInfo;
@@ -379,6 +380,10 @@ pub struct Daemon {
     /// The daemon's own log. It has its own lock so that a log line can be
     /// written while the state lock is held.
     log: Mutex<Option<std::fs::File>>,
+    /// The log's hash chain, sealed under the same lock as the log so a
+    /// line and its chain field are written as one act. Resumed from the
+    /// log's tail at startup, so a restart continues the same chain.
+    chain: Mutex<Chain>,
 }
 
 impl Daemon {
@@ -387,11 +392,15 @@ impl Daemon {
         std::fs::create_dir_all(&config.state_dir)?;
         std::fs::create_dir_all(config.state_dir.join("leases"))?;
         let history = History::load(&config.history);
+        let log_path = config.state_dir.join("daemon.log");
         let log = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
-            .open(config.state_dir.join("daemon.log"))
+            .open(&log_path)
             .ok();
+        // Resume the chain from the log's tail: a restart keeps counting
+        // and `verify` still passes over the whole file, restarts and all.
+        let chain = Chain::resume(&log_path);
         let state = State {
             leases: Vec::new(),
             queue: Queue::new(),
@@ -423,6 +432,7 @@ impl Daemon {
             stop: Arc::new(AtomicBool::new(false)),
             listener: Mutex::new(None),
             log: Mutex::new(log),
+            chain: Mutex::new(chain),
             gpu_watch: Mutex::new(Vec::new()),
         }))
     }
@@ -1814,6 +1824,16 @@ impl Daemon {
                 map.insert(key.clone(), value.clone());
             }
         }
+        // Seal the chain over the line's own bytes (before `seq` and
+        // `chain` are added), then let the two fields ride along. The
+        // verifier removes them and re-serializes the rest — writer and
+        // reader fold over identical bytes, so the file is self-verifying.
+        let (seq, mix) = {
+            let mut chain = self.chain.lock().unwrap();
+            chain.seal(&line)
+        };
+        line["seq"] = json!(seq);
+        line["chain"] = json!(format!("{mix:016x}"));
         let mut text = serde_json::to_string(&line).unwrap_or_default();
         text.push('\n');
         if let Some(log) = self.log.lock().unwrap().as_mut() {

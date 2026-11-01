@@ -18,6 +18,7 @@
 //! * [`presence`] — the registered work that runs when the box has room.
 //! * [`ledger`] — where the box's time went, and why it was idle.
 //! * [`history`] — the learned peaks, as JSON lines.
+//! * [`journal`] — the chain that makes the daemon's log self-verifying.
 //! * [`protocol`] — the socket protocol the CLI and the Python shim speak.
 //! * [`daemon`] — the resident daemon itself.
 //! * [`client`] — the CLI's side of the protocol.
@@ -28,6 +29,7 @@ pub mod clock;
 pub mod daemon;
 pub mod gpu;
 pub mod history;
+pub mod journal;
 pub mod lease;
 pub mod ledger;
 pub mod meminfo;
