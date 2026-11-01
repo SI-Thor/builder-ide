@@ -210,6 +210,11 @@ class CriticVerdict:
     ``layer`` says where the member's defect lives — in the pixels or in the
     geometry — so the fold can measure a critic only on the layers it can
     actually see.
+
+    ``edits`` is the verdict's **continuation**: the typed edits the critic
+    proposes alongside the finding, in the closed vocabulary of
+    :mod:`core.critic.edits`. A verdict that only says what is wrong is a
+    complaint; a verdict that also says what to do about it is a move.
     """
 
     member_id: str
@@ -219,6 +224,8 @@ class CriticVerdict:
     label: str = "verdict@scripted"
     degraded: str = "scripted"
     layer: str = "image"
+    edits: tuple[Any, ...] = ()
+    """The continuation: typed edits, in :mod:`core.critic.edits`."""
 
     @property
     def fired_checks(self) -> tuple[str, ...]:

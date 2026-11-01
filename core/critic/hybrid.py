@@ -23,8 +23,11 @@ from typing import Any, Sequence
 
 from .checks import Thresholds
 from .critic import ReferenceCritic, ScriptedReferenceCritic
+from .edits import Edit
+from .imaging import load_rgb
 from .models import DEFECT_TARGETS, CheckOutcome, CriticVerdict
 from .set import MemberRecipe
+from .surface import suggest_edit
 
 __all__ = ["HybridCritic", "escalated_classes"]
 
@@ -227,7 +230,33 @@ class HybridCritic:
             # stood in and the verdict says so ("scripted" is the engine's
             # name for the fallback mode).
             degraded="scripted" if fell_back else self.name,
+            edits=self._continuation(member, merged),
         )
+
+    def _continuation(
+        self,
+        member: MemberRecipe,
+        checks: Sequence[CheckOutcome],
+    ) -> tuple[Edit, ...]:
+        """The next move, when the verdict says something is floating.
+
+        A verdict that only says *what is wrong* is a complaint. The
+        continuation says what to do about it, in the closed vocabulary of
+        :mod:`core.critic.edits`: the support surface below the thing and
+        the distance to drop it, both measured by the support probe.
+
+        It is proposed, never applied — the builder makes that move.
+        """
+        if not any(c.check == "floating_blob" and c.fired for c in checks):
+            return ()
+        if not member.derived_path:
+            return ()
+        try:
+            image = load_rgb(member.derived_path)
+        except OSError:
+            return ()
+        edit = suggest_edit(image)
+        return (edit,) if edit is not None else ()
 
     def _stand_in(self, scripted: CriticVerdict, note: str) -> CriticVerdict:
         """The checks' answer stands, and the verdict says why the model did not.
@@ -257,6 +286,7 @@ class HybridCritic:
         checks: Sequence[CheckOutcome],
         *,
         degraded: str | None = None,
+        edits: Sequence[Edit] = (),
     ) -> CriticVerdict:
         """The hybrid's verdict: the checks' member identity, the hybrid's name."""
         return CriticVerdict(
@@ -267,4 +297,5 @@ class HybridCritic:
             label=f"verdict@{self.name}",
             degraded=degraded or self.name,
             layer=scripted.layer,
+            edits=tuple(edits),
         )
