@@ -30,6 +30,8 @@ cites.
 | `backends.py` | the wire and the four backends (below); `JudgeRefusal` with a closed reason code |
 | `gate.py` | the confidence gate as policy: `ConfidencePolicy` (τ), `EscalationLadder`, `StandingGate` and its `StandingConfig` |
 | `judge.py` | the `Judge` service: ask a pack, walk the ladder, record every attempt; `fold_judgments` |
+| `calibration.py` | **one definition of confidence** and the calibration tracked against it: the Brier score, the expected calibration error, the reliability curve, the escalation sweep, the recalibration scales and the drift |
+| `tracking.py` | the fold that pairs a judgment with the outcome that answers it, and the report the nightly job writes |
 | `shortlist.py` | the first caller: `JudgePriorChooser`, the tiles shortlist |
 | `events.py` | the seat's one audit type, `judge.verdict` |
 | `ports.py` | the ledger protocol (the same shape `core.night.ledger` implements) |
@@ -98,16 +100,94 @@ escalated), so the row carries both. A judgment with no confidence never
 passes and leaves the standing untouched: a continuous gate takes no
 reading from a null.
 
+## One definition of confidence, and the calibration tracked against it
+
+The three d1 sizes answer the same shape and report confidence by three
+different formulas — the normalised margin (LFM2), the raw top probability
+(LFM3), a third for `score` (the liquid study's L7). A threshold on
+"confidence" was therefore not the same quantity from one model to the
+next, and no log said which number a row's confidence was.
+
+**The judge does not trust the backend's number.** It computes the
+confidence from the distribution the backend returned, the same way for
+every backend, and the row says which definition it used
+(`confidence_definition`). The backend's own number rides beside it as
+`backend_confidence`, because the edge between the two is worth keeping.
+
+Three definitions are computed, all from the returned distribution over K
+options:
+
+| definition | formula |
+|---|---|
+| `top_probability` | `p_max` — the probability the backend gave its own answer |
+| `normalised_margin` | `(p_max − 1/K) / (1 − 1/K)` — the LFM2 formula |
+| `entropy_normalised` | `1 − H(p) / log K` |
+
+**The canonical one is `top_probability`**, for three reasons that are
+mechanisms rather than tastes: it is a probability *of the answer*, so a τ
+on it reads "act when the backend's own answer holds at least this much";
+it is the number the existing measurements are in (E1's τ = 0.5 was
+measured on the d1-2B's `max(probs)`), so the default keeps its meaning;
+and it is the quantity the Brier score is computed against. The other two
+stay in the code because the seed asked for the comparison.
+
+**The calibration is tracked per (backend, model, task).** `calibration.py`
+computes, per cell: the accuracy, the **Brier score** (over the whole
+vector, so it does not depend on the definition), the **expected
+calibration error** over reliability bins (which does), the **reliability
+curve**, and the **escalation sweep** — at each τ, the share of the wrong
+judgments the gate would have caught and the share of the right ones it
+would have taxed.
+
+**Recalibration is a parameter, not a hand.** A temperature
+(`p'_i ∝ p_i^(1/T)`) or an isotonic map (confidence → accuracy, keeping
+the ranking) is fitted per cell on one split of the outcomes and read on
+another; it is **kept only if it improves the held-out Brier score** —
+a fit that does not is a curve through noise. Where a scale is fitted, the
+judge computes the calibrated confidence too and **the gate reads that
+one**, so τ is read in the calibrated space: "act when the calibrated
+probability of being right is at least τ".
+
+**Drift is measured, not declared.** Nothing carries an invented
+threshold. A cell drifts when its confidence stops separating (the AUC of
+the newest window has fallen to the coin-flip line), when its ECE moves
+further than that cell has ever moved (the noise floor is the cell's own
+history), or when a scale fitted on the older window no longer improves
+the newer one. What is retuned is stated with the line: the cell's
+recalibration is refitted on the newest outcomes and τ is read from it
+again.
+
+**Two facts the threshold has to respect, both measured on real traces.**
+A binary question's confidence is never below a half — one of two options
+always holds at least that mass — so **a gate at τ = 0.5 on a binary
+escalates nothing at all**, and the τ that catches an undecided noul is
+above a half. And a confidence can be *anti*-correlated with being right:
+on the liquid study's sea-state task the d1-2B's AUC is 0.2815, because
+the model is confident about which condition the *prompt* named and the
+prompt names the decoy first in 35 % of the steps. The measurement, the
+mechanisms and the numbers:
+[`docs/lab/exp-judge-calibration.md`](../../docs/lab/exp-judge-calibration.md).
+
+**The fold that makes the tracking possible.** A judgment is only worth
+scoring once something has happened, so `tracking.py` pairs a judgment
+with the outcome that answers it — the tiles' play, the critic's verdict,
+the owner's keep — through the **scope** the caller names on the row
+(`judge.judge(..., scope="wanted_style=plain")`). The outcome has to come
+*after* the judgment. A judgment nobody answered stays unscored, and the
+report counts it, because "unmeasured" and "measured and badly
+calibrated" are different facts.
+
 ## Every judgment is recorded
 
 One `judge.verdict` row per **attempt**: the author
 (`judge@<backend>:<model>` — every row records its author), the
-distribution, the confidence, τ and the gate decision, the cost (wall
-seconds, GPU minutes, hosted cents, input tokens), the latency, the
-question set's hash and the pack's hash, and the rung the attempt was
-escalated from. **Refused attempts are rows too** — the edges are the
-story. A pack whose verdict cannot fit the ledger's 4 KiB payload cap
-is refused, not truncated (§1.8; split the pack).
+distribution, the confidence **and the definition it was computed under**,
+the backend's own number beside it, the scope the caller named, τ and the
+gate decision, the cost (wall seconds, GPU minutes, hosted cents, input
+tokens), the latency, the question set's hash and the pack's hash, and the
+rung the attempt was escalated from. **Refused attempts are rows too** —
+the edges are the story. A pack whose verdict cannot fit the ledger's
+4 KiB payload cap is refused, not truncated (§1.8; split the pack).
 
 ```python
 from core.judge.judge import fold_judgments
@@ -135,7 +215,7 @@ The play keeps the propensity the chooser measured at the choice
 ## Running it
 
 ```bash
-.venv/bin/python -m pytest -q tests/judge    # 77 tests, no network, no GPU, no LLM
+.venv/bin/python -m pytest -q tests/judge    # 148 tests, no network, no GPU, no LLM
 .venv/bin/python -m pytest -q                # the whole core
 ```
 
@@ -144,6 +224,11 @@ memory): [`docs/lab/exp-judge-tiles-coldstart.md`](../../docs/lab/exp-judge-tile
 The standing gate's configuration, measured on the recorded d1 traces
 (the sweep, the guarded choice rule, and the wiring's two behaviours):
 [`docs/lab/exp-hysteresis-d1.md`](../../docs/lab/exp-hysteresis-d1.md).
+The confidence's calibration, measured on 1,470 recorded judgments (the
+per-cell Brier and ECE, the escalation sweeps under all three
+definitions, the recalibrations, and the two cells whose confidence turned
+out to be anti-correlated with being right):
+[`docs/lab/exp-judge-calibration.md`](../../docs/lab/exp-judge-calibration.md).
 
 ## What is not here yet
 
@@ -154,3 +239,10 @@ speaks), the night executor as a second caller, and the work-order rung
 *as a work order* — the ladder's end is surfaced rows now; filing the
 order belongs to the work-order seat. Each is a small step on a seam
 that already records everything.
+
+On the calibration side: the nightly job (`run_calibration_job`) writes
+the report, but **no night job calls it yet** — the seat that owns the
+night has to wire it, and the morning report's one-line-per-drifting-model
+section has to be given a place in that report. The critic's and the
+owner's outcome sources are contracts the fold asks for; only the tiles'
+source is exercised by real rows today.
