@@ -23,6 +23,37 @@ const HOG: &str = env!("CARGO_BIN_EXE_thor-admit-hog");
 /// A GiB.
 const GIB: u64 = 1024 * 1024 * 1024;
 
+/// A child of a process, found by reading the kernel's own parent links.
+///
+/// `flock(1)` forks — the parent takes the lock and the child runs the
+/// command — so a test that wants the client needs the client's pid, not
+/// the flock process's.
+fn child_of(pid: u32) -> Option<u32> {
+    for entry in std::fs::read_dir("/proc").ok()? {
+        let entry = entry.ok()?;
+        let name = entry.file_name();
+        let Some(text) = name.to_str() else { continue };
+        let Ok(number) = text.parse::<u32>() else {
+            continue;
+        };
+        if number == pid {
+            continue;
+        }
+        let Ok(stat) = std::fs::read_to_string(format!("/proc/{number}/stat")) else {
+            continue;
+        };
+        let Some(close) = stat.rfind(')') else {
+            continue;
+        };
+        let fields: Vec<&str> = stat[close + 1..].split_whitespace().collect();
+        // After the comm field: the state, then the parent.
+        if fields.get(1).and_then(|v| v.parse::<u32>().ok()) == Some(pid) {
+            return Some(number);
+        }
+    }
+    None
+}
+
 /// The box's stopgap lock: the one every seat takes for heavy work today.
 fn heavy_lock_path() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
@@ -4514,4 +4545,192 @@ fn the_exec_refuses_a_framework_that_would_take_the_box() {
     );
 
     let _ = std::fs::remove_dir_all(&directory);
+}
+
+// ---------------------------------------------------------------------------
+// Round 13: the box's lock, and the order it is taken in.
+// ---------------------------------------------------------------------------
+
+/// The box's legacy lock, taken **after** the lease is granted.
+///
+/// A seat that writes `flock heavy.lock thor-admit run ...` holds the box's
+/// lock from the moment it starts, and it holds it for the whole of its wait
+/// in the queue. The rule is the other way round: the lease first, the lock
+/// only once the lease is granted.
+///
+/// The test drives the rule from both ends. A client that asks for the lock
+/// by name (`--lock`) and a client that inherited it from its shell must
+/// both be **holding nothing** while they wait for room, and both must be
+/// holding the lock while their command runs.
+#[test]
+fn the_lease_comes_before_the_lock() {
+    let _serial = serial_gate();
+    // The floor and the reservation are derived from a **held-still** view of
+    // the box, so the test says what it means whatever else is running.
+    let total = mem_total();
+    let available = 100 * GIB;
+    let reservation = 40 * GIB;
+    // The floor is placed so that a lease of `reservation` does not fit:
+    // 100 - 40 = 60 GiB is left, and the floor is 80 GiB.
+    let floor = available - reservation / 2;
+    let daemon = frozen_memory_daemon(
+        "lease-before-lock",
+        &["--floor", &floor.to_string(), "--emergency-floor", "1G"],
+        total,
+        available,
+    );
+    let peak = format!("{}G", reservation / GIB);
+    let lock_path = daemon.state_dir.join("box.lock");
+
+    // The client asks for the lock by name.
+    let mut child = Command::new(BIN)
+        .arg("run")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .arg("--peak")
+        .arg(&peak)
+        .arg("--label")
+        .arg("named-lock")
+        .arg("--lock")
+        .arg(&lock_path)
+        .arg("--")
+        .arg("sleep")
+        .arg("30")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the client starts");
+
+    // It is queued: the lease does not fit.
+    assert!(
+        wait_until(20, || {
+            daemon.status()["queue"]
+                .as_array()
+                .map(|queue| !queue.is_empty())
+                .unwrap_or(false)
+        }),
+        "the client never queued; the status was {}",
+        daemon.status()
+    );
+
+    // And while it waits, it holds nothing. This is the whole claim of the
+    // round: the lock is what the box's own work waits for, so a seat that is
+    // waiting for room must not hold it.
+    assert_eq!(
+        thor_admit::boxlock::holder(&lock_path).unwrap(),
+        None,
+        "a queued client must not hold the box's lock"
+    );
+
+    // Make room: the lease is granted, and the lock is taken then.
+    write_meminfo(&daemon.state_dir.join("meminfo"), total, 121 * GIB);
+    assert!(
+        wait_until(30, || {
+            thor_admit::boxlock::holder(&lock_path).unwrap() == Some(child.id() as i32)
+        }),
+        "the admitted client did not take the lock; the status was {}",
+        daemon.status()
+    );
+
+    // And it gives the lock back when the command is done.
+    let _ = child.kill();
+    let _ = child.wait();
+    assert!(
+        wait_until(10, || {
+            thor_admit::boxlock::holder(&lock_path).unwrap().is_none()
+        }),
+        "the client kept the lock after it ended"
+    );
+}
+
+/// A seat that took the lock the old way is repaired in place.
+///
+/// `flock heavy.lock thor-admit run ...` is what the seats were told to
+/// write before the rule changed, and a seat that has not migrated still
+/// writes it. The client cannot change the seat's command line, but it can
+/// change the order: the lock is given back before the lease is asked for
+/// and taken again the moment the lease is granted.
+#[test]
+fn a_client_that_inherited_the_box_lock_gives_it_back_while_it_waits() {
+    let _serial = serial_gate();
+    let total = mem_total();
+    let available = 100 * GIB;
+    let reservation = 40 * GIB;
+    let floor = available - reservation / 2;
+    let daemon = frozen_memory_daemon(
+        "inherited-box-lock",
+        &["--floor", &floor.to_string(), "--emergency-floor", "1G"],
+        total,
+        available,
+    );
+    let peak = format!("{}G", reservation / GIB);
+    let lock_path = daemon.state_dir.join("box.lock");
+
+    // `flock(1)` opens the file, takes the lock and execs the command, so the
+    // client starts with the lock already held — which is the flaw.
+    let mut child = Command::new("flock")
+        .arg(&lock_path)
+        .arg(BIN)
+        .arg("run")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .arg("--peak")
+        .arg(&peak)
+        .arg("--label")
+        .arg("inherited-lock")
+        .arg("--")
+        .arg("sleep")
+        .arg("30")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the client starts");
+
+    assert!(
+        wait_until(20, || {
+            daemon.status()["queue"]
+                .as_array()
+                .map(|queue| !queue.is_empty())
+                .unwrap_or(false)
+        }),
+        "the client never queued; the status was {}",
+        daemon.status()
+    );
+
+    // The lock was held when the client started, and the client gave it back
+    // while it waits.
+    assert_eq!(
+        thor_admit::boxlock::holder(&lock_path).unwrap(),
+        None,
+        "a queued client must not hold the box's lock, even when it inherited it"
+    );
+
+    // And it takes it back when the lease is granted, so the command runs
+    // with the lock held, as the seat expected.
+    //
+    // The holder is the **client**, not the `flock(1)` process: `flock(1)`
+    // forks — the parent takes the lock and the child runs the command — and
+    // the client is the one that re-took the lock. The kernel records the
+    // process that called `flock(2)`.
+    let client_pid = child_of(child.id()).expect("the flock process has a child");
+    write_meminfo(&daemon.state_dir.join("meminfo"), total, 121 * GIB);
+    assert!(
+        wait_until(30, || {
+            thor_admit::boxlock::holder(&lock_path).unwrap() == Some(client_pid as i32)
+        }),
+        "the admitted client did not take the lock back; the status was {}",
+        daemon.status()
+    );
+
+    // The client says what it found, so the seat can fix its own line.
+    let _ = child.kill();
+    let _ = child.wait();
+    let mut errors = String::new();
+    if let Some(mut stderr) = child.stderr.take() {
+        let _ = stderr.read_to_string(&mut errors);
+    }
+    assert!(
+        errors.contains("already holds"),
+        "the client did not say that it inherited the lock: {errors}"
+    );
 }

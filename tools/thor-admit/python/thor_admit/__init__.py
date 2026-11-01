@@ -41,6 +41,7 @@ __all__ = [
     "Lease",
     "LeaseError",
     "LeaseRejected",
+    "default_lock_path",
     "default_socket_path",
     "lease",
     "phase",
@@ -81,6 +82,91 @@ def socket_path() -> Path:
     if override:
         return Path(override)
     return default_socket_path()
+
+
+def default_lock_path() -> Path:
+    """The box's legacy lock: ``~/lm-wt/heavy.lock``.
+
+    Every seat took this file before the daemon existed, and a seat that has
+    not migrated still takes it. It is a *fallback* now: the daemon is what
+    orders the box's memory, and the lock only matters to a seat that still
+    uses it.
+    """
+    return Path(os.path.expanduser("~/lm-wt/heavy.lock"))
+
+
+def _lock_holder(path: Path) -> int | None:
+    """The pid holding ``path``'s flock, according to the kernel.
+
+    ``/proc/locks`` is the kernel's own record: every lock on the box, with
+    the pid that took it and the device and inode of the file. ``None`` means
+    the lock is free (or the file is not there).
+    """
+    try:
+        info = os.stat(path)
+    except OSError:
+        return None
+    wanted = "{:02x}:{:02x}:{}".format(
+        os.major(info.st_dev), os.minor(info.st_dev), info.st_ino
+    )
+    try:
+        with open("/proc/locks", encoding="utf-8") as handle:
+            for line in handle:
+                fields = line.split()
+                if len(fields) < 6 or fields[1] != "FLOCK":
+                    continue
+                if fields[5] != wanted:
+                    continue
+                try:
+                    return int(fields[4])
+                except ValueError:
+                    return None
+    except OSError:
+        return None
+    return None
+
+
+def _inherited_lock_fd(path: Path) -> int | None:
+    """The descriptor this process already holds ``path``'s lock on.
+
+    ``flock(1)`` opens the file, takes the lock and execs the command it was
+    given, so the descriptor comes into the seat's process through the exec.
+    The descriptor is found by the file it points at: ``/proc/self/fd`` names
+    them all, and ``os.stat`` on the link gives the device and inode.
+    """
+    try:
+        info = os.stat(path)
+    except OSError:
+        return None
+    try:
+        entries = os.listdir("/proc/self/fd")
+    except OSError:
+        return None
+    for name in entries:
+        try:
+            number = int(name)
+            stat = os.stat(f"/proc/self/fd/{number}")
+        except (OSError, ValueError):
+            continue
+        if stat.st_dev == info.st_dev and stat.st_ino == info.st_ino:
+            return number
+    return None
+
+
+def _inherited_lock_advice(path: Path) -> str:
+    """What to tell a seat that took the box's lock before its lease."""
+    return (
+        f"this process already holds {path} — the box's lock was taken before the lease.\n"
+        "what that costs: a lease that is still waiting for room holds the lock the whole "
+        "time it waits, so every seat that uses the lock waits behind a seat that is not "
+        "working yet.\n"
+        "what this lease does about it: the lock is given back now, and taken again the "
+        "moment the lease is granted, so the work runs with the lock held and the queue "
+        "runs without it.\n"
+        "to make it permanent, write it the other way round — the lease first, the lock "
+        f"only once the lease is granted:\n"
+        f"    with lease(..., lock={str(path)!r}): ..."
+    )
 
 
 @dataclass
@@ -215,6 +301,7 @@ def lease(
     timeout: float | None = None,
     socket_path_override: Path | None = None,
     start_daemon: bool = True,
+    lock: str | Path | None = None,
 ) -> Iterator[Lease]:
     """Take a lease for the length of the block.
 
@@ -227,6 +314,13 @@ def lease(
     books the lease's time to, and only ``live`` work may pre-empt the box's
     presence queue. The default is ``live``.
 
+    ``lock`` names the box's legacy lock (``~/lm-wt/heavy.lock`` by default
+    when the process already holds it). It is taken **after** the lease is
+    granted and released when the block ends, so a seat that is waiting for
+    room holds nothing. A process that already holds the lock — because its
+    shell wrote ``flock heavy.lock python3 seat.py`` — has it given back
+    while it waits and taken again when the lease is granted (round 13).
+
     The lease covers **this process** (and the children it starts), not the
     whole process group: the watchdog must never stop a seat's other work by
     accident.
@@ -234,6 +328,29 @@ def lease(
     path = socket_path_override or socket_path()
     label = label or _default_label()
     argument = _peak_argument(peak)
+
+    # The box's lock, and the order it must be taken in: the lease first, the
+    # lock only once the lease is granted. A lock that was taken before the
+    # lease was asked for is given back now, so the queue does not run behind
+    # a seat that is not working yet.
+    wanted_lock = Path(lock).expanduser() if lock is not None else None
+    inherited_fd: int | None = None
+    inherited_path: Path | None = None
+    candidates = [wanted_lock] if wanted_lock is not None else []
+    fallback = default_lock_path()
+    if fallback not in candidates:
+        candidates.append(fallback)
+    for candidate in candidates:
+        if _lock_holder(candidate) != os.getpid():
+            continue
+        descriptor = _inherited_lock_fd(candidate)
+        if descriptor is None:
+            continue
+        sys.stderr.write(_inherited_lock_advice(candidate) + "\n")
+        sys.stderr.flush()
+        fcntl.flock(descriptor, fcntl.LOCK_UN)
+        inherited_fd, inherited_path = descriptor, candidate
+        break
 
     try:
         connection = _connect(path, timeout)
@@ -244,6 +361,7 @@ def lease(
 
     stream = connection.makefile("rwb")
     lock_fd: int | None = None
+    box_fd: int | None = None
     granted: Lease | None = None
     release_exit_code: int | None = None
     try:
@@ -286,6 +404,19 @@ def lease(
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
         _send(stream, {"op": "held", "lease": granted.lease_id})
 
+        # The box's lock, taken now — the lease is real, so the lock may be
+        # held, and it is held for as long as the block runs.
+        if wanted_lock is not None:
+            if inherited_path == wanted_lock and inherited_fd is not None:
+                fcntl.flock(inherited_fd, fcntl.LOCK_EX)
+                box_fd = inherited_fd
+            else:
+                box_fd = os.open(str(wanted_lock), os.O_RDWR | os.O_CREAT, 0o600)
+                fcntl.flock(box_fd, fcntl.LOCK_EX)
+        elif inherited_fd is not None and inherited_path is not None:
+            fcntl.flock(inherited_fd, fcntl.LOCK_EX)
+            box_fd = inherited_fd
+
         # The heartbeat: its own connection, its own thread, because the
         # code inside the lease block may be busy — or stuck — and a stuck
         # holder is exactly what the heartbeat is for the daemon to notice.
@@ -324,6 +455,13 @@ def lease(
         if lock_fd is not None:
             with contextlib.suppress(OSError):
                 os.close(lock_fd)
+        if box_fd is not None:
+            # The box's lock goes back when the block ends. The descriptor is
+            # closed, so the kernel drops the lock with it.
+            with contextlib.suppress(OSError):
+                fcntl.flock(box_fd, fcntl.LOCK_UN)
+            with contextlib.suppress(OSError):
+                os.close(box_fd)
         with contextlib.suppress(OSError):
             stream.close()
         with contextlib.suppress(OSError):

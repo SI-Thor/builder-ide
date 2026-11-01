@@ -16,7 +16,14 @@ from pathlib import Path
 
 import pytest
 
-from thor_admit import LeaseRejected, lease, phase, register_presence, socket_path
+from thor_admit import (
+    LeaseRejected,
+    _lock_holder,
+    lease,
+    phase,
+    register_presence,
+    socket_path,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 CRATE = REPO / "tools" / "thor-admit"
@@ -41,30 +48,66 @@ needs_binary = pytest.mark.skipif(
 class Daemon:
     """A daemon under test, on its own socket and in its own state."""
 
-    def __init__(self, directory: Path):
+    def __init__(
+        self,
+        directory: Path,
+        available_bytes: int | None = None,
+        extra: list[str] | None = None,
+    ):
         self.directory = directory
         self.socket = directory / "sock"
         self.state = directory / "state"
         self.process: subprocess.Popen | None = None
+        # A daemon whose view of the box's memory the test holds still: the
+        # daemon reads the kernel's own file in production, and a test that
+        # wants a lease to *wait* needs the answer to stay the same.
+        self.available_bytes = available_bytes
+        self.extra = extra or []
+        self.meminfo = directory / "meminfo"
+
+    def _write_meminfo(self, available_bytes: int) -> None:
+        total = 128 * 1024**3
+
+        def kb(value: int) -> int:
+            return value // 1024
+
+        self.meminfo.write_text(
+            f"MemTotal:       {kb(total):>12} kB\n"
+            f"MemFree:        {kb(available_bytes):>12} kB\n"
+            f"MemAvailable:   {kb(available_bytes):>12} kB\n"
+            "Buffers:              0 kB\n"
+            f"Cached:         {kb(total - available_bytes):>12} kB\n"
+            "SwapTotal:             0 kB\n"
+            "SwapFree:              0 kB\n"
+        )
+
+    def set_available(self, available_bytes: int) -> None:
+        """Move the box's free memory, as the test sees it."""
+        self._write_meminfo(available_bytes)
 
     def start(self) -> None:
         assert BINARY is not None
+        command = [
+            str(BINARY),
+            "daemon",
+            "--socket",
+            str(self.socket),
+            "--state-dir",
+            str(self.state),
+            # These leases are CPU-only, so the box's real GPU pool
+            # (other seats' CUDA work can leave it under the GPU floor)
+            # must not be a part of their admission.
+            "--gpu-probe",
+            "off",
+            "--idle-exit",
+            "120",
+        ]
+        if self.available_bytes is not None:
+            self._write_meminfo(self.available_bytes)
+            command += ["--meminfo", str(self.meminfo)]
+        command += self.extra
         self.process = subprocess.Popen(
-            [
-                str(BINARY),
-                "daemon",
-                "--socket",
-                str(self.socket),
-                "--state-dir",
-                str(self.state),
-                # These leases are CPU-only, so the box's real GPU pool
-                # (other seats' CUDA work can leave it under the GPU floor)
-                # must not be a part of their admission.
-                "--gpu-probe",
-                "off",
-                "--idle-exit",
-                "120",
-            ],
+            command,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -293,3 +336,85 @@ def test_the_shim_registers_presence_work(daemon: Daemon, tmp_path: Path):
     assert presence[0]["label"] == "shim-presence"
     assert presence[0]["tier"] == "study"
     assert presence[0]["resumable"] is True
+
+
+@needs_binary
+def test_the_shim_takes_the_box_lock_after_the_lease_is_granted(
+    daemon: Daemon, tmp_path: Path
+):
+    # The box's legacy lock, held for as long as the leased block runs, and
+    # given back when it ends.
+    lock = tmp_path / "box.lock"
+    with lease("1G", "shim-lock", socket_path_override=daemon.socket, lock=lock):
+        assert _lock_holder(lock) == os.getpid(), "the lock is not held by the lease"
+    assert _lock_holder(lock) is None, "the lock was not given back"
+
+
+@needs_binary
+def test_a_lease_that_inherited_the_box_lock_gives_it_back_while_it_waits(
+    tmp_path: Path
+):
+    # The seat that has not migrated writes `flock heavy.lock python3 ...`,
+    # so it holds the lock from the moment it starts. The shim repairs the
+    # order: the lock goes back while the lease waits for room, and is taken
+    # again when the lease is granted.
+    directory = tmp_path / "box"
+    directory.mkdir()
+    # The floor is placed so that a 40 GiB lease does not fit: 100 GiB free
+    # leaves 60 GiB, and the floor is 80 GiB. At 121 GiB free it fits.
+    daemon = Daemon(
+        directory,
+        available_bytes=100 * 1024**3,
+        extra=["--floor", "80G", "--emergency-floor", "1G"],
+    )
+    daemon.start()
+    try:
+        # The floor is placed so that a 40 GiB lease does not fit.
+        lock = directory / "box.lock"
+        script = (
+            "import os, sys, time\n"
+            "from thor_admit import lease\n"
+            "with lease('40G', 'shim-queued', socket_path_override=sys.argv[1]):\n"
+            "    print('held', flush=True)\n"
+            "    time.sleep(3)\n"
+            "print('done', flush=True)\n"
+        )
+        environment = dict(os.environ)
+        environment["PYTHONPATH"] = str(CRATE / "python")
+        child = subprocess.Popen(
+            ["flock", str(lock), sys.executable, "-c", script, str(daemon.socket)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=environment,
+            text=True,
+        )
+        assert child.stdout is not None
+        assert child.stderr is not None
+
+        # The lease is waiting for room.
+        deadline = time.monotonic() + 20
+        while time.monotonic() < deadline and not daemon.status()["queue"]:
+            time.sleep(0.1)
+        assert daemon.status()["queue"], "the lease never waited for room"
+
+        # And while it waits, it holds nothing: the lock is what the box's
+        # own work waits for.
+        assert _lock_holder(lock) is None, (
+            "a lease that is waiting for room must not hold the box's lock"
+        )
+
+        # Make room: the lease is granted and the lock is taken back.
+        daemon.set_available(121 * 1024**3)
+        assert child.stdout.readline().strip() == "held", "the lease was not granted"
+        assert _lock_holder(lock) == child.pid, "the lock was not taken back"
+
+        assert child.stdout.readline().strip() == "done"
+        child.wait(timeout=20)
+        assert _lock_holder(lock) is None, "the lock was not given back"
+
+        errors = child.stderr.read()
+        assert "already holds" in errors, (
+            f"the shim did not say that it inherited the lock: {errors}"
+        )
+    finally:
+        daemon.stop()

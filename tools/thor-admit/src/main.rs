@@ -80,10 +80,14 @@ thor-admit — a memory-admission daemon for the Thor
   thor-admit daemon [options]
         Run the resident daemon in the foreground.
 
-  thor-admit run --peak <size|auto> --label <name> [--tier <tier>] -- <command>
+  thor-admit run --peak <size|auto> --label <name> [--tier <tier>] [--lock <path>] -- <command>
         Take a lease, run the command under it, and give the lease back.
+        --lock names the box's legacy lock (~/lm-wt/heavy.lock); it is taken
+        **after** the lease is granted, so a seat that is waiting for room
+        holds nothing. Never write `flock heavy.lock thor-admit run ...`: the
+        seat then holds the lock for the whole of its wait.
 
-  thor-admit exec [--allow-preallocation] -- <command>
+  thor-admit exec [--allow-preallocation] [--lock <path>] -- <command>
         Start a command WITHOUT a lease, and refuse to start one that takes
         the box's memory by surprise. JAX/XLA needs
         XLA_PYTHON_CLIENT_PREALLOCATE=false (or the platform allocator, or a
@@ -109,7 +113,8 @@ thor-admit — a memory-admission daemon for the Thor
         run puts the lease id in THOR_ADMIT_LEASE for the command.
 
   thor-admit status [--json]
-        Show the leases, the free memory, the queue and the presence work.
+        Show the leases, the free memory, the queue, the presence work and who
+        holds the box's legacy lock.
 
   thor-admit peaks [--label <name>] [--json]
         Show the learned peaks: the p50 and p95 of each label's history.
@@ -672,6 +677,13 @@ fn run_command(args: &[String]) -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    // The box's legacy lock, if the seat asked for it. It is taken **after**
+    // the lease is granted (round 13), so a seat that is waiting for room
+    // holds nothing.
+    let lock = match options.get("lock") {
+        Some(path) => Some(PathBuf::from(path)),
+        None => None,
+    };
     if let Err(error) = ensure_daemon(&socket) {
         eprintln!("thor-admit: {error}");
         return ExitCode::from(1);
@@ -700,6 +712,7 @@ fn run_command(args: &[String]) -> ExitCode {
         tier,
         None,
         &options.rest,
+        lock.as_deref(),
         &mut revive,
     ) {
         Ok(under_lease) => under_lease,
@@ -797,6 +810,21 @@ fn run_exec(args: &[String]) -> ExitCode {
          if the box runs short; heavy work belongs under one: thor-admit run --peak 16G --label \
          <name> -- <command>"
     );
+    // `exec` has no lease, so there is no "after the lease" to wait for: the
+    // box's lock is taken here, before the command starts, and held for as
+    // long as the command runs.
+    if let Some(path) = options.get("lock") {
+        let path = PathBuf::from(path);
+        eprintln!("thor-admit: taking the box's lock {}", path.display());
+        let _lock = match thor_admit::boxlock::BoxLock::acquire(&path) {
+            Ok(lock) => lock,
+            Err(error) => {
+                eprintln!("thor-admit: cannot take {}: {error}", path.display());
+                return ExitCode::from(1);
+            }
+        };
+        client::exec_now(command)
+    }
     client::exec_now(command)
 }
 
@@ -954,6 +982,10 @@ fn run_serve(args: &[String]) -> ExitCode {
         tier,
         Some(&key.key),
         &command,
+        // A model server does not take the box's legacy lock: the daemon
+        // already accounts for its memory, and the lock would only stop the
+        // seats that have not migrated from starting their own copy.
+        None,
         &mut revive,
     );
     // A coalesced ask does not wait on the lease it joined: the leader's
@@ -1246,6 +1278,27 @@ fn run_status(args: &[String]) -> ExitCode {
             job.attempts,
             job.preemptions
         );
+    }
+    // The box's legacy lock, and who holds it. This is read from the kernel's
+    // own record of the locks on the box (`/proc/locks`), not from the
+    // daemon, so it is true even for a seat that never took a lease (round
+    // 13).
+    let box_lock = match options.get("box-lock") {
+        Some(path) => PathBuf::from(path),
+        None => thor_admit::boxlock::default_lock_path(),
+    };
+    match thor_admit::boxlock::holder(&box_lock) {
+        Ok(Some(pid)) => {
+            let who = thor_admit::boxlock::command_line(pid)
+                .map(|line| format!(" — {line}"))
+                .unwrap_or_default();
+            println!("box lock: {} held by pid {pid}{who}", box_lock.display());
+        }
+        Ok(None) => println!("box lock: {} free", box_lock.display()),
+        Err(error) => println!(
+            "box lock: {} — cannot be read ({error})",
+            box_lock.display()
+        ),
     }
     ExitCode::SUCCESS
 }
