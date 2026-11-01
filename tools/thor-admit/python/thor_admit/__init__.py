@@ -43,6 +43,7 @@ __all__ = [
     "LeaseRejected",
     "default_socket_path",
     "lease",
+    "phase",
     "register_presence",
     "socket_path",
 ]
@@ -323,6 +324,70 @@ def lease(
         if lock_fd is not None:
             with contextlib.suppress(OSError):
                 os.close(lock_fd)
+        with contextlib.suppress(OSError):
+            stream.close()
+        with contextlib.suppress(OSError):
+            connection.close()
+
+
+def phase(
+    lease: int | Lease,
+    peak: Any,
+    *,
+    socket_path_override: Path | None = None,
+) -> None:
+    """Change a running lease's reservation: the work changed phase.
+
+    A lease that reserved far above what it is using can give the difference
+    back while it runs, and the box's queue may use it at once. A lease that
+    knows its work grew may ask for more, but only if the box has the room:
+    a grow that does not fit is refused and the lease keeps the promise it
+    has.
+
+    ``peak`` is a size (``"4G"``) or ``"auto"``, which asks the daemon for
+    the larger of the label's learned p95 and its last run.
+
+    The lease's own id is in ``THOR_ADMIT_LEASE`` for a command started by
+    ``thor-admit run``; a lease taken through this module knows its id too:
+
+        with lease("40G", "trellis") as held:
+            load_weights()                       # the heavy part
+            phase(held, "8G")                    # give the rest back
+
+    Raises ``LeaseRejected`` when the daemon refuses (no such lease, or a
+    grow the box has no room for).
+    """
+    lease_id = lease.lease_id if isinstance(lease, Lease) else int(lease)
+    argument = _peak_argument(peak)
+    path = socket_path_override or socket_path()
+    try:
+        connection = _connect(path, None)
+    except DaemonNotRunning:
+        raise
+    stream = connection.makefile("rwb")
+    try:
+        stream.write(
+            (
+                json.dumps(
+                    {"op": "phase", "lease": lease_id, "peak": argument}
+                )
+                + "\n"
+            ).encode("utf-8")
+        )
+        stream.flush()
+        line = stream.readline()
+        if not line:
+            raise LeaseError("the daemon closed the connection")
+        event = json.loads(line.decode("utf-8"))
+        kind = event.get("event")
+        if kind == "ok":
+            return
+        if kind == "rejected":
+            raise LeaseRejected(str(event.get("reason", "the daemon refused the change")))
+        if kind == "error":
+            raise LeaseError(str(event.get("message", "the daemon reported an error")))
+        raise LeaseError(f"unexpected answer from the daemon: {event!r}")
+    finally:
         with contextlib.suppress(OSError):
             stream.close()
         with contextlib.suppress(OSError):
