@@ -32,6 +32,7 @@ cites.
 | `judge.py` | the `Judge` service: ask a pack, pre-flight its size, walk the ladder, record every attempt; `fold_judgments`; `standing_from_rows` (the standing, rebuilt from the log); `plan_pack` |
 | `calibration.py` | **one definition of confidence** and the calibration tracked against it: the Brier score, the expected calibration error, the reliability curve, the escalation sweep, the bootstrap intervals, the recalibration scales and the drift |
 | `tracking.py` | the fold that pairs a judgment with the outcome that answers it, and the report the nightly job writes |
+| `ordering.py` | the prompt's order policy: a state's named conditions, in a canonical or seeded-balanced order — an order the answer cannot be read off, deterministic for replay |
 | `shortlist.py` | the first caller: `JudgePriorChooser`, the tiles shortlist |
 | `events.py` | the seat's one audit type, `judge.verdict` |
 | `ports.py` | the ledger protocol (the same shape `core.night.ledger` implements) |
@@ -235,6 +236,22 @@ when the prompt's order does), it costs two calls a judgment, and inside a
 measurement, the mechanisms and the numbers:
 [`docs/lab/exp-judge-calibration.md`](../../docs/lab/exp-judge-calibration.md)
 (§6 and §7).
+
+**The prompt fix is a policy now, not a wish.** `core/judge/ordering.py`
+holds the order the answer cannot be read off: `neutral_state` reorders a
+state's named conditions into the **canonical** order (sorted by the
+condition's own name — a key of what the condition is, not of whether it is
+true) or the seeded **balanced** one, both deterministic, and touches
+nothing else — which conditions a state names is the caller's perception.
+The measurement picked canonical (§8.2 of the note): on a fresh recording
+of the same 240 sea-state steps, the canonical arm's d1-2B AUC un-inverts
+to **0.5766 [0.5050, 0.6457]** — wholly above the coin-flip line 0.2815
+was wholly below — the decoy-first steps become answerable, and the
+d1-3B passes every criterion (accuracy 0.3292 → 0.4875, decoy-first
+0.0 → 0.4634, the gate's sign right). The d1-2B stays positional under a
+neutral order (86.3 %), so the recommendation on that cell is to route it
+to the d1-3B. A caller whose states name conditions builds them through
+`neutral_state`; the ordering's own suite is `tests/judge/test_ordering.py`.
 
 **The fold that makes the tracking possible.** A judgment is only worth
 scoring once something has happened, so `tracking.py` pairs a judgment
