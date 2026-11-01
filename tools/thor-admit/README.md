@@ -172,6 +172,12 @@ cargo test --test integration -- --test-threads=1 --nocapture \
     the_ledger_books_the_time_by_tier \
     the_ledger_names_the_idleness
 
+# a smoke test of the CLI, end to end (light: it allocates nothing)
+python3 smoke-cli.py
+
+# the measurements in the lab record
+python3 measure-presence.py
+
 # the low-water mark: the watchdog stops a hog before the box is in
 # trouble (the memory curve is scripted, the watchdog is real)
 cargo test --test integration -- --test-threads=1 --nocapture \
