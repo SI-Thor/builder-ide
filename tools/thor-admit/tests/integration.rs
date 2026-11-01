@@ -73,7 +73,9 @@ impl Gate {
             .ok()
             .and_then(|text| text.parse().ok())
             .unwrap_or(0);
-        let deadline = Instant::now() + Duration::from_secs(wait);
+        // The wait is a budget for the whole run, not for each heavy test:
+        // two tests that each wait 40 minutes are an hour of waiting.
+        let deadline = heavy_deadline(wait);
         loop {
             // Non-blocking first: if another seat is working, this test
             // steps aside rather than fighting for the box.
@@ -88,6 +90,13 @@ impl Gate {
             std::thread::sleep(Duration::from_secs(5));
         }
     }
+}
+
+/// When this test binary started, so the heavy tests' wait is one budget.
+fn heavy_deadline(wait: u64) -> Instant {
+    static START: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+    let start = *START.get_or_init(Instant::now);
+    start + Duration::from_secs(wait)
 }
 
 /// A daemon under test.
