@@ -13,8 +13,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 1.822,
-   "cpu_ms": 1.672,
+   "latency_ms": 2.7,
+   "cpu_ms": 2.69,
    "checks": [
     {
      "check": "watertight",
@@ -53,8 +53,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 6565.167,
-   "cpu_ms": 6439.285,
+   "latency_ms": 560.965,
+   "cpu_ms": 558.635,
    "checks": [
     {
      "check": "black_frame",
@@ -150,8 +150,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 1.581,
-   "cpu_ms": 1.582,
+   "latency_ms": 1.555,
+   "cpu_ms": 1.556,
    "checks": [
     {
      "check": "watertight",
@@ -190,8 +190,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 642.347,
-   "cpu_ms": 641.41,
+   "latency_ms": 610.353,
+   "cpu_ms": 608.596,
    "checks": [
     {
      "check": "black_frame",
@@ -287,8 +287,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 1155.929,
-   "cpu_ms": 1147.386,
+   "latency_ms": 1095.46,
+   "cpu_ms": 1093.455,
    "checks": [
     {
      "check": "black_frame",
@@ -377,8 +377,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 20.443,
-   "cpu_ms": 20.42,
+   "latency_ms": 20.15,
+   "cpu_ms": 20.128,
    "checks": [
     {
      "check": "watertight",
@@ -417,8 +417,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 890.673,
-   "cpu_ms": 887.667,
+   "latency_ms": 846.979,
+   "cpu_ms": 845.344,
    "checks": [
     {
      "check": "black_frame",
@@ -507,8 +507,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 10.118,
-   "cpu_ms": 10.107,
+   "latency_ms": 10.082,
+   "cpu_ms": 10.071,
    "checks": [
     {
      "check": "watertight",
@@ -547,8 +547,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 776.364,
-   "cpu_ms": 772.802,
+   "latency_ms": 775.134,
+   "cpu_ms": 773.645,
    "checks": [
     {
      "check": "black_frame",
@@ -616,8 +616,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 20.251,
-   "cpu_ms": 20.224,
+   "latency_ms": 19.814,
+   "cpu_ms": 19.787,
    "checks": [
     {
      "check": "watertight",
@@ -656,8 +656,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 863.394,
-   "cpu_ms": 861.808,
+   "latency_ms": 869.518,
+   "cpu_ms": 864.986,
    "checks": [
     {
      "check": "black_frame",
@@ -725,8 +725,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 25.229,
-   "cpu_ms": 25.196,
+   "latency_ms": 25.522,
+   "cpu_ms": 25.501,
    "checks": [
     {
      "check": "watertight",
@@ -765,8 +765,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 800.286,
-   "cpu_ms": 799.102,
+   "latency_ms": 776.493,
+   "cpu_ms": 769.872,
    "checks": [
     {
      "check": "black_frame",
@@ -834,8 +834,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 16.139,
-   "cpu_ms": 16.126,
+   "latency_ms": 16.353,
+   "cpu_ms": 16.331,
    "checks": [
     {
      "check": "watertight",
@@ -874,8 +874,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 878.583,
-   "cpu_ms": 877.195,
+   "latency_ms": 881.94,
+   "cpu_ms": 872.585,
    "checks": [
     {
      "check": "black_frame",
@@ -943,8 +943,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 7.544,
-   "cpu_ms": 7.538,
+   "latency_ms": 7.613,
+   "cpu_ms": 7.607,
    "checks": [
     {
      "check": "watertight",
@@ -983,8 +983,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 542.42,
-   "cpu_ms": 541.048,
+   "latency_ms": 530.861,
+   "cpu_ms": 529.694,
    "checks": [
     {
      "check": "black_frame",
@@ -1052,8 +1052,8 @@
    "layer": "mesh",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 5.123,
-   "cpu_ms": 5.123,
+   "latency_ms": 5.102,
+   "cpu_ms": 5.095,
    "checks": [
     {
      "check": "watertight",
@@ -1092,8 +1092,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 530.81,
-   "cpu_ms": 530.057,
+   "latency_ms": 529.621,
+   "cpu_ms": 528.643,
    "checks": [
     {
      "check": "black_frame",
@@ -1189,8 +1189,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 681.47,
-   "cpu_ms": 680.431,
+   "latency_ms": 685.976,
+   "cpu_ms": 681.418,
    "checks": [
     {
      "check": "black_frame",
@@ -1258,8 +1258,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 1149.445,
-   "cpu_ms": 1137.419,
+   "latency_ms": 1119.598,
+   "cpu_ms": 1118.001,
    "checks": [
     {
      "check": "black_frame",
@@ -1327,8 +1327,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 769.253,
-   "cpu_ms": 764.628,
+   "latency_ms": 718.958,
+   "cpu_ms": 717.85,
    "checks": [
     {
      "check": "black_frame",
@@ -1396,8 +1396,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 1111.103,
-   "cpu_ms": 1109.661,
+   "latency_ms": 1089.849,
+   "cpu_ms": 1087.94,
    "checks": [
     {
      "check": "black_frame",
@@ -1465,8 +1465,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 1159.588,
-   "cpu_ms": 1156.244,
+   "latency_ms": 1114.732,
+   "cpu_ms": 1112.512,
    "checks": [
     {
      "check": "black_frame",
@@ -1534,8 +1534,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 1409.523,
-   "cpu_ms": 1394.94,
+   "latency_ms": 1323.594,
+   "cpu_ms": 1321.872,
    "checks": [
     {
      "check": "black_frame",
@@ -1631,8 +1631,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 1103.43,
-   "cpu_ms": 1014.899,
+   "latency_ms": 953.522,
+   "cpu_ms": 952.264,
    "checks": [
     {
      "check": "black_frame",
@@ -1728,8 +1728,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 841.548,
-   "cpu_ms": 835.34,
+   "latency_ms": 798.452,
+   "cpu_ms": 796.117,
    "checks": [
     {
      "check": "black_frame",
@@ -1797,8 +1797,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 516.131,
-   "cpu_ms": 515.339,
+   "latency_ms": 493.998,
+   "cpu_ms": 487.925,
    "checks": [
     {
      "check": "black_frame",
@@ -1866,8 +1866,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 906.802,
-   "cpu_ms": 896.894,
+   "latency_ms": 866.262,
+   "cpu_ms": 865.11,
    "checks": [
     {
      "check": "black_frame",
@@ -1935,8 +1935,8 @@
    "layer": "image",
    "label": "verdict@scripted",
    "degraded": "scripted",
-   "latency_ms": 623.947,
-   "cpu_ms": 622.316,
+   "latency_ms": 1168.122,
+   "cpu_ms": 1143.114,
    "checks": [
     {
      "check": "black_frame",
@@ -2142,7 +2142,7 @@
  "box": {
   "kernel": "6.8.12-1021-tegra",
   "arch": "aarch64",
-  "mem_available_gib": 47.98,
+  "mem_available_gib": 16.49,
   "gpu": "NVIDIA Thor"
  }
 }

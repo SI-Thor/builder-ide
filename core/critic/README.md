@@ -119,6 +119,13 @@ and **how far** (the drop distance), both measured by the **support probe**
 the units the edit is applied in — plus metres when a metric probe can reach
 the scene.
 
+The **metre** value comes from the **geometry probe** (`mesh.py`): the scene's
+camera gives the picture's scale at the scene's depth (0.011–0.064 m/px over
+the scenes measured on the Thor), and `drop_m` is the pixel drop times that
+scale. When the scene is not on the box there is nothing to measure against,
+and the edit carries the frame's units and says so — `drop_m` is `null`
+rather than a guess.
+
 ```python
 edit = {
     "op": "lower_object",
@@ -159,10 +166,10 @@ replaced it with a 2 B decision model that sees the frame
 scripts in [`docs/lab/critic-delegate-scripts/`](../../docs/lab/critic-delegate-scripts/)),
 because B2 forbids language models on the Thor. The two rows to read
 together are the ones that say what the swap cost (the delegate's own call:
-**1.44 s** per frame for `d1-2B` against **15.0 s per question** for the
-30 B) and what it did not move (the `floating_object` row, which is still one
-miss in two — and the reason is in the write-up: the member that is missed
-does not *show* a floating object).
+**1.31 s** median for the six questions `d1-2B` asks of a frame, against
+**15.0 s per question** for the 30 B) and what it did not move (the
+`floating_object` row, which is still one miss in two — and the reason is in
+the write-up: the member that is missed does not *show* a floating object).
 
 ## Running it
 

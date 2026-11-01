@@ -12,66 +12,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1127.234,
-   "cpu_ms": 25.165,
+   "latency_ms": 1006.364,
+   "cpu_ms": 22.795,
    "checks": [
     {
      "check": "black_frame",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 1.000 (1.1 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 1.000 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9995098486202815,
-      "d1_seconds": 1.126795175998268
+      "d1_seconds": 1.00599555199733
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.009 (1.1 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.009 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.008534249193470927,
-      "d1_seconds": 1.126795175998268
+      "d1_seconds": 1.00599555199733
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.429 (1.1 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.429 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.4287891805716107,
-      "d1_seconds": 1.126795175998268
+      "d1_seconds": 1.00599555199733
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.182 (1.1 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.182 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1819605018272422,
-      "d1_seconds": 1.126795175998268
+      "d1_seconds": 1.00599555199733
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.027 (1.1 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.027 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.027030405537451216,
-      "d1_seconds": 1.126795175998268
+      "d1_seconds": 1.00599555199733
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (1.1 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.01983702851811017,
-      "d1_seconds": 1.126795175998268
+      "d1_seconds": 1.00599555199733
      },
      "applicable": true
     }
@@ -84,66 +84,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1520.942,
-   "cpu_ms": 9.124,
+   "latency_ms": 1328.247,
+   "cpu_ms": 6.895,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.005 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.005 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.005212038680491736,
-      "d1_seconds": 1.5076950029979344
+      "d1_seconds": 1.3223956279980484
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.191 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.191 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1905478211981077,
-      "d1_seconds": 1.5076950029979344
+      "d1_seconds": 1.3223956279980484
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.144 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.144 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.14357599768636684,
-      "d1_seconds": 1.5076950029979344
+      "d1_seconds": 1.3223956279980484
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.140 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.140 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.14023922497721186,
-      "d1_seconds": 1.5076950029979344
+      "d1_seconds": 1.3223956279980484
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.104 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.104 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.10380555074022568,
-      "d1_seconds": 1.5076950029979344
+      "d1_seconds": 1.3223956279980484
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.129 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.129 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.12916299671050785,
-      "d1_seconds": 1.5076950029979344
+      "d1_seconds": 1.3223956279980484
      },
      "applicable": true
     }
@@ -156,66 +156,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1708.067,
-   "cpu_ms": 8.951,
+   "latency_ms": 1048.277,
+   "cpu_ms": 7.51,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.005 (1.7 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.005 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.005332367408946076,
-      "d1_seconds": 1.6966906309971819
+      "d1_seconds": 1.041758925999602
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.062 (1.7 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.062 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.06207338063218324,
-      "d1_seconds": 1.6966906309971819
+      "d1_seconds": 1.041758925999602
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.252 (1.7 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.252 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.2518419460200535,
-      "d1_seconds": 1.6966906309971819
+      "d1_seconds": 1.041758925999602
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.396 (1.7 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.396 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.3961517648958519,
-      "d1_seconds": 1.6966906309971819
+      "d1_seconds": 1.041758925999602
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.140 (1.7 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.140 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1402412884580788,
-      "d1_seconds": 1.6966906309971819
+      "d1_seconds": 1.041758925999602
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.112 (1.7 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.112 (1.0 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.11201394247859359,
-      "d1_seconds": 1.6966906309971819
+      "d1_seconds": 1.041758925999602
      },
      "applicable": true
     }
@@ -228,66 +228,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1508.074,
-   "cpu_ms": 5.805,
+   "latency_ms": 1284.287,
+   "cpu_ms": 4.709,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0042197712062546164,
-      "d1_seconds": 1.4996206289979455
+      "d1_seconds": 1.2804345879994798
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.041 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.041 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.04071281350899462,
-      "d1_seconds": 1.4996206289979455
+      "d1_seconds": 1.2804345879994798
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.957 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.957 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9570028876857404,
-      "d1_seconds": 1.4996206289979455
+      "d1_seconds": 1.2804345879994798
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.157 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.157 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.15732166881267956,
-      "d1_seconds": 1.4996206289979455
+      "d1_seconds": 1.2804345879994798
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.965 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.965 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9654739950031705,
-      "d1_seconds": 1.4996206289979455
+      "d1_seconds": 1.2804345879994798
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.469 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.469 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.4692090950071662,
-      "d1_seconds": 1.4996206289979455
+      "d1_seconds": 1.2804345879994798
      },
      "applicable": true
     }
@@ -300,66 +300,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1446.788,
-   "cpu_ms": 7.604,
+   "latency_ms": 1187.289,
+   "cpu_ms": 5.72,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.005 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.005 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.005432529163367297,
-      "d1_seconds": 1.4366824989992892
+      "d1_seconds": 1.174424259999796
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.302 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.302 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.30164808534995113,
-      "d1_seconds": 1.4366824989992892
+      "d1_seconds": 1.174424259999796
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.440 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.440 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.4402545864166731,
-      "d1_seconds": 1.4366824989992892
+      "d1_seconds": 1.174424259999796
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.281 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.281 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.2813096228006683,
-      "d1_seconds": 1.4366824989992892
+      "d1_seconds": 1.174424259999796
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.210 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.210 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.20999468148858338,
-      "d1_seconds": 1.4366824989992892
+      "d1_seconds": 1.174424259999796
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.145 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.145 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1454288033160584,
-      "d1_seconds": 1.4366824989992892
+      "d1_seconds": 1.174424259999796
      },
      "applicable": true
     }
@@ -372,66 +372,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1560.019,
-   "cpu_ms": 8.427,
+   "latency_ms": 696.81,
+   "cpu_ms": 6.239,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (0.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0037029223845454003,
-      "d1_seconds": 1.553471206996619
+      "d1_seconds": 0.6914091189973988
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.056 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.056 (0.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.05595273321615642,
-      "d1_seconds": 1.553471206996619
+      "d1_seconds": 0.6914091189973988
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.203 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.203 (0.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.20302233859419086,
-      "d1_seconds": 1.553471206996619
+      "d1_seconds": 0.6914091189973988
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.217 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.217 (0.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.216691612099257,
-      "d1_seconds": 1.553471206996619
+      "d1_seconds": 0.6914091189973988
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.142 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.142 (0.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.14231834135893873,
-      "d1_seconds": 1.553471206996619
+      "d1_seconds": 0.6914091189973988
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.058 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.058 (0.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.057879383845344516,
-      "d1_seconds": 1.553471206996619
+      "d1_seconds": 0.6914091189973988
      },
      "applicable": true
     }
@@ -444,66 +444,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 958.681,
-   "cpu_ms": 7.504,
+   "latency_ms": 1106.304,
+   "cpu_ms": 8.231,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.011 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.011 (1.1 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.011337765882668176,
-      "d1_seconds": 0.9436944359986228
+      "d1_seconds": 1.0992549160000635
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.161 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.161 (1.1 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.16112858937001026,
-      "d1_seconds": 0.9436944359986228
+      "d1_seconds": 1.0992549160000635
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.409 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.409 (1.1 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.4093686049726948,
-      "d1_seconds": 0.9436944359986228
+      "d1_seconds": 1.0992549160000635
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.355 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.355 (1.1 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.3554772193932116,
-      "d1_seconds": 0.9436944359986228
+      "d1_seconds": 1.0992549160000635
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.993 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.993 (1.1 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9928574683448146,
-      "d1_seconds": 0.9436944359986228
+      "d1_seconds": 1.0992549160000635
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.684 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.684 (1.1 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.683908730810881,
-      "d1_seconds": 0.9436944359986228
+      "d1_seconds": 1.0992549160000635
      },
      "applicable": true
     }
@@ -516,66 +516,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 860.144,
-   "cpu_ms": 6.434,
+   "latency_ms": 1342.328,
+   "cpu_ms": 11.434,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (0.8 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0038436079816604038,
-      "d1_seconds": 0.8453462889992807
+      "d1_seconds": 1.3327280549965508
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.077 (0.8 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.077 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0773466435615885,
-      "d1_seconds": 0.8453462889992807
+      "d1_seconds": 1.3327280549965508
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.103 (0.8 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.103 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.10260334205279129,
-      "d1_seconds": 0.8453462889992807
+      "d1_seconds": 1.3327280549965508
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.172 (0.8 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.172 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.17160485029231462,
-      "d1_seconds": 0.8453462889992807
+      "d1_seconds": 1.3327280549965508
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.345 (0.8 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.345 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.34494736823870426,
-      "d1_seconds": 0.8453462889992807
+      "d1_seconds": 1.3327280549965508
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.954 (0.8 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.954 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9544522933408691,
-      "d1_seconds": 0.8453462889992807
+      "d1_seconds": 1.3327280549965508
      },
      "applicable": true
     }
@@ -588,66 +588,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 897.629,
-   "cpu_ms": 7.607,
+   "latency_ms": 1316.486,
+   "cpu_ms": 9.582,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.006 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.006 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.005520382160513585,
-      "d1_seconds": 0.8787760509985674
+      "d1_seconds": 1.3087618959980318
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.065 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.065 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.06542270637657051,
-      "d1_seconds": 0.8787760509985674
+      "d1_seconds": 1.3087618959980318
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.314 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.314 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.3144713674646316,
-      "d1_seconds": 0.8787760509985674
+      "d1_seconds": 1.3087618959980318
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.119 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.119 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.11904862851525917,
-      "d1_seconds": 0.8787760509985674
+      "d1_seconds": 1.3087618959980318
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.136 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.136 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1362696477124168,
-      "d1_seconds": 0.8787760509985674
+      "d1_seconds": 1.3087618959980318
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.053 (0.9 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.053 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.053247983554823825,
-      "d1_seconds": 0.8787760509985674
+      "d1_seconds": 1.3087618959980318
      },
      "applicable": true
     }
@@ -660,66 +660,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 579.692,
-   "cpu_ms": 0.862,
+   "latency_ms": 1192.078,
+   "cpu_ms": 1.37,
    "checks": [
     {
      "check": "black_frame",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 1.000 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 1.000 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9995098486202815,
-      "d1_seconds": 0.5794323200025246
+      "d1_seconds": 1.1916502519998176
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.009 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.009 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.008534249193470927,
-      "d1_seconds": 0.5794323200025246
+      "d1_seconds": 1.1916502519998176
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.429 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.429 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.4287891805716107,
-      "d1_seconds": 0.5794323200025246
+      "d1_seconds": 1.1916502519998176
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.182 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.182 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1819605018272422,
-      "d1_seconds": 0.5794323200025246
+      "d1_seconds": 1.1916502519998176
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.027 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.027 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.027030405537451216,
-      "d1_seconds": 0.5794323200025246
+      "d1_seconds": 1.1916502519998176
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.01983702851811017,
-      "d1_seconds": 0.5794323200025246
+      "d1_seconds": 1.1916502519998176
      },
      "applicable": true
     }
@@ -732,8 +732,8 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 776.203,
-   "cpu_ms": 5.75,
+   "latency_ms": 839.993,
+   "cpu_ms": 9.871,
    "checks": [
     {
      "check": "black_frame",
@@ -741,7 +741,7 @@
      "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (0.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0042172625102479926,
-      "d1_seconds": 0.7715553410016582
+      "d1_seconds": 0.8313826920020801
      },
      "applicable": true
     },
@@ -751,7 +751,7 @@
      "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.618 (0.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.6179439420084157,
-      "d1_seconds": 0.7715553410016582
+      "d1_seconds": 0.8313826920020801
      },
      "applicable": true
     },
@@ -761,7 +761,7 @@
      "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.152 (0.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.15200579226135708,
-      "d1_seconds": 0.7715553410016582
+      "d1_seconds": 0.8313826920020801
      },
      "applicable": true
     },
@@ -771,7 +771,7 @@
      "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.071 (0.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.07127535854125898,
-      "d1_seconds": 0.7715553410016582
+      "d1_seconds": 0.8313826920020801
      },
      "applicable": true
     },
@@ -781,7 +781,7 @@
      "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.089 (0.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.08914235409210218,
-      "d1_seconds": 0.7715553410016582
+      "d1_seconds": 0.8313826920020801
      },
      "applicable": true
     },
@@ -791,7 +791,7 @@
      "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.033 (0.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.032708415080762575,
-      "d1_seconds": 0.7715553410016582
+      "d1_seconds": 0.8313826920020801
      },
      "applicable": true
     }
@@ -804,66 +804,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1628.303,
-   "cpu_ms": 7.319,
+   "latency_ms": 649.071,
+   "cpu_ms": 7.714,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (0.6 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0037883750941956527,
-      "d1_seconds": 1.618077295999683
+      "d1_seconds": 0.6426246699993499
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.151 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.151 (0.6 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1506435786309892,
-      "d1_seconds": 1.618077295999683
+      "d1_seconds": 0.6426246699993499
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.127 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.127 (0.6 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.12708525839863943,
-      "d1_seconds": 1.618077295999683
+      "d1_seconds": 0.6426246699993499
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.153 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.153 (0.6 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1525523035308176,
-      "d1_seconds": 1.618077295999683
+      "d1_seconds": 0.6426246699993499
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.069 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.069 (0.6 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.06866549008681858,
-      "d1_seconds": 1.618077295999683
+      "d1_seconds": 0.6426246699993499
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.012 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.012 (0.6 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.011592866974803178,
-      "d1_seconds": 1.618077295999683
+      "d1_seconds": 0.6426246699993499
      },
      "applicable": true
     }
@@ -876,66 +876,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1534.088,
-   "cpu_ms": 4.981,
+   "latency_ms": 1206.762,
+   "cpu_ms": 6.7,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.003638622338914427,
-      "d1_seconds": 1.530190533001587
+      "d1_seconds": 1.2011648039988359
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.124 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.124 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.12412562746319986,
-      "d1_seconds": 1.530190533001587
+      "d1_seconds": 1.2011648039988359
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.609 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.609 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.6090682087559015,
-      "d1_seconds": 1.530190533001587
+      "d1_seconds": 1.2011648039988359
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.147 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.147 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1466293683310979,
-      "d1_seconds": 1.530190533001587
+      "d1_seconds": 1.2011648039988359
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.954 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.954 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9538079860825429,
-      "d1_seconds": 1.530190533001587
+      "d1_seconds": 1.2011648039988359
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.042 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.042 (1.2 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.04191694508406903,
-      "d1_seconds": 1.530190533001587
+      "d1_seconds": 1.2011648039988359
      },
      "applicable": true
     }
@@ -948,66 +948,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1633.508,
-   "cpu_ms": 9.15,
+   "latency_ms": 1722.578,
+   "cpu_ms": 19.534,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.003 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.003 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0025766584847295836,
-      "d1_seconds": 1.6257961449991853
+      "d1_seconds": 1.7047590340007446
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.251 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.251 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.25092981925904717,
-      "d1_seconds": 1.6257961449991853
+      "d1_seconds": 1.7047590340007446
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.354 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.354 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.35364838151149447,
-      "d1_seconds": 1.6257961449991853
+      "d1_seconds": 1.7047590340007446
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.174 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.174 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.17380008826027485,
-      "d1_seconds": 1.6257961449991853
+      "d1_seconds": 1.7047590340007446
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.122 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.122 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.12210811727280536,
-      "d1_seconds": 1.6257961449991853
+      "d1_seconds": 1.7047590340007446
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.125 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.125 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.12545481327957303,
-      "d1_seconds": 1.6257961449991853
+      "d1_seconds": 1.7047590340007446
      },
      "applicable": true
     }
@@ -1020,66 +1020,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1569.423,
-   "cpu_ms": 11.418,
+   "latency_ms": 1790.058,
+   "cpu_ms": 13.249,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.002 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.002 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0024741793239248197,
-      "d1_seconds": 1.5556644770003913
+      "d1_seconds": 1.7787065240008815
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.421 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.421 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.4207567887184107,
-      "d1_seconds": 1.5556644770003913
+      "d1_seconds": 1.7787065240008815
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.188 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.188 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.18817768156670636,
-      "d1_seconds": 1.5556644770003913
+      "d1_seconds": 1.7787065240008815
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.116 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.116 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.11631044062642297,
-      "d1_seconds": 1.5556644770003913
+      "d1_seconds": 1.7787065240008815
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.104 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.104 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.10419480225669123,
-      "d1_seconds": 1.5556644770003913
+      "d1_seconds": 1.7787065240008815
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.055 (1.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.055 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.05467401845193268,
-      "d1_seconds": 1.5556644770003913
+      "d1_seconds": 1.7787065240008815
      },
      "applicable": true
     }
@@ -1092,66 +1092,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1461.475,
-   "cpu_ms": 10.929,
+   "latency_ms": 1818.469,
+   "cpu_ms": 17.315,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.006 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.006 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.006121969357844615,
-      "d1_seconds": 1.4472491769993212
+      "d1_seconds": 1.8036939400008123
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.086 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.086 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.08578806554615266,
-      "d1_seconds": 1.4472491769993212
+      "d1_seconds": 1.8036939400008123
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.919 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.919 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9191037229814281,
-      "d1_seconds": 1.4472491769993212
+      "d1_seconds": 1.8036939400008123
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.239 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.239 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.23938982856349908,
-      "d1_seconds": 1.4472491769993212
+      "d1_seconds": 1.8036939400008123
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.970 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.970 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9704184070689709,
-      "d1_seconds": 1.4472491769993212
+      "d1_seconds": 1.8036939400008123
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.034 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.034 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.034394632989430976,
-      "d1_seconds": 1.4472491769993212
+      "d1_seconds": 1.8036939400008123
      },
      "applicable": true
     }
@@ -1164,66 +1164,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1185.042,
-   "cpu_ms": 9.167,
+   "latency_ms": 1494.26,
+   "cpu_ms": 9.389,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.004064892607450473,
-      "d1_seconds": 1.1699640009974246
+      "d1_seconds": 1.4861934709988418
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.217 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.217 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.21720378905952994,
-      "d1_seconds": 1.1699640009974246
+      "d1_seconds": 1.4861934709988418
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.298 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.298 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.29780596499132916,
-      "d1_seconds": 1.1699640009974246
+      "d1_seconds": 1.4861934709988418
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.213 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.213 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.21341262090731325,
-      "d1_seconds": 1.1699640009974246
+      "d1_seconds": 1.4861934709988418
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.081 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.081 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.08060057981554472,
-      "d1_seconds": 1.1699640009974246
+      "d1_seconds": 1.4861934709988418
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.041 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.041 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.04132286190752613,
-      "d1_seconds": 1.1699640009974246
+      "d1_seconds": 1.4861934709988418
      },
      "applicable": true
     }
@@ -1236,66 +1236,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1241.022,
-   "cpu_ms": 7.144,
+   "latency_ms": 1359.68,
+   "cpu_ms": 8.214,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.005 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.005 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.005314183537387713,
-      "d1_seconds": 1.2230750140006421
+      "d1_seconds": 1.3455215110006975
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.074 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.074 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.07393366678648432,
-      "d1_seconds": 1.2230750140006421
+      "d1_seconds": 1.3455215110006975
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.076 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.076 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.07583664976742086,
-      "d1_seconds": 1.2230750140006421
+      "d1_seconds": 1.3455215110006975
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.213 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.213 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.21262650924641407,
-      "d1_seconds": 1.2230750140006421
+      "d1_seconds": 1.3455215110006975
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.059 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.059 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.05896050057212474,
-      "d1_seconds": 1.2230750140006421
+      "d1_seconds": 1.3455215110006975
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.018 (1.2 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.018 (1.3 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.01769949255727097,
-      "d1_seconds": 1.2230750140006421
+      "d1_seconds": 1.3455215110006975
      },
      "applicable": true
     }
@@ -1308,66 +1308,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 573.469,
-   "cpu_ms": 0.86,
+   "latency_ms": 1531.469,
+   "cpu_ms": 1.057,
    "checks": [
     {
      "check": "black_frame",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 1.000 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 1.000 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.9995098486202815,
-      "d1_seconds": 0.5732023419986945
+      "d1_seconds": 1.5311557589993754
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.009 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.009 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.008534249193470927,
-      "d1_seconds": 0.5732023419986945
+      "d1_seconds": 1.5311557589993754
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.429 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.429 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.4287891805716107,
-      "d1_seconds": 0.5732023419986945
+      "d1_seconds": 1.5311557589993754
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.182 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.182 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.1819605018272422,
-      "d1_seconds": 0.5732023419986945
+      "d1_seconds": 1.5311557589993754
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.027 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.027 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.027030405537451216,
-      "d1_seconds": 0.5732023419986945
+      "d1_seconds": 1.5311557589993754
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (0.6 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (1.5 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.01983702851811017,
-      "d1_seconds": 0.5732023419986945
+      "d1_seconds": 1.5311557589993754
      },
      "applicable": true
     }
@@ -1380,66 +1380,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1489.317,
-   "cpu_ms": 7.224,
+   "latency_ms": 1791.699,
+   "cpu_ms": 13.924,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.004 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.004021525031769918,
-      "d1_seconds": 1.475958969000203
+      "d1_seconds": 1.779265735000081
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.234 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.234 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.23412787297491544,
-      "d1_seconds": 1.475958969000203
+      "d1_seconds": 1.779265735000081
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.249 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.249 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.24854411070713592,
-      "d1_seconds": 1.475958969000203
+      "d1_seconds": 1.779265735000081
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.121 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.121 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.12074732285195096,
-      "d1_seconds": 1.475958969000203
+      "d1_seconds": 1.779265735000081
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.067 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.067 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.0667274863770532,
-      "d1_seconds": 1.475958969000203
+      "d1_seconds": 1.779265735000081
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.041 (1.5 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.041 (1.8 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.04050133609978318,
-      "d1_seconds": 1.475958969000203
+      "d1_seconds": 1.779265735000081
      },
      "applicable": true
     }
@@ -1452,66 +1452,66 @@
    "layer": "image",
    "label": "verdict@d1",
    "degraded": "d1",
-   "latency_ms": 1432.995,
-   "cpu_ms": 3.453,
+   "latency_ms": 1689.772,
+   "cpu_ms": 3.129,
    "checks": [
     {
      "check": "black_frame",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.022 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a completely black picture with no visible scene? Answer yes or no.' -> p(yes) = 0.022 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.021844890647193825,
-      "d1_seconds": 1.43055632100004
+      "d1_seconds": 1.6874809930013726
      },
      "applicable": true
     },
     {
      "check": "fireflies",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.626 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show bright isolated speckles scattered over the picture, like dust or fireflies in a render? Answer yes or no.' -> p(yes) = 0.626 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.6257959937457007,
-      "d1_seconds": 1.43055632100004
+      "d1_seconds": 1.6874809930013726
      },
      "applicable": true
     },
     {
      "check": "flat_patch",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.465 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a missing object \u2014 a flat, empty patch where something should be, as if a prop failed to render? Answer yes or no.' -> p(yes) = 0.465 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.46541859439489386,
-      "d1_seconds": 1.43055632100004
+      "d1_seconds": 1.6874809930013726
      },
      "applicable": true
     },
     {
      "check": "dark_holes",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.122 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show holes \u2014 dark empty gaps or pits in a surface? Answer yes or no.' -> p(yes) = 0.122 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.12174670811651557,
-      "d1_seconds": 1.43055632100004
+      "d1_seconds": 1.6874809930013726
      },
      "applicable": true
     },
     {
      "check": "patch_seam",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.187 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show a rectangular block of texture that does not belong, as if a patch of the surface came from a different picture? Answer yes or no.' -> p(yes) = 0.187 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.18679810889394552,
-      "d1_seconds": 1.43055632100004
+      "d1_seconds": 1.6874809930013726
      },
      "applicable": true
     },
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.308 (1.4 s for the whole frame, 1787 input tokens)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.308 (1.7 s for the whole frame, 1787 input tokens)",
      "measured": {
       "d1_probability": 0.30811686661615967,
-      "d1_seconds": 1.43055632100004
+      "d1_seconds": 1.6874809930013726
      },
      "applicable": true
     }
@@ -1661,7 +1661,7 @@
  "box": {
   "kernel": "6.8.12-1021-tegra",
   "arch": "aarch64",
-  "mem_available_gib": 40.94,
+  "mem_available_gib": 48.33,
   "gpu": "NVIDIA Thor"
  }
 }

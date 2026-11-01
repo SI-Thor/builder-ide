@@ -13,8 +13,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1.802,
-   "cpu_ms": 1.801,
+   "latency_ms": 1.78,
+   "cpu_ms": 1.77,
    "checks": [
     {
      "check": "watertight",
@@ -53,8 +53,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 905.281,
-   "cpu_ms": 559.124,
+   "latency_ms": 517.86,
+   "cpu_ms": 516.586,
    "checks": [
     {
      "check": "black_frame",
@@ -150,8 +150,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1.642,
-   "cpu_ms": 1.646,
+   "latency_ms": 1.414,
+   "cpu_ms": 1.407,
    "checks": [
     {
      "check": "watertight",
@@ -190,8 +190,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1534.856,
-   "cpu_ms": 718.807,
+   "latency_ms": 608.062,
+   "cpu_ms": 606.668,
    "checks": [
     {
      "check": "black_frame",
@@ -287,8 +287,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 3720.574,
-   "cpu_ms": 1243.659,
+   "latency_ms": 4649.647,
+   "cpu_ms": 1106.648,
    "checks": [
     {
      "check": "black_frame",
@@ -340,11 +340,11 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.036 (1.6 s wall, 367 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.036 (3.6 s wall, 535 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
      "measured": {
       "clef_probability": 0.0365,
-      "clef_seconds": 1.6151222080006846,
-      "clef_worker_ms": 367.0
+      "clef_seconds": 3.5630375299988373,
+      "clef_worker_ms": 535.0
      },
      "applicable": true
     },
@@ -378,8 +378,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 138.162,
-   "cpu_ms": 20.26,
+   "latency_ms": 20.151,
+   "cpu_ms": 20.126,
    "checks": [
     {
      "check": "watertight",
@@ -418,8 +418,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1252.297,
-   "cpu_ms": 923.087,
+   "latency_ms": 827.389,
+   "cpu_ms": 826.277,
    "checks": [
     {
      "check": "black_frame",
@@ -508,8 +508,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 13.043,
-   "cpu_ms": 10.471,
+   "latency_ms": 10.145,
+   "cpu_ms": 9.932,
    "checks": [
     {
      "check": "watertight",
@@ -548,8 +548,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1184.016,
-   "cpu_ms": 988.085,
+   "latency_ms": 730.235,
+   "cpu_ms": 729.329,
    "checks": [
     {
      "check": "black_frame",
@@ -617,8 +617,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 43.872,
-   "cpu_ms": 20.525,
+   "latency_ms": 19.228,
+   "cpu_ms": 19.202,
    "checks": [
     {
      "check": "watertight",
@@ -657,8 +657,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 9923.206,
-   "cpu_ms": 4703.01,
+   "latency_ms": 5109.484,
+   "cpu_ms": 826.191,
    "checks": [
     {
      "check": "black_frame",
@@ -710,11 +710,11 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.028 (2.7 s wall, 1458 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.028 (4.3 s wall, 483 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
      "measured": {
       "clef_probability": 0.0282,
-      "clef_seconds": 2.668494786001247,
-      "clef_worker_ms": 1458.0
+      "clef_seconds": 4.283155388002342,
+      "clef_worker_ms": 483.0
      },
      "applicable": true
     }
@@ -727,8 +727,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 33.923,
-   "cpu_ms": 25.962,
+   "latency_ms": 25.608,
+   "cpu_ms": 24.725,
    "checks": [
     {
      "check": "watertight",
@@ -767,8 +767,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 879.003,
-   "cpu_ms": 794.79,
+   "latency_ms": 744.749,
+   "cpu_ms": 743.866,
    "checks": [
     {
      "check": "black_frame",
@@ -836,8 +836,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 21.611,
-   "cpu_ms": 17.61,
+   "latency_ms": 15.819,
+   "cpu_ms": 15.802,
    "checks": [
     {
      "check": "watertight",
@@ -876,8 +876,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 3654.267,
-   "cpu_ms": 1148.021,
+   "latency_ms": 4938.87,
+   "cpu_ms": 1011.685,
    "checks": [
     {
      "check": "black_frame",
@@ -929,11 +929,11 @@
     {
      "check": "floating_blob",
      "fired": true,
-     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.802 (1.4 s wall, 375 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.802 (3.9 s wall, 411 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
      "measured": {
       "clef_probability": 0.8019,
-      "clef_seconds": 1.4486354740001843,
-      "clef_worker_ms": 375.0
+      "clef_seconds": 3.926942952002719,
+      "clef_worker_ms": 411.0
      },
      "applicable": true
     }
@@ -946,8 +946,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 8.236,
-   "cpu_ms": 8.039,
+   "latency_ms": 7.467,
+   "cpu_ms": 7.458,
    "checks": [
     {
      "check": "watertight",
@@ -986,8 +986,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1913.836,
-   "cpu_ms": 586.454,
+   "latency_ms": 5162.437,
+   "cpu_ms": 512.94,
    "checks": [
     {
      "check": "black_frame",
@@ -1039,11 +1039,11 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.019 (1.3 s wall, 372 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.019 (4.6 s wall, 563 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
      "measured": {
       "clef_probability": 0.0191,
-      "clef_seconds": 1.3092571380002482,
-      "clef_worker_ms": 372.0
+      "clef_seconds": 4.64971015500123,
+      "clef_worker_ms": 563.0
      },
      "applicable": true
     }
@@ -1056,8 +1056,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 11.814,
-   "cpu_ms": 5.327,
+   "latency_ms": 4.934,
+   "cpu_ms": 4.926,
    "checks": [
     {
      "check": "watertight",
@@ -1096,8 +1096,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 643.066,
-   "cpu_ms": 551.248,
+   "latency_ms": 500.935,
+   "cpu_ms": 500.391,
    "checks": [
     {
      "check": "black_frame",
@@ -1193,8 +1193,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 816.418,
-   "cpu_ms": 692.249,
+   "latency_ms": 652.842,
+   "cpu_ms": 651.821,
    "checks": [
     {
      "check": "black_frame",
@@ -1262,8 +1262,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 2823.823,
-   "cpu_ms": 1134.924,
+   "latency_ms": 5803.744,
+   "cpu_ms": 1091.025,
    "checks": [
     {
      "check": "black_frame",
@@ -1315,11 +1315,11 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.011 (1.4 s wall, 358 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.011 (4.7 s wall, 473 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
      "measured": {
       "clef_probability": 0.0113,
-      "clef_seconds": 1.4450968130004185,
-      "clef_worker_ms": 358.0
+      "clef_seconds": 4.70788081900173,
+      "clef_worker_ms": 473.0
      },
      "applicable": true
     }
@@ -1332,8 +1332,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1849.04,
-   "cpu_ms": 775.806,
+   "latency_ms": 709.725,
+   "cpu_ms": 708.92,
    "checks": [
     {
      "check": "black_frame",
@@ -1401,8 +1401,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 2435.835,
-   "cpu_ms": 1155.675,
+   "latency_ms": 1085.177,
+   "cpu_ms": 1080.156,
    "checks": [
     {
      "check": "black_frame",
@@ -1470,8 +1470,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 4775.74,
-   "cpu_ms": 1178.959,
+   "latency_ms": 6502.609,
+   "cpu_ms": 1112.688,
    "checks": [
     {
      "check": "black_frame",
@@ -1523,11 +1523,11 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (2.0 s wall, 830 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.020 (5.4 s wall, 798 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
      "measured": {
       "clef_probability": 0.0196,
-      "clef_seconds": 1.9891013909982576,
-      "clef_worker_ms": 830.0
+      "clef_seconds": 5.38966305500071,
+      "clef_worker_ms": 798.0
      },
      "applicable": true
     }
@@ -1540,8 +1540,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 2248.753,
-   "cpu_ms": 1399.993,
+   "latency_ms": 1323.62,
+   "cpu_ms": 1322.249,
    "checks": [
     {
      "check": "black_frame",
@@ -1637,8 +1637,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 3958.424,
-   "cpu_ms": 1047.099,
+   "latency_ms": 5592.57,
+   "cpu_ms": 966.484,
    "checks": [
     {
      "check": "black_frame",
@@ -1690,11 +1690,11 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.016 (1.6 s wall, 486 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.016 (4.6 s wall, 517 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
      "measured": {
       "clef_probability": 0.0158,
-      "clef_seconds": 1.6288673599992762,
-      "clef_worker_ms": 486.0
+      "clef_seconds": 4.622195322001062,
+      "clef_worker_ms": 517.0
      },
      "applicable": true
     },
@@ -1735,8 +1735,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 4806.798,
-   "cpu_ms": 863.644,
+   "latency_ms": 4347.682,
+   "cpu_ms": 784.034,
    "checks": [
     {
      "check": "black_frame",
@@ -1788,11 +1788,11 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.016 (2.7 s wall, 1584 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+     "detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.016 (3.6 s wall, 403 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
      "measured": {
       "clef_probability": 0.0163,
-      "clef_seconds": 2.65671156299868,
-      "clef_worker_ms": 1584.0
+      "clef_seconds": 3.563629303000198,
+      "clef_worker_ms": 403.0
      },
      "applicable": true
     }
@@ -1805,8 +1805,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1775.562,
-   "cpu_ms": 579.566,
+   "latency_ms": 486.734,
+   "cpu_ms": 483.879,
    "checks": [
     {
      "check": "black_frame",
@@ -1874,8 +1874,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 2289.348,
-   "cpu_ms": 930.843,
+   "latency_ms": 847.698,
+   "cpu_ms": 846.182,
    "checks": [
     {
      "check": "black_frame",
@@ -1943,8 +1943,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1332.38,
-   "cpu_ms": 624.123,
+   "latency_ms": 586.008,
+   "cpu_ms": 585.336,
    "checks": [
     {
      "check": "black_frame",
@@ -2152,7 +2152,7 @@
  "box": {
   "kernel": "6.8.12-1021-tegra",
   "arch": "aarch64",
-  "mem_available_gib": 48.93,
+  "mem_available_gib": 22.81,
   "gpu": "NVIDIA Thor"
  }
 }

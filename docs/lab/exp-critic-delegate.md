@@ -23,10 +23,11 @@ The brief had two halves.
 | # | Finding |
 |---|---|
 | 1 | **Neither decision model holds the band, and neither does the hybrid they are in.** The hybrid with d1-2B and the hybrid with clef-flash both score **TP 23 / FP 0 / FN 1 / TN 39** — the same row as the scripted checks alone. The old hybrid (the 30 B VLM) scored 24/0/0. |
-| 2 | **The row does not move because of one member, not because of the models.** The miss is `mem_d5c1c6cc24413705` (coast-s6), whose **picture does not show a floating object**: the planted copy sits *on the sand*, with the beach under it. d1-2B says p(yes) = 0.041, clef-flash 0.020, the scripted check does not fire on it, and the 30 B VLM said "Yes" — which is the answer that carried the old row. |
-| 3 | **The swap is still the right swap, on cost and on the rules.** The delegate's own call on a frame: **1.44 s median for d1-2B** (local, 241 ms per question) against **1.77 s for clef-flash** (cloud, 295 ms per question, of which 571 ms is the edge's own time) against **15.0 s per question for the 30 B VLM**. The hybrid's mean verdict: **1 217 ms with d1-2B**, **1 833 ms with clef-flash**, **3 450 ms with the 30 B**. And a 2 B decision model is not a language model, so B2 is satisfied by construction rather than by exception. |
-| 4 | **The pick is the local one.** Same table row as the cloud one, cheaper by 1.2× on the model's calls and by 40× on the 30 B's, no network hop, no money, and no resident 17 GB. `d1-2B` is the hybrid's default delegate; the 30 B model is no longer anybody's default, and the `vlm` candidate cannot even be built without being told which model it is. |
-| 5 | **The continuation works, and it is measurable.** The critic's typed edit (`lower_object`: the support surface below, the drop distance) is produced for every member where the hybrid flags `floating_object`, and applying it **clears the flag on the member whose defect is `floating_object`**: the scripted check's open space under the thing goes 0.1037 → 0.0000 frame heights, and the delegate's own p(yes) goes 0.954 → 0.395 (d1-2B) and 0.705 → 0.155 (clef-flash). On two other frames the *checks* fired on `floating_blob` while a different defect was planted; the continuation cleared one of those and not the other — the honest edge of a picture-domain probe (§6.4). |
+| 2 | **The row does not move because of one member, not because of the models.** The miss is `mem_d5c1c6cc24413705` (coast-s6), whose **picture does not show a floating object**: the planted copy sits *on the sand*, with the beach under it. d1-2B says p(yes) = 0.041, clef-flash 0.016, the scripted check does not fire on it, and the 30 B VLM said "Yes" — which is the answer that carried the old row. |
+| 3 | **The swap is still the right swap, on cost and on the rules.** The delegate's own call on a frame: **1.31 s median for d1-2B** (local; 1.31 s for six questions, 298 ms for one) against **2.56 s for clef-flash** (cloud; the edge's own work is 0.39–0.55 s and the rest is the path to it) against **15.0 s per question for the 30 B VLM**. The hybrid's mean verdict: **668 ms with d1-2B**, **1 728 ms with clef-flash**, **3 450 ms with the 30 B**. And a 2 B decision model is not a language model, so B2 is satisfied by construction rather than by exception. |
+| 4 | **The pick is the local one.** Same table row as the cloud one, cheaper by 2× on the model's six-question call and by 14× on the hybrid's one-question call, its mean verdict 2.6× cheaper, no network hop, no money, and no resident 17 GB. `d1-2B` is the hybrid's default delegate; the 30 B model is no longer anybody's default, and the `vlm` candidate cannot even be built without being told which model it is. |
+| 5 | **The continuation works, and it is measurable.** The critic's typed edit (`lower_object`: the support surface below, the drop distance) is produced for every member where the hybrid flags `floating_object`, and applying it **clears the flag on the member whose defect is `floating_object`**: the scripted check's open space under the thing goes 0.1037 → 0.0000 frame heights, and the delegate's own p(yes) goes 0.954 → 0.395 (d1-2B) and 0.802 → 0.155 (clef-flash). On two other frames the *checks* fired on `floating_blob` while a different defect was planted; the continuation cleared one of those and not the other — the honest edge of a picture-domain probe (§6.4). |
+| 6 | **The drop distance is measured twice: in the frame, exactly, and in metres when the scene is on the box.** The frame's units — pixels and frame heights — need nothing but the picture; the metre value comes from the **geometry probe**, which reads the scene's camera and turns it into metres per pixel (0.0114–0.0637 m/px over the twelve scenes measured here). The three members where the flag fires have **no scene on the box**, so their edits carry the frame's units and say so; the metre path is measured where a scene exists (§6.5). |
 
 ---
 
@@ -75,20 +76,35 @@ the verdict: `p(yes) = 0.954` is not the same answer as `p(yes) = 0.504`.
 |---|---|
 | Board | NVIDIA Jetson AGX Thor (Blackwell, sm_110), 122.8 GiB unified memory, 14 Neoverse cores |
 | Kernel / arch | 6.8.12-1021-tegra / aarch64 |
-| `MemAvailable` during the runs | 40.9 GiB (the d1 stage), 47.9 GiB (the scripted baseline), 48.9 GiB (the clef hybrid) — the memory rule's floor is 25 GiB |
-| GPU | shared: another seat's Hunyuan generation held `~/lm-wt/heavy.lock` for the whole of the d1 stage, and three other d1-2B servers were resident (ports 8094, 8098, 8099) |
+| `MemAvailable` during the runs | 48.3 GiB (the d1 stage), 49.1 GiB (the hybrid with d1), 23.1 GiB (the clef stage), 22.8 GiB (the hybrid with clef), **16.5 GiB** (the scripted baseline) — the memory rule's floor is 25 GiB |
+| GPU | shared: another seat's heavy job (a 26 GB python) held the box for the scripted and cloud stages and finished before the local stage; three other seats' d1-2B servers were resident throughout (ports 8094, 8098, 8099) |
+| The local model server | the seat's own `llama-server` for d1-2B + its mmproj, on loopback **8131**, `-ngl 99 -c 4096` — the settings the latency numbers below belong to |
 | The cloud half | Workers AI, a **Workers Paid** account (the clef-cascade seat's measurement), through a `wrangler dev --remote` proxy on the ProArt, reached from the Thor over an SSH forward |
 
-Two consequences worth stating rather than hiding:
+Three consequences worth stating rather than hiding:
 
-* **The d1-2B numbers are a contended measurement.** The 2 GB decision model
-  ran while another seat's generation held the GPU. That makes the local
-  delegate's latency an *upper* bound, so the comparison with the cloud
-  delegate is conservative in the local delegate's favour.
-* **The heavy lock was not taken for the d1 stage.** The lock is the box's
-  rule for *heavy* steps (the 17 GB VLM, TRELLIS, Hunyuan). A 2 GB decision
-  model is below that threshold, and the stage checks the memory rule's floor
-  (≥ 25 GiB free) before it starts and prints the box's state beside the
+* **The cloud stages ran on a loaded box, the local stage on a quiet one.**
+  Another seat's 26 GB job was resident while the scripted baseline and both
+  cloud stages ran — the scripted baseline was measured with 16.5 GiB free,
+  below the 25 GiB the memory rule asks for before a **heavy** step (the
+  checks are not heavy, so the run was allowed) — and it finished before the
+  local stage, which ran with 48 GiB free. The local delegate's numbers are
+  therefore the better of the two, and the cloud delegate's cost is not
+  explained by the box: the edge's own work was 0.39–0.55 s in both (§3.4),
+  and the rest of the wall time is the path to the edge.
+* **The local numbers belong to one server's settings.** A model is loaded
+  once per box, not once per seat: `thor-admit serve d1-2B` hands back the
+  port of a server that is already answering rather than starting a second
+  one. The numbers above were taken with the seat's own server on port 8131
+  at `-c 4096`; a re-run on a box where another seat's d1-2B is already up
+  measures *that* server's settings, and the scripts read the port back from
+  the daemon rather than assuming one (`docs/lab/critic-delegate-scripts/README.md`).
+* **The d1 stage was a lease, not the old shared lock.** The lock was the
+  box's rule for *heavy* steps (the 17 GB VLM, TRELLIS, Hunyuan). A 2 GB
+  decision model is below that threshold, and the stage takes a lease from the
+  box's admission daemon (`thor-admit run`), while the model server takes one
+  of its own (`thor-admit serve`). The stage still checks the memory rule's
+  floor (≥ 25 GiB free) before it starts and prints the box's state beside the
   numbers.
 
 ---
@@ -99,16 +115,17 @@ Two consequences worth stating rather than hiding:
 
 | candidate | layers | TP | FP | FN | TN | FP rate | in band | median ms/verdict | mean ms/verdict |
 |---|---|---|---|---|---|---|---|---|---|
-| scripted (the baseline) | image, mesh | 23 | 0 | 1 | 39 | 0.0 % | no | 725 | 801 |
-| d1-2B alone | image | 10 | 0 | 5 | 36 | 0.0 % | no | 1 447 | 1 271 |
-| clef-flash alone | image | 9 | 0 | 6 | 36 | 0.0 % | no | 1 781 | 1 936 |
-| **hybrid + d1-2B** | image, mesh | **23** | **0** | **1** | **39** | 0.0 % | no | 1 312 | **1 217** |
-| hybrid + clef-flash | image, mesh | 23 | 0 | 1 | 39 | 0.0 % | no | 1 292 | 1 833 |
+| scripted (the baseline) | image, mesh | 23 | 0 | 1 | 39 | 0.0 % | no | 702 | 597 |
+| d1-2B alone | image | 10 | 0 | 5 | 36 | 0.0 % | no | 1 317 | 1 305 |
+| clef-flash alone | image | 9 | 0 | 6 | 36 | 0.0 % | no | 2 571 | 2 715 |
+| **hybrid + d1-2B** | image, mesh | **23** | **0** | **1** | **39** | 0.0 % | no | 704 | **668** |
+| hybrid + clef-flash | image, mesh | 23 | 0 | 1 | 39 | 0.0 % | no | 681 | 1 728 |
 | *the old row: hybrid + Muse Glimmer 30 B* | *image, mesh* | *24* | *0* | *0* | *39* | *0.0 %* | ***yes*** | *696* | *3 450* |
 
 The old row is in the table for comparison; it is **not available**: a 30 B
 language model is exactly what B2 forbids on this box, and it cost 15.0 s per
-question (107 s per verdict) against 241 ms for the local decision model.
+question (107 s per verdict) against 298 ms for the local decision model's one
+question.
 
 ### 3.2 Per class, the delegates alone
 
@@ -149,24 +166,34 @@ delegate's cost shows.
 
 ### 3.4 Latency
 
-| | per request (6 questions) | per question | per verdict, hybrid | mean verdict, hybrid |
+The hybrid asks the delegate about **one** class, so its own request carries
+one question; the delegates standing alone were asked all six.
+
+| | per request (six questions) | per request (one question) | per verdict, hybrid | mean verdict, hybrid |
 |---|---|---|---|---|
-| d1-2B, local | **1 437 ms** median (min 573, max 1 697) | 241 ms | 1 312 ms | **1 217 ms** |
-| clef-flash, cloud | 1 770 ms median (min 471, max 4 295), of which **571 ms** is the edge's own time | 295 ms | 1 292 ms | 1 833 ms |
-| Muse Glimmer 30 B (the old delegate) | — | **15 000 ms** | 696 ms | 3 450 ms |
+| d1-2B, local | **1 309 ms** median (min 643, max 1 804) | **298 ms** median (min 238, max 350) | 704 ms | **668 ms** |
+| clef-flash, cloud | 2 559 ms median (min 543, max 4 813) | 4 158 ms (the same frame, back to back) | 681 ms | 1 728 ms |
+| Muse Glimmer 30 B (the old delegate) | — | 15 000 ms per question | 696 ms | 3 450 ms |
 
 Two things the numbers say that the prose would not:
 
-* **The picture is the cost.** One request carries the image once and scores
-  every question against it, so the cost per *question* is a sixth of the
-  cost per request. The cloud path pays the edge twice over — 571 ms of
-  inference and 1.2 s of proxy and network — and its tail is wider
-  (4.3 s against 1.7 s).
+* **The picture is the cost on the box; the path to the edge is the cost in
+  the cloud.** Asked about the same frame, back to back, the Worker reports
+  **385 ms** for one question and **553 ms** for six: five extra questions
+  cost the model about 170 ms, so clef-flash answers the other five classes
+  almost for free. The wall time for those same two calls was **4 158 ms**
+  and **4 949 ms** — so eight to nine tenths of the cloud delegate's latency
+  is the path to the edge (the picture's upload through the `wrangler dev
+  --remote` proxy on the ProArt), and not the model. The local delegate has
+  no such path: the picture is encoded on the box's own GPU, and one question
+  costs 298 ms there. The measurement is in
+  `results/clef-latency.json`, and the script that took it is
+  `clef_latency.py`.
 * **The old delegate's median was cheap and its mean was not.** The 30 B
-  model's median verdict (696 ms) is *lower* than either decision model's,
-  because the median member never reaches the model at all; its mean
-  (3 450 ms) is 2.8× the local delegate's, because the eight members that do
-  reach it each pay 17–53 s.
+  model's median verdict (696 ms) is *lower* than the local decision model's
+  (704 ms) and about the cloud one's (681 ms), because the median member
+  never reaches the model at all; its mean (3 450 ms) is 5.2× the local
+  delegate's, because the eight members that do reach it each pay 17–53 s.
 
 ---
 
@@ -176,10 +203,12 @@ Two things the numbers say that the prose would not:
 
 By the table first: the two delegates are on the **same row** (23/0/1/39), so
 the table does not separate them — and neither does it separate them from the
-scripted checks. By latency then: the local delegate's request is 1.2×
-cheaper than the cloud one's, its tail is 2.5× narrower, it costs no money
-and no network hop, and its *mean* verdict is 1 217 ms against the cloud
-hybrid's 1 833 ms.
+scripted checks. By latency then: the local delegate's request for the
+hybrid's one question costs **298 ms** (238–350 ms across the eight members
+that reached it), the cloud delegate's the same question on the same frame
+cost **4 158 ms** with 385 ms of that at the edge; the local hybrid's *mean*
+verdict is **668 ms** against the cloud hybrid's **1 728 ms**; the local one
+costs no money and no network hop, and its tail is 12× narrower.
 
 The two reasons that are not latency:
 
@@ -187,7 +216,7 @@ The two reasons that are not latency:
   by construction, not by an exception, and the box carries 2 GB of weights
   instead of 17 GB.
 * **The delegate's answer is a probability.** `p(yes) = 0.954` on the member
-  that shows a floater, `0.041` on the one that does not, and 0.002–0.112 on
+  that shows a floater, `0.041` on the one that does not, and 0.012–0.112 on
   the six clean controls. The distance from the gate is in the verdict, so a
   night can see how close a call was instead of only whether it fired.
 
@@ -215,7 +244,7 @@ The four answers on that frame:
 |---|---|
 | the scripted check | does not fire — the thing hangs in front of something busy (the shoreline), so the check skips it |
 | d1-2B | p(yes) = **0.041** — no |
-| clef-flash | p(yes) = **0.020** — no |
+| clef-flash | p(yes) = **0.016** — no |
 | Muse Glimmer 30 B (the old delegate) | **"Yes"** — and that answer is what carried the old hybrid's 24/0/0 row |
 
 So the old row was carried by an answer on a frame that does not show the
@@ -271,9 +300,12 @@ closed, typed vocabulary and never by writing code:
   its kind (`terrain`, `liquid`, `prop`, `unknown`) and which probe said so.
 * `drop_px` / `drop_frame_heights` — **the drop distance**, in the frame's own
   units (both exact), plus `drop_m` in metres when a metric probe can reach
-  the scene.
+  the scene (§6.5). The `null` above is the honest value for that member:
+  its scene is not on the box, so nobody measured a metre there.
 * `evidence` — the measured numbers the name came from, so a reader can see
-  the measurement and not only the verdict.
+  the measurement and not only the verdict. When the scene was measured, the
+  scale that turned the pixels into metres travels with it
+  (`metres_per_pixel`).
 
 The edit is a **proposal**. The critic never moves anything; the builder
 makes the move.
@@ -319,7 +351,7 @@ the same for both, because the flag on these three members is the same flag.
 
 | member | who raised the flag | the edit | the checks' open space | the delegate's p(yes) | flag cleared |
 |---|---|---|---|---|---|
-| `mem_718023ba022732d4` (canyon-s4, `floating_object`) | **the delegate**: p = 0.954 (d1-2B) / 0.705 (clef-flash) | drop 262 px onto the surface at row 443 | 0.1037 → **0.0000** | 0.954 → **0.395** (d1-2B), 0.705 → **0.155** (clef-flash) | **yes** |
+| `mem_718023ba022732d4` (canyon-s4, `floating_object`) | **the delegate**: p = 0.954 (d1-2B) / 0.802 (clef-flash) | drop 262 px onto the surface at row 443 | 0.1037 → **0.0000** | 0.954 → **0.395** (d1-2B), 0.802 → **0.155** (clef-flash) | **yes** |
 | `mem_65684b3ca047a1ae` (missing_object) | the scripted check (the delegate is not asked about a member carrying another class) | drop 113 px onto terrain at row 479 | 0.1796 → **0.0000** | — | **yes** |
 | `mem_307101c469654adf` (holes) | the scripted check, for the same reason | drop 273 px onto terrain at row 355 | 0.1259 → **0.6407** | — | **no** |
 
@@ -340,18 +372,79 @@ Read plainly:
   mechanism: **the critic can name a thing, and the picture alone cannot
   always say which thing a finding was about.**
 
+### 6.5 The drop in metres, and where that number comes from
+
+The drop distance is measured twice: in the **frame** — pixels and frame
+heights, both exact, and needing nothing but the picture — and in **metres**,
+which needs the scene the picture came from.
+
+The metre value comes from the **geometry probe**
+(:mod:`core.critic.mesh`). It reads the scene's camera out of the `.blend`,
+and the camera's frame width at the scene's depth, divided by the picture's
+width in pixels, is the scale of the picture — metres per pixel. Measured over
+the twelve scenes the probe has measured on this box, the scale runs from
+**0.0114 m/px** (river-s6) to **0.0637 m/px** (canyon-s6):
+
+| scene | metres per pixel | | scene | metres per pixel |
+|---|---|---|---|---|
+| river-s6 | 0.011392 | | arctic-s6 | 0.035137 |
+| river-s5 | 0.013532 | | mountain-s6 | 0.036718 |
+| arctic-s5 | 0.019942 | | arctic-s4 | 0.042646 |
+| desert-s6 | 0.020275 | | coast-s6 | 0.043267 |
+| | | | plain-s5 | 0.045031 |
+| | | | arctic-s1 | 0.058363 |
+| | | | coast-s5 | 0.059050 |
+| | | | canyon-s6 | 0.063677 |
+
+The table is measured by `docs/lab/critic-delegate-scripts/scene_scale.py`
+and written to `results/scene-scale.json`, with the box's state beside it:
+twelve scenes, 0.011392–0.063677 m/px, the Thor with 78.8 GiB free. (Two
+more scenes are on the box — `forest-s6` and `plain-s6` — and the reference
+set does not point at them, so they are not in the table.)
+
+`scene_scale` was written with the rest of the probe and nothing called it.
+It is on the path now: the hybrid asks the geometry probe for the member's
+scene when the member has one, and the edit's `drop_m` is
+`drop_px × metres per pixel`, with the scale itself in the edit's `evidence`
+so the number can be traced.
+
+**On the reference set, the three members where the flag fires have no scene
+on the box.** They sit on canyon-s4, arctic-s7 and coast-s1, and the
+calibration seat kept the `.blend` of fourteen scenes — not those three. So
+there is nothing to measure a metre against where the continuation actually
+fires, and those edits carry the frame's units only: `drop_m` is `null`, and
+the edit says so rather than carrying a metre value nobody measured.
+
+The metre path is measured where the scene *is* on the box.
+`mem_d5c1c6cc24413705` (coast-s6) is the one floating-class member with a
+scene, and the probe gives **0.043267 m/px** for it. The frame probe names the
+rock cluster and puts a **229-px** drop under it — **9.91 m**. That member's
+scripted check does not fire (it is the miss in §5), so the hybrid proposes no
+edit for it; the number is here to show what the geometry path measures when
+it can.
+
+One caveat the measurement carries: the scale is the frame's width **at the
+camera's depth**, and a thing hanging in the sky is nearer the camera than
+the ground it hangs over. The metres are therefore an upper bound on the
+fall. The pixels are the exact part.
+
 ---
 
 ## 7. What this makes possible, and what it does not
 
 * **The delegate can be a small local model.** The old delegate needed 17 GB
   resident on the box and 15 s per question; the new one needs 2 GB and
-  241 ms. That is the difference between a delegate that only runs on a
-  quiet box and one that can stay resident while other work happens.
+  298 ms for the hybrid's one question. That is the difference between a
+  delegate that only runs on a quiet box and one that can stay resident while
+  other work happens.
 * **The critic can answer with a move.** A verdict that carries a typed edit
   is something a builder can apply without understanding the critic, and the
   edit is measurable: the support surface and the drop distance come from a
   probe, and the test says what happened when it was applied.
+* **The drop distance is in the builder's units.** The frame's pixels and frame
+  heights are exact and need no scene; the metre value comes from the
+  geometry probe when the scene is on the box, and the scale that produced it
+  travels with the edit. A builder can read the drop in either.
 * **The reference set now has a hole in it.** The `floating_object` class has
   two members, one of which does not show the defect, and the class's row
   cannot be read until the set has a third member that visibly floats. The
@@ -365,27 +458,37 @@ Read plainly:
 ## 8. Reproduce
 
 ```sh
-# the local decision model: the Thor's own copy, loopback only, port 8131
+# the local decision model: the Thor's own copy, loopback only, served under
+# the box's admission daemon. The port is read back from the daemon: a model
+# is loaded once per box, so the port may not be the one asked for.
 bash docs/lab/critic-delegate-scripts/start_d1.sh
 
 # the cloud delegate: a throwaway Worker on the ProArt, nothing deployed
 #   cd worker && npx wrangler dev --remote --port 8797
 #   and forward the port to the Thor (ssh -L 8797:127.0.0.1:8797 proart-lan)
 
-# the bake-off: the baseline, the two delegates, the hybrid with each
+# the bake-off: the baseline, the two delegates, the hybrid with each.
+# The local stage takes a lease from the admission daemon.
 bash docs/lab/critic-delegate-scripts/run_bakeoff.sh
 
 # the continuation test: apply the edit, measure what happened
 .venv/bin/python docs/lab/critic-delegate-scripts/continuation_test.py --delegate d1
 .venv/bin/python docs/lab/critic-delegate-scripts/continuation_test.py --delegate clef
 
+# the metric scale: metres per pixel, from the scene's camera
+.venv/bin/python docs/lab/critic-delegate-scripts/scene_scale.py
+
+# where the cloud delegate's time goes: the edge's own time against the path
+.venv/bin/python docs/lab/critic-delegate-scripts/clef_latency.py --repeat 3
+
 # the tables, side by side
 .venv/bin/python docs/lab/critic-delegate-scripts/report.py
 ```
 
-The scripts are in `docs/lab/critic-delegate-scripts/` and the results they
-wrote are in `docs/lab/critic-delegate-scripts/results/`. The mesh half needs
-an interpreter with `bpy`:
+The scripts are in `docs/lab/critic-delegate-scripts/` (with their own
+[README](critic-delegate-scripts/README.md)) and the results they wrote are
+in `docs/lab/critic-delegate-scripts/results/`. The mesh half needs an
+interpreter with `bpy`:
 
 ```sh
 export CRITIC_BLENDER_PYTHON=~/src/infinigen-thor/.venv/bin/python
@@ -399,9 +502,9 @@ export CRITIC_BLENDER_PYTHON=~/src/infinigen-thor/.venv/bin/python
 vision-language model is gone from every default.** The swap was measured on
 the same set, with the same counting rule, against the same two questions the
 first bake-off asked: d1-2B and clef-flash land on the **same row**
-(TP 23 / FP 0 / FN 1 / TN 39), the local one is 1.2× cheaper per call and
-1.5× cheaper per verdict in the mean, and neither of them cries wolf on a
-clean frame.
+(TP 23 / FP 0 / FN 1 / TN 39), the local one is 14× cheaper on the hybrid's
+own call and 2.6× cheaper per verdict in the mean, and neither of them cries
+wolf on a clean frame.
 
 **The band is still not held, and the reason is the set, not the models.** The
 one miss is a member whose picture shows a rock cluster on a beach; the
@@ -416,3 +519,9 @@ member that shows the defect. On two frames where the *checks* fired on
 `floating_blob` over a different planted defect, the continuation named the
 wrong thing, which is the honest edge of a picture-domain probe: it can point
 at a thing, but it cannot always say which thing a finding was about.
+
+**The drop distance is in the frame's units, and in metres when the scene is
+there.** The pixels and the frame heights are exact and cost nothing; the
+metre value comes from the geometry probe's camera, and the scale that made
+it travels with the edit. The three members where the flag fires have no
+scene on this box, so their edits carry the frame's units and say so.

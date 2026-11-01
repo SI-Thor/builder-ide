@@ -31,6 +31,8 @@
      "support_row": 355.0
     }
    },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
    "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_307101c469654adf-edited.png",
    "checks_gap_before": 0.1259259259259259,
    "checks_gap_after": 0.6407407407407407,
@@ -71,12 +73,14 @@
      "support_row": 443.0
     }
    },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
    "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_718023ba022732d4-edited.png",
    "checks_gap_before": 0.1037037037037037,
    "checks_gap_after": 0.0,
    "checks_fired_after": [],
-   "delegate_after": null,
-   "delegate_after_detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.155 (3.7 s wall, 1110 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
+   "delegate_after": 0.1554,
+   "delegate_after_detail": "clef-flash: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.155 (3.0 s wall, 516 ms at the edge, 683 input tokens) \u2014 judged by clef (the scripted checks are out of band on this class)",
    "cleared": true
   },
   {
@@ -108,6 +112,8 @@
      "support_row": 479.0
     }
    },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
    "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_65684b3ca047a1ae-edited.png",
    "checks_gap_before": 0.17962962962962964,
    "checks_gap_after": 0.0,

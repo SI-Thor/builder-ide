@@ -13,8 +13,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 4.182,
-   "cpu_ms": 1.948,
+   "latency_ms": 1.719,
+   "cpu_ms": 1.705,
    "checks": [
     {
      "check": "watertight",
@@ -53,8 +53,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1729.794,
-   "cpu_ms": 705.195,
+   "latency_ms": 532.45,
+   "cpu_ms": 528.349,
    "checks": [
     {
      "check": "black_frame",
@@ -150,8 +150,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1.438,
-   "cpu_ms": 1.444,
+   "latency_ms": 1.429,
+   "cpu_ms": 1.429,
    "checks": [
     {
      "check": "watertight",
@@ -190,8 +190,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1892.959,
-   "cpu_ms": 647.409,
+   "latency_ms": 632.201,
+   "cpu_ms": 629.001,
    "checks": [
     {
      "check": "black_frame",
@@ -287,8 +287,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 2483.447,
-   "cpu_ms": 1197.392,
+   "latency_ms": 1443.45,
+   "cpu_ms": 1114.51,
    "checks": [
     {
      "check": "black_frame",
@@ -340,10 +340,10 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.112 (0.5 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.112 (0.3 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
      "measured": {
       "d1_probability": 0.11201394247859359,
-      "d1_seconds": 0.49261040299825254
+      "d1_seconds": 0.3497849179984769
      },
      "applicable": true
     },
@@ -377,8 +377,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 44.911,
-   "cpu_ms": 20.905,
+   "latency_ms": 19.754,
+   "cpu_ms": 19.723,
    "checks": [
     {
      "check": "watertight",
@@ -417,8 +417,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1863.183,
-   "cpu_ms": 920.628,
+   "latency_ms": 831.097,
+   "cpu_ms": 830.105,
    "checks": [
     {
      "check": "black_frame",
@@ -507,8 +507,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 34.418,
-   "cpu_ms": 10.568,
+   "latency_ms": 10.092,
+   "cpu_ms": 10.082,
    "checks": [
     {
      "check": "watertight",
@@ -547,8 +547,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 898.871,
-   "cpu_ms": 780.418,
+   "latency_ms": 731.686,
+   "cpu_ms": 730.742,
    "checks": [
     {
      "check": "black_frame",
@@ -616,8 +616,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 91.951,
-   "cpu_ms": 20.371,
+   "latency_ms": 19.384,
+   "cpu_ms": 19.352,
    "checks": [
     {
      "check": "watertight",
@@ -656,8 +656,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1232.67,
-   "cpu_ms": 912.658,
+   "latency_ms": 1174.105,
+   "cpu_ms": 832.098,
    "checks": [
     {
      "check": "black_frame",
@@ -709,10 +709,10 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.058 (0.2 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.058 (0.3 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
      "measured": {
       "d1_probability": 0.057879383845344516,
-      "d1_seconds": 0.22457121700062999
+      "d1_seconds": 0.3423646430019289
      },
      "applicable": true
     }
@@ -725,8 +725,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 46.614,
-   "cpu_ms": 26.201,
+   "latency_ms": 25.895,
+   "cpu_ms": 25.858,
    "checks": [
     {
      "check": "watertight",
@@ -765,8 +765,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 826.826,
-   "cpu_ms": 782.798,
+   "latency_ms": 751.909,
+   "cpu_ms": 750.841,
    "checks": [
     {
      "check": "black_frame",
@@ -834,8 +834,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 16.079,
-   "cpu_ms": 16.064,
+   "latency_ms": 15.867,
+   "cpu_ms": 15.853,
    "checks": [
     {
      "check": "watertight",
@@ -874,8 +874,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1702.119,
-   "cpu_ms": 1063.067,
+   "latency_ms": 1265.407,
+   "cpu_ms": 1027.813,
    "checks": [
     {
      "check": "black_frame",
@@ -927,10 +927,10 @@
     {
      "check": "floating_blob",
      "fired": true,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.954 (0.3 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.954 (0.2 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
      "measured": {
       "d1_probability": 0.9544522933408691,
-      "d1_seconds": 0.2614008519994968
+      "d1_seconds": 0.2383055799982685
      },
      "applicable": true
     }
@@ -943,8 +943,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 12.683,
-   "cpu_ms": 8.022,
+   "latency_ms": 7.533,
+   "cpu_ms": 7.529,
    "checks": [
     {
      "check": "watertight",
@@ -983,8 +983,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1610.451,
-   "cpu_ms": 582.269,
+   "latency_ms": 782.384,
+   "cpu_ms": 527.378,
    "checks": [
     {
      "check": "black_frame",
@@ -1039,7 +1039,7 @@
      "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.053 (0.3 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
      "measured": {
       "d1_probability": 0.053247983554823825,
-      "d1_seconds": 0.3222142890008399
+      "d1_seconds": 0.25488732700250694
      },
      "applicable": true
     }
@@ -1052,8 +1052,8 @@
    "layer": "mesh",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 9.347,
-   "cpu_ms": 5.217,
+   "latency_ms": 5.245,
+   "cpu_ms": 5.233,
    "checks": [
     {
      "check": "watertight",
@@ -1092,8 +1092,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 2356.286,
-   "cpu_ms": 1059.153,
+   "latency_ms": 521.117,
+   "cpu_ms": 520.315,
    "checks": [
     {
      "check": "black_frame",
@@ -1189,8 +1189,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1415.522,
-   "cpu_ms": 776.708,
+   "latency_ms": 675.898,
+   "cpu_ms": 674.838,
    "checks": [
     {
      "check": "black_frame",
@@ -1258,8 +1258,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 4979.697,
-   "cpu_ms": 1231.36,
+   "latency_ms": 1493.171,
+   "cpu_ms": 1157.068,
    "checks": [
     {
      "check": "black_frame",
@@ -1314,7 +1314,7 @@
      "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.012 (0.3 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
      "measured": {
       "d1_probability": 0.011592866974803178,
-      "d1_seconds": 0.3197558610008855
+      "d1_seconds": 0.3358561790009844
      },
      "applicable": true
     }
@@ -1327,8 +1327,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 2004.239,
-   "cpu_ms": 760.751,
+   "latency_ms": 759.211,
+   "cpu_ms": 758.147,
    "checks": [
     {
      "check": "black_frame",
@@ -1396,8 +1396,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1519.532,
-   "cpu_ms": 1126.79,
+   "latency_ms": 1154.698,
+   "cpu_ms": 1148.835,
    "checks": [
     {
      "check": "black_frame",
@@ -1465,8 +1465,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1726.973,
-   "cpu_ms": 1175.149,
+   "latency_ms": 1432.995,
+   "cpu_ms": 1132.097,
    "checks": [
     {
      "check": "black_frame",
@@ -1518,10 +1518,10 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.055 (0.4 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.055 (0.3 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
      "measured": {
       "d1_probability": 0.05467401845193268,
-      "d1_seconds": 0.4089082509999571
+      "d1_seconds": 0.3005909879975661
      },
      "applicable": true
     }
@@ -1534,8 +1534,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1768.558,
-   "cpu_ms": 1419.999,
+   "latency_ms": 1385.353,
+   "cpu_ms": 1339.579,
    "checks": [
     {
      "check": "black_frame",
@@ -1631,8 +1631,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1900.969,
-   "cpu_ms": 1049.833,
+   "latency_ms": 1279.405,
+   "cpu_ms": 983.4,
    "checks": [
     {
      "check": "black_frame",
@@ -1684,10 +1684,10 @@
     {
      "check": "floating_blob",
      "fired": false,
-     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.041 (0.4 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
+     "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.041 (0.3 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
      "measured": {
       "d1_probability": 0.04132286190752613,
-      "d1_seconds": 0.4068454959997325
+      "d1_seconds": 0.2947612290008692
      },
      "applicable": true
     },
@@ -1728,8 +1728,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1387.909,
-   "cpu_ms": 853.107,
+   "latency_ms": 1103.725,
+   "cpu_ms": 815.199,
    "checks": [
     {
      "check": "black_frame",
@@ -1784,7 +1784,7 @@
      "detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.018 (0.3 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
      "measured": {
       "d1_probability": 0.01769949255727097,
-      "d1_seconds": 0.31015166100041824
+      "d1_seconds": 0.28846010000052047
      },
      "applicable": true
     }
@@ -1797,8 +1797,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 708.487,
-   "cpu_ms": 537.161,
+   "latency_ms": 501.886,
+   "cpu_ms": 501.239,
    "checks": [
     {
      "check": "black_frame",
@@ -1866,8 +1866,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 995.241,
-   "cpu_ms": 894.456,
+   "latency_ms": 869.864,
+   "cpu_ms": 868.744,
    "checks": [
     {
      "check": "black_frame",
@@ -1935,8 +1935,8 @@
    "layer": "image",
    "label": "verdict@hybrid",
    "degraded": "hybrid",
-   "latency_ms": 1235.111,
-   "cpu_ms": 642.303,
+   "latency_ms": 604.567,
+   "cpu_ms": 603.691,
    "checks": [
     {
      "check": "black_frame",
@@ -2144,7 +2144,7 @@
  "box": {
   "kernel": "6.8.12-1021-tegra",
   "arch": "aarch64",
-  "mem_available_gib": 40.26,
+  "mem_available_gib": 49.1,
   "gpu": "NVIDIA Thor"
  }
 }

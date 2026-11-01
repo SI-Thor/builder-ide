@@ -31,6 +31,8 @@
      "support_row": 355.0
     }
    },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
    "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_307101c469654adf-edited.png",
    "checks_gap_before": 0.1259259259259259,
    "checks_gap_after": 0.6407407407407407,
@@ -71,12 +73,14 @@
      "support_row": 443.0
     }
    },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
    "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_718023ba022732d4-edited.png",
    "checks_gap_before": 0.1037037037037037,
    "checks_gap_after": 0.0,
    "checks_fired_after": [],
    "delegate_after": 0.3949049893931495,
-   "delegate_after_detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.395 (0.5 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
+   "delegate_after_detail": "d1-2B: 'Does this image show an object floating in mid-air, detached from the ground or hanging in empty space? Answer yes or no.' -> p(yes) = 0.395 (0.2 s for the whole frame, 298 input tokens) \u2014 judged by d1 (the scripted checks are out of band on this class)",
    "cleared": true
   },
   {
@@ -108,6 +112,8 @@
      "support_row": 479.0
     }
    },
+   "metres_per_pixel": null,
+   "scene_mesh": null,
    "edited_path": "/home/caseydigennaro/lm-wt/critic-delegate/docs/lab/critic-delegate-scripts/results/mem_65684b3ca047a1ae-edited.png",
    "checks_gap_before": 0.17962962962962964,
    "checks_gap_after": 0.0,
