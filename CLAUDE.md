@@ -69,7 +69,9 @@ works.
   to 3D Gaussians, Apache-2.0 code; gated DINOv3 and FLUX.2-dev weights via
   Casey's Hugging Face access; outputs marked non-commercial); Tinaliu0123/
   scenebloom (Apache-2.0 code) with its VLM swapped to a cloud vision model we
-  already use (no OpenRouter). Also our crew's
+  already use (no OpenRouter), or locally as a scoped B2 exception;
+  KBRASK/UniAction with Wan2.2-I2V-A14B (Apache-2.0), after the current wave.
+  Also our crew's
   quilt-pincher, KTX-Software (`toktx`), and the open-source builds the seats
   listed in their reports. Any other third-party project from GitHub still
   needs his OK.
