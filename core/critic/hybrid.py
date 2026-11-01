@@ -154,23 +154,10 @@ class HybridCritic:
             # for the class they can answer, the reason is on the verdict's
             # face, and the night never mistakes the fallback for a model
             # verdict.
-            return self._verdict(
+            return self._stand_in(
                 scripted,
-                [
-                    CheckOutcome(
-                        check=outcome.check,
-                        fired=outcome.fired,
-                        detail=(
-                            f"{outcome.detail} — the delegate "
-                            f"({self._delegate.name}) could not be reached "
-                            f"({type(exc).__name__}: {exc})"
-                        ),
-                        measured=outcome.measured,
-                        applicable=outcome.applicable,
-                    )
-                    for outcome in scripted.checks
-                ],
-                degraded="scripted",
+                f"the delegate ({self._delegate.name}) could not be reached "
+                f"({type(exc).__name__}: {exc})",
             )
         merged: list[CheckOutcome] = []
         fell_back = False
@@ -240,6 +227,28 @@ class HybridCritic:
             # stood in and the verdict says so ("scripted" is the engine's
             # name for the fallback mode).
             degraded="scripted" if fell_back else self.name,
+        )
+
+    def _stand_in(self, scripted: CriticVerdict, note: str) -> CriticVerdict:
+        """The checks' answer stands, and the verdict says why the model did not.
+
+        The reason goes on the check's detail, so the night's log carries it:
+        a fallback that does not say it was a fallback is a fallback that can
+        be mistaken for an answer.
+        """
+        return self._verdict(
+            scripted,
+            [
+                CheckOutcome(
+                    check=outcome.check,
+                    fired=outcome.fired,
+                    detail=f"{outcome.detail} — {note}",
+                    measured=outcome.measured,
+                    applicable=outcome.applicable,
+                )
+                for outcome in scripted.checks
+            ],
+            degraded="scripted",
         )
 
     def _verdict(
