@@ -73,6 +73,11 @@ cargo test --lib
 # the integration run: synthetic hogs on the CPU only
 cargo test --test integration -- --test-threads=1
 
+# the low-water mark: the watchdog stops a hog before the box is in
+# trouble (the memory curve is scripted, the watchdog is real)
+cargo test --test integration -- --test-threads=1 --nocapture \
+    the_watchdog_stops_a_runaway_before_the_memory_runs_out
+
 # the two heavy tests, which take the box's own heavy lock first.
 # They skip themselves when another seat holds it; set the wait to join
 # the queue instead of skipping.
@@ -98,6 +103,19 @@ The Python shim's tests live with the repo's suite:
   number the operator sets; the default (25 GiB) is the stopgap's "keep
   25 GB free", carried forward.
 * **It does not know about swap.** There is none.
+* **`--meminfo` is a test seam, not an operating knob.** It says where the
+  daemon reads the box's memory accounting from; it is `/proc/meminfo` in
+  production and it should stay that way. Point the daemon at anything
+  else and the watchdog is watching a number the kernel is not using. The
+  daemon logs the path it is reading in `daemon.started`, so a stale file
+  cannot hide.
+* **It cannot finish a kill it never started.** If the daemon is killed
+  between the watchdog's `SIGSTOP` and the `SIGTERM` two seconds later,
+  the stopped process stays stopped — a stopped process holds its memory
+  and never sees its `SIGTERM`. The daemon logs every stop and every
+  kill, and `thor-admit status` shows the lease. A lease that ends
+  *normally* while stopped is handled: the release path sends `SIGTERM`
+  and then `SIGCONT`.
 * **The GPU's view is partial.** The Thor's memory is unified: there is no
   separate VRAM pool. `nvidia-smi`'s per-process accounting works and is
   used for the GPU peak; `nvidia-smi --query-gpu=memory.used` answers `N/A`.
@@ -116,6 +134,18 @@ Apache-2.0, from crates.io:
 | `serde_json` | 1 | MIT OR Apache-2.0 | the socket protocol's JSON |
 
 No model weights, no data licences, nothing installed system-wide.
+
+## What it costs
+
+Measured on this box with the release build, 30 s windows, the box busy
+with a seat's work (`MemAvailable` 105.9 GiB, load 6.0):
+
+| | |
+|---|---|
+| Resident memory | **2 MiB** |
+| CPU, doing nothing | **0.03% of one core** |
+| CPU, one lease running | **1.1% of one core** |
+| Samples | 4.00 a second (the daemon's own counters) |
 
 ## How it fits with the rest
 

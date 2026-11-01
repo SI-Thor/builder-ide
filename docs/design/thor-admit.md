@@ -158,6 +158,12 @@ working, unless the kernel tells it. So:
 Whatever killed the client — `SIGKILL`, a panic, the OOM killer — the
 kernel drops the lock. **A dead client cannot leak a lease.**
 
+Two tests hold that promise down: `a_lock_held_by_a_dead_process_is_free`
+(the unit test: a process is killed outright, and the lock is free) and
+`a_dead_client_cannot_leak_a_lease` (the integration test: a client is
+`SIGKILL`ed without saying goodbye, and the daemon gives the memory back
+on its own).
+
 **One subtlety, measured.** A forked child inherits the descriptor until it
 reaches its `exec`, and `O_CLOEXEC` only closes it there. So a lease can
 outlive its client by about a millisecond if a fork happens at that
@@ -261,15 +267,46 @@ Everything below was measured on this box, with the box's state beside it.
 
 ### 7.1 The daemon's own cost
 
+Measured on this box with the **release** build (the one that runs as a
+daemon), 30 s windows, the box busy with a seat's work:
+
 | Measure | Value | How |
 |---|---|---|
-| Resident memory | **2 MiB** | `/proc/<pid>/status` `VmRSS`, after 2 s warm-up |
-| CPU, doing nothing | **0.30% of one core** | `Δ(utime+stime)` over 10 s of wall clock |
-| Samples | 4/s | 250 ms interval |
+| Resident memory | **2 MiB** | `/proc/<pid>/status` `VmRSS` |
+| CPU, doing nothing | **0.03% of one core** (1 clock tick in 30 s) | `Δ(utime+stime)` over 30 s |
+| CPU, one lease running | **1.1% of one core** | the same, over 30 s |
+| CPU, the children it reaped | **0.00%** | the GPU watcher is one long-lived child, not a fork every sample |
+| Minor faults | **0** | `/proc/<pid>/stat` `minflt` |
+| Samples | **4.00 a second** | the daemon's own counters: 121 samples in 30.2 s |
 | Socket | `0600` | only its owner may open it |
 
-The cost of the `/proc` scan (reading every process's `stat` to find the
-leases' resident sets) is part of that 0.30%.
+**The box, beside those numbers:** `MemTotal: 128 766 532 kB` (122.8 GiB,
+no swap), `MemAvailable: 111 063 640 kB` (105.9 GiB), load average
+6.04 / 6.58 / 7.67, 16:26 on 2026-10-31.
+
+**What changed, and why it was worth it.** The daemon used to ask
+`nvidia-smi` for the GPU's per-process numbers every two seconds, forking
+a fresh process each time whether anything was running or not, and walk
+`/proc` for every process on the box every 250 ms. Measured, before and
+after, same box, same windows:
+
+| | before | after |
+|---|---|---|
+| idle, own CPU | 0.133% of a core | 0.133% of a core |
+| idle, children reaped | 0.500% of a core | **0.000%** |
+| idle, minor faults | 16 678 | **0** |
+| one lease, own CPU | 2.133% of a core | **1.100%** |
+| one lease, children reaped | 0.500% of a core | **0.000%** |
+| one lease, minor faults | 15 650 | **0** |
+
+The fork storm is gone: one `nvidia-smi` child keeps printing the
+driver's view and the daemon reads its lines, so the daemon pays for one
+fork, ever. The `/proc` scan has its own, slower clock
+(`--scan-interval-ms`, default 1 s) instead of running on every 250 ms
+sample — and it still runs on *every* sample when the box is below the
+emergency floor, because that is when the watchdog needs a fresh ranking.
+The GPU's view is only asked for when there is something to attribute it
+to.
 
 ### 7.2 The learned peaks (the cost model's memory column)
 
@@ -284,6 +321,31 @@ Measured with the daemon on this box, the kernel's own `rusage`:
 The hog over-reaches its request by 0.04% — the allocator's own overhead and
 the pages the binary itself occupies.
 
+**The GPU's column, with a real GPU context.** The hogs above are CPU
+only, so they have no GPU context and the driver says nothing about
+them (`peak_gpu_bytes: null`). To show the column working, a small CUDA
+program was run under a lease: it takes a real 512 MiB allocation on the
+GPU and holds it for 12 s.
+
+```
+$ nvidia-smi --query-compute-apps=pid,used_memory --format=csv,noheader,nounits
+163916, 614
+```
+
+and the line the daemon wrote for that lease:
+
+```json
+{"at":"2026-11-01T00:18:00Z","kind":"cuda.probe","label":"cuda.probe","host":"thor",
+ "peak_rss_bytes":71897088,"peak_gpu_bytes":643825664,"gpu_visible":true,
+ "duration_s":12.27,"mem_total_bytes":131856928768,"floor_bytes":26843545600,
+ "basis":"measured","source":"thor-admit","peak_source":"rusage"}
+```
+
+643 825 664 B is **614 MiB** — the same number the driver reported for
+that pid (the 512 MiB the program asked for, plus the context). So the
+GPU peak is a real per-lease measurement, not a guess: it is the
+driver's own accounting, attributed to the processes of the lease.
+
 ### 7.3 The integration run
 
 `tools/thor-admit/tests/integration.rs`, on the real box:
@@ -293,11 +355,19 @@ the pages the binary itself occupies.
 | `a_dead_client_cannot_leak_a_lease` | **passed** — the kernel drops the client's lock, the daemon gives the memory back |
 | `the_queue_is_ordered_by_priority` | **passed** — a priority 5 request overtook a priority 0 one that arrived first |
 | `a_learned_peak_is_used_by_the_next_run` | **passed** — `--peak auto` used the p95 of the label's history |
-| `the_daemon_costs_almost_nothing` | **passed** — 2 MiB, 0.30% of a core |
+| `a_refused_lease_does_not_run_the_command` | **passed** — a refused lease never runs its command |
+| `the_daemon_costs_almost_nothing` | **passed** — 2 MiB, 0.10% of a core idle, 2.20% with a lease (the **debug** build; the release build is §7.1) |
 | `the_watchdog_leaves_small_leases_alone` | **passed** — a 1 GiB lease was not stopped even with the emergency floor armed |
 | `the_stop_command_stops_the_daemon` | **passed** |
+| `the_watchdog_stops_a_runaway_before_the_memory_runs_out` | **passed** — the low-water mark, §7.3.3 |
 | `three_thirty_gigabyte_hogs_are_serialised` | **passed at 12 GiB** — see §7.3.1; the 30 GiB run waits for the box's own lock |
 | `the_watchdog_stops_a_runaway_before_the_kernel_oom_does` | **passed at 12 GiB** — see §7.3.2 |
+
+The unit tests cover the parts that are pure logic: the admission rule's
+arithmetic (`admission.rs`), the queue's order (`queue.rs`), the lease
+lock and the kernel dropping it when a client dies (`lease.rs`), the
+percentiles the learned peaks use (`history.rs`), the meminfo and
+`/proc` parsers, and the protocol's round trip.
 
 #### 7.3.1 The serialisation (12 GiB hogs, 2026-10-31 22:08)
 
@@ -314,10 +384,13 @@ on the exact gigabytes free at that moment:
 22:08:27  lease.released  hog2   peak_rss 12 886 847 488
 ```
 
-The grants are strictly sequential, and the box never fell below
-**82 761 MiB** free. The second hog was **refused by the reservation rule**,
-not by running out of memory: it was never admitted because the first still
-owed its 12 GiB.
+The grants are strictly sequential: each hog was released before the next
+one was granted, and the box never fell below **82 761 MiB** free. The
+second and third hogs were **not admitted while the first was running** —
+they waited in the queue, because the first still owed its 12 GiB and the
+rule charges a running lease's promise against the headroom. They were
+not *refused* (nothing was rejected): the queue is where a request waits
+for room.
 
 #### 7.3.2 The watchdog (12 GiB runaway, 2026-10-31 22:08)
 The emergency floor was `available - 8 GiB` (86 764 MiB):
@@ -362,6 +435,22 @@ So the ordering the brief asks for is a fact about the rule, not a hope:
 the watchdog acts when the box crosses the emergency floor, and the
 emergency floor is above the 2 GB line.
 
+**What this is and is not.** The *curve* is scripted; the daemon, the
+hog, the `SIGSTOP`, the `SIGTERM` and the timing are real. The box's
+real `MemAvailable` was never driven to 2 GB — that would have taken
+about 100 GiB of allocation, more than the brief allows a test to use
+(60 GiB) and more than the box can afford while a seat is working. So
+the claim is split in two, and both halves are checked:
+
+1. *The daemon acts before the box is in trouble.* Proved on the curve:
+   the stop happened at 7 168 MiB, and the curve then went on down to
+   0 MiB — the danger zone was reached **after** the stop.
+2. *The 2 GiB line is below where the daemon acts.* Proved by
+   arithmetic: the emergency floor is 8 GiB by default, the watchdog
+   acts when `MemAvailable` falls below it, so it acts 6 GiB above the
+   2 GiB line. §7.3.2 is the same rule against the kernel's own
+   numbers, on the real box.
+
 ### 7.4 The rule, checked
 
 | Case | `available` | Leases | New peak | Admitted? |
@@ -374,7 +463,20 @@ emergency floor is above the 2 GB line.
 ## 8. The daemon as a service
 
 **No systemd unit is installed or enabled.** The daemon is a user-level
-process; the crate's README says how to start it. For the operator who wants
+process; the crate's README says how to start it. Checked on this box
+(2026-10-31, 16:19):
+
+```
+$ systemctl --user list-unit-files | grep thor-admit
+(no output)
+$ ls ~/.config/systemd/user/
+thor-desk-novnc.service  thor-desk-x11vnc.service  thor-index.service
+$ ls /etc/systemd/system/ | grep thor
+(no output)
+```
+
+The box's own units (`thor-index`, the desktop) are there; nothing of
+this crate's is. For the operator who wants
 one, this is the unit — it is *documented*, not installed:
 
 ```ini
@@ -415,6 +517,15 @@ under, it needs no root, and it cannot outlive the session.
   the *model* axis, enforced at batch admission; this is the *box* axis,
   enforced at lease time. They compose: the night asks the core what fits
   the rails, the core asks the daemon what fits the memory.
+* **It does not survive its own death in the middle of a kill.** If the
+  daemon is killed between the watchdog's `SIGSTOP` and the `SIGTERM`
+  two seconds later, the stopped process stays stopped: a stopped
+  process holds its memory and never sees its `SIGTERM`. The daemon logs
+  every stop and every kill, and `thor-admit status` shows the lease, so
+  the operator can see it and act — but the daemon does not finish the
+  job it cannot see. (A lease that ends *normally* while stopped is
+  handled: the release path sends `SIGTERM` and then `SIGCONT`, so
+  nothing is left frozen.)
 
 ## 10. Open questions
 

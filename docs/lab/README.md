@@ -12,7 +12,7 @@ Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md
 
 | file | what it measured | verdict |
 |---|---|---|
-| [`exp-thor-admit.md`](exp-thor-admit.md) | the box's memory, measured: what the GPU exposes, what a resident admission daemon costs, and whether it stops a runaway before the kernel's OOM killer does | **useful — it works, and it is 2 MiB and 0.30% of a core** |
+| [`exp-thor-admit.md`](exp-thor-admit.md) | the box's memory, measured: what the GPU exposes, what a resident admission daemon costs, and whether it stops a runaway before the kernel's OOM killer does | **useful — it works, and it is 2 MiB and 0.03% of a core** |
 
 The crate is `tools/thor-admit/`; the design is `docs/design/thor-admit.md`.
 
