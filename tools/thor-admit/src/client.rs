@@ -13,7 +13,9 @@ use std::path::Path;
 use serde_json::json;
 
 use crate::lease::LeaseLock;
-use crate::protocol::{PeakArg, Request, Response, TargetSpec};
+use crate::ledger::Bucket;
+use crate::protocol::{PeakArg, PresenceReport, Request, Response, TargetSpec};
+use crate::tier::Tier;
 
 /// A connection to the daemon.
 pub struct Client {
@@ -64,6 +66,7 @@ impl Client {
         label: &str,
         peak: PeakArg,
         priority: i32,
+        tier: Tier,
         target: TargetSpec,
         on_queued: &mut dyn FnMut(usize, usize),
     ) -> std::io::Result<Grant> {
@@ -71,6 +74,7 @@ impl Client {
             label: label.to_string(),
             peak,
             priority,
+            tier,
             target,
         };
         self.send(&request)?;
@@ -144,6 +148,68 @@ impl Client {
     pub fn ping(&mut self) -> std::io::Result<bool> {
         Ok(matches!(self.request(&Request::Ping)?, Response::Ok))
     }
+
+    /// Register a job in the presence queue.
+    pub fn presence_add(
+        &mut self,
+        label: &str,
+        tier: Tier,
+        peak: PeakArg,
+        resumable: bool,
+        command: Vec<String>,
+    ) -> std::io::Result<(u64, String, Tier)> {
+        let request = Request::PresenceAdd {
+            label: label.to_string(),
+            tier,
+            peak,
+            resumable,
+            command,
+        };
+        match self.request(&request)? {
+            Response::PresenceAdded { id, label, tier } => Ok((id, label, tier)),
+            Response::Rejected { reason } => Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                reason,
+            )),
+            other => Err(std::io::Error::other(format!(
+                "unexpected answer from the daemon: {other:?}"
+            ))),
+        }
+    }
+
+    /// Take a job out of the presence queue.
+    pub fn presence_remove(&mut self, id: u64) -> std::io::Result<bool> {
+        match self.request(&Request::PresenceRemove { id })? {
+            Response::Ok => Ok(true),
+            Response::Rejected { reason } => Err(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                reason,
+            )),
+            other => Err(std::io::Error::other(format!(
+                "unexpected answer from the daemon: {other:?}"
+            ))),
+        }
+    }
+
+    /// What is in the presence queue?
+    pub fn presence_list(&mut self) -> std::io::Result<Vec<PresenceReport>> {
+        match self.request(&Request::PresenceList)? {
+            Response::Presence { jobs } => Ok(jobs),
+            other => Err(std::io::Error::other(format!(
+                "unexpected answer from the daemon: {other:?}"
+            ))),
+        }
+    }
+
+    /// The time ledger: the closed hours and the hour being kept now.
+    pub fn ledger(&mut self) -> std::io::Result<(Vec<Bucket>, Bucket)> {
+        match self.request(&Request::Ledger)? {
+            Response::Ledger { buckets, current } => Ok((buckets, *current)),
+            other => Err(std::io::Error::other(format!(
+                "unexpected answer from the daemon: {other:?}"
+            ))),
+        }
+    }
 }
 
 /// A lease that has been granted.
@@ -178,6 +244,7 @@ pub fn run_under_lease(
     label: &str,
     peak: PeakArg,
     priority: i32,
+    tier: Tier,
     command: &[String],
 ) -> std::io::Result<Outcome> {
     // A pipe the child waits on: the command starts when the lease is real.
@@ -223,6 +290,7 @@ pub fn run_under_lease(
         label,
         peak,
         priority,
+        tier,
         TargetSpec::Group { pgid },
         &mut |position, waiting| {
             queued_at = Some((position, waiting));

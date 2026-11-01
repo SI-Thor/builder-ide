@@ -18,6 +18,15 @@ pub fn rfc3339_now() -> String {
     rfc3339(unix_seconds())
 }
 
+/// The hour a Unix timestamp falls in, as `2026-10-31T21`.
+///
+/// The ledger keeps one bucket per hour, and the bucket's name is the hour it
+/// covers.
+pub fn hour_key(seconds: u64) -> String {
+    let text = rfc3339(seconds);
+    text[..13].to_string()
+}
+
 /// Format a Unix timestamp as RFC 3339 UTC.
 pub fn rfc3339(seconds: u64) -> String {
     let days = (seconds / 86_400) as i64;
@@ -65,6 +74,17 @@ mod tests {
     fn a_leap_day() {
         // 2024-02-29T00:00:00Z
         assert_eq!(rfc3339(1_709_164_800), "2024-02-29T00:00:00Z");
+    }
+
+    #[test]
+    fn the_hour_key_is_the_hour_the_timestamp_falls_in() {
+        // 2026-10-31T13:00:00Z
+        let hour_start = 1_793_451_600;
+        assert_eq!(hour_key(hour_start), "2026-10-31T13");
+        // The last second of an hour is still that hour.
+        assert_eq!(hour_key(hour_start + 3599), "2026-10-31T13");
+        // The next second is the next hour.
+        assert_eq!(hour_key(hour_start + 3600), "2026-10-31T14");
     }
 
     #[test]

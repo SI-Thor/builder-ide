@@ -7,6 +7,9 @@
 use serde::de::{self, Deserializer};
 use serde::{Deserialize, Serialize, Serializer};
 
+use crate::ledger::Bucket;
+use crate::tier::Tier;
+
 /// What a client asks for: a size, or the daemon's own learned one.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PeakArg {
@@ -96,6 +99,9 @@ pub enum Request {
         peak: PeakArg,
         #[serde(default)]
         priority: i32,
+        /// Which tier of work this is. A lease that does not say is **live**.
+        #[serde(default)]
+        tier: Tier,
         target: TargetSpec,
     },
     /// The client holds the lease's lock now.
@@ -106,6 +112,21 @@ pub enum Request {
         #[serde(default)]
         peak_rss_bytes: Option<u64>,
     },
+    /// Register a job in the presence queue.
+    PresenceAdd {
+        label: String,
+        tier: Tier,
+        peak: PeakArg,
+        #[serde(default)]
+        resumable: bool,
+        command: Vec<String>,
+    },
+    /// Take a job out of the presence queue.
+    PresenceRemove { id: u64 },
+    /// What is in the presence queue?
+    PresenceList,
+    /// The time ledger: the hours, and the hour being kept now.
+    Ledger,
     /// What is going on?
     Status,
     /// Is the daemon alive?
@@ -126,6 +147,8 @@ pub struct LeaseReport {
     /// What it held on the GPU at most.
     pub peak_gpu_bytes: u64,
     pub priority: i32,
+    /// Which tier of work this is.
+    pub tier: Tier,
     pub age_s: f64,
     pub pid: i32,
     pub pgid: i32,
@@ -156,6 +179,34 @@ pub struct StatusReport {
     pub uptime_s: f64,
     /// How many memory samples the daemon has taken.
     pub samples: u64,
+    /// The presence queue: the registered work and what it is doing.
+    pub presence: Vec<PresenceReport>,
+}
+
+/// One presence job, as the status shows it.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct PresenceReport {
+    pub id: u64,
+    pub label: String,
+    pub tier: Tier,
+    pub peak_bytes: u64,
+    pub resumable: bool,
+    /// What the job is doing: pending, running, preempted, done, failed.
+    pub state: String,
+    /// The command, as one string.
+    pub command: String,
+    /// The process group, when it is running.
+    pub pgid: i32,
+    /// How long it has been running, in seconds.
+    pub age_s: f64,
+    /// What it is using right now, in bytes.
+    pub current_rss_bytes: u64,
+    /// How many times it has been started.
+    pub attempts: u32,
+    /// How many times live work has pre-empted it.
+    pub preemptions: u32,
+    /// The exit code of the last run.
+    pub last_exit: Option<i32>,
 }
 
 /// The daemon's answer.
@@ -185,6 +236,22 @@ pub enum Response {
     Error { message: String },
     /// The status.
     Status(Box<StatusReport>),
+    /// The presence queue.
+    Presence {
+        jobs: Vec<PresenceReport>,
+    },
+    /// The time ledger: the closed hours, and the hour being kept now.
+    Ledger {
+        buckets: Vec<Bucket>,
+        /// The hour being kept right now.
+        current: Box<Bucket>,
+    },
+    /// A presence job was registered.
+    PresenceAdded {
+        id: u64,
+        label: String,
+        tier: Tier,
+    },
     /// Nothing to report.
     Ok,
 }
@@ -198,6 +265,9 @@ impl Response {
             Response::Rejected { .. } => "rejected",
             Response::Error { .. } => "error",
             Response::Status(_) => "status",
+            Response::Presence { .. } => "presence",
+            Response::Ledger { .. } => "ledger",
+            Response::PresenceAdded { .. } => "presence_added",
             Response::Ok => "ok",
         }
     }
@@ -213,6 +283,7 @@ mod tests {
             label: "trellis".to_string(),
             peak: PeakArg::Bytes(40_000_000_000),
             priority: 3,
+            tier: Tier::Live,
             target: TargetSpec::Group { pgid: 1234 },
         };
         let text = serde_json::to_string(&request).unwrap();
@@ -228,10 +299,12 @@ mod tests {
             label: "trellis".to_string(),
             peak: PeakArg::Auto,
             priority: 0,
+            tier: Tier::Study,
             target: TargetSpec::Process { pid: 7 },
         };
         let text = serde_json::to_string(&request).unwrap();
         assert!(text.contains("\"peak\":\"auto\""));
+        assert!(text.contains("\"tier\":\"study\""));
         let back: Request = serde_json::from_str(&text).unwrap();
         assert_eq!(back, request);
     }
@@ -265,5 +338,41 @@ mod tests {
         assert!(text.contains("\"event\":\"granted\""));
         let back: Response = serde_json::from_str(&text).unwrap();
         assert_eq!(back, response);
+    }
+
+    #[test]
+    fn the_presence_requests_round_trip() {
+        let request = Request::PresenceAdd {
+            label: "sweep".to_string(),
+            tier: Tier::Study,
+            peak: PeakArg::Bytes(1024),
+            resumable: true,
+            command: vec!["python3".to_string(), "sweep.py".to_string()],
+        };
+        let text = serde_json::to_string(&request).unwrap();
+        assert!(text.contains("\"op\":\"presence_add\""));
+        let back: Request = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, request);
+
+        let list = Request::PresenceList;
+        let text = serde_json::to_string(&list).unwrap();
+        assert_eq!(text, "{\"op\":\"presence_list\"}");
+        let back: Request = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, list);
+    }
+
+    #[test]
+    fn a_presence_spec_survives_the_round_trip() {
+        let spec = crate::presence::PresenceSpec::new(
+            3,
+            "sweep",
+            Tier::Practice,
+            1024,
+            true,
+            vec!["sleep".to_string(), "1".to_string()],
+        );
+        let text = serde_json::to_string(&spec).unwrap();
+        let back: crate::presence::PresenceSpec = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, spec);
     }
 }

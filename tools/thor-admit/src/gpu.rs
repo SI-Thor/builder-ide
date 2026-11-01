@@ -47,6 +47,19 @@ pub struct GpuSample {
     pub box_total_bytes: Option<u64>,
     /// The largest free block `tegrastats` reports, in bytes.
     pub largest_free_block: Option<u64>,
+    /// The GPU's power draw, in milliwatts.
+    ///
+    /// `tegrastats` prints `VDD_GPU <now>/<avg>/<max>mW`, which is the
+    /// Tegra's own figure for the GPU's rail; the driver prints watts. The
+    /// ledger uses this figure, and says which source it came from.
+    pub power_mw: Option<u64>,
+    /// The GPU's busy share, in per cent.
+    ///
+    /// This Thor's `tegrastats` prints no 3D busy percentage, so the figure
+    /// comes from the driver (`nvidia-smi --query-gpu=utilization.gpu`).
+    pub busy_pct: Option<u8>,
+    /// Where the power figure came from.
+    pub power_source: Option<String>,
 }
 
 impl GpuSample {
@@ -155,6 +168,46 @@ pub fn parse_tegrastats_line(line: &str) -> Option<GpuSample> {
         let block: u64 = block_text.parse().ok()?;
         sample.largest_free_block = Some(count * block * 1024 * 1024);
     }
+
+    // The GPU's own rail: "VDD_GPU 23616mW/23616mW/23616mW" — now, average,
+    // maximum. The first number is the one that is happening now.
+    if let Some(start) = line.find("VDD_GPU ") {
+        let rest = &line[start + 8..];
+        let first = rest.split('/').next().unwrap_or("").trim();
+        let milliwatts: u64 = first.trim_end_matches("mW").trim().parse().ok()?;
+        sample.power_mw = Some(milliwatts);
+        sample.power_source = Some("tegrastats".to_string());
+    }
+    Some(sample)
+}
+
+/// Parse one line of `nvidia-smi --query-gpu=utilization.gpu,power.draw`.
+///
+/// The driver prints `98 %, 23.62 W` — the busy share first, then the power.
+pub fn parse_nvidia_gpu_line(line: &str) -> Option<GpuSample> {
+    let line = line.trim();
+    if line.is_empty() {
+        return None;
+    }
+    let mut sample = GpuSample::default();
+    for part in line.split(',') {
+        let part = part.trim();
+        if let Some(number) = part.strip_suffix('%') {
+            if let Ok(busy) = number.trim().parse::<f64>() {
+                sample.busy_pct = Some(busy.clamp(0.0, 100.0) as u8);
+            }
+        } else if let Some(number) = part.strip_suffix("W") {
+            if let Ok(watts) = number.trim().parse::<f64>() {
+                if watts.is_finite() && watts >= 0.0 {
+                    sample.power_mw = Some((watts * 1000.0).round() as u64);
+                    sample.power_source = Some("nvidia-smi".to_string());
+                }
+            }
+        }
+    }
+    if sample.busy_pct.is_none() && sample.power_mw.is_none() {
+        return None;
+    }
     Some(sample)
 }
 
@@ -205,6 +258,28 @@ mod tests {
         assert_eq!(sample.box_used_bytes, Some(13993 * 1024 * 1024));
         assert_eq!(sample.box_total_bytes, Some(125749 * 1024 * 1024));
         assert_eq!(sample.largest_free_block, Some(7 * 4 * 1024 * 1024));
+    }
+
+    #[test]
+    fn reads_the_gpus_own_rail_out_of_tegrastats() {
+        let line = "10-31-2026 21:03:11 RAM 49013/125749MB (lfb 184x4MB) CPU [10%@1512] cpu@52.156C/52.156C tj@53.531C/53.531C soc012@52.843C/52.843C gpu@53.531C/53.531C soc345@52.906C/52.906C VDD_GPU 23616mW/23616mW/23616mW VDD_CPU_SOC_MSS 10627mW/10627mW/10627mW";
+        let sample = parse_tegrastats_line(line).unwrap();
+        assert_eq!(sample.power_mw, Some(23616));
+        assert_eq!(sample.power_source.as_deref(), Some("tegrastats"));
+    }
+
+    #[test]
+    fn reads_the_drivers_busy_share_and_power() {
+        let sample = parse_nvidia_gpu_line("98 %, 23.62 W").unwrap();
+        assert_eq!(sample.busy_pct, Some(98));
+        assert_eq!(sample.power_mw, Some(23620));
+        assert_eq!(sample.power_source.as_deref(), Some("nvidia-smi"));
+    }
+
+    #[test]
+    fn a_line_that_is_not_a_gpu_reading_is_not_a_sample() {
+        assert!(parse_nvidia_gpu_line("").is_none());
+        assert!(parse_nvidia_gpu_line("No devices were found").is_none());
     }
 
     #[test]

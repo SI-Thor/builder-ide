@@ -14,6 +14,9 @@
 //! * [`procscan`] — the resident set of a process group, read from `/proc`.
 //! * [`admission`] — the rule: admit only if `available - peak >= floor`.
 //! * [`queue`] — the priority queue the rule drains.
+//! * [`tier`] — the four tiers the work falls into.
+//! * [`presence`] — the registered work that runs when the box has room.
+//! * [`ledger`] — where the box's time went, and why it was idle.
 //! * [`history`] — the learned peaks, as JSON lines.
 //! * [`protocol`] — the socket protocol the CLI and the Python shim speak.
 //! * [`daemon`] — the resident daemon itself.
@@ -26,8 +29,11 @@ pub mod daemon;
 pub mod gpu;
 pub mod history;
 pub mod lease;
+pub mod ledger;
 pub mod meminfo;
+pub mod presence;
 pub mod procscan;
 pub mod protocol;
 pub mod queue;
 pub mod sizes;
+pub mod tier;

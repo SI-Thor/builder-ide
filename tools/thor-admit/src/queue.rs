@@ -3,6 +3,8 @@
 //! A higher priority waiter goes before the ones already waiting; waiters of
 //! the same priority keep the order they arrived in.
 
+use crate::tier::Tier;
+
 /// One waiting request.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Waiter {
@@ -12,6 +14,9 @@ pub struct Waiter {
     pub peak_bytes: u64,
     /// Higher runs first. The default is 0.
     pub priority: i32,
+    /// Which tier of work this is. Only a live waiter may pre-empt the
+    /// presence queue.
+    pub tier: Tier,
     /// The arrival order, assigned by the queue.
     pub seq: u64,
 }
@@ -90,6 +95,7 @@ mod tests {
             label: format!("w{id}"),
             peak_bytes: 1024,
             priority,
+            tier: Tier::Live,
             seq: 0,
         }
     }

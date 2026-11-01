@@ -22,8 +22,10 @@ use thor_admit::client::{self, Client};
 use thor_admit::daemon::{Config, Daemon, DEFAULT_EMERGENCY_FLOOR, DEFAULT_FLOOR};
 use thor_admit::gpu::GpuProbe;
 use thor_admit::history::History;
+use thor_admit::ledger::Bucket;
 use thor_admit::protocol::PeakArg;
 use thor_admit::sizes::{human, Size};
+use thor_admit::tier::Tier;
 
 static STOP: AtomicBool = AtomicBool::new(false);
 
@@ -43,6 +45,8 @@ fn main() -> ExitCode {
         "run" => run_command(&args[1..]),
         "status" => run_status(&args[1..]),
         "peaks" => run_peaks(&args[1..]),
+        "presence" => run_presence(&args[1..]),
+        "ledger" => run_ledger(&args[1..]),
         "stop" => run_stop(&args[1..]),
         "help" | "--help" | "-h" => {
             print_help();
@@ -64,17 +68,34 @@ thor-admit — a memory-admission daemon for the Thor
   thor-admit daemon [options]
         Run the resident daemon in the foreground.
 
-  thor-admit run --peak <size|auto> --label <name> [--priority N] -- <command>
+  thor-admit run --peak <size|auto> --label <name> [--tier <tier>] -- <command>
         Take a lease, run the command under it, and give the lease back.
 
   thor-admit status [--json]
-        Show the leases, the free memory and the queue.
+        Show the leases, the free memory, the queue and the presence work.
 
-  thor-admit peaks [--label <name>] [--json] [--state-dir <path>]
+  thor-admit peaks [--label <name>] [--json]
         Show the learned peaks: the p50 and p95 of each label's history.
+
+  thor-admit presence add --tier <tier> --peak <size|auto> --label <name>
+                         [--resumable] -- <command>
+        Register work that runs when the box has room for it.
+  thor-admit presence list [--json]
+        Show the registered work and what it is doing.
+  thor-admit presence remove <id>
+        Take a job out of the presence queue.
+
+  thor-admit ledger [--json] [--hours <n>]
+        Show where the box's time went, by tier, and why it was idle.
 
   thor-admit stop
         Ask the running daemon to stop.
+
+The tiers, most urgent first:
+  live          nights, previews, first-mile requests
+  preparation   pre-generating likely-needed assets, refreshing keyframes
+  practice      retraining choosers, replaying proposed changes
+  study         the Infinigen sweep, experiment batches, parity suites
 
 Daemon options (all have defaults):
   --floor <size>            the floor a lease must clear      (default 25G)
@@ -90,6 +111,13 @@ Daemon options (all have defaults):
   --gpu-probe <auto|nvidia|tegrastats|off>   the GPU's view (default auto)
   --idle-exit <seconds>     leave after this long with nothing to do (default 900)
   --no-stop-on-client-gone  leave a dead client's command running (default: stop it)
+  --no-presence             do not run the presence queue (default: run it)
+  --presence-file <path>    where the presence queue is kept
+  --ledger <path>           where the ledger's hours are written
+  --ledger-interval-ms <n>  how often the CPU's counters are read (default 1000)
+  --gpu-busy-threshold <n>  the GPU's busy share at which live work takes
+                            the GPU from the presence queue (default 50)
+  --no-gpu-preempt          never stop the presence work for the GPU
 "
     );
 }
@@ -233,9 +261,39 @@ fn run_daemon(args: &[String]) -> ExitCode {
     if let Some(value) = options.get("state-dir") {
         config.state_dir = PathBuf::from(value);
         config.history = config.state_dir.join("peaks.jsonl");
+        config.presence_file = config.state_dir.join("presence.json");
+        config.ledger = config.state_dir.join("ledger.jsonl");
     }
     if let Some(value) = options.get("history") {
         config.history = PathBuf::from(value);
+    }
+    if let Some(value) = options.get("presence-file") {
+        config.presence_file = PathBuf::from(value);
+    }
+    if let Some(value) = options.get("ledger") {
+        config.ledger = PathBuf::from(value);
+    }
+    if options.has("no-presence") {
+        config.presence = false;
+    }
+    if options.has("no-gpu-preempt") {
+        config.gpu_preempt = false;
+    }
+    match options.number("gpu-busy-threshold") {
+        Ok(Some(value)) => config.gpu_busy_threshold = value.min(100) as u8,
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    }
+    match options.number("ledger-interval-ms") {
+        Ok(Some(value)) => config.ledger_interval = Duration::from_millis(value),
+        Ok(None) => {}
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
     }
     if let Some(value) = options.get("meminfo") {
         config.meminfo = PathBuf::from(value);
@@ -360,6 +418,18 @@ fn run_command(args: &[String]) -> ExitCode {
             return ExitCode::from(2);
         }
     };
+    let tier = match options.get("tier") {
+        None => Tier::Live,
+        Some(text) => match Tier::parse(text) {
+            Some(tier) => tier,
+            None => {
+                eprintln!(
+                    "thor-admit: --tier: {text:?} is not one of live, preparation, practice, study"
+                );
+                return ExitCode::from(2);
+            }
+        },
+    };
     let socket = match socket_path(&options) {
         Ok(socket) => socket,
         Err(error) => {
@@ -383,6 +453,7 @@ fn run_command(args: &[String]) -> ExitCode {
         &label,
         peak,
         priority,
+        tier,
         &options.rest,
     ) {
         Ok(outcome) => outcome,
@@ -466,6 +537,19 @@ fn run_status(args: &[String]) -> ExitCode {
             waiter.position, waiter.label, human(waiter.peak_bytes), waiter.priority
         );
     }
+    println!("presence: {}", report.presence.len());
+    for job in &report.presence {
+        println!(
+            "  #{} {:<16} {:<12} peak {:>8}  {:<10}  runs {}  preempted {}",
+            job.id,
+            job.label,
+            job.tier.as_str(),
+            human(job.peak_bytes),
+            job.state,
+            job.attempts,
+            job.preemptions
+        );
+    }
     ExitCode::SUCCESS
 }
 
@@ -522,6 +606,291 @@ fn run_peaks(args: &[String]) -> ExitCode {
         );
     }
     ExitCode::SUCCESS
+}
+
+/// The presence queue: the work that runs when the box has room.
+fn run_presence(args: &[String]) -> ExitCode {
+    let options = Options::parse(args);
+    let action = options.rest.first().map(String::as_str).unwrap_or("list");
+    let rest = &options.rest[options.rest.len().min(1)..];
+    let socket = match socket_path(&options) {
+        Ok(socket) => socket,
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    match action {
+        "add" => {
+            let label = match options.get("label") {
+                Some(label) => label.to_string(),
+                None => {
+                    eprintln!("thor-admit: presence add needs a --label");
+                    return ExitCode::from(2);
+                }
+            };
+            let tier = match options.get("tier") {
+                None => Tier::Study,
+                Some(text) => match Tier::parse(text) {
+                    Some(tier) => tier,
+                    None => {
+                        eprintln!(
+                            "thor-admit: --tier: {text:?} is not one of live, preparation, \
+                             practice, study"
+                        );
+                        return ExitCode::from(2);
+                    }
+                },
+            };
+            let peak = match options.get("peak") {
+                None => {
+                    eprintln!("thor-admit: presence add needs a --peak (a size, or \"auto\")");
+                    return ExitCode::from(2);
+                }
+                Some(text) if text.eq_ignore_ascii_case("auto") => PeakArg::Auto,
+                Some(text) => match Size::parse(text) {
+                    Ok(size) => PeakArg::Bytes(size.bytes),
+                    Err(error) => {
+                        eprintln!("thor-admit: --peak: {error}");
+                        return ExitCode::from(2);
+                    }
+                },
+            };
+            if rest.is_empty() {
+                eprintln!("thor-admit: presence add needs a command after --");
+                return ExitCode::from(2);
+            }
+            if let Err(error) = ensure_daemon(&socket) {
+                eprintln!("thor-admit: {error}");
+                return ExitCode::from(1);
+            }
+            let mut connection = match Client::connect(&socket) {
+                Ok(connection) => connection,
+                Err(error) => {
+                    eprintln!("thor-admit: cannot reach the daemon: {error}");
+                    return ExitCode::from(1);
+                }
+            };
+            match connection.presence_add(&label, tier, peak, options.has("resumable"), rest.to_vec())
+            {
+                Ok((id, label, tier)) => {
+                    println!("thor-admit: registered #{id} {label:?} as {tier}");
+                    ExitCode::SUCCESS
+                }
+                Err(error) => {
+                    eprintln!("thor-admit: {error}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        "remove" => {
+            let Some(id) = rest.first().and_then(|text| text.parse::<u64>().ok()) else {
+                eprintln!("thor-admit: presence remove needs a job id");
+                return ExitCode::from(2);
+            };
+            let mut connection = match Client::connect(&socket) {
+                Ok(connection) => connection,
+                Err(error) => {
+                    eprintln!("thor-admit: cannot reach the daemon: {error}");
+                    return ExitCode::from(1);
+                }
+            };
+            match connection.presence_remove(id) {
+                Ok(_) => {
+                    println!("thor-admit: removed #{id}");
+                    ExitCode::SUCCESS
+                }
+                Err(error) => {
+                    eprintln!("thor-admit: {error}");
+                    ExitCode::from(1)
+                }
+            }
+        }
+        "list" => {
+            let jobs = match Client::connect(&socket) {
+                Ok(mut connection) => match connection.presence_list() {
+                    Ok(jobs) => jobs,
+                    Err(error) => {
+                        eprintln!("thor-admit: cannot ask the daemon: {error}");
+                        return ExitCode::from(1);
+                    }
+                },
+                Err(_) => {
+                    // The daemon is not running: the queue is a file, so it
+                    // can still be read.
+                    let path = match options.get("presence-file") {
+                        Some(path) => PathBuf::from(path),
+                        None => Config::default().presence_file,
+                    };
+                    let queue = thor_admit::presence::PresenceStore::new(&path).load();
+                    return print_presence_jobs(&queue.jobs().iter().map(|job| {
+                        thor_admit::protocol::PresenceReport {
+                            id: job.spec.id,
+                            label: job.spec.label.clone(),
+                            tier: job.spec.tier,
+                            peak_bytes: job.spec.peak_bytes,
+                            resumable: job.spec.resumable,
+                            state: job.state.as_str().to_string(),
+                            command: job.spec.command.join(" "),
+                            pgid: 0,
+                            age_s: 0.0,
+                            current_rss_bytes: 0,
+                            attempts: job.attempts,
+                            preemptions: job.preemptions,
+                            last_exit: job.last_exit,
+                        }
+                    }).collect::<Vec<_>>(), options.has("json"));
+                }
+            };
+            print_presence_jobs(&jobs, options.has("json"))
+        }
+
+        other => {
+            eprintln!("thor-admit: presence: unknown action {other:?}");
+            eprintln!("thor-admit: the actions are add, list and remove");
+            ExitCode::from(2)
+        }
+    }
+}
+
+/// Print the presence queue.
+fn print_presence_jobs(jobs: &[thor_admit::protocol::PresenceReport], json: bool) -> ExitCode {
+    if json {
+        println!(
+            "{}",
+            client::json_line(&serde_json::json!({"presence": jobs}))
+        );
+        return ExitCode::SUCCESS;
+    }
+    if jobs.is_empty() {
+        println!("no presence work is registered");
+        return ExitCode::SUCCESS;
+    }
+    for job in jobs {
+        println!(
+            "  #{} {:<16} {:<12} peak {:>8}  {:<10}  runs {}  preempted {}  {}",
+            job.id,
+            job.label,
+            job.tier.as_str(),
+            human(job.peak_bytes),
+            job.state,
+            job.attempts,
+            job.preemptions,
+            job.command
+        );
+    }
+    ExitCode::SUCCESS
+}
+
+/// The ledger: where the box's time went.
+fn run_ledger(args: &[String]) -> ExitCode {
+    let options = Options::parse(args);
+    let socket = match socket_path(&options) {
+        Ok(socket) => socket,
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    let mut buckets: Vec<Bucket>;
+    let mut current: Option<Bucket> = None;
+    match Client::connect(&socket) {
+        Ok(mut connection) => match connection.ledger() {
+            Ok((closed, now)) => {
+                buckets = closed;
+                current = Some(now);
+            }
+            Err(error) => {
+                eprintln!("thor-admit: cannot ask the daemon: {error}");
+                return ExitCode::from(1);
+            }
+        },
+        Err(error) => {
+            if !options.has("json") {
+                eprintln!(
+                    "thor-admit: the daemon is not running on {} ({error}); \
+                     showing the closed hours only",
+                    socket.display()
+                );
+            }
+            let path = match options.get("ledger") {
+                Some(path) => PathBuf::from(path),
+                None => Config::default().ledger,
+            };
+            buckets = thor_admit::ledger::read_buckets(&path);
+        }
+    }
+    if let Some(current) = &current {
+        buckets.push(current.clone());
+    }
+    let hours = match options.number("hours") {
+        Ok(Some(value)) => value as usize,
+        Ok(None) => 24,
+        Err(error) => {
+            eprintln!("thor-admit: {error}");
+            return ExitCode::from(2);
+        }
+    };
+    if buckets.len() > hours {
+        buckets = buckets.split_off(buckets.len() - hours);
+    }
+    if options.has("json") {
+        println!(
+            "{}",
+            client::json_line(&serde_json::json!({"ledger": buckets}))
+        );
+        return ExitCode::SUCCESS;
+    }
+    if buckets.is_empty() {
+        println!("no hours have been recorded yet");
+        return ExitCode::SUCCESS;
+    }
+    print_ledger_table(&buckets);
+    ExitCode::SUCCESS
+}
+
+/// The ledger, as a table.
+fn print_ledger_table(buckets: &[Bucket]) {
+    println!(
+        "{:<18} {:>8} {:>9} {:>9} {:>9} {:>9} {:>9} {:>8} {:>7} {:>7}",
+        "hour", "window", "live", "prep", "practice", "study", "idle", "unexpl", "gpu W", "gpu %"
+    );
+    for bucket in buckets {
+        let live = bucket.tier(Tier::Live).running_s;
+        let preparation = bucket.tier(Tier::Preparation).running_s;
+        let practice = bucket.tier(Tier::Practice).running_s;
+        let study = bucket.tier(Tier::Study).running_s;
+        let power = bucket
+            .gpu
+            .power_mw_mean
+            .map(|milliwatts| format!("{:.1}", milliwatts / 1000.0))
+            .unwrap_or_else(|| "-".to_string());
+        let busy = bucket
+            .gpu
+            .busy_pct_mean
+            .map(|percent| format!("{percent:.0}"))
+            .unwrap_or_else(|| "-".to_string());
+        println!(
+            "{:<18} {:>7.0}s {:>8.0}s {:>8.0}s {:>8.0}s {:>8.0}s {:>8.0}s {:>7.1}% {:>7} {:>6}%",
+            bucket.hour,
+            bucket.window_s,
+            live,
+            preparation,
+            practice,
+            study,
+            bucket.idle.total_s,
+            bucket.unattributed_share() * 100.0,
+            power,
+            busy
+        );
+    }
+    let last = buckets.last().expect("the table has a row");
+    if !last.idle.by_reason.is_empty() {
+        println!("\nidle, by cause (the last hour, {}):", last.hour);
+        for (reason, seconds) in &last.idle.by_reason {
+            println!("  {reason:<24} {seconds:>8.0}s");
+        }
+    }
 }
 
 fn run_stop(args: &[String]) -> ExitCode {
