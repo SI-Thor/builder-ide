@@ -1296,8 +1296,9 @@ def main(argv: list[str] | None = None) -> int:
                 "services": {"d1": d1_handle.get("port"),
                              "comfy_started": comfy_started},
                 "two_lines": estimate.lines(),
-                "admission": {"fits": check.fits, "cut": check.cut,
-                              "parked": check.parked},
+                "admission": {"fits": check.fits,
+                              "cut": [c.model_dump() for c in check.cut],
+                              "parked": [c.model_dump() for c in check.parked]},
                 "pricing_file": "pricing.json",
             })
         log("the owner's two lines:")
@@ -1455,8 +1456,9 @@ def main(argv: list[str] | None = None) -> int:
             "box_before": state_before,
             "box_after": state_after,
             "two_lines": estimate.lines(),
-            "admission": {"fits": check.fits, "cut": check.cut,
-                          "parked": check.parked},
+            "admission": {"fits": check.fits,
+                          "cut": [c.model_dump() for c in check.cut],
+                          "parked": [c.model_dump() for c in check.parked]},
             "props": props_summary,
             "decisions": decisions_summary,
             "band": chorus_effect,
