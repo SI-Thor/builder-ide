@@ -46,9 +46,11 @@ existing SSE fanout) already is the live stream — thor-world's
 
 ### 1.1 The publisher door (`POST /v1/why/digest`)
 
-- **Auth**: a per-agent token (core-doors §2) — the `agent` claim
-  `"ecology"` rides every audit row, so the log answers "who published
-  this digest" from the row alone.
+- **Auth**: a per-agent token (core-doors §2) of class `seat` —
+  `{"class": "seat", "actor": "ecology", "agent": "ecology"}` (§4.1
+  answers why an existing class, not a new `service` one) — the
+  `agent` claim `"ecology"` rides every audit row, so the log answers
+  "who published this digest" from the row alone.
 - **Payload**: the ecology's frozen JSON contract verbatim (E
   `docs/INTEGRATION.md`: `tick`, state counts, last auction's
   admissions/vetoes, `spent_*` in gpu-seconds/joules/cents, cascade
@@ -119,22 +121,87 @@ ecology never touches the ledger.
    reads the summary door end to end against a wired core, and shows
    the 501 notice against an unwired one.
 
-## 4. Open questions for the review
+## 4. The three questions, answered
 
-1. **The publisher token's class.** The ecology is not a character, a
-   builder or the panel; it is infrastructure. A dedicated token class
-   (`service`) with the `agent` claim, or an existing class with the
-   claim alone? core-doors §2 says "recorded, never gated" — the
-   claim approach needs no new gating either way.
-2. **Retention.** Does `why.digest` ride the same retention as
-   telemetry-ish events, or is a night of digests worth compacting
-   (e.g. keep the last digest per minute past 24 h)? The tiles' play
-   records kept everything; a 1 Hz digest stream may not need to.
-3. **The joules axis.** The digest's `spent_joules` is the ecology's
-   rail accounting (admission envelopes); the night's `Rail` is
-   gpu-minutes/cents/wall-minutes. The fold carries both spellings
-   side by side for now — should the door normalize to the night's
-   units, or is carrying the publisher's own units the more honest
-   record? (The bridge module's rebase made the auction bid in the
-   night's units; the digest is the publisher's own book, which argues
-   for carrying it as-published with the units named.)
+Posed as open in the first draft; each now has a proposed answer,
+grounded in what the core's code actually does. Still the review's
+call — these are arguments, not landings.
+
+### 4.1 The publisher token's class — `seat`, not a new `service`
+
+A new `service` class is the wrong move for a reason `check_class`
+makes mechanical: a class no door names can call nothing, so a new
+class means editing every door's allowed set — new gating, which is
+exactly what core-doors §2's "recorded, never gated" exists to avoid.
+The registry already has the shape for infrastructure: `seat` sits in
+`TOKEN_CLASSES` (`core/auth.py`) used by no door yet, and the
+per-agent precedent (world-mcp's own token) is an existing class plus
+the `agent` claim. So the publisher's entry:
+
+```json
+{"class": "seat", "actor": "ecology", "agent": "ecology"}
+```
+
+The door's allowed set is `{owner, seat}` — `seat` for the daemon,
+`owner` for dev and tests, the same asymmetry every door has. The
+audit row answers "who published this" from itself:
+`{kind: why.digest, via: seat:ecology, agent: ecology}`.
+
+### 4.2 Retention — keep everything; the publisher owns the rate
+
+The store has no retention machinery at all — the only DELETE in
+`core/store.py` is idempotency-key cleanup — so "ride the same
+retention as telemetry" *is* "keep everything", and compaction would
+be new machinery whose first customer is a stream measured smaller
+than one night's `day.change` traffic (~40k rows at 1 Hz worst case,
+a few hundred bytes each). Two reasons not to compact anyway:
+
+1. **The replay depends on completeness.** The mini-night-2 replay
+   had to *reconstruct* its ledger because the runner logged only
+   what ran; the study's tiles-rule-8 critique says the same about
+   bid sets. The digests are the auction's own per-tick record —
+   exactly the off-policy evidence any future exchange door will be
+   argued from. Compacting them spends that evidence to save
+   megabytes.
+2. **Volume has a valve upstream.** The publisher owns the
+   decimation (on-change, or once a minute — §1.1); if a night's
+   ledger ever says the stream is too big, the cadence changes at
+   the source, where it is one number, not a retention policy at
+   the record.
+
+Revisit only when a real night's ledger says so — the same
+discipline the peak history takes.
+
+### 4.3 The joules axis — carry as-published, name the units
+
+The door stores the digest verbatim (the frozen contract, E
+`docs/INTEGRATION.md`); the summary returns it verbatim; **no
+conversion at the door.** Three reasons:
+
+1. **A door that converts units is a second place accounting
+   arithmetic lives.** The single-writer rule (S §1.0) keeps the
+   books in one place; unit conversion at the door is where silent
+   errors breed — the 11.76-min bar was a units/pricing confusion,
+   and it survived review precisely because two spellings of the
+   same quantity were in the room.
+2. **The two books measure different things.** The ecology's rails
+   are *admission envelopes* (float, "not accounting truth" — the
+   bridge's own README); the night's `Rail` is the ledger's booked
+   cost. Normalizing at the door would make a stale envelope
+   indistinguishable from a booked minute.
+3. **Comparability already has its home.** The bridge converts at
+   the edge where it is tested (bids speak `core.records.Rail`'s
+   axes, unconverted); a fold that wants gpu-minutes divides by 60
+   at read time, where a test can see it.
+
+Concretely: the digest keeps `spent_gpu_seconds` / `spent_joules` /
+`spent_cents` as published, and the frozen contract's next
+append-only version carries a one-time
+`"units": {"gpu": "s", "energy": "J", "money": "cents"}` block, so
+the row is self-describing without any conversion.
+
+*(Cross-reference: the chained journal these digests' `chain_hash`
+aligns with has now landed on thor-admit's side as
+`research/ecology-ledger` — the audit log and the daemon's log can
+be verified against each other, which is the retention answer's
+other half: what is kept can also be proved whole.)*
