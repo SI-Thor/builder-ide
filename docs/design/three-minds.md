@@ -57,3 +57,21 @@ So the same three minds run in a real game engine (last-mile in Bevy, or Roblox 
 - **Projection:** Syzygy (and the emitter's projectors) turn the continuous world into text for any viewpoint, deterministically and cheaply.
 
 Each mind works in the medium it is best at, and neither waits for the other.
+
+## The operational fiction, and who decides how real it must be (Casey, 2026-10-31)
+
+"That makes the PLATO side more like the sensory side, which is then ported to the IO that updates its operational fiction: an as-real-as-needed version. And that question of what is needed is one that the system-2 LLMs are crafting for their fleet as they go along with the rest of their work, above the arena."
+
+The Syzygy program's rule, generalised: *a model should only ever pay for the vision its one job needs.*
+
+- **The text world is perception, not the world.** Each agent's view is what it senses.
+- **The IO keeps an operational fiction:** the game engine, sensors and Infinigen scene maintain a world model **as real as the work needs**, and no more.
+- **The mediator authors the perception spec,** as data, for its fleet. It specifies, per kind of agent:
+  - which objects and attributes it senses;
+  - at what resolution;
+  - which rates of change matter (time-first);
+  - the keyframe policy;
+  - what is narrated into its text view.
+- **Fidelity is learned from outcomes.** When a reflex decides badly and the post-mortem shows missing information, the spec gains that channel or detail. When a channel never informs a decision that mattered, it is dropped. Perception specs are **another kind of tile**: cloud-written, scored by results (with off-policy evaluation as the honest judge), kept or retired. It is last-mile's lesson, that the trainer's main lever is choosing the right questions, applied to *what to see*.
+
+The result: the fiction gets cheaper and sharper at once, with detail flowing to where decisions need it.
