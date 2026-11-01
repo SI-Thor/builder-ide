@@ -86,6 +86,40 @@ Two asks for the same model waiting side by side become **one** promise,
 so a model server is loaded once per box even when several seats ask at
 once.
 
+## If the work is not under a lease: `thor-admit exec`
+
+Heavy work belongs under a lease — that is the rule above. But a seat
+sometimes runs something small, or something it did not plan, and it runs
+**outside** any lease. Then the daemon cannot account for it. On 2026-11-01
+a JAX run that did exactly that took **94.5 GB of the box's unified memory
+in 20 seconds**: the desktop died, the Wi-Fi driver died, and the box
+needed a power cycle.
+
+Start such work through `exec`, which refuses to start a framework that
+takes the box's memory by surprise:
+
+```bash
+thor-admit exec -- python3 train_spike.py --backend mjx --nworld 256
+```
+
+`exec` refuses a JAX/XLA process unless `XLA_PYTHON_CLIENT_PREALLOCATE=false`
+(or `XLA_PYTHON_CLIENT_ALLOCATOR=platform`, or
+`XLA_PYTHON_CLIENT_MEM_FRACTION` of at most 0.15), and a TensorFlow process
+unless `TF_FORCE_GPU_ALLOW_GROWTH=true`. It finds the framework by the
+module it runs, by the code given to `-c`, or by what the script on disk
+imports — the incident's script was called `train_spike.py` and said
+nothing; its `import jax` said everything.
+
+And if a process takes the box by surprise anyway, the daemon's **guard**
+can stop it: the biggest process that no lease owns, when the box falls
+below the emergency floor, or when the box loses memory faster than the
+leases can explain it. The guard never touches the desktop, the login, the
+system's own services or the seat agents. If your own job is big and
+legitimately outside a lease, put its command line on the daemon's
+protected list — one pattern per line, in
+`~/.local/state/thor-admit/protected.txt` — and the guard will leave it
+alone.
+
 ## The fallback: the daemon is gone
 
 `thor-admit run` starts the daemon itself if it cannot reach one, so the
