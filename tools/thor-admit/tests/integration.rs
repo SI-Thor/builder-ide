@@ -164,6 +164,16 @@ impl DaemonUnderTest {
     }
 
     /// Start a daemon on the path that was reserved for it.
+    ///
+    /// The daemon is started with the GPU's view **off**: these tests are
+    /// CPU-only, and their leases promise no device memory, so the box's
+    /// real allocation pool must not be a part of their admission
+    /// decisions. Measured on 2026-11-01 at ~02:00: the box's pool
+    /// (`tegrastats`' `lfb`, other seats' CUDA work) sat at ~0.3 GiB of
+    /// the 2 GiB GPU floor, and every CPU-only lease waited on a rule that
+    /// had nothing to do with it. A test that *is* about the GPU's pool
+    /// passes its own `--gpu-probe` and its own scripted `tegrastats`, and
+    /// that overrides this default.
     fn start(reserved: Reserved) -> DaemonUnderTest {
         let state_dir = reserved.state_dir;
         std::fs::create_dir_all(&state_dir).unwrap();
@@ -175,6 +185,8 @@ impl DaemonUnderTest {
             .arg(&socket)
             .arg("--state-dir")
             .arg(&state_dir)
+            .arg("--gpu-probe")
+            .arg("off")
             .arg("--idle-exit")
             .arg("600")
             .stdout(Stdio::piped())
@@ -531,7 +543,9 @@ fn a_daemon_started_for_a_socket_keeps_its_state_beside_the_socket() {
     // whether the daemon falls back to it.
     let state_home = dir.join("xdg");
 
-    // The client cannot reach a daemon, so it starts one.
+    // The client cannot reach a daemon, so it starts one. The command runs
+    // for six seconds: a run teaches the history only if it lasted, so a
+    // `true` would prove nothing about where the history lands.
     let output = Command::new(BIN)
         .env("XDG_STATE_HOME", &state_home)
         .arg("run")
@@ -542,7 +556,8 @@ fn a_daemon_started_for_a_socket_keeps_its_state_beside_the_socket() {
         .arg("--label")
         .arg("state.dir.probe")
         .arg("--")
-        .arg("true")
+        .arg("sleep")
+        .arg("6")
         .output()
         .expect("the client runs");
     assert!(
@@ -1447,8 +1462,177 @@ fn a_model_is_loaded_once_per_box() {
     let back = wait_until(20, || thor_admit::serve::port_answers(port));
     assert!(back, "a fresh server was never started: {}", daemon.log());
 
+    // Kill the seat and wait for its server to go with it. Killing the
+    // client alone is not enough as a cleanup: the daemon reaps the orphan
+    // on its next tick, and a test that tears its daemon down in the same
+    // instant leaves the server running on the box — every run of this
+    // test used to leak one idle `http.server` that way (37 were found
+    // running on 2026-11-01).
     let _ = third.kill();
     let _ = third.wait();
+    let gone = wait_until(15, || !thor_admit::serve::port_answers(port));
+    assert!(gone, "the server outlived the test: {}", daemon.log());
+}
+
+/// The 01:19 incident (round 9, item e): three d1-2B servers ran at once as
+/// `d1-2B`, `d1-2B-baseline` and `d1-2B-batch`, because the registry deduped
+/// by the name a seat typed. The registry is keyed on the model file
+/// (path + hash) and the command's other flags: the same model file with
+/// the same flags is one server under any name, and only flags that really
+/// differ ask for their own.
+#[test]
+fn the_same_model_under_two_names_is_loaded_once() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("serve-by-model-file", &["--floor", "1G"]);
+    // A stand-in model file: the registry hashes its contents, so the key
+    // is the file's, not the seat's word.
+    let model = daemon.state_dir.join("d1-2B.gguf");
+    std::fs::write(&model, b"the weights, as far as a test needs them").unwrap();
+    // A stand-in server that answers the port and stays up, with the model
+    // file named the way the real servers name it (`-m PATH`). The shell
+    // script ignores its extra arguments, so the `-m` pair is exactly what
+    // the key reads and nothing else happens with it.
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    drop(listener);
+    let serve = |model_name: &str, port: u16, extra: &[&str]| -> Vec<String> {
+        let mut args = vec![
+            "serve".to_string(),
+            model_name.to_string(),
+            "--socket".to_string(),
+            daemon.socket.display().to_string(),
+            "--port".to_string(),
+            port.to_string(),
+            "--peak".to_string(),
+            "1G".to_string(),
+            "--".to_string(),
+            "sh".to_string(),
+            "-c".to_string(),
+            format!("exec python3 -m http.server {port} --bind 127.0.0.1"),
+            "serve".to_string(),
+            "-m".to_string(),
+            model.display().to_string(),
+        ];
+        args.extend(extra.iter().map(|token| token.to_string()));
+        args
+    };
+
+    // The first seat starts the server under the plain name.
+    let mut first = Command::new(BIN)
+        .args(serve("d1-2B", port, &[]))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the first serve starts");
+    let came_up = wait_until(20, || {
+        thor_admit::serve::port_answers(port)
+            && std::fs::read_to_string(daemon.state_dir.join("servers.json"))
+                .map(|text| text.contains("\"model\":\"d1-2B\""))
+                .unwrap_or(false)
+    });
+    assert!(came_up, "the server never answered; the log:\n{}", daemon.log());
+
+    // The second seat asks under another name — `d1-2B-baseline` — with the
+    // same model file and the same flags. It gets the first's port and runs
+    // nothing: one model, one server, whatever the seats call it.
+    let second = Command::new(BIN)
+        .args(serve("d1-2B-baseline", port, &[]))
+        .output()
+        .expect("the second serve runs");
+    let answered = String::from_utf8_lossy(&second.stdout);
+    assert!(
+        answered.contains("is served on port"),
+        "the renamed ask did not get the port: {answered}"
+    );
+    let registry = std::fs::read_to_string(daemon.state_dir.join("servers.json")).unwrap();
+    let entries = registry
+        .lines()
+        .filter(|line| line.contains("\"port\""))
+        .count();
+    assert_eq!(entries, 1, "the registry has {entries} entries:\n{registry}");
+
+    // The third seat really does differ — a batch flag the first server was
+    // not started with — so it is its own variant and its own server, and
+    // it says which one it is rather than silently sharing the wrong one.
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let other_port = listener.local_addr().unwrap().port();
+    drop(listener);
+    let mut third = Command::new(BIN)
+        .args(serve("d1-2B-batch", other_port, &["--parallel", "4"]))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the third serve starts");
+    let variant_came_up = wait_until(20, || {
+        thor_admit::serve::port_answers(other_port)
+            && std::fs::read_to_string(daemon.state_dir.join("servers.json"))
+                .map(|text| text.matches("\"port\"").count() >= 2)
+                .unwrap_or(false)
+    });
+    assert!(
+        variant_came_up,
+        "a variant with different flags did not start its own server; the log:\n{}",
+        daemon.log()
+    );
+
+    // Kill the seats and wait for both servers to go with them: killing
+    // the client alone leaves the orphan to the daemon's next tick, and a
+    // test tearing its daemon down in the same instant leaks the server.
+    let _ = first.kill();
+    let _ = first.wait();
+    let _ = third.kill();
+    let _ = third.wait();
+    let gone = wait_until(15, || {
+        !thor_admit::serve::port_answers(port) && !thor_admit::serve::port_answers(other_port)
+    });
+    assert!(gone, "a server outlived the test; the log:\n{}", daemon.log());
+}
+
+/// The ledger names each player, not only the tier it played in, and keeps
+/// the flow signal a publisher writes — recorded, never computed, and never
+/// acted on.
+#[test]
+fn the_ledger_names_each_label_and_keeps_the_published_flow() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("ledger-by-label", &["--floor", "1G"]);
+
+    // A publisher speaks: the reflex-shaped writer the design says will
+    // publish confidence and rate of change to flow.json.
+    std::fs::write(
+        daemon.state_dir.join("flow.json"),
+        r#"{"confidence": 0.91, "rate_of_change": 0.01}"#,
+    )
+    .unwrap();
+
+    // A labelled lease runs for a few seconds.
+    let mut run = leased(&daemon, "d1-critic", "1G", &["sleep", "3"]);
+    let _ = run.wait();
+    let _ = output_of(&mut run);
+
+    let output = Command::new(BIN)
+        .arg("ledger")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .arg("--json")
+        .output()
+        .expect("the ledger runs");
+    let value: Value = serde_json::from_slice(&output.stdout).expect("the ledger is JSON");
+    let hours = value["ledger"].as_array().expect("the hours are a list");
+    let bucket = hours.last().expect("the hour being kept is there");
+    let critic = bucket["by_label"]["d1-critic"]
+        .as_object()
+        .expect("the label is booked");
+    let running_s = critic["running_s"].as_f64().unwrap_or(0.0);
+    assert!(
+        running_s >= 2.0,
+        "the critic's label ran for {running_s}s in the ledger: {bucket}"
+    );
+    let flow = bucket["flow"].as_object().expect("the flow hour is there");
+    assert!(
+        flow["samples"].as_u64().unwrap_or(0) > 0,
+        "the published flow signal was not recorded: {flow:?}"
+    );
+    assert_eq!(flow["sign"].as_str(), Some("steady"));
 }
 
 #[test]
@@ -1512,7 +1696,9 @@ fn a_learned_peak_is_used_by_the_next_run() {
     let daemon = DaemonUnderTest::start_named("learned-peak", &["--floor", "1G"]);
 
     // `--peak auto` refuses to guess until the label has three runs, so the
-    // teaching is three runs with an explicit peak.
+    // teaching is three runs with an explicit peak. Every teaching run also
+    // has to outlast the five-second line: a run that finishes in no time
+    // did no work, and its peak teaches nothing.
     let mut refused = leased(&daemon, "auto-label", "auto", &["true"]);
     let status = refused.wait().expect("the client finishes");
     let output = output_of(&mut refused);
@@ -1524,7 +1710,7 @@ fn a_learned_peak_is_used_by_the_next_run() {
 
     // With one or two runs the daemon still refuses — a p95 of so few runs
     // under-reserves a shifted workload — and says so differently.
-    let mut under_taught = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
+    let mut under_taught = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "6"]);
     let _ = under_taught.wait();
     let _ = output_of(&mut under_taught);
     let mut still_refused = leased(&daemon, "auto-label", "auto", &["true"]);
@@ -1536,7 +1722,7 @@ fn a_learned_peak_is_used_by_the_next_run() {
     );
 
     for _ in 0..2 {
-        let mut run = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "1"]);
+        let mut run = leased(&daemon, "auto-label", "2G", &[HOG, "--bytes", "2G", "--hold", "6"]);
         let _ = run.wait();
         let _ = output_of(&mut run);
     }
@@ -1575,13 +1761,14 @@ fn an_auto_peak_reserves_the_last_run_when_it_outran_the_p95() {
     let daemon = DaemonUnderTest::start_named("auto-takes-the-last", &["--floor", "1G"]);
 
     // Three quiet runs, then one heavy one. The p95 of [2, 2, 2, 6] GiB is
-    // about 5.4 GiB; the last run took a measured ~6 GiB.
+    // about 5.4 GiB; the last run took a measured ~6 GiB. The runs outlast
+    // the five-second line so they are allowed to teach.
     for gigabytes in [2u64, 2, 2, 6] {
         let mut run = leased(
             &daemon,
             "shifting-label",
             "6G",
-            &[HOG, "--bytes", &format!("{gigabytes}G"), "--hold", "1"],
+            &[HOG, "--bytes", &format!("{gigabytes}G"), "--hold", "6"],
         );
         let _ = run.wait();
         let _ = output_of(&mut run);
@@ -1613,6 +1800,201 @@ fn an_auto_peak_reserves_the_last_run_when_it_outran_the_p95() {
         granted >= last_measured,
         "the auto run was reserved {granted} bytes, below the last run's \
          {last_measured} bytes — the p95 alone under-reserved it"
+    );
+}
+
+/// The 2026-11-01 incident (round 9, item c): a lease's reserve showed as
+/// **3.6M** for an Infinigen coarse stage, because the history held 25
+/// no-op records — every one of them under 30 ms and under 4 MB — and the
+/// daemon trusted them. Two halves must now hold:
+///
+/// * records like that cannot teach, however many of them there are, and a
+///   live no-op run (a wrapper invoked with nothing to do, exit 0 in
+///   milliseconds) writes nothing to the history — the log says why;
+/// * after the operator edits the file by hand, `thor-admit reload` makes
+///   the running daemon see the edit, without a restart.
+#[test]
+fn a_no_op_run_cannot_teach_the_reserve() {
+    let _serial = serial_gate();
+    // The history is seeded before the daemon starts, with the exact shape
+    // of the 25 records the director removed at 00:50: `infinigen.*.coarse`,
+    // ~3.8 MB, under 30 ms, no exit status.
+    let reserved = DaemonUnderTest::reserve("no-op-cannot-teach", &["--floor", "1G"]);
+    let label = "infinigen.mountain.coarse";
+    let mut bogus = String::new();
+    for biome in 0..25 {
+        let record = serde_json::json!({
+            "at": format!("2026-11-01T08:47:{:02}Z", biome),
+            "kind": label, "label": label, "host": "thor",
+            "peak_rss_bytes": 3_801_088_u64,
+            "peak_gpu_bytes": null, "gpu_visible": true,
+            "duration_s": 0.027, "mem_total_bytes": 131_856_928_768_u64,
+            "floor_bytes": 26_843_545_600_u64,
+            "basis": "measured", "source": "thor-admit",
+            "peak_source": "rusage",
+        });
+        bogus.push_str(&record.to_string());
+        bogus.push('\n');
+    }
+    std::fs::write(reserved.state_dir.join("peaks.jsonl"), bogus).unwrap();
+    let daemon = DaemonUnderTest::start(reserved);
+
+    // 3.6 MB worth of no-ops in the file, and `--peak auto` still refuses:
+    // the label has no runs that may teach.
+    let mut refused = leased(&daemon, label, "auto", &["true"]);
+    let _ = refused.wait();
+    let output = output_of(&mut refused);
+    assert!(
+        output.contains("no history for the label"),
+        "25 no-op records taught a reserve:\n{output}"
+    );
+
+    // A live no-op run — exit 0, gone in milliseconds — does not land in
+    // the history, and the log names the reason.
+    let mut noop = leased(&daemon, label, "1G", &["true"]);
+    let _ = noop.wait();
+    let _ = output_of(&mut noop);
+    let mut failed = leased(&daemon, label, "1G", &["sh", "-c", "exit 3"]);
+    let _ = failed.wait();
+    let _ = output_of(&mut failed);
+    let log = daemon.log();
+    assert!(
+        log.lines().any(|line| line.contains("\"history.not_learned\"")
+            && line.contains("under the")),
+        "the short no-op was not named in the log:\n{log}"
+    );
+    assert!(
+        log.lines().any(|line| line.contains("\"history.not_learned\"")
+            && line.contains("exit 3")),
+        "the failed run was not named in the log:\n{log}"
+    );
+    assert_eq!(
+        daemon.history().len(),
+        25,
+        "the live no-op runs appended nothing; the file holds only the \
+         seeded records: {:?}",
+        daemon.history().len()
+    );
+
+    // The operator teaches the label by hand — three real records, clean
+    // exits, real durations — and the running daemon sees them after a
+    // reload. No restart, no lease interrupted.
+    let mut taught = String::new();
+    for peak in [2, 2, 2] {
+        let record = serde_json::json!({
+            "at": "2026-11-01T09:00:00Z",
+            "kind": label, "label": label, "host": "thor",
+            "peak_rss_bytes": peak * GIB,
+            "peak_gpu_bytes": null, "gpu_visible": true,
+            "duration_s": 52.9, "mem_total_bytes": 131_856_928_768_u64,
+            "floor_bytes": 26_843_545_600_u64,
+            "basis": "measured", "source": "thor-admit",
+            "peak_source": "rusage", "exit_code": 0,
+        });
+        taught.push_str(&record.to_string());
+        taught.push('\n');
+    }
+    std::fs::write(daemon.state_dir.join("peaks.jsonl"), taught).unwrap();
+    let reloaded = Command::new(BIN)
+        .arg("reload")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .output()
+        .expect("the reload runs");
+    assert!(
+        String::from_utf8_lossy(&reloaded.stdout).contains("3 peak records"),
+        "the reload did not report the new history: {}",
+        String::from_utf8_lossy(&reloaded.stdout)
+    );
+
+    let mut auto = leased(&daemon, label, "auto", &[HOG, "--bytes", "1G", "--hold", "1"]);
+    let output = {
+        let _ = auto.wait();
+        output_of(&mut auto)
+    };
+    assert!(
+        output.contains("admitted after"),
+        "the hand-taught history was not used after the reload:\n{output}"
+    );
+    let granted = daemon
+        .log()
+        .lines()
+        .filter(|line| line.contains("\"lease.granted\"") && line.contains(label))
+        .last()
+        .and_then(|line| serde_json::from_str::<Value>(line).ok())
+        .and_then(|event| event["peak_bytes"].as_u64())
+        .expect("the auto run was granted");
+    assert!(
+        granted >= 2 * GIB,
+        "the auto run was reserved {granted} bytes, below what the hand-taught \
+         history says the label costs"
+    );
+}
+
+/// SIGHUP reloads too, and what the reload drops stays dropped: a daemon
+/// that has already learned a label keeps its reserve when no-op records
+/// are added to the file behind its back — the director's 00:50 cleanup,
+/// made a fact of the daemon's memory rather than a wish about the file.
+#[test]
+fn a_sighup_reload_drops_what_the_operator_removed() {
+    let _serial = serial_gate();
+    let daemon = DaemonUnderTest::start_named("sighup-reload", &["--floor", "1G"]);
+    let label = "infinigen.forest.render";
+
+    // Taught the honest way: three real runs.
+    for _ in 0..3 {
+        let mut run = leased(&daemon, label, "2G", &[HOG, "--bytes", "2G", "--hold", "6"]);
+        let _ = run.wait();
+        let _ = output_of(&mut run);
+    }
+    let mut auto = leased(&daemon, label, "auto", &[HOG, "--bytes", "1G", "--hold", "1"]);
+    let output = {
+        let _ = auto.wait();
+        output_of(&mut auto)
+    };
+    assert!(output.contains("admitted after"), "auto was refused:\n{output}");
+
+    // No-op records appear in the file — the shape the wrapper wrote before
+    // the fix — and SIGHUP makes the daemon re-read the file. The reserve
+    // does not move: the no-ops are not runs.
+    let noop = serde_json::json!({
+        "at": "2026-11-01T10:00:00Z",
+        "kind": label, "label": label, "host": "thor",
+        "peak_rss_bytes": 3_670_000_u64,
+        "peak_gpu_bytes": null, "gpu_visible": true,
+        "duration_s": 0.4, "mem_total_bytes": 131_856_928_768_u64,
+        "floor_bytes": 26_843_545_600_u64,
+        "basis": "measured", "source": "thor-admit",
+        "peak_source": "rusage", "exit_code": 0,
+    });
+    let history_path = daemon.state_dir.join("peaks.jsonl");
+    let mut text = std::fs::read_to_string(&history_path).unwrap();
+    text.push_str(&noop.to_string());
+    text.push('\n');
+    std::fs::write(&history_path, text).unwrap();
+
+    let signalled = unsafe { libc::kill(daemon.child.id() as i32, libc::SIGHUP) == 0 };
+    assert!(signalled, "the SIGHUP was not sent");
+    let reloaded = wait_until(10, || daemon.log().contains("\"daemon.reloaded\""));
+    assert!(reloaded, "the SIGHUP did not reload the daemon:\n{}", daemon.log());
+
+    let mut again = leased(&daemon, label, "auto", &[HOG, "--bytes", "1G", "--hold", "1"]);
+    let output = {
+        let _ = again.wait();
+        output_of(&mut again)
+    };
+    assert!(output.contains("admitted after"), "auto was refused:\n{output}");
+    let granted = daemon
+        .log()
+        .lines()
+        .filter(|line| line.contains("\"lease.granted\"") && line.contains(label))
+        .last()
+        .and_then(|line| serde_json::from_str::<Value>(line).ok())
+        .and_then(|event| event["peak_bytes"].as_u64())
+        .expect("the auto run was granted");
+    assert!(
+        granted >= 2 * GIB,
+        "a no-op record lowered the reserve to {granted} bytes after the reload"
     );
 }
 

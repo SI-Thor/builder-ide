@@ -33,7 +33,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Mapping
+from typing import ClassVar, Iterable, Mapping
 
 from core.night.cost.model import percentile
 from core.night.cost.records import DATA_DIR
@@ -87,12 +87,37 @@ class PeakRecord:
     source: str
     #: Which measurement the peak came from (``rusage`` or ``sample``).
     peak_source: str
+    #: The run's exit status: 0 is a clean finish. ``None`` is a record
+    #: from before exit statuses were written (round 9), where the
+    #: duration is all the record can say about whether the work happened.
+    exit_code: int | None = None
+
+    #: How long a run must last before it may teach, in seconds — the same
+    #: line the daemon's ``history::MIN_LEARNED_DURATION_S`` draws, kept in
+    #: step so a number here and a number there mean the same thing.
+    MIN_TEACHING_DURATION_S: ClassVar[float] = 5.0
+
+    def teaches(self) -> bool:
+        """May this record teach a reservation?
+
+        The daemon's own rule, mirrored: a run teaches only if it finished
+        cleanly and lasted — a no-op run (exit 0 in milliseconds, a few MB)
+        is not what the next run costs. An over-run record always teaches:
+        it is written only past a gross under-reservation and can only
+        raise the number.
+        """
+        if self.peak_source == "overrun":
+            return True
+        return (self.exit_code in (None, 0)) and (
+            self.duration_s >= self.MIN_TEACHING_DURATION_S
+        )
 
     @classmethod
     def from_mapping(cls, payload: Mapping[str, object]) -> "PeakRecord":
         label = str(payload.get("label", "") or "")
         kind = str(payload.get("kind", label) or label)
         gpu = payload.get("peak_gpu_bytes")
+        exit_code = payload.get("exit_code")
         return cls(
             at=str(payload.get("at", "")),
             kind=kind,
@@ -107,6 +132,7 @@ class PeakRecord:
             basis=str(payload.get("basis", "measured")),
             source=str(payload.get("source", "thor-admit")),
             peak_source=str(payload.get("peak_source", "sample")),
+            exit_code=int(exit_code) if exit_code is not None else None,
         )
 
 
@@ -185,7 +211,15 @@ class MemoryColumn:
         return kinds
 
     def records_for(self, kind: str) -> list[PeakRecord]:
-        return [record for record in self._records if record.kind == kind]
+        """The records that may speak for one kind.
+
+        Only the runs that teach (see :meth:`PeakRecord.teaches`): a
+        no-op's megabytes are in the file's past, not in the kind's future.
+        The raw list stays on :attr:`records`.
+        """
+        return [
+            record for record in self._records if record.kind == kind and record.teaches()
+        ]
 
     def peak_for(self, kind: str) -> MemoryPeak | None:
         """The band for one kind, or ``None`` when nothing was measured."""

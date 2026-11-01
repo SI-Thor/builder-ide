@@ -244,6 +244,7 @@ def lease(
     stream = connection.makefile("rwb")
     lock_fd: int | None = None
     granted: Lease | None = None
+    release_exit_code: int | None = None
     try:
         request = {
             "op": "acquire",
@@ -295,11 +296,18 @@ def lease(
         )
         heartbeat.start()
 
+        # Whether the leased block ran to completion. The daemon learns a
+        # label's peak only from runs that finished cleanly, so the release
+        # says ``exit_code`` 0 when the block completed and says nothing
+        # when it raised — a failed run teaches the history nothing.
+        completed = False
         try:
             yield granted
+            completed = True
         finally:
             stop.set()
             heartbeat.join(timeout=HEARTBEAT_INTERVAL_S + 1.0)
+            release_exit_code = 0 if completed else None
     finally:
         if granted is not None and lock_fd is not None:
             with contextlib.suppress(OSError):
@@ -309,6 +317,7 @@ def lease(
                         "op": "release",
                         "lease": granted.lease_id,
                         "peak_rss_bytes": _peak_rss_bytes(),
+                        "exit_code": release_exit_code,
                     },
                 )
         if lock_fd is not None:

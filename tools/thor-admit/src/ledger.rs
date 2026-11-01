@@ -82,6 +82,11 @@ pub struct Sample {
     pub running_tiers: Vec<Tier>,
     /// The tiers with work stopped by a pre-emption right now.
     pub preempted_tiers: Vec<Tier>,
+    /// The labels with work running right now — the *players*, not just the
+    /// bands they played in.
+    pub running_labels: Vec<String>,
+    /// The labels stopped by a pre-emption right now.
+    pub preempted_labels: Vec<String>,
     /// Why the box is idle. `None` means something is running.
     pub idle: Option<IdleReason>,
     /// `MemAvailable`, in bytes.
@@ -92,6 +97,12 @@ pub struct Sample {
     pub gpu_busy_pct: Option<u8>,
     /// Where the GPU's power figure came from.
     pub gpu_power_source: Option<String>,
+    /// The published flow signal's confidence, when a publisher is speaking.
+    pub flow_confidence: Option<f64>,
+    /// The published flow signal's rate of change.
+    pub flow_rate: Option<f64>,
+    /// The sign the published signal reads (`steady` / `faded`).
+    pub flow_sign: Option<String>,
 }
 
 /// What one tier did in an hour.
@@ -104,6 +115,17 @@ pub struct TierStat {
     /// How many times live work pre-empted this tier.
     pub preemptions: u64,
     /// Seconds in which this tier's work was stopped by a pre-emption.
+    pub preempted_s: f64,
+}
+
+/// What one label did in an hour. The tiers say where the box's time went;
+/// the labels say what each player — a d1 per character, the critic, the
+/// sweep — actually got, which is the groove three-minds asked to see.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct LabelStat {
+    /// Seconds in which this label's work was running.
+    pub running_s: f64,
+    /// Seconds in which this label's work was stopped by a pre-emption.
     pub preempted_s: f64,
 }
 
@@ -164,6 +186,28 @@ pub struct MemStat {
     pub samples: u64,
 }
 
+/// The published flow signal's hour: what the work said about itself.
+///
+/// Every field is a *recording* of what a publisher wrote to `flow.json`;
+/// the daemon computes nothing here (not the confidence, not the rate, and
+/// no decision from them). An hour in which no publisher spoke has
+/// `samples: 0` and `None` everywhere else — absence is a fact the hour
+/// keeps, so "nobody is publishing" and "the signal faded" stay two
+/// different sentences.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct FlowStat {
+    /// The mean published confidence over the samples that had one.
+    pub confidence_mean: Option<f64>,
+    /// The lowest published confidence in the hour.
+    pub confidence_min: Option<f64>,
+    /// The mean published rate of change.
+    pub rate_mean: Option<f64>,
+    /// The sign at the hour's last sample (`steady` / `faded`).
+    pub sign: Option<String>,
+    /// How many samples carried a flow signal.
+    pub samples: u64,
+}
+
 /// One hour of the box's time.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct Bucket {
@@ -175,6 +219,10 @@ pub struct Bucket {
     pub window_s: f64,
     /// What each tier did.
     pub tiers: BTreeMap<String, TierStat>,
+    /// What each label did. Absent in hours written before labels were
+    /// booked — `#[serde(default)]` keeps those hours readable.
+    #[serde(default)]
+    pub by_label: BTreeMap<String, LabelStat>,
     /// The GPU's hour.
     pub gpu: GpuStat,
     /// The CPU's hour.
@@ -183,6 +231,9 @@ pub struct Bucket {
     pub idle: IdleStat,
     /// The memory hour.
     pub memory: MemStat,
+    /// The published flow signal's hour.
+    #[serde(default)]
+    pub flow: FlowStat,
     /// How many samples the bucket holds.
     pub samples: u64,
 }
@@ -243,6 +294,10 @@ pub struct Ledger {
     cpu_previous: Option<CpuCounters>,
     cpu_busy_sum: f64,
     cpu_share_samples: u64,
+    flow_confidence_sum: f64,
+    flow_confidence_samples: u64,
+    flow_rate_sum: f64,
+    flow_rate_samples: u64,
 }
 
 impl Ledger {
@@ -255,6 +310,10 @@ impl Ledger {
             cpu_previous: None,
             cpu_busy_sum: 0.0,
             cpu_share_samples: 0,
+            flow_confidence_sum: 0.0,
+            flow_confidence_samples: 0,
+            flow_rate_sum: 0.0,
+            flow_rate_samples: 0,
         }
     }
 
@@ -292,6 +351,14 @@ impl Ledger {
                 .tiers
                 .entry(tier.as_str().to_string())
                 .or_default();
+            stat.preempted_s += dt;
+        }
+        for label in &sample.running_labels {
+            let stat = self.bucket.by_label.entry(label.clone()).or_default();
+            stat.running_s += dt;
+        }
+        for label in &sample.preempted_labels {
+            let stat = self.bucket.by_label.entry(label.clone()).or_default();
             stat.preempted_s += dt;
         }
 
@@ -361,6 +428,31 @@ impl Ledger {
             self.bucket.memory.available_sum += sample.mem_available;
             self.bucket.memory.samples += 1;
         }
+
+        // The flow signal, when a publisher spoke this sample. Recording
+        // only: the numbers are the publisher's, and so is whatever anybody
+        // decides with them.
+        if sample.flow_confidence.is_some() || sample.flow_rate.is_some() {
+            let flow = &mut self.bucket.flow;
+            if let Some(confidence) = sample.flow_confidence {
+                self.flow_confidence_sum += confidence;
+                self.flow_confidence_samples += 1;
+                flow.confidence_mean =
+                    Some(self.flow_confidence_sum / self.flow_confidence_samples as f64);
+                flow.confidence_min = Some(
+                    flow.confidence_min
+                        .map(|min| min.min(confidence))
+                        .unwrap_or(confidence),
+                );
+            }
+            if let Some(rate) = sample.flow_rate {
+                self.flow_rate_sum += rate;
+                self.flow_rate_samples += 1;
+                flow.rate_mean = Some(self.flow_rate_sum / self.flow_rate_samples as f64);
+            }
+            flow.sign = sample.flow_sign.clone();
+            flow.samples += 1;
+        }
     }
 
     /// Note that a job of a tier was started.
@@ -422,6 +514,10 @@ impl Ledger {
         self.cpu_previous = None;
         self.cpu_busy_sum = 0.0;
         self.cpu_share_samples = 0;
+        self.flow_confidence_sum = 0.0;
+        self.flow_confidence_samples = 0;
+        self.flow_rate_sum = 0.0;
+        self.flow_rate_samples = 0;
     }
 }
 
@@ -695,6 +791,7 @@ mod tests {
         let mut ledger = Ledger::new(&path);
         let sample = Sample {
             running_tiers: vec![Tier::Live],
+            running_labels: vec!["trellis".to_string()],
             mem_available: 42,
             gpu_power_mw: Some(1234),
             ..Sample::default()
@@ -705,8 +802,87 @@ mod tests {
         let buckets = read_buckets(&path);
         assert_eq!(buckets.len(), 1);
         assert_eq!(buckets[0].tier(Tier::Live).running_s, 1.0);
+        assert_eq!(buckets[0].by_label["trellis"].running_s, 1.0);
         assert_eq!(buckets[0].gpu.power_mw_max, Some(1234));
         assert_eq!(buckets[0].memory.available_min, Some(42));
         let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn each_label_gets_its_own_groove() {
+        // Two players in the same tier, one of them pre-empted for part of
+        // the hour: the tier says "study ran"; the labels say who ran and
+        // who was stopped.
+        let mut ledger = Ledger::new(Path::new("/tmp/thor-admit-ledger-test.jsonl"));
+        let both = Sample {
+            running_tiers: vec![Tier::Study],
+            running_labels: vec!["d1-critic".to_string(), "sweep.w7".to_string()],
+            ..Sample::default()
+        };
+        let one_stopped = Sample {
+            running_tiers: vec![Tier::Study],
+            running_labels: vec!["d1-critic".to_string()],
+            preempted_labels: vec!["sweep.w7".to_string()],
+            ..Sample::default()
+        };
+        ledger.sample(30.0, &both);
+        ledger.sample(30.0, &one_stopped);
+        let bucket = ledger.bucket();
+        assert_eq!(bucket.by_label["d1-critic"].running_s, 60.0);
+        assert_eq!(bucket.by_label["sweep.w7"].running_s, 30.0);
+        assert_eq!(bucket.by_label["sweep.w7"].preempted_s, 30.0);
+    }
+
+    #[test]
+    fn the_flow_hour_records_what_was_published() {
+        let mut ledger = Ledger::new(Path::new("/tmp/thor-admit-ledger-test.jsonl"));
+        let speaking = Sample {
+            running_tiers: vec![Tier::Live],
+            flow_confidence: Some(0.9),
+            flow_rate: Some(0.01),
+            flow_sign: Some("steady".to_string()),
+            ..Sample::default()
+        };
+        let fading = Sample {
+            running_tiers: vec![Tier::Live],
+            flow_confidence: Some(0.5),
+            flow_rate: Some(0.03),
+            flow_sign: Some("faded".to_string()),
+            ..Sample::default()
+        };
+        let silent = Sample {
+            running_tiers: vec![Tier::Live],
+            ..Sample::default()
+        };
+        ledger.sample(10.0, &speaking);
+        ledger.sample(10.0, &fading);
+        ledger.sample(10.0, &silent);
+        let flow = &ledger.bucket().flow;
+        assert_eq!(flow.samples, 2, "the silent sample is not a flow sample");
+        assert!((flow.confidence_mean.unwrap() - 0.7).abs() < 1e-9);
+        assert_eq!(flow.confidence_min, Some(0.5));
+        assert!((flow.rate_mean.unwrap() - 0.02).abs() < 1e-9);
+        assert_eq!(flow.sign.as_deref(), Some("faded"), "the sign at the end");
+    }
+
+    #[test]
+    fn an_hour_written_before_labels_and_flow_still_reads() {
+        // A line from an older daemon, with neither `by_label` nor `flow`:
+        // the ledger reads it rather than dropping the hour.
+        let text = concat!(
+            r#"{"hour":"2026-11-01T05","started_at":"2026-11-01T05:00:00Z","window_s":51.0,"#,
+            r#""tiers":{"live":{"running_s":44.5,"runs":0,"preemptions":0,"preempted_s":0.0}},"#,
+            r#""gpu":{"power_mw_mean":39388.0,"power_mw_max":47548,"power_samples":204,"#,
+            r#""busy_pct_mean":90.01,"busy_samples":204,"source":"tegrastats"},"#,
+            r#""cpu":{"cores":14,"busy_share_mean":0.99,"per_core_busy_share":[],"samples":49},"#,
+            r#""idle":{"total_s":5.75,"by_reason":{"no_work_registered":5.75},"#,
+            r#""unattributed_s":0.0,"no_work_s":5.75},"#,
+            r#""memory":{"available_min":1,"available_max":2,"available_sum":3,"samples":4},"#,
+            r#""samples":204}"#
+        );
+        let bucket: Bucket = serde_json::from_str(text).expect("the old hour reads");
+        assert_eq!(bucket.tier(Tier::Live).running_s, 44.5);
+        assert!(bucket.by_label.is_empty());
+        assert_eq!(bucket.flow.samples, 0);
     }
 }

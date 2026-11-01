@@ -30,6 +30,7 @@ use serde_json::json;
 
 use crate::admission::{Admission, LeaseMemory};
 use crate::clock;
+use crate::flow::{self, FlowSignal};
 use crate::gpu::{GpuProbe, GpuSample};
 use crate::history::{History, PeakRecord};
 use crate::lease::{self, LeaseLock};
@@ -174,6 +175,10 @@ pub struct Config {
     /// `tegrastats`, and a test runs a script that prints a pool the test
     /// controls, so the GPU rule can be driven without touching the GPU.
     pub tegrastats_command: Option<PathBuf>,
+    /// Where the flow signal is published. The daemon reads it when it
+    /// changes and records it in the ledger's hour; it computes nothing and
+    /// decides nothing from it (see `flow`).
+    pub flow_file: PathBuf,
 }
 
 impl Default for Config {
@@ -203,6 +208,7 @@ impl Default for Config {
             grant_grace: DEFAULT_GRANT_GRACE,
             gpu_floor: DEFAULT_GPU_FLOOR,
             tegrastats_command: None,
+            flow_file: default_state_dir().join("flow.json"),
         }
     }
 }
@@ -271,6 +277,10 @@ struct Lease {
     /// watch, so an over-running lease is on record while it is still
     /// running — even if the box, or the daemon, does not outlive it.
     overrun_written: u64,
+    /// How the command finished, as the client reported it on release: 0 is
+    /// a clean exit. A lease whose run did not finish cleanly teaches the
+    /// peak history nothing.
+    reported_exit: Option<i32>,
     /// The watchdog has asked this lease's work to terminate (`SIGTERM`).
     ///
     /// The ask is sent once. The memory comes back when the process is
@@ -316,6 +326,7 @@ struct PresenceRequest {
     tier: Tier,
     peak: PeakArg,
     resumable: bool,
+    enabled: bool,
     command: Vec<String>,
 }
 
@@ -432,6 +443,11 @@ struct State {
     /// The waiters the GPU's own pool is holding up, so each is logged once
     /// rather than every sample.
     gpu_blocked: std::collections::HashSet<u64>,
+    /// The flow signal as last published, when a publisher is speaking.
+    flow: Option<FlowSignal>,
+    /// The size and the modification time of the flow file when it was last
+    /// read, so the daemon re-reads it only when it changed.
+    flow_stamp: Option<(u64, u64)>,
 }
 
 /// A child process that keeps printing the GPU's view.
@@ -538,6 +554,8 @@ impl Daemon {
             ledger: Ledger::new(&config.ledger),
             last_cpu_read: Instant::now(),
             gpu_blocked: std::collections::HashSet::new(),
+            flow: None,
+            flow_stamp: None,
         };
         Ok(Arc::new(Daemon {
             config,
@@ -560,6 +578,18 @@ impl Daemon {
     pub fn stop(&self) {
         self.stop.store(true, Ordering::SeqCst);
         self.wake.notify_all();
+    }
+
+    /// Has the daemon been asked to stop — by a signal, or by its own
+    /// idle exit?
+    ///
+    /// A supervisor that waits on the daemon (the CLI's own signal
+    /// watcher) needs this: after an idle exit the daemon's clock has
+    /// already left, and without a word to say so, a watcher waiting for a
+    /// signal would wait forever while the daemon's socket lock kept every
+    /// future daemon out.
+    pub fn is_stopped(&self) -> bool {
+        self.stop.load(Ordering::SeqCst)
     }
 
     /// The path of the socket the daemon listens on.
@@ -586,6 +616,7 @@ impl Daemon {
                 "gpu_probe": self.config.gpu_probe.as_str(),
                 "mem_total_bytes": mem_total,
                 "history": self.config.history.display().to_string(),
+                "flow_file": self.config.flow_file.display().to_string(),
             }),
         );
 
@@ -828,11 +859,13 @@ impl Daemon {
                 Request::Release {
                     lease,
                     peak_rss_bytes,
+                    exit_code,
                 } => {
                     if let Some(found) = state.leases.iter_mut().find(|l| l.id == lease) {
                         if let Some(peak) = peak_rss_bytes {
                             found.reported_peak = Some(peak);
                         }
+                        found.reported_exit = exit_code;
                     }
                     self.release_lease(&mut state, lease, "client");
                     let _ = reply.send(Response::Ok);
@@ -842,6 +875,7 @@ impl Daemon {
                     tier,
                     peak,
                     resumable,
+                    enabled,
                     command,
                 } => self.register_presence(
                     &mut state,
@@ -850,6 +884,7 @@ impl Daemon {
                         tier,
                         peak,
                         resumable,
+                        enabled,
                         command,
                     },
                     reply,
@@ -860,6 +895,10 @@ impl Daemon {
                 Request::PresenceList => {
                     let jobs = presence_reports(&state);
                     let _ = reply.send(Response::Presence { jobs });
+                }
+                Request::Reload => {
+                    let (peaks, presence) = self.reload_state(&mut state);
+                    let _ = reply.send(Response::Reloaded { peaks, presence });
                 }
                 Request::Ledger => {
                     let buckets = state.ledger.closed_buckets();
@@ -890,6 +929,10 @@ impl Daemon {
             state.gpu = merged;
             state.gpu_source = sources;
         }
+        // The flow signal, when a publisher is speaking: read only when the
+        // file changed, recorded only — the numbers are the publisher's and
+        // so is any decision made from them.
+        self.read_flow(&mut state);
 
         // 3. What each lease is using. The scan reads every process on the
         // box, so it runs on its own slower clock — unless the box is short
@@ -994,6 +1037,78 @@ impl Daemon {
                 }),
             );
         }
+    }
+
+    /// Read the flow signal when the file has changed.
+    ///
+    /// A missing file is no signal — the daemon records absence, never a
+    /// guess — and a file that stops changing keeps saying what it last
+    /// said, which is the publisher's business, not the daemon's.
+    fn read_flow(&self, state: &mut State) {
+        let stamp = std::fs::metadata(&self.config.flow_file).ok().map(|meta| {
+            (
+                meta.len(),
+                meta.modified()
+                    .ok()
+                    .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                    .map(|duration| duration.as_nanos() as u64)
+                    .unwrap_or(0),
+            )
+        });
+        if stamp == state.flow_stamp {
+            return;
+        }
+        state.flow_stamp = stamp;
+        let signal = std::fs::read_to_string(&self.config.flow_file)
+            .ok()
+            .and_then(|text| flow::parse(&text));
+        if signal != state.flow {
+            self.log_event(
+                "flow.sign",
+                json!({
+                    "confidence": signal.and_then(|signal| signal.confidence),
+                    "rate_of_change": signal.and_then(|signal| signal.rate_of_change),
+                    "sign": signal.and_then(|signal| signal.sign()),
+                    "file": self.config.flow_file.display().to_string(),
+                }),
+            );
+        }
+        state.flow = signal;
+    }
+
+    /// Re-read what the daemon reads from disk: the peak history and the
+    /// presence queue.
+    ///
+    /// Both live in memory once loaded, so an edit by hand — an operator
+    /// cleaning no-op records out of the history at 00:50, a night runner
+    /// editing the queue — is invisible to a running daemon until it
+    /// reloads. `SIGHUP` and the `reload` op both land here. What reload
+    /// never touches is the running leases: they are the clients' word, not
+    /// the disk's.
+    pub fn reload(&self) {
+        let mut state = self.state.lock().unwrap();
+        self.reload_state(&mut state);
+    }
+
+    /// The body of a reload, on an already-locked state.
+    fn reload_state(&self, state: &mut State) -> (usize, usize) {
+        let history = History::load(&self.config.history);
+        let peaks = history.records().len();
+        state.history = history;
+        // Re-read the presence queue now, keeping the state of whatever is
+        // running: the file says what is registered, not what is happening.
+        state.presence.stamp = None;
+        self.reload_presence(state);
+        let presence = state.presence.queue.jobs().len();
+        self.log_event(
+            "daemon.reloaded",
+            json!({
+                "peaks": peaks,
+                "presence": presence,
+                "history": self.config.history.display().to_string(),
+            }),
+        );
+        (peaks, presence)
     }
 
     /// Put a new request in the queue.
@@ -1157,6 +1272,7 @@ impl Daemon {
                 peak_rss: 0,
                 peak_gpu: 0,
                 reported_peak: None,
+                reported_exit: None,
                 overrun_written: 0,
                 terminated_at: None,
                 killed: false,
@@ -1217,6 +1333,7 @@ impl Daemon {
             tier,
             peak,
             resumable,
+            enabled,
             command,
         } = request;
         if command.is_empty() {
@@ -1236,7 +1353,8 @@ impl Daemon {
             },
         };
         let id = state.presence.queue.next_id();
-        let spec = PresenceSpec::new(id, &label, tier, peak_bytes, resumable, command);
+        let mut spec = PresenceSpec::new(id, &label, tier, peak_bytes, resumable, command);
+        spec.enabled = enabled;
         let job = PresenceJob::new(spec);
         state.presence.queue.push(job);
         self.save_presence(state);
@@ -1248,6 +1366,7 @@ impl Daemon {
                 "tier": tier.as_str(),
                 "peak_bytes": peak_bytes,
                 "resumable": resumable,
+                "enabled": enabled,
             }),
         );
         let _ = reply.send(Response::PresenceAdded { id, label, tier });
@@ -1298,6 +1417,14 @@ impl Daemon {
         // Registered work is something to do: the daemon must not idle out
         // while the presence queue is waiting for room.
         if state.presence.queue.outstanding() > 0 || !state.presence.running.is_empty() {
+            state.last_activity = Instant::now();
+        }
+        // So is a waiter: a client queued for room is the daemon's whole
+        // reason to be there, and idling out under it would strand the
+        // client on a socket whose daemon has gone (measured 2026-11-01:
+        // a waiter the GPU's floor was holding, and a daemon that left
+        // after 600 s of "nothing happening" while the client waited).
+        if !state.queue.is_empty() {
             state.last_activity = Instant::now();
         }
         self.reload_presence(state);
@@ -1521,6 +1648,15 @@ impl Daemon {
                         "presence.spawn_failed",
                         json!({"id": job.spec.id, "error": error.to_string()}),
                     );
+                    // The job is marked failed, not left pending: a command
+                    // that cannot start would otherwise be retried every
+                    // tick, and a queue full of unstartable work is a queue
+                    // that hides the work that can run.
+                    if let Some(registered) = state.presence.queue.get_mut(job.spec.id) {
+                        registered.state = JobState::Failed;
+                        registered.last_exit = None;
+                    }
+                    self.save_presence(state);
                     return;
                 }
             };
@@ -1622,6 +1758,8 @@ impl Daemon {
         let dt = self.config.sample_interval.as_secs_f64();
         let mut running_tiers: Vec<Tier> = Vec::new();
         let mut preempted_tiers: Vec<Tier> = Vec::new();
+        let mut running_labels: Vec<String> = Vec::new();
+        let mut preempted_labels: Vec<String> = Vec::new();
         for lease in state.leases.iter() {
             // A lease is booked from the moment the client **holds** it. A
             // lease that was granted but never held never ran anything, so
@@ -1632,18 +1770,32 @@ impl Daemon {
             // to `granted_not_run`, an attributed cause, so the committed
             // memory still explains the empty-looking box without being
             // called work.
-            if lease.state == LeaseState::Active && !running_tiers.contains(&lease.tier) {
-                running_tiers.push(lease.tier);
+            if lease.state == LeaseState::Active {
+                if !running_tiers.contains(&lease.tier) {
+                    running_tiers.push(lease.tier);
+                }
+                if !running_labels.contains(&lease.label) {
+                    running_labels.push(lease.label.clone());
+                }
             }
         }
         for job in state.presence.running.iter() {
             let tier = job.tier(state);
+            let label = job.label(state);
             if job.stopped {
                 if !preempted_tiers.contains(&tier) {
                     preempted_tiers.push(tier);
                 }
-            } else if !running_tiers.contains(&tier) {
-                running_tiers.push(tier);
+                if !label.is_empty() && !preempted_labels.contains(&label) {
+                    preempted_labels.push(label);
+                }
+            } else {
+                if !running_tiers.contains(&tier) {
+                    running_tiers.push(tier);
+                }
+                if !label.is_empty() && !running_labels.contains(&label) {
+                    running_labels.push(label);
+                }
             }
         }
         let idle = if running_tiers.is_empty() {
@@ -1654,11 +1806,19 @@ impl Daemon {
         let sample = Sample {
             running_tiers,
             preempted_tiers,
+            running_labels,
+            preempted_labels,
             idle,
             mem_available: state.mem.mem_available,
             gpu_power_mw: state.gpu.power_mw,
             gpu_busy_pct: state.gpu.busy_pct,
             gpu_power_source: state.gpu.power_source.clone(),
+            flow_confidence: state.flow.and_then(|flow| flow.confidence),
+            flow_rate: state.flow.and_then(|flow| flow.rate_of_change),
+            flow_sign: state
+                .flow
+                .and_then(|flow| flow.sign())
+                .map(|sign| sign.to_string()),
         };
         state.ledger.sample(dt, &sample);
 
@@ -1962,6 +2122,15 @@ impl Daemon {
     }
 
     /// Give the memory back and write the peak down.
+    ///
+    /// Not every finished lease teaches the history: a run teaches only if
+    /// it finished cleanly (`exit 0`) and lasted more than a few seconds
+    /// (`history::MIN_LEARNED_DURATION_S`). A no-op run — a wrapper invoked
+    /// with nothing to do — exits 0 in milliseconds with a few megabytes,
+    /// and 25 of those taught `infinigen.mountain.coarse` to reserve 3.6 MB
+    /// on 2026-11-01 while it was using 1.3 GiB. The peak is still measured
+    /// and still logged (`lease.released`); it is only the *history* that
+    /// refuses it, and the log says why in `history.not_learned`.
     fn release_lease(&self, state: &mut State, id: u64, reason: &str) {
         let Some(index) = state.leases.iter().position(|l| l.id == id) else {
             return;
@@ -1982,19 +2151,50 @@ impl Daemon {
             );
         }
         let (peak, peak_source) = lease.measured_peak();
-        let mut record = PeakRecord::new(&lease.label, &lease.label, peak);
-        record.peak_gpu_bytes = if lease.peak_gpu > 0 {
-            Some(lease.peak_gpu)
-        } else {
-            None
+        let duration_s = lease.granted_at.elapsed().as_secs_f64();
+        let record = {
+            let mut record = PeakRecord::new(&lease.label, &lease.label, peak);
+            record.peak_gpu_bytes = if lease.peak_gpu > 0 {
+                Some(lease.peak_gpu)
+            } else {
+                None
+            };
+            record.gpu_visible =
+                state.gpu_source != "off" && !state.gpu_source.contains("unavailable");
+            record.duration_s = duration_s;
+            record.mem_total_bytes = state.mem.mem_total;
+            record.floor_bytes = self.config.floor;
+            record.peak_source = peak_source.to_string();
+            record.exit_code = lease.reported_exit;
+            record
         };
-        record.gpu_visible = state.gpu_source != "off" && !state.gpu_source.contains("unavailable");
-        record.duration_s = lease.granted_at.elapsed().as_secs_f64();
-        record.mem_total_bytes = state.mem.mem_total;
-        record.floor_bytes = self.config.floor;
-        record.peak_source = peak_source.to_string();
-        if let Err(error) = state.history.append(record) {
-            self.log_event("history.write_failed", json!({"error": error.to_string()}));
+        if record.teaches() {
+            if let Err(error) = state.history.append(record) {
+                self.log_event("history.write_failed", json!({"error": error.to_string()}));
+            }
+        } else {
+            let why = if lease.reported_exit.map_or(true, |code| code != 0) {
+                match lease.reported_exit {
+                    Some(code) => format!("the run finished with exit {code}"),
+                    None => "the daemon cannot say how the run finished".to_string(),
+                }
+            } else {
+                format!(
+                    "the run lasted {duration_s:.2}s, under the {}s a run must last to teach",
+                    crate::history::MIN_LEARNED_DURATION_S
+                )
+            };
+            self.log_event(
+                "history.not_learned",
+                json!({
+                    "lease": lease.id,
+                    "label": lease.label,
+                    "reason": why,
+                    "peak_rss_bytes": peak,
+                    "duration_s": duration_s,
+                    "exit": lease.reported_exit,
+                }),
+            );
         }
         let _ = std::fs::remove_file(&lease.lock_path);
         self.log_event(
@@ -2005,7 +2205,8 @@ impl Daemon {
                 "reason": reason,
                 "peak_rss_bytes": peak,
                 "peak_source": peak_source,
-                "duration_s": lease.granted_at.elapsed().as_secs_f64(),
+                "duration_s": duration_s,
+                "exit": lease.reported_exit,
             }),
         );
     }
@@ -2349,6 +2550,7 @@ fn presence_reports(state: &State) -> Vec<PresenceReport> {
                 tier: job.spec.tier,
                 peak_bytes: job.spec.peak_bytes,
                 resumable: job.spec.resumable,
+                enabled: job.spec.enabled,
                 state: job.state.as_str().to_string(),
                 command: job.spec.command.join(" "),
                 pgid: running.map(|job| job.pgid).unwrap_or(0),

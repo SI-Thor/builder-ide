@@ -57,6 +57,11 @@ class Daemon:
                 str(self.socket),
                 "--state-dir",
                 str(self.state),
+                # These leases are CPU-only, so the box's real GPU pool
+                # (other seats' CUDA work can leave it under the GPU floor)
+                # must not be a part of their admission.
+                "--gpu-probe",
+                "off",
                 "--idle-exit",
                 "120",
             ],
@@ -132,8 +137,11 @@ def test_a_lease_is_held_and_given_back(daemon: Daemon):
 
 @needs_binary
 def test_the_peak_is_recorded_for_the_label(daemon: Daemon):
+    # A run teaches only if it lasted: the block below outlives the
+    # five-second line, because a lease that ends in no time did no work
+    # and its peak teaches the history nothing (round 9).
     with lease("1G", "shim-peak", socket_path_override=daemon.socket):
-        pass
+        time.sleep(5.5)
 
     records = daemon.history()
     assert len(records) == 1
@@ -141,16 +149,28 @@ def test_the_peak_is_recorded_for_the_label(daemon: Daemon):
     assert record["label"] == "shim-peak"
     assert record["basis"] == "measured"
     assert record["source"] == "thor-admit"
-    # The shim reports its own high-water mark.
+    # The shim reports its own high-water mark, and a clean finish.
     assert record["peak_rss_bytes"] > 0
+    assert record["exit_code"] == 0
+
+
+@needs_binary
+def test_a_no_op_lease_teaches_nothing(daemon: Daemon):
+    # The same lease, gone in milliseconds: measured, logged, and pointedly
+    # absent from the history.
+    with lease("1G", "shim-noop", socket_path_override=daemon.socket):
+        pass
+
+    assert daemon.history() == []
 
 
 @needs_binary
 def test_auto_uses_what_the_label_learned(daemon: Daemon):
-    # auto refuses to guess until the label has three runs behind it.
+    # auto refuses to guess until the label has three runs behind it, and
+    # each of those runs has to have lasted long enough to teach.
     for _ in range(3):
         with lease("2G", "shim-auto", socket_path_override=daemon.socket):
-            pass
+            time.sleep(5.5)
 
     with lease("auto", "shim-auto", socket_path_override=daemon.socket) as held:
         assert held.peak_bytes > 0

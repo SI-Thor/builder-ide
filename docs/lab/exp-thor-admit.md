@@ -577,4 +577,189 @@ because they allocate nothing.
   stream priorities would be finer; they were not measured here.
 * **A full hour.** The ledger's unit is the hour and the run above is 51
   seconds of one. The hour rollover is unit-tested; a real hour of the
-  box's own time has not been watched yet.
+  box's own time is §19 now (measured 2026-11-01, round 9's item 5).
+
+## 18. Round 9: the no-op that taught a 3.6 MB reserve
+
+The director's overnight watch (2026-11-01, ~01:35 AKST) caught the
+daemon's learned peaks trusting runs that did no work. This section is
+the incident, the rule that closes it, and what the round's own testing
+found on the way.
+
+**The incident, from the box's own records.** At 00:47 the sweep
+wrapper's no-op invocations wrote 25 records into `peaks.jsonl`, one per
+biome — every one `duration_s` under 0.03 and `peak_rss_bytes` 3 801 088
+(the wrapper binary's own footprint, 3.6 MB). The director removed them
+at 00:50 (`peaks.jsonl.bak-0048` keeps them), but the daemon had loaded
+them at 00:45 and kept them in memory. At ~01:12 a lease for
+`infinigen.mountain.coarse` was **granted with `peak_bytes` 3 801 088**
+— the p95 of 25 no-ops — and by 10:12 UTC it was using
+1 173 307 392 B (1.09 GiB), 308× its reserve, with the over-run watch
+writing the real peaks into the history while it ran:
+
+```
+{"event":"lease.underreserved","label":"infinigen.mountain.coarse","lease":39,
+ "reserved_bytes":3801088,"peak_rss_bytes":1173307392,
+ "over_by_bytes":1169506304,...}
+```
+
+The over-run watch (round 8) kept the box safe — the lease was visible,
+logged and corrected while it ran — but the *reserve* was nonsense, and
+a nonsense reserve is what the history is for.
+
+**The rule.** A run teaches the history only if it **exited 0** (the
+client now reports its exit status on release) **and lasted at least
+5 s** — applied when the record is written *and* when the file is read,
+so no-ops already in a file are ignored however many of them there are.
+The one exception is the over-run record, which always teaches: it is
+written only past a gross over-reservation and can only raise a
+reserve. A model server that never exits cleanly (a seat stops it with
+a signal) keeps its explicit `--peak` — over-reserving is the safe
+direction.
+
+**The reload.** The history and the presence queue are loaded once, so
+the director's 00:50 edit never reached the running daemon, and the
+only cure was a restart — which waits for a box with no leases.
+`thor-admit reload` (and `SIGHUP`) re-read both files and touch nothing
+that is running. The incident is a test:
+`a_no_op_run_cannot_teach_the_reserve` seeds the daemon's history with
+the exact 25 records, watches a live no-op fail to teach, hand-teaches
+the label with three real records, reloads, and takes the learned peak.
+
+**Two bugs the round's own tests found.**
+
+*The daemon that idled out but did not exit.* A test daemon idled out
+under a waiter the GPU's floor was holding, and hung the suite for half
+an hour. The cause: the CLI's signal watcher waited for a signal, and
+only a signal — after an idle exit the daemon's clock had left, the
+process stayed alive in `watcher.join()`, and it kept the socket's
+flock, so every later daemon on that socket was refused with "another
+thor-admit daemon is already running" while the log said `idle_exit`.
+Fixed twice over: the watcher takes the daemon's own `is_stopped` word,
+and a non-empty queue counts as activity — a daemon with a client
+waiting for room has something to do.
+
+*The tests read the box's real GPU pool.* With other seats' CUDA work
+holding `lfb` at 0.15–0.4 GiB — under the 2 GiB `--gpu-floor` — every
+CPU-only test lease waited on the GPU's rule, because `gpu_admits`
+applies the pool's floor to every lease including one that promises no
+device memory. On the live box that is the designed rule doing its job
+(below); in a test it is another seat's CUDA allocations deciding a
+CPU-only test's admission. Test daemons now start `--gpu-probe off`.
+
+**`serve`, keyed on the model** (the 01:19 incident). Three d1-2B
+servers ran as `d1-2B`, `d1-2B-baseline` and `d1-2B-batch` because the
+registry deduped by the name a seat typed. The registry now keys on the
+model file (resolved path + a streamed FNV-1a content hash) plus the
+config tuple (the command minus the model file and the port). At 02:10
+the box was still paying for the old keying: a second d1-2B server was
+admitted under the name `d1-2B-baseline` while `serve.d1-2B` (8 GiB
+reserved, 830 MiB used) was already answering. Entries from the
+name-keyed build keep their old key until their servers go.
+
+**The tests, on this box, 2026-11-01 ~02:45 AKST (load ~11, `lfb`
+swinging 0.15–2 GiB, other seats' work running):**
+
+| Suite | Result | Time |
+|---|---|---|
+| unit (`cargo test --lib`) | 116/116 | 0.03 s |
+| integration (serial, the default) | 30/30 | 146.6 s |
+| the Python shim | 10/10 | 24.7 s |
+
+The teaching runs in the learned-peak tests now outlast the five-second
+line, because that is what a teaching run is; the suite grew by four
+tests (the no-op, the SIGHUP reload, the two-names serve, the by-label
+ledger with the flow signal).
+
+## 19. The one-hour measurement, on the real load (item 5)
+
+Round 9's item 5: measure one hour of the box under the daemon with the
+real load, and read the ledger's tier split, the minimum `MemAvailable`,
+the refusals and the pre-emptions.
+
+**What ran.** The daemon in tmux `last-mile:admitd` since 00:45 AKST
+(the round-8 binary — the round-9 binary was shipped to
+`~/lm-tools/thor-admit` at 02:50, and the swap waits for a moment with
+no leases, which two model-server leases 3.8 h and 2.3 h long never
+offered; `reload`, once the new daemon is in, is how cleanups reach it
+without a restart at all). The hour is **12:00–13:00 UTC on 2026-11-01
+(03:00–04:00 AKST)**, the ledger's own closed bucket `T12`, with a
+per-minute status sampler alongside (56 samples in the window).
+
+**The box, beside every number:** `MemTotal` 122.8 GiB, no swap; free
+memory 89.3–100.6 GiB for the whole hour; load 4.8–7.0 falling from a
+~24 peak earlier; 10 tmux windows of seats' work plus the sweep;
+`oom_kill` 0 before, during and after.
+
+| What item 5 asked for | The hour's answer |
+|---|---|
+| tier split | **live 3 723.5 s of 3 724 s (100 %)**; preparation, practice, study: 0 s; idle 0.0 s, `unattributed` 0.0 % |
+| minimum `MemAvailable` | **89.3 GiB** (of 122.8 GiB; never within 81 GiB of the 8 GiB emergency floor) |
+| refusals | **0 refused, 0 granted** — 3 new arrivals were queued (positions 19–21) and none admitted in the hour |
+| pre-emptions | **0** (no `presence.preempted`, no `watchdog.*`, no OOM kills) |
+| GPU | 8.0 W mean / 44.0 W max (`tegrastats`), busy share 10.1 % mean |
+| CPU | 14 cores, mean busy share 0.217 (one core at 0.64, the rest under 0.2) |
+
+**The finding the hour actually carries.** The box was safe — two
+model-server leases held 16 GiB reserved against ~1.5 GiB used all
+hour, the watchdog had nothing to do — and simultaneously **not at full
+presence**: 18–21 ready requests sat in the queue for the entire hour
+while 89–100 GiB stood free and the GPU idled at 8 W and 10 %. Nothing
+was refused; nothing fit either. The reason is the GPU's own allocation
+pool: `lfb` stayed between 0.14 and 1.5 GiB, under the 2 GiB
+`--gpu-floor`, and the pool rule (round 8, Hy4's third failure mode)
+holds every lease — including CPU-only work — while the pool is thin.
+The daemon's own log names it precisely, once per waiter:
+
+```
+{"event":"lease.waiting_for_gpu_memory","label":"d1-2B-batched",
+ "label_gpu_peak_bytes":0,"gpu_free_bytes":511705088,
+ "gpu_floor_bytes":2147483648,...}
+{"event":"lease.waiting_for_gpu_memory","label":"syzygy-keyframes.d1kf-cpu",
+ "label_gpu_peak_bytes":8984199168,"gpu_free_bytes":3573547008,...}
+```
+
+The second line is the pool rule working as designed: that label has
+*learned* a 8.98 GiB device-memory promise (a llama-server with
+`-ngl 99`, whatever "cpu" is doing in its name), and admitting it into
+a 3.5 GiB pool would have been the exact `cudaMalloc` failure the rule
+exists to prevent. The first line is the open question: a lease that
+promises **zero** device memory, held by a floor protecting a pool it
+will never touch. The last time the pool recovered above the floor
+(10:43 UTC), a burst of three leases was admitted within the same
+second — the queue drains the moment the rule lets it.
+
+So the honest split of the hour: **the memory rule and the watchdog did
+their jobs** (no incident, no kill, no unexplained second), and **the
+presence scheduler had nothing to say** — no background tier ran a
+second, because live requests were waiting and the pool never opened.
+"The Thor is always at full presence" is measured false tonight for a
+reason no lease caused: ~40–70 GiB of other seats' CUDA allocations
+(the physag, cad and coldshelf work, outside the daemon's leases) held
+the non-reclaimable pool shut. That is the design record's open
+question §11.8 with an hour of evidence behind it.
+
+**Two smaller observations, kept for the record.**
+
+*Zombie waiters.* A client that dies while queued leaves its waiter in
+the queue: the daemon only discovers the dead reply channel when it
+tries to grant, and a queue that never fits never tries. Two of the 21
+waiters in this hour were the round's own killed hog probes
+(`hog.4g`, 12:06 UTC). Harmless while blocked and self-healing on the
+next grant, but a queue depth of 21 overstates the live demand by at
+least two — a waiter whose client pid is gone could be reaped on the
+same liveness pass the leases get.
+
+*The disabled examples.* The round ships the three cheapest
+PRESENCE-JOBS.md proposals as disabled examples in
+`presence.default.json`, but they could not be registered on the live
+daemon: it predates `presence add --disabled`, and registering them
+enabled would have run the placeholder `echo` and called it a night's
+work. They register at the daemon swap; the hour's presence queue held
+one real job (`syzygy-keyframes.d1kf`, pending — correctly, behind
+waiting live work and a pool it has learned to need 8.98 GiB of).
+
+**Reproduce:** the ledger is the daemon's own
+(`thor-admit ledger --hours 2`), the per-minute sampler is 60 calls to
+`thor-admit status --json`, and the window's events are grepped from
+`~/.local/state/thor-admit/daemon.log` between the two UTC stamps.

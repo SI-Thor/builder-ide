@@ -119,6 +119,11 @@ pub enum Request {
         lease: u64,
         #[serde(default)]
         peak_rss_bytes: Option<u64>,
+        /// How the command finished: 0 is a clean exit, `128 + signal` a
+        /// kill. A lease whose run did not finish cleanly teaches the peak
+        /// history nothing (see `PeakRecord::teaches`).
+        #[serde(default)]
+        exit_code: Option<i32>,
     },
     /// Register a job in the presence queue.
     PresenceAdd {
@@ -128,11 +133,23 @@ pub enum Request {
         #[serde(default)]
         resumable: bool,
         command: Vec<String>,
+        /// Is the job wanted? A disabled job stays registered and does not
+        /// run — the shape an example or a held-over job takes.
+        #[serde(default = "default_true")]
+        enabled: bool,
     },
     /// Take a job out of the presence queue.
     PresenceRemove { id: u64 },
     /// What is in the presence queue?
     PresenceList,
+    /// Re-read what the daemon reads from disk: the peak history and the
+    /// presence queue.
+    ///
+    /// The daemon keeps both in memory, so an edit made by hand (an operator
+    /// cleaning no-op records out of the history, a night runner editing the
+    /// queue) is invisible to a running daemon until it reloads. `SIGHUP`
+    /// does the same thing.
+    Reload,
     /// The time ledger: the hours, and the hour being kept now.
     Ledger,
     /// What is going on?
@@ -204,6 +221,9 @@ pub struct PresenceReport {
     pub tier: Tier,
     pub peak_bytes: u64,
     pub resumable: bool,
+    /// Is the job wanted? A disabled job stays registered and does not run.
+    #[serde(default = "default_true")]
+    pub enabled: bool,
     /// What the job is doing: pending, running, preempted, done, failed.
     pub state: String,
     /// The command, as one string.
@@ -265,8 +285,20 @@ pub enum Response {
         label: String,
         tier: Tier,
     },
+    /// The daemon re-read its history and its presence queue.
+    Reloaded {
+        /// How many peak records it is holding now.
+        peaks: usize,
+        /// How many presence jobs are registered now.
+        presence: usize,
+    },
     /// Nothing to report.
     Ok,
+}
+
+/// The default a `PresenceAdd` without `enabled` gets: wanted.
+fn default_true() -> bool {
+    true
 }
 
 impl Response {
@@ -281,6 +313,7 @@ impl Response {
             Response::Presence { .. } => "presence",
             Response::Ledger { .. } => "ledger",
             Response::PresenceAdded { .. } => "presence_added",
+            Response::Reloaded { .. } => "reloaded",
             Response::Ok => "ok",
         }
     }
@@ -361,6 +394,7 @@ mod tests {
             peak: PeakArg::Bytes(1024),
             resumable: true,
             command: vec!["python3".to_string(), "sweep.py".to_string()],
+            enabled: false,
         };
         let text = serde_json::to_string(&request).unwrap();
         assert!(text.contains("\"op\":\"presence_add\""));
@@ -372,6 +406,52 @@ mod tests {
         assert_eq!(text, "{\"op\":\"presence_list\"}");
         let back: Request = serde_json::from_str(&text).unwrap();
         assert_eq!(back, list);
+    }
+
+    #[test]
+    fn a_release_carries_how_the_run_finished() {
+        let request = Request::Release {
+            lease: 7,
+            peak_rss_bytes: Some(1234),
+            exit_code: Some(0),
+        };
+        let text = serde_json::to_string(&request).unwrap();
+        assert!(text.contains("\"exit_code\":0"), "{text}");
+        let back: Request = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, request);
+
+        // And the shape an older client writes — no exit status — is still
+        // readable, as an unknown finish.
+        let old = r#"{"op":"release","lease":7}"#;
+        let back: Request = serde_json::from_str(old).unwrap();
+        assert_eq!(
+            back,
+            Request::Release {
+                lease: 7,
+                peak_rss_bytes: None,
+                exit_code: None
+            }
+        );
+    }
+
+    #[test]
+    fn a_presence_add_without_enabled_is_wanted() {
+        // The shape an older client writes.
+        let text = r#"{"op":"presence_add","label":"sweep","tier":"study","peak":1024,
+                       "resumable":true,"command":["true"]}"#;
+        let request: Request = serde_json::from_str(text).unwrap();
+        match request {
+            Request::PresenceAdd { enabled, .. } => assert!(enabled),
+            other => panic!("wrong request: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn the_reload_request_round_trips() {
+        let text = serde_json::to_string(&Request::Reload).unwrap();
+        assert_eq!(text, "{\"op\":\"reload\"}");
+        let back: Request = serde_json::from_str(&text).unwrap();
+        assert_eq!(back, Request::Reload);
     }
 
     #[test]

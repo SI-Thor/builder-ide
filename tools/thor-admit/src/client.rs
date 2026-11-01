@@ -138,13 +138,32 @@ impl Client {
         Ok(())
     }
 
-    /// Give the lease back.
-    pub fn release(&mut self, lease: u64, peak_rss_bytes: Option<u64>) -> std::io::Result<()> {
+    /// Give the lease back, saying how the run finished. A clean exit
+    /// (`Some(0)`) is what lets the daemon learn the run's peak; anything
+    /// else — a failure, a kill, or `None`, a client that cannot say —
+    /// teaches the history nothing.
+    pub fn release(
+        &mut self,
+        lease: u64,
+        peak_rss_bytes: Option<u64>,
+        exit_code: Option<i32>,
+    ) -> std::io::Result<()> {
         self.request(&Request::Release {
             lease,
             peak_rss_bytes,
+            exit_code,
         })?;
         Ok(())
+    }
+
+    /// Ask the daemon to re-read its history and its presence queue.
+    pub fn reload(&mut self) -> std::io::Result<(usize, usize)> {
+        match self.request(&Request::Reload)? {
+            Response::Reloaded { peaks, presence } => Ok((peaks, presence)),
+            other => Err(std::io::Error::other(format!(
+                "unexpected answer from the daemon: {other:?}"
+            ))),
+        }
     }
 
     /// Ask what is going on.
@@ -169,6 +188,7 @@ impl Client {
         tier: Tier,
         peak: PeakArg,
         resumable: bool,
+        enabled: bool,
         command: Vec<String>,
     ) -> std::io::Result<(u64, String, Tier)> {
         let request = Request::PresenceAdd {
@@ -176,6 +196,7 @@ impl Client {
             tier,
             peak,
             resumable,
+            enabled,
             command,
         };
         match self.request(&request)? {
@@ -365,7 +386,7 @@ pub fn run_under_lease(
     }
 
     let outcome = wait_for(pid)?;
-    let _ = client.release(grant.lease, Some(outcome.peak_rss_bytes));
+    let _ = client.release(grant.lease, Some(outcome.peak_rss_bytes), Some(outcome.code));
     Ok(outcome)
 }
 
