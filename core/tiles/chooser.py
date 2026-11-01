@@ -56,6 +56,15 @@ class Choice:
     estimate of a future chooser possible (see :mod:`core.tiles.ope`).
     ``None`` means this choice did not come from a chooser that measures
     its own propensity, and an off-policy estimate cannot weight it.
+
+    ``candidates`` is the set the choice was made from — the eligible tiles
+    the chooser was offered. It travels with the choice because a target
+    policy's probability has to normalise over the same set, and because the
+    propensity above is measured over it: a chooser that chose among three
+    tiles did not choose among six hundred. A chooser that narrows the
+    options (the retrieval front, :mod:`core.tiles.retrieval`) puts the
+    narrowed set here, so the number on the record is the number the
+    weight divides by.
     """
 
     tile_id: str
@@ -63,6 +72,7 @@ class Choice:
     bucket: str
     score: float
     propensity: float | None = None
+    candidates: tuple[str, ...] = ()
 
 
 @runtime_checkable
@@ -170,6 +180,10 @@ class ContextualBandit:
             )
 
         bucket = self.bucket(context)
+        # The eligible set the choice is made from. It goes on the choice so
+        # the play record carries it: a target policy normalises over the
+        # same set, and the propensity below is measured over it.
+        eligible_ids = tuple(tile.id for tile in eligible)
         if len(eligible) == 1:
             only = eligible[0]
             return Choice(
@@ -178,6 +192,7 @@ class ContextualBandit:
                 bucket=bucket,
                 score=self.estimate(bucket, only.id),
                 propensity=1.0,
+                candidates=eligible_ids,
             )
 
         # The exploration rate is read once, here, so that the propensity
@@ -191,6 +206,7 @@ class ContextualBandit:
                 bucket=bucket,
                 score=self.estimate(bucket, explored.id),
                 propensity=epsilon / len(eligible),
+                candidates=eligible_ids,
             )
 
         best = min(eligible, key=lambda tile: self._rank(bucket, tile.id))
@@ -204,6 +220,7 @@ class ContextualBandit:
             # and it is also in the exploration pool with probability
             # eps / |eligible|. Both ways count.
             propensity=(1.0 - epsilon) + epsilon / len(eligible),
+            candidates=eligible_ids,
         )
 
     def current_epsilon(self) -> float:

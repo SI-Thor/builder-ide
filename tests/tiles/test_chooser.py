@@ -52,6 +52,38 @@ def test_the_chooser_picks_an_eligible_tile(two_tiles):
     assert choice.bucket == "phase=dusk"
 
 
+def test_the_chooser_says_which_set_it_chose_from(two_tiles):
+    """The choice carries the eligible set it was made from.
+
+    The propensity on the choice is measured *over that set*: a chooser
+    that picked among two tiles did not pick among six hundred. The set
+    therefore travels with the choice, so a target policy can normalise
+    over the same one.
+    """
+    chooser = ContextualBandit(feature_keys=("phase",), epsilon=0.0, seed=1)
+    choice = chooser.choose({"phase": "dusk"}, list(two_tiles))
+    assert choice.candidates == tuple(tile.id for tile in two_tiles)
+
+
+def test_the_eligible_set_on_the_choice_leaves_out_the_ineligible(two_tiles):
+    """A tile that could not have been played is not in the set either."""
+    from core.tiles.models import Precondition
+
+    chooser = ContextualBandit(feature_keys=("phase",), epsilon=0.0, seed=1)
+    dusk_only = two_tiles[0].model_copy(
+        update={
+            "preconditions": (Precondition(key="phase", op="eq", value="dusk"),)
+        }
+    )
+    noon_only = two_tiles[1].model_copy(
+        update={
+            "preconditions": (Precondition(key="phase", op="eq", value="noon"),)
+        }
+    )
+    choice = chooser.choose({"phase": "dusk"}, [dusk_only, noon_only])
+    assert choice.candidates == (dusk_only.id,)
+
+
 def test_the_chooser_refuses_when_no_tile_is_eligible(two_tiles):
     from core.tiles.models import Precondition
 
