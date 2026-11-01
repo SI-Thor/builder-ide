@@ -75,3 +75,14 @@ The Syzygy program's rule, generalised: *a model should only ever pay for the vi
 - **Fidelity is learned from outcomes.** When a reflex decides badly and the post-mortem shows missing information, the spec gains that channel or detail. When a channel never informs a decision that mattered, it is dropped. Perception specs are **another kind of tile**: cloud-written, scored by results (with off-policy evaluation as the honest judge), kept or retired. It is last-mile's lesson, that the trainer's main lever is choosing the right questions, applied to *what to see*.
 
 The result: the fiction gets cheaper and sharper at once, with detail flowing to where decisions need it.
+
+## The band (Casey, 2026-10-31)
+
+"The MIDI Maze side can be locked into a groove as a musician … in the moment, with an improv session, as the PLATO side turns down the resolution and up the differences, so the agent is close to the metal with its choices and connections. With planned moments to take a break from the moment and get a high-resolution reference frame in the middle of a lick they know well, their fingers on autopilot for a second. Then they put the blinders on and use what they just noticed (the dancers vibing, their drummer giving them and the band a look that he should take another chorus as a solo because he's on fire) to willingly nudge him. **The Thor is a band, not one player.**"
+
+- **When to take the high-resolution look: the autopilot window.** Keyframes are timed for moments when the reflex is in a well-rehearsed pattern (high confidence and a *low rate of change*), not merely idle ones. The reflex carries itself, so the look costs no performance. This adds to the cut, drift and idle triggers.
+- **What to look at: the room, not the score.** The glance gathers context and **other players' state** (peers, the human), and it becomes a *nudge* on the next choices, not an interruption. Then the blinders go back on: low resolution, high difference, close to the metal.
+- **Cues, not scores.** Players coordinate by cues: sparse, high-gain signals on their own channel in the room graph ("take another chorus"), not by broadcasting everything.
+- **The drummer's look, in the night.** When the critic sees a builder's work *improving fast*, it cues the scheduler to grant that loop another chorus (more iterations), taken from loops that have gone flat. This is the time-first scheduler.
+- **The audience is the human.** What Casey keeps, undoes or looks at is the dancers' feedback, a nudge on what the band plays next.
+- **The band on the Thor:** a d1 per character, the critic, the generators, the scheduler and the first mile. Many players on one stage, each in its own groove, listening for cues.
