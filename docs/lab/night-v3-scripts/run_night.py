@@ -23,7 +23,8 @@ One ledger, one runner, every layer real:
   the band    the chorus: a loop rising fast is granted another round, taken
               from a loop gone flat; each cue and its effect recorded
   flow        the mediator (a cloud LLM) is counted in and out of flow;
-              V-JEPA 2's prediction error is logged if the service answers
+              V-JEPA 2's prediction error is NOT wired on this branch —
+              the honest gap is recorded, not hidden
 
 Run on the Thor, from the night-v3 worktree, in the propmaker-batch venv:
 
@@ -768,8 +769,8 @@ class JudgeSeat:
     def in_flow(self) -> bool:
         """The knower's sign, as the night can measure it: the decision
         models confident, the standing steady, the critic's quality not
-        falling. Low prediction error itself is V-JEPA's job (logged beside,
-        never built on)."""
+        falling. Low prediction error itself is V-JEPA's job (not wired on
+        this branch — the honest gap is recorded, not hidden)."""
         steady = (
             self.last_confidence is not None
             and self.last_confidence >= 0.5
