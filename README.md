@@ -28,7 +28,7 @@ seat you work from.
   - **One memory for both processors.** On the Thor, memory that the CPU's `malloc` returns (what NumPy uses) is also device-addressable: the device pointer *is* the host pointer. A NumPy array can be wrapped, not copied, as a GPU array, so NumPy, PyTorch and a CUDA kernel read and write the same 4 GB buffer, and the GPU reads CPU-allocated memory at 100.9 GB/s.
   - **The terrain, ported to Warp.** Infinigen's `mountains` element is deterministic integer hashing plus float math over a grid of positions. Written as one Warp kernel compiled to native sm_110 code, it gives **bit-identical** heights **44–56× faster** than the 14-core CPU path. It is also 6× faster than Infinigen's own CUDA library, because that library allocates a device buffer and copies the positions into it on every call, and on a unified-memory machine that copy buys nothing.
   - **The mesher's distance field.** The same reasoning moves the OcMesher's signed-distance evaluation (two-thirds of the mesher's time) to Warp, bit-identically, at 75–85× the CPU path. What remains is the octree's bookkeeping. The application is a world that **re-meshes around the camera as it moves**.
-- **The core is integrated and renders for real: 1,627 tests pass** in one
+- **The core is integrated and renders for real: 1,660 tests pass** in one
   suite (see [INTEGRATION.md](INTEGRATION.md)).
   - The M1 session plays one evening, night and morning **with real Infinigen
     2.0 renders on the Thor's GPU** (4–9 s per render step, ~30 s for the whole
@@ -218,10 +218,11 @@ Branches are pushed as the agents work and reviewed before they merge into
 | `hysteresis-d1` | core/judge's escalation runs through the hysteresis gate, tuned on real d1 confidence traces. d1-2B's standing state changed 97 times in 240 ticks (66 flickers); with split thresholds and a dwell it is near still, a real drop escalates at once, and acting waits ≤ 2 ticks. Per-model settings ([exp](docs/lab/exp-hysteresis-d1.md)) | merged |
 | `critic-select` | A hybrid critic: the scripted checks, with a delegate asked only about the one class they miss (floating objects). 24 caught, 0 false positives, 0 misses on the reference set, for +23 ms. The trial delegate was a 30B VLM on the Thor, which B2 rules out; it is being replaced by d1-2B (vision-capable) or Clef on Workers AI ([exp](docs/lab/exp-critic-select.md)) | merged |
 | `tiles-retrieval` | The retrieval front (a small CPU embedder), pincher's three bands held by the hysteresis gate, and a deterministic `.nail` export. On a 6-tile library retrieval does not beat the bandit (78.0 % vs 79.8 %); it is for libraries too big to score in full ([exp](docs/lab/exp-tiles-retrieval.md)) | merged |
+| `judge-fixes` | Three production failures an adversarial review found in core/judge, fixed. Oversized question packs are split, not refused. The standing gate ships its calibrated τ and rebuilds from the ledger after a restart. Escalation re-reads the current state; a backend refusal moves to the next rung; never-wait bounds the wait. A replay of the 240-tick d1 trace, rebuilt from the ledger mid-run, reproduces the uninterrupted run exactly | merged |
 | `research/ecology-bridge` (the z.ai agent) | A read-only Python mirror of [ecology-thor](https://github.com/SI-Thor/ecology-thor)'s attention auction and rail conservation (GPU seconds, joules, cents); the bridge for testing an auction-driven night against our runner ([note](docs/research/ecology-thor.md)) | merged |
 | `fp8-real` | The mesh stage is priced as the night runs it (generator, repair and measuring; the bare-generator price was 3.4× low). TRELLIS.2's fused FP8 path now truly receives FP8 weights, and measures 7–31 % slower per mesh step than BF16 with +14 GB host memory, under the quality floor (IoU 0.934 vs 0.95), so BF16 stays the default, with the dtype a request parameter ([exp](docs/lab/exp-fp8-real.md)) | merged |
 
-**`main` today: 1,627 tests pass** (3 skipped; the real-engine tests are opt-in).
+**`main` today: 1,660 tests pass** (3 skipped; the real-engine tests are opt-in).
 
 ### In flight
 
