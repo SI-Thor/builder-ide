@@ -761,203 +761,6 @@ demotion itself would mean touching the admission daemon, and this build is
 the detector and its measurement. That is the next thing to do, with the
 tier demotion behind the same threshold this lab chose.
 
-## 2026-11-01 19:00 — build #2: the drift detector
-
-The brief (this seat's `BRIEF.md`) asks for build #2 of
-`docs/design/vibecode-in-world.md`: §3.4's drift detector and the
-auto-pause signal, offline, on the world ledger that already exists.
-
-State before I started, on the Thor, in `~/lm-wt/drift-detector`:
-
-- `git log --oneline` — last commit `535e7e3` ("design: vibecode-in-world"),
-  which is the note this build implements. The branch `drift-detector` had
-  **no commits of its own** yet.
-- `git status --short` — clean.
-- `pgrep -af drift` — nothing of mine running. The residents are other
-  projects' (the world's reflex, the builder IDE, crafter-lab).
-- The box: 122 GB total, 11 GB used, 111 GB available, load 5.4/6.1/11.9,
-  26 users. The world was running the whole time — the ledger is live.
-
-**Decision:** read the world's ledger read-only and never write to it; take
-the ground truth from instruments *outside* the ledger, so the measurement
-is not the detector scored against its own rows.
-
-## 2026-11-01 19:10 — what the ledger actually carries
-
-`~/lm-wt/agent-world/runtime/world-ledger.sqlite3` is 113 MB and still
-growing. One table, `audit` (seq, id, at, actor, type, subject, payload,
-artifact). Four event types: `tile.played` (43,125), `judge.verdict`
-(40,617), `tile.authored` (285), `tile.retired` (39).
-
-**Per-actor attribution is in the payload, not the `actor` column.** The
-`actor` column holds a JSON blob naming the *seat* that wrote the row (the
-reflex, the judge, the seed); the agent a row is about is
-`context.bot` for a play and `judgments[].qid` for a verdict. The design
-note's "82,952 labelled events with per-actor attribution" is this ledger,
-and it is still being written.
-
-Three things §3.4 says that the ledger does not say, found by reading the
-rows:
-
-1. The *outcome* is on `tile.played` (`outcome.result`), not on
-   `judge.verdict`. A verdict carries the decision (the agent, the
-   confidence) and no outcome. So the success signal reads the plays.
-2. `constraint.failed` and `wo.failed` are **canon** event types
-   (`core/fold.py`); the world ledger has neither. The third event §3.4
-   names — payload flagged `refused: true` — is exactly the world's own
-   refusal event, and that half of the definition holds verbatim.
-3. The spend is not in thor-admit's ledger: the world's services run
-   outside the lease system, so there is **no world label** to divide. The
-   spend is in the ledger's own `cost` fields, and `hosted_cents` is 0 on
-   every row (the decision model is local).
-
-Two of the six signals are not computable at all: rule violations (the
-bots' humanity promises live in the bots' code and are never written to
-the ledger) and build drift (the ledger has no branch head and no
-constraint set; that is the canon side).
-
-## 2026-11-01 19:25 — the ground truth, and the timezone that nearly hid it
-
-Three instruments outside the ledger:
-
-- `bots.jsonl` (the world's clients): `reflex_unreachable`,
-  `play_not_recorded`, `kicked`, their own errors (117 events), and the
-  refused decisions whose *cause* is a failure — `IntegrityError: UNIQUE
-  constraint failed: audit.id`, `ProgrammingError`, "the reflex did not
-  answer in time" (8,179 events).
-- `docs/lab/incident-2026-11-01-jax-hang.md` — the box hang.
-- `agent-world/docs/playtest-2026-11-01-reward.md` — the wedge (the
-  builders could not move) and the judge being unreachable twice.
-
-**The timezone, which I nearly got wrong.** The box is AKST (UTC−9) and
-`journalctl --list-boots` prints AKST. The incident note's boot id
-(`ea0658fc`) is the boot that ended at **10:49:53 AKST = 19:49:53Z**, so
-the note's "~10:45" and "~10:59" are 19:45Z and 19:59Z. The playtest
-note's "rebooted at ~20:00 UTC; the world came back at 20:06" is the same
-event in UTC from the other note. And the world's ledger has a **25-minute
-hole over exactly that stretch** (19:40Z–20:00Z) — which is how the
-derivation was checked rather than believed.
-
-The negative control: 2,217 refusals whose cause is the world *yielding*
-the box ("yielded: the box has N GB free" / "leased: another seat holds
-the box"). Those are not failures, and a detector that alarms on them is
-wrong. Kept as their own class so that can be measured.
-
-Nine labelled drift episodes, 115 positive windows.
-
-## 2026-11-01 19:45 — three measurement bugs, found by the first numbers
-
-The first calibration run was wrong in three ways, and the numbers said so:
-
-1. **The incident labels were instants, not windows.** A label carried only
-   its start, so a 55-minute incident labelled one 5-minute window. Fixed:
-   a label carries `until`, and every bucket of it is positive.
-2. **The detector reported fires but not state.** A gate in alarm for two
-   hours is one fire and two hours of pause; counting only the transitions
-   made the always-on gate look free. Fixed: the detector now exposes the
-   alarm *state* per window, and the score counts false-alarm **windows**
-   as well as episodes.
-3. **The spend signal was dividing the wrong cost.** `tile.played`'s own
-   `cost.gpu_minutes` is 0.000 on every row — the play is cheap and the
-   *decision* is what costs. The verdict's cost is charged to the agent
-   the verdict was about (`judgments[].qid`), which is the only
-   attribution the ledger carries for it.
-
-Also: the detector built one gate for all agents of a signal, so the
-"previous value" leaked between agents. One gate per scope now.
-
-## 2026-11-01 20:05 — the metric that punishes an always-on gate
-
-The level gate beat the rate gate on the first honest scoring, which was
-wrong: a level gate on the stall signal sits on for 124 of 272 windows
-because the scout's worst gap is *permanently* ten times its median gap.
-Its episode-level precision said 1.0, because its one long episode
-overlapped a positive window.
-
-So the score needed the **time**: a false-alarm *window* count beside the
-episode count, and the operating point had to fit inside a **pause budget** —
-the world may be in alarm for at most a tenth of its windows (27 of 272)
-without anything being wrong. A permanently-on gate is not worse on
-recall; it is worse on time, and time is what a pause costs.
-
-With the budget in place, the selection rule is: the most episodes detected,
-subject to the budget; ties to the fewest false-alarm windows, then the
-fewest fires, then the highest threshold.
-
-**Dead end, kept here so nobody retries it:** a *trailing* baseline. The
-first version chased the drift (the baseline is the agent's own trailing
-24 h median), so a four-hour wedge became the new normal and the signal
-went flat in the middle of it. The baseline is **frozen** over the
-reference period now.
-
-## 2026-11-01 20:30 — syzygy's gate is one-sided, and so is mine
-
-The pause list showed the detector firing on *good news*: "the success rate
-fell −0.444 below its own reference" and "the cost per productive decision
-moved to 0.00×". The rate gate was using `abs(Δ)`, so a recovery counted
-as a drift.
-
-Checked against the bar's own source: `~/lm-wt/syzygy-keyframes/harness/
-gates_conf.py` fires on ``conf[i-1] - conf[i] > tau`` — the reader *losing*
-the scene, **not** the reader regaining it. Syzygy's rate gate is
-one-sided, and mine had to be too. Every signal here is a *badness* (higher
-is worse), so the rate is now the **rise** of the badness and only the
-rise.
-
-The effect was large:
-
-| | before (abs) | after (one-sided) |
-|---|---|---|
-| holdout episodes detected | 5 / 6 | **6 / 6** |
-| holdout false-alarm windows | 35 | **28** |
-| negative control (designed yield) | 7 of 12 alarmed | **5 of 12** |
-
-## 2026-11-01 20:50 — the shipped detector, and the one thing that failed
-
-Shipped: the **rate** gate, thresholds `stall` 10.0, `success` 0.2,
-`errors` 0.8, `spend` 0.5, exit 0.6 × enter in every case, dwell_down
-600 s, five-minute windows, `min_scored_plays` 20.
-
-**37 alarms over 22.67 h = 1.63 per hour of world.** The five real events
-in the run are all caught in the right window: the judge's first absence
-(06:20Z), the judge after the reboot (17:55Z), **the box hang (19:40Z)**,
-the world's write path breaking (00:50Z — Kite's worst gap jumped to
-193× its median), and the judge again (02:40Z).
-
-**The negative control failed, and the cause is the ledger's.** 5 of the 12
-windows in which the world *correctly* yielded the box were alarmed on.
-When the world yields because the box is busy it stops playing, and a world
-that stops playing is what the stall signal is for. The ledger records "the
-agent did not play" and not "the agent declined to play because the box is
-busy" — the two are the same row. **The fix is one more event in the world
-(`drift.yield`), not a better detector**, and it is the most actionable
-finding in the lab note.
-
-**A hybrid gate was built and did not earn its place.** The idea: fire on
-the rise, hold while the level is bad — for a drift that is sustained and
-settles. On this ledger it reached the same recall (6/6) with *more* alarm
-time than the rate gate (122 windows against 88), because the world's
-signals wobble rather than settle. It stays in the code, documented, for
-the day a signal does settle.
-
-## 2026-11-01 21:05 — committed
-
-- `core/drift/` — the detector, the six signals, the gate, the pause ladder.
-- `core/hysteresis/gate.py` — one addition, `reset_pending()`, so a window
-  with no reading drops a pending transition instead of carrying it across
-  the gap. Its README was updated in the same commit.
-- `tools/drift/` — the extraction, the calibration, the pause list.
-- `tests/drift/` — 46 tests, all passing.
-- `docs/lab/exp-drift-detector.md` — the lab note: the mechanism, the
-  numbers, the defaults, the negative control, what is not verified.
-- `docs/lab/drift-dataset/` — the dataset (with the ledger's sha256), the
-  labels, the calibration report, the pause list.
-
-The auto-pause is **computed and named but not wired to `thor-admit`**: the
-demotion itself would mean touching the admission daemon, and this build is
-the detector and its measurement. That is the next thing to do, with the
-tier demotion behind the same threshold this lab chose.
-
 ## 2026-11-01 21:20 — a correction to my own claim about the sample width
 
 The lab note's first draft said the sample width was the lever: "at five
@@ -990,3 +793,39 @@ patched module, which had the same effect. Only the third version — patch,
 then call `calibrate.main()` **in this process** — measured anything. A
 "before and after" that comes out identical is usually the harness, not the
 result.
+
+## 2026-11-01 (the resume) — the log above was appended twice
+
+The seat that built #2 stopped on a quota limit, and its last commit carried
+the build-#2 log twice: the entries 19:00 … 21:05 stand at lines 567-763 and
+again, byte for byte, at 764-960. That commit piped `notes_append.md` and
+`notes_correction.md` together when only the correction was new. The second
+copy is deleted here; nothing is lost — git holds both copies (`git show
+6f63dcc`, `git show 749f1fe`) — and no other file was touched by the double
+pipe (every file of the build is byte-identical to the seat's staged copies,
+checked by sha256 over `core/drift`, `core/hysteresis`, `tools/drift`,
+`tests/drift`). One oddity to keep in mind when reading this log: its
+timestamps run ahead of the box's clock — the "21:20" entry was written at
+19:43 on the box. This entry uses the box's own clock (20:07 AKST).
+
+What the resume checked, before deciding there was nothing to rebuild:
+
+- the tree is clean at `e08278a`, and the only code change after the seat's
+  own green run is the `min_scored_plays` **docstring** in
+  `core/drift/config.py` (the same correction as the note's, in comments);
+- the suite, on that final tree: **46 passed in 0.31 s** under a 2 GB
+  `thor-admit` lease, peak RSS 59.9 MB. CPU only.
+
+One sentence was added to the lab note's §3. The brief asks for
+precision/recall "against whatever ground truth exists (director
+interventions, failed runs, the incidents…)". The incidents and the failed
+runs are labelled; *director interventions* had no named place in the note
+because the box keeps no such instrument — a grep of `agent-world/docs` and
+`agent-world/runtime/logs` for "intervention" finds nothing. The incident
+notes and the playtest note are that record (the human's reboot that ended
+the box hang, `ops/d1.sh start` that brought the decision model back), and
+they are the `incident_*` rows of the label table. The table is the whole
+ground truth the run has, not a selection out of a larger one.
+
+Nothing new was started. The auto-pause is still computed and named but not
+wired to `thor-admit`; that is build #3 and the note already says so.

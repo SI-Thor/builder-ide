@@ -140,6 +140,16 @@ places that are not the ledger:
 | `incident_judge_startup` | the same note | 06:25Z–09:10Z |
 | `designed_yield` | `bots.jsonl` | **the negative control** — 2,217 refusals because the box was busy or another seat held the lease. The world yielding the box is the world behaving correctly, and a detector that alarms on it is wrong. |
 
+**There is no separate director-intervention log.** The brief for this
+build names director interventions as ground truth. The box keeps no such
+instrument: a grep of `agent-world/docs` and `agent-world/runtime/logs` for
+"intervention" finds nothing. What exists is the notes themselves — the
+incident note's boot id and the playtest note's timeline are the record of
+the human's own interventions (the reboot that ended the box hang,
+`ops/d1.sh start` that brought the decision model back) — and those are the
+`incident_*` rows above. So the table is the whole ground truth the run has,
+not a selection out of a larger one.
+
 Two of those windows were derived rather than copied, and the derivation is
 worth stating because the notes use local time. The box's timezone is AKST
 (UTC−9): `journalctl --list-boots` prints AKST, and the incident note's boot
