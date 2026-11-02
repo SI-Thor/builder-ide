@@ -230,6 +230,11 @@ class CrafterAdapter:
         self._achievements: dict[str, int] = {}
         self._seen: set[str] = set()
         self._milestones = {m.key: m for m in CRAFTER_MILESTONES}
+        # Episodes: crafter ends one at death or at `length` steps, and
+        # the achievements-per-episode number the teacher comparison
+        # asks for is counted over them.
+        self._episodes = 0
+        self._episode_scores: list[int] = []
 
     # -- the world -------------------------------------------------------------
 
@@ -247,6 +252,7 @@ class CrafterAdapter:
             reward=True,
         )
         self._env.reset()
+        self._episodes = 1
         self._log("the crafter world is open")
 
     def close(self) -> None:
@@ -256,6 +262,35 @@ class CrafterAdapter:
         if self._env is None:
             raise RuntimeError("the crafter world is not open")
         return self._env
+
+    def _maybe_reset(self) -> None:
+        """End a spent episode before the loop reads or acts again.
+
+        The round-1 smokes never died, so nothing here had to be true;
+        a run of hours will meet zombies. Without this, a dead player
+        stalled the run — every later ``env.step`` returned done at
+        once. The finished episode's score (its own achievements, the
+        env's per-episode record) is kept for the teacher comparison;
+        the loop's milestones survive the reset because ``_absorb``
+        max-accumulates.
+        """
+        env = self._require_env()
+        player = env._player
+        spent = (
+            int(getattr(player, "health", 1)) <= 0
+            or (env._length and env._step >= env._length)
+        )
+        if not spent:
+            return
+        own = getattr(player, "achievements", {}) or {}
+        score = sum(1 for count in own.values() if int(count) > 0)
+        self._episode_scores.append(score)
+        env.reset()
+        self._episodes += 1
+        self._log(
+            f"the episode ends with {score} achievements; "
+            f"a fresh episode begins (number {self._episodes})"
+        )
 
     # -- the environment -------------------------------------------------------
 
@@ -348,6 +383,7 @@ class CrafterAdapter:
 
     def observe(self) -> dict[str, Any]:
         """The facts, in the player's terms."""
+        self._maybe_reset()
         env = self._require_env()
         player = env._player
         inventory = {
@@ -375,10 +411,20 @@ class CrafterAdapter:
             ),
             "unique_materials": sorted(self._seen),
             "spatial": self._spatial(),
+            # the teacher comparison's own number: crafter-lab counts
+            # achievements per episode; so does the loop now
+            "episode": self._episodes,
+            "episodes_finished": len(self._episode_scores),
+            "mean_achievements_per_episode": (
+                round(sum(self._episode_scores) / len(self._episode_scores), 3)
+                if self._episode_scores
+                else 0.0
+            ),
         }
 
     def run_code(self, code: str, *, timeout_s: float) -> ExecResult:
         """Run a skill: a program that calls the action primitives."""
+        self._maybe_reset()
         env = self._require_env()
         captured: list[str] = []
         started = __import__("time").time()
@@ -539,6 +585,11 @@ class CrafterAdapter:
     def _absorb(self, info: Mapping[str, Any]) -> None:
         achievements = info.get("achievements") or {}
         for name, count in achievements.items():
-            self._achievements[str(name)] = int(count)
+            # max, not overwrite: a fresh episode reports 0 for
+            # everything, and a milestone once reached stays reached
+            # for the loop (and for the world's own record)
+            self._achievements[str(name)] = max(
+                self._achievements.get(str(name), 0), int(count)
+            )
             if int(count) > 0:
                 self._seen.add(str(name))

@@ -701,6 +701,29 @@ def test_the_crafter_spatial_fact_names_directions_the_move_primitive_accepts():
         adapter.close()
 
 
+def test_a_dead_episode_resets_instead_of_stalling_the_run():
+    pytest = __import__("pytest")
+    pytest.importorskip("crafter")
+    from core.voyager.adapters.crafter import CrafterAdapter
+
+    adapter = CrafterAdapter(log=lambda m: None)
+    adapter.open()
+    try:
+        before = adapter.observe()
+        # the episode is spent: a dead player ends it (a run of hours
+        # will meet zombies; the smokes never did)
+        adapter._env._player.health = 0
+        adapter._absorb({"achievements": {"collect_wood": 1}})
+        after = adapter.observe()
+        assert after["episode"] == before["episode"] + 1
+        assert after["health"] > 0  # the facts describe a living player
+        assert after["episodes_finished"] == 1
+        # a milestone once reached stays reached across the reset
+        assert adapter.goal_truth("collect_wood")
+    finally:
+        adapter.close()
+
+
 def test_the_coder_prompt_names_the_language():
     from core.voyager.prompts import coder_prompt
 
