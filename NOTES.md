@@ -3262,3 +3262,140 @@ the snapshot.
 
 **Decided next:** commit the measurement, the fixes, the bots, the probe
 and the lab note on `world-snapshot` (no push), and report.
+
+## 2026-11-01 20:25 — refit-drift: part 1 done and reported, part 2 running
+
+**What was tried.** The brief's two parts. Part 1 (does the nightly
+whole-log refit drift the old contexts' estimates) was finished by the
+earlier seat before it was stopped: `extract_real_tiles.py` read the six
+tiles out of the nights' own ledgers, and `exp_refit_drift.py` ran 24 seeds
+x 3 arms x 10 nights on the repo's own `core.tiles` code (19:38:02-19:39:06
+AKST, 64 s, load 5.41, 114.4 GiB available of 122.8, 14 cores, GPU 0 % for
+the job). Part 2 (watching-teachers: one policy fine-tuned on all the
+demonstrations) was launched detached at 19:44 AKST under a thor-admit
+practice lease (peak 2G), `--seeds 3 --passes-per-stage 262144`, four arms
+(`seq`, `seq_replay`, `whole`, `per_skill_heads`) x 3 seeds on
+crafter-lab's real teacher frames, CPU torch. The seat was stopped by quota
+while it ran; the run continued on its own.
+
+**What happened.** Resumed, checked the run was alive (pgrep: one copy,
+under the lease), and reported part 1 in
+`docs/lab/exp-refit-drift.md` while part 2 runs. The part-1 numbers: a
+bucket that received no new plays keeps its estimate **exactly** (max move
+0.0000, every night, both definition-fixed arms); touched buckets move by
+0.001-0.004, every interval over zero; choices in old contexts flip at most
+2.3 % a night; the OPE estimate checked against the closed-form truth is off
+by 0.042 -> 0.014 over the run (clip 10, effective n 89 -> 1380). The churn
+arm (`refit_grow`) does not drift the estimates (exact value drift
+0.000 +/- 0.003) but does change the **choices**: 14-25 % of old buckets
+flip and by night 3 a third of old-context picks is a tile trusted on the
+0.5 prior alone. The moved-definition arm (`refit_moved`, the substrate
+risk): on the move night, untouched buckets move up to 0.411, 45 pairs
+collapse to the prior, 79.4 % of choices flip, OPE error 0.0736; recovered
+to 0.0149 by night 10. Part-2 so far (seq arm, seeds 0-2): newest-skill
+agreement 0.382-0.388, old-skill mean 0.320-0.324, env achievements 2-3 -
+the full table comes with the run.
+
+**Decided next.** Commit part 1 (note + scripts + recorded run). Wait on
+part 2 (one line per arm/seed lands in
+`results/watching_teachers.log`; ~8.5 min per seed). When it finishes: run
+the two calibration scripts (the reference table for reading part 2), write
+section 7 of the note, commit the final state.
+
+
+## 2026-11-01 21:58 — resumed the seat: exp2 crashed in the last arm; fixed and re-running whole
+
+**What happened.** The previous seat's part-2 run (launched 19:44, lease
+`refit-drift.exp2`) had completed three of four arms — `seq`, `seq_replay`,
+`whole`, 3 seeds each — and then crashed entering `per_skill_heads`:
+`AttributeError: 'MlpExtractor' object has no attribute 'latent_dim'` (this
+SB3 build exposes `latent_dim_pi`). The JSON is written at the end, so the
+per-stage record was lost; what survives are the summary lines in
+`results/watching_teachers.log` (newest 0.382–0.459, old mean 0.311–0.502,
+overall 0.324–0.521, env 1.0–3.0, 464–1080 s per run; box under the lease,
+peak 2G).
+
+**What was done.** (1) `HeadStudent` now falls back to `latent_dim_pi`.
+(2) `_diag_calib.py` and `_diag_budget.py` had a broken absolute ProArt
+`sys.path` line (`/home/proart/…`); they now use `Path(__file__).parent`,
+so the scripts run on the Thor. (3) Smoke run verified the fix: latent 64,
+head to 17 actions, forward pass clean (lease peak RSS 357M). (4) Re-ran
+**all four arms** × 3 seeds, `--passes-per-stage 262144`, detached at 21:58
+AKST under the 2G lease — the first attempt's JSON being lost, the re-run is
+the canonical record; the log is `results/watching_teachers.run2.log`, the
+output `results/watching_teachers.json`. First attempt averaged ~11 min per
+run, so ~2 h expected.
+
+**Decided next.** When it finishes: run `_diag_calib.py` and
+`_diag_budget.py` (the calibration table for reading part 2), write section
+7 of `docs/lab/exp-refit-drift.md`, add the missing scripts README, commit.
+
+
+## 2026-11-02 00:40 — run2: nine of twelve runs clean, second crash in per_skill_heads; patched
+
+**What happened.** The full re-run (run2, admitted 22:06) finished the
+`seq`, `seq_replay` and `whole` arms again — the agreement numbers are
+bit-identical to run 1 (training is deterministic; only the env episodes
+differ slightly, as expected) — and then crashed in `per_skill_heads` with
+`KeyError: 'collect_wood'`: `agreement_table` measured every skill through
+`heads[name]`, but the heads are trained one at a time, so later skills have
+no head yet. The end-of-run JSON was lost a second time; the nine summary
+lines survive in `results/watching_teachers.run2.log`.
+
+**What was done.** (1) `agreement_table` now reports `None` ("not measured
+yet") for skills whose head has not been trained; nothing later writes that
+head's output, so that is the honest value, and it is the arm's design
+claim. (2) The JSON is now saved **after every run** (`save_json` inside
+the loop), not only at the end — an interrupted run leaves what it had.
+Both changes compile; the JSON for this run lands in
+`results/watching_teachers_heads.json`. (3) Re-ran only `per_skill_heads`
+× 3 seeds (the other nine runs are the verified records), 
+launched detached 00:40 AKST under the 2G lease, log `results/watching_teachers.run3.log`.
+
+**The surviving table (9 runs, two agreeing attempts).** newest/old mean/
+overall: seq 0.405/0.388/0.382 vs 0.311/0.320/0.324, 0.330/0.344/0.324
+(env 2.00–2.50); seq_replay 0.417/0.431/0.386 vs 0.424/0.434/0.427,
+0.462/0.456/0.450 (env 1.50–2.50); whole 0.455/0.456/0.459 vs
+0.502/0.496/0.489, 0.510/0.521/0.511 (env 1.75–3.00). So far: seq keeps the
+newest skill only at the price of the old ones; whole lifts everything;
+seq_replay keeps both middling.
+
+**Decided next.** When the heads arm lands: `_diag_calib.py` +
+`_diag_budget.py` (calibration), section 7 of `docs/lab/exp-refit-drift.md`,
+scripts README, commit.
+
+
+## 2026-11-02 03:10 — brief done: part 2 measured, reported, committed
+
+**What happened.** Run 3 (per_skill_heads, 00:41-00:59) and run 4
+(seq/seq_replay/whole, 01:24-02:47) completed the record; the calibration
+scripts ran 01:05-01:16 (`results/calib_budget.log`): the untrained policy
+agrees at 0.192 overall (at or below the 0.208-0.323 constant baselines),
+crafter-lab's student B at 0.530, and at our per-stage budget a
+single-skill student scores 0.382 on wood (0.260 at 16384 passes = its
+constant baseline).
+
+**What was done.** Section 7 of `docs/lab/exp-refit-drift.md` is written
+(setup, calibration, the result table, the per-arm readings, the
+recommendation), sections 8-9 extended for part 2, the scripts README added
+(it was missing), and the recorded JSONs and logs committed.
+
+**The answer to the question.** On crafter-lab's real teacher frames
+(six skills, newest = defeat_zombie, 3 seeds): the newest skill survives
+in every arm. In plain sequential fine-tuning the old five end at 0.318
+on mean, down 0.029-0.059 from their stage peaks, earliest-taught worst
+(wood, the second skill, loses 0.108-0.139). Half the stage budget
+replaying the old demos buys them back (old mean 0.428, per-skill loss
+<= 0.027) at no cost to the newest (0.411). Refitting on the whole log
+at once - the nightly refit's shape - shows no forgetting and is the best
+student measured (newest 0.457, old 0.495, overall 0.514). Per-skill
+heads isolate the skills exactly but cost the single policy (no env
+score; every head within 3 points of, mostly below, the trunk's own
+reading). **Recommendation: keep the whole-log refit; stage with replay
+if the log ever outgrows it; hold the heads as the fallback.**
+
+**What is left.** Nothing the brief asked for. Standing caveats: 3 seeds;
+the env score is four 1000-frame episodes and is not deterministic; the
+students are weak by calibration, so gaps are directional; the first two
+attempts' 9-arm detail survives as summary lines (the agreement numbers
+are deterministic and agree across all three attempts).

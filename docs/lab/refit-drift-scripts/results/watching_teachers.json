@@ -1,0 +1,1714 @@
+{
+  "box_state_before": {
+    "gpu_clock_limits": {
+      "gpc": {
+        "governor": "nvhost_podgov",
+        "max_mhz": 1575.0,
+        "min_mhz": 315.0
+      },
+      "nvd": {
+        "governor": "nvhost_podgov",
+        "max_mhz": 1692.0,
+        "min_mhz": 315.0
+      }
+    },
+    "gpu_clock_mhz": 315.0,
+    "gpu_processes": [
+      {
+        "cmdline": "/home/caseydigennaro/ml/.venv/bin/python /home/caseydigennaro/ml/.venv/bin/uvicorn server:app --host 0.0.0.0 --port 8077",
+        "mem_mib": "2832",
+        "name": "/home/caseydigennaro/ml/.venv/bin/python",
+        "pid": 1049394
+      },
+      {
+        "cmdline": "/home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/lm-wt/scenebloom-eval/models/vlm/Qwen3VL-8B-Instruct-Q4_K_M.gguf --mmproj /home/caseydigennaro/lm-wt/scenebloom-eval/models/vlm/mmproj-Qwen3VL-8B-Instruct-Q8_0.gguf --host 0.0.0.0 --port 8181 -ngl 99 --flash-attn on --ctx-size 8192 --alias Qwen3-VL-8B-Instruct",
+        "mem_mib": "6994",
+        "name": "/home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server",
+        "pid": 2313135
+      },
+      {
+        "cmdline": "/home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf --mmproj /home/caseydigennaro/models/d1-2B/mmproj-d1-2B-Q8_0.gguf --host 0.0.0.0 --port 8094 -ngl 99 --flash-attn on --ctx-size 32768 -ub 4096 --parallel 8 --cont-batching --slot-prompt-similarity 0 --alias d1-2B",
+        "mem_mib": "2514",
+        "name": "/home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server",
+        "pid": 2534191
+      }
+    ],
+    "gpu_util_pct": 0,
+    "loadavg": [
+      5.59,
+      6.07,
+      7.98
+    ],
+    "mem_mib": {
+      "Cached": 68614,
+      "MemAvailable": 99302,
+      "MemFree": 9742,
+      "MemTotal": 125748
+    },
+    "n_cores": 14,
+    "power_mode": "NV Power Mode: MAXN",
+    "timestamp": "2026-11-02 01:24:35 AKST"
+  },
+  "config": {
+    "arms": [
+      "seq",
+      "seq_replay",
+      "whole"
+    ],
+    "env_episodes": 4,
+    "env_length": 1000,
+    "passes_per_stage": 262144,
+    "seeds": 3,
+    "skills": 6,
+    "split_seed": 20261101,
+    "teacher_frames": "/home/caseydigennaro/lm-wt/crafter-lab/data/teacher_frames.npz",
+    "trajectory_frames": 2000
+  },
+  "experiment": "watching teachers: one policy, many demonstrations",
+  "runs": [
+    {
+      "arm": "seq",
+      "env": {
+        "mean_achievements": 2.25,
+        "mean_return": 1.3499999999999996,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 0.5,
+          "collect_iron": 0.0,
+          "collect_sapling": 1.0,
+          "collect_stone": 0.0,
+          "collect_wood": 0.75,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.0,
+          "eat_cow": 0.0,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.0,
+          "wake_up": 0.0
+        }
+      },
+      "final": {
+        "collect_drink": 0.305,
+        "collect_sapling": 0.357,
+        "collect_stone": 0.279,
+        "collect_wood": 0.26,
+        "defeat_zombie": 0.405,
+        "eat_cow": 0.354
+      },
+      "forgetting": {
+        "collect_drink": 0.029000000000000026,
+        "collect_sapling": 0.04500000000000004,
+        "collect_stone": 0.07999999999999996,
+        "collect_wood": 0.139,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.0
+      },
+      "mean_forgetting_old": 0.058600000000000006,
+      "newest_final": 0.405,
+      "newest_peak": 0.405,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.311,
+      "old_mean_peak": 0.36960000000000004,
+      "overall_final": 0.33,
+      "peaks": {
+        "collect_drink": 0.334,
+        "collect_sapling": 0.402,
+        "collect_stone": 0.359,
+        "collect_wood": 0.399,
+        "defeat_zombie": 0.405,
+        "eat_cow": 0.354
+      },
+      "seconds": 550.4537361619987,
+      "seed": 0,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.243,
+            "collect_sapling": 0.282,
+            "collect_stone": 0.269,
+            "collect_wood": 0.266,
+            "defeat_zombie": 0.212,
+            "eat_cow": 0.18
+          },
+          "overall": 0.2625,
+          "stage": "collect_drink"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.334,
+            "collect_sapling": 0.258,
+            "collect_stone": 0.359,
+            "collect_wood": 0.399,
+            "defeat_zombie": 0.217,
+            "eat_cow": 0.278
+          },
+          "overall": 0.2705,
+          "stage": "collect_wood"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.262,
+            "collect_sapling": 0.378,
+            "collect_stone": 0.328,
+            "collect_wood": 0.346,
+            "defeat_zombie": 0.264,
+            "eat_cow": 0.297
+          },
+          "overall": 0.2765,
+          "stage": "collect_sapling"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.295,
+            "collect_sapling": 0.402,
+            "collect_stone": 0.3,
+            "collect_wood": 0.368,
+            "defeat_zombie": 0.268,
+            "eat_cow": 0.295
+          },
+          "overall": 0.2835,
+          "stage": "collect_stone"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.28,
+            "collect_sapling": 0.336,
+            "collect_stone": 0.298,
+            "collect_wood": 0.295,
+            "defeat_zombie": 0.276,
+            "eat_cow": 0.351
+          },
+          "overall": 0.286,
+          "stage": "eat_cow"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.305,
+            "collect_sapling": 0.357,
+            "collect_stone": 0.279,
+            "collect_wood": 0.26,
+            "defeat_zombie": 0.405,
+            "eat_cow": 0.354
+          },
+          "overall": 0.33,
+          "stage": "defeat_zombie"
+        }
+      ]
+    },
+    {
+      "arm": "seq",
+      "env": {
+        "mean_achievements": 2.25,
+        "mean_return": 1.35,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 0.25,
+          "collect_iron": 0.0,
+          "collect_sapling": 1.0,
+          "collect_stone": 0.0,
+          "collect_wood": 0.0,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.25,
+          "eat_cow": 0.75,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.0,
+          "wake_up": 0.0
+        }
+      },
+      "final": {
+        "collect_drink": 0.338,
+        "collect_sapling": 0.378,
+        "collect_stone": 0.279,
+        "collect_wood": 0.26,
+        "defeat_zombie": 0.388,
+        "eat_cow": 0.344
+      },
+      "forgetting": {
+        "collect_drink": 0.0,
+        "collect_sapling": 0.026000000000000023,
+        "collect_stone": 0.043999999999999984,
+        "collect_wood": 0.135,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.009000000000000008
+      },
+      "mean_forgetting_old": 0.042800000000000005,
+      "newest_final": 0.388,
+      "newest_peak": 0.388,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.3198,
+      "old_mean_peak": 0.36260000000000003,
+      "overall_final": 0.3435,
+      "peaks": {
+        "collect_drink": 0.338,
+        "collect_sapling": 0.404,
+        "collect_stone": 0.323,
+        "collect_wood": 0.395,
+        "defeat_zombie": 0.388,
+        "eat_cow": 0.353
+      },
+      "seconds": 558.2037089029982,
+      "seed": 1,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.242,
+            "collect_sapling": 0.279,
+            "collect_stone": 0.257,
+            "collect_wood": 0.256,
+            "defeat_zombie": 0.21,
+            "eat_cow": 0.179
+          },
+          "overall": 0.2555,
+          "stage": "collect_drink"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.312,
+            "collect_sapling": 0.249,
+            "collect_stone": 0.323,
+            "collect_wood": 0.353,
+            "defeat_zombie": 0.216,
+            "eat_cow": 0.237
+          },
+          "overall": 0.271,
+          "stage": "collect_wood"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.244,
+            "collect_sapling": 0.357,
+            "collect_stone": 0.318,
+            "collect_wood": 0.305,
+            "defeat_zombie": 0.23,
+            "eat_cow": 0.271
+          },
+          "overall": 0.2765,
+          "stage": "collect_sapling"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.302,
+            "collect_sapling": 0.404,
+            "collect_stone": 0.311,
+            "collect_wood": 0.395,
+            "defeat_zombie": 0.244,
+            "eat_cow": 0.282
+          },
+          "overall": 0.278,
+          "stage": "collect_stone"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.302,
+            "collect_sapling": 0.344,
+            "collect_stone": 0.265,
+            "collect_wood": 0.276,
+            "defeat_zombie": 0.263,
+            "eat_cow": 0.353
+          },
+          "overall": 0.289,
+          "stage": "eat_cow"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.338,
+            "collect_sapling": 0.378,
+            "collect_stone": 0.279,
+            "collect_wood": 0.26,
+            "defeat_zombie": 0.388,
+            "eat_cow": 0.344
+          },
+          "overall": 0.3435,
+          "stage": "defeat_zombie"
+        }
+      ]
+    },
+    {
+      "arm": "seq",
+      "env": {
+        "mean_achievements": 2.75,
+        "mean_return": 1.8499999999999996,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 0.5,
+          "collect_iron": 0.0,
+          "collect_sapling": 1.0,
+          "collect_stone": 0.0,
+          "collect_wood": 0.5,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.5,
+          "eat_cow": 0.25,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.0,
+          "wake_up": 0.0
+        }
+      },
+      "final": {
+        "collect_drink": 0.305,
+        "collect_sapling": 0.378,
+        "collect_stone": 0.299,
+        "collect_wood": 0.275,
+        "defeat_zombie": 0.382,
+        "eat_cow": 0.363
+      },
+      "forgetting": {
+        "collect_drink": 0.0030000000000000027,
+        "collect_sapling": 0.017000000000000015,
+        "collect_stone": 0.017000000000000015,
+        "collect_wood": 0.10799999999999998,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.0020000000000000018
+      },
+      "mean_forgetting_old": 0.029400000000000003,
+      "newest_final": 0.382,
+      "newest_peak": 0.382,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.324,
+      "old_mean_peak": 0.3534,
+      "overall_final": 0.324,
+      "peaks": {
+        "collect_drink": 0.308,
+        "collect_sapling": 0.395,
+        "collect_stone": 0.316,
+        "collect_wood": 0.383,
+        "defeat_zombie": 0.382,
+        "eat_cow": 0.365
+      },
+      "seconds": 525.5235718139957,
+      "seed": 2,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.244,
+            "collect_sapling": 0.276,
+            "collect_stone": 0.262,
+            "collect_wood": 0.263,
+            "defeat_zombie": 0.212,
+            "eat_cow": 0.181
+          },
+          "overall": 0.269,
+          "stage": "collect_drink"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.308,
+            "collect_sapling": 0.236,
+            "collect_stone": 0.307,
+            "collect_wood": 0.372,
+            "defeat_zombie": 0.189,
+            "eat_cow": 0.213
+          },
+          "overall": 0.2815,
+          "stage": "collect_wood"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.233,
+            "collect_sapling": 0.353,
+            "collect_stone": 0.282,
+            "collect_wood": 0.302,
+            "defeat_zombie": 0.204,
+            "eat_cow": 0.256
+          },
+          "overall": 0.257,
+          "stage": "collect_sapling"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.304,
+            "collect_sapling": 0.395,
+            "collect_stone": 0.316,
+            "collect_wood": 0.383,
+            "defeat_zombie": 0.202,
+            "eat_cow": 0.294
+          },
+          "overall": 0.2745,
+          "stage": "collect_stone"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.286,
+            "collect_sapling": 0.339,
+            "collect_stone": 0.288,
+            "collect_wood": 0.284,
+            "defeat_zombie": 0.241,
+            "eat_cow": 0.365
+          },
+          "overall": 0.28,
+          "stage": "eat_cow"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.305,
+            "collect_sapling": 0.378,
+            "collect_stone": 0.299,
+            "collect_wood": 0.275,
+            "defeat_zombie": 0.382,
+            "eat_cow": 0.363
+          },
+          "overall": 0.324,
+          "stage": "defeat_zombie"
+        }
+      ]
+    },
+    {
+      "arm": "seq_replay",
+      "env": {
+        "mean_achievements": 2.0,
+        "mean_return": 1.1,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 0.25,
+          "collect_iron": 0.0,
+          "collect_sapling": 0.25,
+          "collect_stone": 0.0,
+          "collect_wood": 0.75,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.5,
+          "eat_cow": 0.0,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.25,
+          "wake_up": 0.0
+        }
+      },
+      "final": {
+        "collect_drink": 0.491,
+        "collect_sapling": 0.438,
+        "collect_stone": 0.375,
+        "collect_wood": 0.406,
+        "defeat_zombie": 0.417,
+        "eat_cow": 0.408
+      },
+      "forgetting": {
+        "collect_drink": 0.0,
+        "collect_sapling": 0.015000000000000013,
+        "collect_stone": 0.0,
+        "collect_wood": 0.04099999999999998,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.0
+      },
+      "mean_forgetting_old": 0.011199999999999998,
+      "newest_final": 0.417,
+      "newest_peak": 0.417,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.4236,
+      "old_mean_peak": 0.43479999999999996,
+      "overall_final": 0.462,
+      "peaks": {
+        "collect_drink": 0.491,
+        "collect_sapling": 0.453,
+        "collect_stone": 0.375,
+        "collect_wood": 0.447,
+        "defeat_zombie": 0.417,
+        "eat_cow": 0.408
+      },
+      "seconds": 552.8869617230011,
+      "seed": 0,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.243,
+            "collect_sapling": 0.282,
+            "collect_stone": 0.269,
+            "collect_wood": 0.266,
+            "defeat_zombie": 0.212,
+            "eat_cow": 0.18
+          },
+          "overall": 0.2625,
+          "stage": "collect_drink"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.391,
+            "collect_sapling": 0.316,
+            "collect_stone": 0.352,
+            "collect_wood": 0.375,
+            "defeat_zombie": 0.314,
+            "eat_cow": 0.314
+          },
+          "overall": 0.315,
+          "stage": "collect_wood"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.422,
+            "collect_sapling": 0.367,
+            "collect_stone": 0.367,
+            "collect_wood": 0.41,
+            "defeat_zombie": 0.324,
+            "eat_cow": 0.331
+          },
+          "overall": 0.379,
+          "stage": "collect_sapling"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.435,
+            "collect_sapling": 0.432,
+            "collect_stone": 0.366,
+            "collect_wood": 0.447,
+            "defeat_zombie": 0.317,
+            "eat_cow": 0.333
+          },
+          "overall": 0.384,
+          "stage": "collect_stone"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.456,
+            "collect_sapling": 0.453,
+            "collect_stone": 0.361,
+            "collect_wood": 0.42,
+            "defeat_zombie": 0.383,
+            "eat_cow": 0.394
+          },
+          "overall": 0.404,
+          "stage": "eat_cow"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.491,
+            "collect_sapling": 0.438,
+            "collect_stone": 0.375,
+            "collect_wood": 0.406,
+            "defeat_zombie": 0.417,
+            "eat_cow": 0.408
+          },
+          "overall": 0.462,
+          "stage": "defeat_zombie"
+        }
+      ]
+    },
+    {
+      "arm": "seq_replay",
+      "env": {
+        "mean_achievements": 1.25,
+        "mean_return": 0.3500000000000001,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 0.25,
+          "collect_iron": 0.0,
+          "collect_sapling": 0.0,
+          "collect_stone": 0.0,
+          "collect_wood": 0.75,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.0,
+          "eat_cow": 0.0,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.25,
+          "wake_up": 0.0
+        }
+      },
+      "final": {
+        "collect_drink": 0.519,
+        "collect_sapling": 0.436,
+        "collect_stone": 0.399,
+        "collect_wood": 0.415,
+        "defeat_zombie": 0.431,
+        "eat_cow": 0.399
+      },
+      "forgetting": {
+        "collect_drink": 0.0,
+        "collect_sapling": 0.017000000000000015,
+        "collect_stone": 0.0,
+        "collect_wood": 0.018000000000000016,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.0
+      },
+      "mean_forgetting_old": 0.007000000000000006,
+      "newest_final": 0.431,
+      "newest_peak": 0.431,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.43360000000000004,
+      "old_mean_peak": 0.44060000000000005,
+      "overall_final": 0.456,
+      "peaks": {
+        "collect_drink": 0.519,
+        "collect_sapling": 0.453,
+        "collect_stone": 0.399,
+        "collect_wood": 0.433,
+        "defeat_zombie": 0.431,
+        "eat_cow": 0.399
+      },
+      "seconds": 577.4536637580022,
+      "seed": 1,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.242,
+            "collect_sapling": 0.279,
+            "collect_stone": 0.257,
+            "collect_wood": 0.256,
+            "defeat_zombie": 0.21,
+            "eat_cow": 0.179
+          },
+          "overall": 0.2555,
+          "stage": "collect_drink"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.409,
+            "collect_sapling": 0.255,
+            "collect_stone": 0.331,
+            "collect_wood": 0.39,
+            "defeat_zombie": 0.264,
+            "eat_cow": 0.269
+          },
+          "overall": 0.34,
+          "stage": "collect_wood"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.409,
+            "collect_sapling": 0.364,
+            "collect_stone": 0.363,
+            "collect_wood": 0.39,
+            "defeat_zombie": 0.304,
+            "eat_cow": 0.324
+          },
+          "overall": 0.3395,
+          "stage": "collect_sapling"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.445,
+            "collect_sapling": 0.453,
+            "collect_stone": 0.371,
+            "collect_wood": 0.433,
+            "defeat_zombie": 0.316,
+            "eat_cow": 0.332
+          },
+          "overall": 0.3865,
+          "stage": "collect_stone"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.468,
+            "collect_sapling": 0.432,
+            "collect_stone": 0.382,
+            "collect_wood": 0.414,
+            "defeat_zombie": 0.354,
+            "eat_cow": 0.38
+          },
+          "overall": 0.4135,
+          "stage": "eat_cow"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.519,
+            "collect_sapling": 0.436,
+            "collect_stone": 0.399,
+            "collect_wood": 0.415,
+            "defeat_zombie": 0.431,
+            "eat_cow": 0.399
+          },
+          "overall": 0.456,
+          "stage": "defeat_zombie"
+        }
+      ]
+    },
+    {
+      "arm": "seq_replay",
+      "env": {
+        "mean_achievements": 2.75,
+        "mean_return": 1.85,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 0.5,
+          "collect_iron": 0.0,
+          "collect_sapling": 0.25,
+          "collect_stone": 0.0,
+          "collect_wood": 0.75,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.5,
+          "eat_cow": 0.5,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.25,
+          "wake_up": 0.0
+        }
+      },
+      "final": {
+        "collect_drink": 0.489,
+        "collect_sapling": 0.425,
+        "collect_stone": 0.38,
+        "collect_wood": 0.429,
+        "defeat_zombie": 0.386,
+        "eat_cow": 0.411
+      },
+      "forgetting": {
+        "collect_drink": 0.0,
+        "collect_sapling": 0.026000000000000023,
+        "collect_stone": 0.015000000000000013,
+        "collect_wood": 0.02300000000000002,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.0
+      },
+      "mean_forgetting_old": 0.012800000000000011,
+      "newest_final": 0.386,
+      "newest_peak": 0.386,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.42679999999999996,
+      "old_mean_peak": 0.4396,
+      "overall_final": 0.4495,
+      "peaks": {
+        "collect_drink": 0.489,
+        "collect_sapling": 0.451,
+        "collect_stone": 0.395,
+        "collect_wood": 0.452,
+        "defeat_zombie": 0.386,
+        "eat_cow": 0.411
+      },
+      "seconds": 551.3731313859971,
+      "seed": 2,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.244,
+            "collect_sapling": 0.276,
+            "collect_stone": 0.262,
+            "collect_wood": 0.263,
+            "defeat_zombie": 0.212,
+            "eat_cow": 0.181
+          },
+          "overall": 0.269,
+          "stage": "collect_drink"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.42,
+            "collect_sapling": 0.223,
+            "collect_stone": 0.304,
+            "collect_wood": 0.367,
+            "defeat_zombie": 0.247,
+            "eat_cow": 0.269
+          },
+          "overall": 0.358,
+          "stage": "collect_wood"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.426,
+            "collect_sapling": 0.372,
+            "collect_stone": 0.37,
+            "collect_wood": 0.406,
+            "defeat_zombie": 0.317,
+            "eat_cow": 0.315
+          },
+          "overall": 0.361,
+          "stage": "collect_sapling"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.45,
+            "collect_sapling": 0.423,
+            "collect_stone": 0.376,
+            "collect_wood": 0.452,
+            "defeat_zombie": 0.313,
+            "eat_cow": 0.343
+          },
+          "overall": 0.3965,
+          "stage": "collect_stone"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.463,
+            "collect_sapling": 0.451,
+            "collect_stone": 0.395,
+            "collect_wood": 0.416,
+            "defeat_zombie": 0.322,
+            "eat_cow": 0.366
+          },
+          "overall": 0.4015,
+          "stage": "eat_cow"
+        },
+        {
+          "agreement": {
+            "collect_drink": 0.489,
+            "collect_sapling": 0.425,
+            "collect_stone": 0.38,
+            "collect_wood": 0.429,
+            "defeat_zombie": 0.386,
+            "eat_cow": 0.411
+          },
+          "overall": 0.4495,
+          "stage": "defeat_zombie"
+        }
+      ]
+    },
+    {
+      "arm": "whole",
+      "env": {
+        "mean_achievements": 2.75,
+        "mean_return": 1.8499999999999996,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 1.0,
+          "collect_iron": 0.0,
+          "collect_sapling": 0.0,
+          "collect_stone": 0.0,
+          "collect_wood": 0.75,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.25,
+          "eat_cow": 0.0,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.5,
+          "wake_up": 0.25
+        }
+      },
+      "final": {
+        "collect_drink": 0.545,
+        "collect_sapling": 0.517,
+        "collect_stone": 0.495,
+        "collect_wood": 0.499,
+        "defeat_zombie": 0.455,
+        "eat_cow": 0.452
+      },
+      "forgetting": {
+        "collect_drink": 0.0,
+        "collect_sapling": 0.0,
+        "collect_stone": 0.0,
+        "collect_wood": 0.0,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.0
+      },
+      "mean_forgetting_old": 0.0,
+      "newest_final": 0.455,
+      "newest_peak": 0.455,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.5016,
+      "old_mean_peak": 0.5016,
+      "overall_final": 0.51,
+      "peaks": {
+        "collect_drink": 0.545,
+        "collect_sapling": 0.517,
+        "collect_stone": 0.495,
+        "collect_wood": 0.499,
+        "defeat_zombie": 0.455,
+        "eat_cow": 0.452
+      },
+      "seconds": 554.6269263249997,
+      "seed": 0,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.545,
+            "collect_sapling": 0.517,
+            "collect_stone": 0.495,
+            "collect_wood": 0.499,
+            "defeat_zombie": 0.455,
+            "eat_cow": 0.452
+          },
+          "overall": 0.51,
+          "stage": "all"
+        }
+      ]
+    },
+    {
+      "arm": "whole",
+      "env": {
+        "mean_achievements": 1.5,
+        "mean_return": 0.6000000000000001,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 0.0,
+          "collect_iron": 0.0,
+          "collect_sapling": 0.25,
+          "collect_stone": 0.0,
+          "collect_wood": 1.0,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.0,
+          "eat_cow": 0.0,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.0,
+          "wake_up": 0.25
+        }
+      },
+      "final": {
+        "collect_drink": 0.533,
+        "collect_sapling": 0.513,
+        "collect_stone": 0.463,
+        "collect_wood": 0.501,
+        "defeat_zombie": 0.456,
+        "eat_cow": 0.469
+      },
+      "forgetting": {
+        "collect_drink": 0.0,
+        "collect_sapling": 0.0,
+        "collect_stone": 0.0,
+        "collect_wood": 0.0,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.0
+      },
+      "mean_forgetting_old": 0.0,
+      "newest_final": 0.456,
+      "newest_peak": 0.456,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.4958,
+      "old_mean_peak": 0.4958,
+      "overall_final": 0.5215,
+      "peaks": {
+        "collect_drink": 0.533,
+        "collect_sapling": 0.513,
+        "collect_stone": 0.463,
+        "collect_wood": 0.501,
+        "defeat_zombie": 0.456,
+        "eat_cow": 0.469
+      },
+      "seconds": 552.1109584660007,
+      "seed": 1,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.533,
+            "collect_sapling": 0.513,
+            "collect_stone": 0.463,
+            "collect_wood": 0.501,
+            "defeat_zombie": 0.456,
+            "eat_cow": 0.469
+          },
+          "overall": 0.5215,
+          "stage": "all"
+        }
+      ]
+    },
+    {
+      "arm": "whole",
+      "env": {
+        "mean_achievements": 1.5,
+        "mean_return": 0.6000000000000001,
+        "success_rate": {
+          "collect_coal": 0.0,
+          "collect_diamond": 0.0,
+          "collect_drink": 0.25,
+          "collect_iron": 0.0,
+          "collect_sapling": 0.0,
+          "collect_stone": 0.0,
+          "collect_wood": 1.0,
+          "defeat_skeleton": 0.0,
+          "defeat_zombie": 0.25,
+          "eat_cow": 0.0,
+          "eat_plant": 0.0,
+          "make_iron_pickaxe": 0.0,
+          "make_iron_sword": 0.0,
+          "make_stone_pickaxe": 0.0,
+          "make_stone_sword": 0.0,
+          "make_wood_pickaxe": 0.0,
+          "make_wood_sword": 0.0,
+          "place_furnace": 0.0,
+          "place_plant": 0.0,
+          "place_stone": 0.0,
+          "place_table": 0.0,
+          "wake_up": 0.0
+        }
+      },
+      "final": {
+        "collect_drink": 0.532,
+        "collect_sapling": 0.492,
+        "collect_stone": 0.471,
+        "collect_wood": 0.477,
+        "defeat_zombie": 0.459,
+        "eat_cow": 0.473
+      },
+      "forgetting": {
+        "collect_drink": 0.0,
+        "collect_sapling": 0.0,
+        "collect_stone": 0.0,
+        "collect_wood": 0.0,
+        "defeat_zombie": 0.0,
+        "eat_cow": 0.0
+      },
+      "mean_forgetting_old": 0.0,
+      "newest_final": 0.459,
+      "newest_peak": 0.459,
+      "newest_skill": "defeat_zombie",
+      "old_mean_final": 0.489,
+      "old_mean_peak": 0.489,
+      "overall_final": 0.5115,
+      "peaks": {
+        "collect_drink": 0.532,
+        "collect_sapling": 0.492,
+        "collect_stone": 0.471,
+        "collect_wood": 0.477,
+        "defeat_zombie": 0.459,
+        "eat_cow": 0.473
+      },
+      "seconds": 553.3560232989985,
+      "seed": 2,
+      "stages": [
+        {
+          "agreement": {
+            "collect_drink": 0.532,
+            "collect_sapling": 0.492,
+            "collect_stone": 0.471,
+            "collect_wood": 0.477,
+            "defeat_zombie": 0.459,
+            "eat_cow": 0.473
+          },
+          "overall": 0.5115,
+          "stage": "all"
+        }
+      ]
+    }
+  ],
+  "skill_demo_counts": {
+    "collect_drink": 969,
+    "collect_sapling": 186,
+    "collect_stone": 303,
+    "collect_wood": 817,
+    "defeat_zombie": 328,
+    "eat_cow": 232
+  },
+  "skills_in_order": [
+    "collect_drink",
+    "collect_wood",
+    "collect_sapling",
+    "collect_stone",
+    "eat_cow",
+    "defeat_zombie"
+  ],
+  "split": {
+    "collect_drink": {
+      "eval": 1000,
+      "train": 5128
+    },
+    "collect_sapling": {
+      "eval": 1000,
+      "train": 1168
+    },
+    "collect_stone": {
+      "eval": 1000,
+      "train": 1641
+    },
+    "collect_wood": {
+      "eval": 1000,
+      "train": 3660
+    },
+    "defeat_zombie": {
+      "eval": 1000,
+      "train": 2013
+    },
+    "eat_cow": {
+      "eval": 1000,
+      "train": 1508
+    }
+  },
+  "summary": [
+    {
+      "arm": "seq",
+      "env_achievements": {
+        "hi": 3.1338333333333335,
+        "lo": 1.6994999999999998,
+        "max": 2.75,
+        "mean": 2.4166666666666665,
+        "min": 2.25,
+        "n": 3,
+        "sd": 0.2886751345948129
+      },
+      "mean_forgetting_old": {
+        "hi": 0.07991215331336513,
+        "lo": 0.0072878466866348815,
+        "max": 0.058600000000000006,
+        "mean": 0.04360000000000001,
+        "min": 0.029400000000000003,
+        "n": 3,
+        "sd": 0.014616429112474771
+      },
+      "newest_final": {
+        "hi": 0.42130569956999275,
+        "lo": 0.3620276337633406,
+        "max": 0.405,
+        "mean": 0.39166666666666666,
+        "min": 0.382,
+        "n": 3,
+        "sd": 0.011930353445448865
+      },
+      "newest_peak": {
+        "hi": 0.42130569956999275,
+        "lo": 0.3620276337633406,
+        "max": 0.405,
+        "mean": 0.39166666666666666,
+        "min": 0.382,
+        "n": 3,
+        "sd": 0.011930353445448865
+      },
+      "old_mean_final": {
+        "hi": 0.33474839871008705,
+        "lo": 0.30178493462324624,
+        "max": 0.324,
+        "mean": 0.31826666666666664,
+        "min": 0.311,
+        "n": 3,
+        "sd": 0.006634254542398367
+      },
+      "old_mean_peak": {
+        "hi": 0.38205156425086184,
+        "lo": 0.3416817690824716,
+        "max": 0.36960000000000004,
+        "mean": 0.3618666666666667,
+        "min": 0.3534,
+        "n": 3,
+        "sd": 0.008124858973135087
+      },
+      "overall_final": {
+        "hi": 0.3573123084224343,
+        "lo": 0.30768769157756576,
+        "max": 0.3435,
+        "mean": 0.3325,
+        "min": 0.324,
+        "n": 3,
+        "sd": 0.009987492177719099
+      },
+      "per_skill_final": {
+        "collect_drink": {
+          "hi": 0.363333,
+          "lo": 0.268667,
+          "max": 0.338,
+          "mean": 0.316,
+          "min": 0.305,
+          "n": 3,
+          "sd": 0.019052558883257666
+        },
+        "collect_sapling": {
+          "hi": 0.401121,
+          "lo": 0.340879,
+          "max": 0.378,
+          "mean": 0.371,
+          "min": 0.357,
+          "n": 3,
+          "sd": 0.012124355652982153
+        },
+        "collect_stone": {
+          "hi": 0.3143533333333333,
+          "lo": 0.25698000000000004,
+          "max": 0.299,
+          "mean": 0.2856666666666667,
+          "min": 0.279,
+          "n": 3,
+          "sd": 0.011547005383792493
+        },
+        "collect_wood": {
+          "hi": 0.286515,
+          "lo": 0.243485,
+          "max": 0.275,
+          "mean": 0.265,
+          "min": 0.26,
+          "n": 3,
+          "sd": 0.008660254037844395
+        },
+        "defeat_zombie": {
+          "hi": 0.42130569956999275,
+          "lo": 0.3620276337633406,
+          "max": 0.405,
+          "mean": 0.39166666666666666,
+          "min": 0.382,
+          "n": 3,
+          "sd": 0.011930353445448865
+        },
+        "eat_cow": {
+          "hi": 0.37727877335182103,
+          "lo": 0.33005455998151223,
+          "max": 0.363,
+          "mean": 0.35366666666666663,
+          "min": 0.344,
+          "n": 3,
+          "sd": 0.009504384952922178
+        }
+      },
+      "per_skill_forgetting": {
+        "collect_drink": {
+          "hi": 0.05028647409650889,
+          "lo": -0.028953140763175532,
+          "max": 0.029000000000000026,
+          "mean": 0.010666666666666677,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.015947831618540926
+        },
+        "collect_sapling": {
+          "hi": 0.06484575825914085,
+          "lo": -0.006179091592474133,
+          "max": 0.04500000000000004,
+          "mean": 0.02933333333333336,
+          "min": 0.017000000000000015,
+          "n": 3,
+          "sd": 0.014294521094927723
+        },
+        "collect_stone": {
+          "hi": 0.12552238150361963,
+          "lo": -0.03152238150361966,
+          "max": 0.07999999999999996,
+          "mean": 0.046999999999999986,
+          "min": 0.017000000000000015,
+          "n": 3,
+          "sd": 0.031606961258558185
+        },
+        "collect_wood": {
+          "hi": 0.16922470751439572,
+          "lo": 0.08544195915227093,
+          "max": 0.139,
+          "mean": 0.12733333333333333,
+          "min": 0.10799999999999998,
+          "n": 3,
+          "sd": 0.016862186493255667
+        },
+        "defeat_zombie": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        },
+        "eat_cow": {
+          "hi": 0.01540719099245573,
+          "lo": -0.008073857659122389,
+          "max": 0.009000000000000008,
+          "mean": 0.00366666666666667,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.004725815626252612
+        }
+      },
+      "seeds": 3
+    },
+    {
+      "arm": "seq_replay",
+      "env_achievements": {
+        "hi": 3.86325365624222,
+        "lo": 0.13674634375778028,
+        "max": 2.75,
+        "mean": 2.0,
+        "min": 1.25,
+        "n": 3,
+        "sd": 0.75
+      },
+      "mean_forgetting_old": {
+        "hi": 0.017775298264123537,
+        "lo": 0.0028913684025431412,
+        "max": 0.012800000000000011,
+        "mean": 0.010333333333333338,
+        "min": 0.007000000000000006,
+        "n": 3,
+        "sd": 0.00299555225848813
+      },
+      "newest_final": {
+        "hi": 0.4685450766101972,
+        "lo": 0.3541215900564695,
+        "max": 0.431,
+        "mean": 0.41133333333333333,
+        "min": 0.386,
+        "n": 3,
+        "sd": 0.023028967265887823
+      },
+      "newest_peak": {
+        "hi": 0.4685450766101972,
+        "lo": 0.3541215900564695,
+        "max": 0.431,
+        "mean": 0.41133333333333333,
+        "min": 0.386,
+        "n": 3,
+        "sd": 0.023028967265887823
+      },
+      "old_mean_final": {
+        "hi": 0.4406871627865861,
+        "lo": 0.4153128372134139,
+        "max": 0.43360000000000004,
+        "mean": 0.428,
+        "min": 0.4236,
+        "n": 3,
+        "sd": 0.005106858133921519
+      },
+      "old_mean_peak": {
+        "hi": 0.4460361173290355,
+        "lo": 0.4306305493376311,
+        "max": 0.44060000000000005,
+        "mean": 0.4383333333333333,
+        "min": 0.43479999999999996,
+        "n": 3,
+        "sd": 0.0031005375877956316
+      },
+      "overall_final": {
+        "hi": 0.47136458714710444,
+        "lo": 0.4403020795195623,
+        "max": 0.462,
+        "mean": 0.45583333333333337,
+        "min": 0.4495,
+        "n": 3,
+        "sd": 0.006251666444503689
+      },
+      "per_skill_final": {
+        "collect_drink": {
+          "hi": 0.54133645694425,
+          "lo": 0.4579968763890833,
+          "max": 0.519,
+          "mean": 0.4996666666666667,
+          "min": 0.489,
+          "n": 3,
+          "sd": 0.01677299416721218
+        },
+        "collect_sapling": {
+          "hi": 0.4503903674582607,
+          "lo": 0.41560963254173927,
+          "max": 0.438,
+          "mean": 0.433,
+          "min": 0.425,
+          "n": 3,
+          "sd": 0.007000000000000007
+        },
+        "collect_stone": {
+          "hi": 0.41612405253142737,
+          "lo": 0.35320928080190594,
+          "max": 0.399,
+          "mean": 0.38466666666666666,
+          "min": 0.375,
+          "n": 3,
+          "sd": 0.012662279942148398
+        },
+        "collect_wood": {
+          "hi": 0.445460707383068,
+          "lo": 0.3878726259502654,
+          "max": 0.429,
+          "mean": 0.4166666666666667,
+          "min": 0.406,
+          "n": 3,
+          "sd": 0.011590225767142458
+        },
+        "defeat_zombie": {
+          "hi": 0.4685450766101972,
+          "lo": 0.3541215900564695,
+          "max": 0.431,
+          "mean": 0.41133333333333333,
+          "min": 0.386,
+          "n": 3,
+          "sd": 0.023028967265887823
+        },
+        "eat_cow": {
+          "hi": 0.42151468713832146,
+          "lo": 0.3904853128616785,
+          "max": 0.411,
+          "mean": 0.40599999999999997,
+          "min": 0.399,
+          "n": 3,
+          "sd": 0.006244997998398373
+        }
+      },
+      "per_skill_forgetting": {
+        "collect_drink": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        },
+        "collect_sapling": {
+          "hi": 0.033890226801530636,
+          "lo": 0.004776439865136066,
+          "max": 0.026000000000000023,
+          "mean": 0.01933333333333335,
+          "min": 0.015000000000000013,
+          "n": 3,
+          "sd": 0.00585946527708232
+        },
+        "collect_stone": {
+          "hi": 0.026515000000000025,
+          "lo": -0.016515000000000016,
+          "max": 0.015000000000000013,
+          "mean": 0.0050000000000000044,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.008660254037844395
+        },
+        "collect_wood": {
+          "hi": 0.05738595413049136,
+          "lo": -0.002719287463824681,
+          "max": 0.04099999999999998,
+          "mean": 0.027333333333333338,
+          "min": 0.018000000000000016,
+          "n": 3,
+          "sd": 0.012096831541082683
+        },
+        "defeat_zombie": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        },
+        "eat_cow": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        }
+      },
+      "seeds": 3
+    },
+    {
+      "arm": "whole",
+      "env_achievements": {
+        "hi": 3.7095833333333337,
+        "lo": 0.12375000000000003,
+        "max": 2.75,
+        "mean": 1.9166666666666667,
+        "min": 1.5,
+        "n": 3,
+        "sd": 0.7216878364870322
+      },
+      "mean_forgetting_old": {
+        "hi": 0.0,
+        "lo": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "min": 0.0,
+        "n": 3,
+        "sd": 0.0
+      },
+      "newest_final": {
+        "hi": 0.4618382290461072,
+        "lo": 0.4514951042872262,
+        "max": 0.459,
+        "mean": 0.4566666666666667,
+        "min": 0.455,
+        "n": 3,
+        "sd": 0.0020816659994661343
+      },
+      "newest_peak": {
+        "hi": 0.4618382290461072,
+        "lo": 0.4514951042872262,
+        "max": 0.459,
+        "mean": 0.4566666666666667,
+        "min": 0.455,
+        "n": 3,
+        "sd": 0.0020816659994661343
+      },
+      "old_mean_final": {
+        "hi": 0.5111344195718468,
+        "lo": 0.4797989137614866,
+        "max": 0.5016,
+        "mean": 0.4954666666666667,
+        "min": 0.489,
+        "n": 3,
+        "sd": 0.006306610288683905
+      },
+      "old_mean_peak": {
+        "hi": 0.5111344195718468,
+        "lo": 0.4797989137614866,
+        "max": 0.5016,
+        "mean": 0.4954666666666667,
+        "min": 0.489,
+        "n": 3,
+        "sd": 0.006306610288683905
+      },
+      "overall_final": {
+        "hi": 0.5298645871471043,
+        "lo": 0.4988020795195623,
+        "max": 0.5215,
+        "mean": 0.5143333333333333,
+        "min": 0.51,
+        "n": 3,
+        "sd": 0.00625166644450367
+      },
+      "per_skill_final": {
+        "collect_drink": {
+          "hi": 0.5546388118208893,
+          "lo": 0.5186945215124442,
+          "max": 0.545,
+          "mean": 0.5366666666666667,
+          "min": 0.532,
+          "n": 3,
+          "sd": 0.007234178138070242
+        },
+        "collect_sapling": {
+          "hi": 0.5406950756755898,
+          "lo": 0.4739715909910768,
+          "max": 0.517,
+          "mean": 0.5073333333333333,
+          "min": 0.492,
+          "n": 3,
+          "sd": 0.013428824718989136
+        },
+        "collect_stone": {
+          "hi": 0.5177058323688575,
+          "lo": 0.43496083429780924,
+          "max": 0.495,
+          "mean": 0.47633333333333333,
+          "min": 0.463,
+          "n": 3,
+          "sd": 0.016653327995729054
+        },
+        "collect_wood": {
+          "hi": 0.5254164112299122,
+          "lo": 0.4592502554367543,
+          "max": 0.501,
+          "mean": 0.4923333333333333,
+          "min": 0.477,
+          "n": 3,
+          "sd": 0.013316656236958798
+        },
+        "defeat_zombie": {
+          "hi": 0.4618382290461072,
+          "lo": 0.4514951042872262,
+          "max": 0.459,
+          "mean": 0.4566666666666667,
+          "min": 0.455,
+          "n": 3,
+          "sd": 0.0020816659994661343
+        },
+        "eat_cow": {
+          "hi": 0.4923682445539358,
+          "lo": 0.43696508877939744,
+          "max": 0.473,
+          "mean": 0.4646666666666666,
+          "min": 0.452,
+          "n": 3,
+          "sd": 0.011150485789118465
+        }
+      },
+      "per_skill_forgetting": {
+        "collect_drink": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        },
+        "collect_sapling": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        },
+        "collect_stone": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        },
+        "collect_wood": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        },
+        "defeat_zombie": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        },
+        "eat_cow": {
+          "hi": 0.0,
+          "lo": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "min": 0.0,
+          "n": 3,
+          "sd": 0.0
+        }
+      },
+      "seeds": 3
+    }
+  ],
+  "when": null
+}
