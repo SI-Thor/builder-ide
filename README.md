@@ -254,8 +254,10 @@ the factor.
 
 ## What is not here
 
-- No seat's promise is in the ledger yet. The reconstructed bids are proxies,
-  and the promise curve stays empty until real jobs run through it.
+- The promise curve holds exactly one real pair (J051, this repo's own v2
+  job: 140 promised, 58 closed, the goal line re-run at close) — every other
+  bid in the ledger is a reconstructed proxy. One pair is a start, not a
+  calibration.
 - `gc` cannot make a seat report. A seat that never reports its burn is
   recorded as having reported nothing.
 - The job classes of the reconstructed lanes are a reading, kept in one table

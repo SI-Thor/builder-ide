@@ -304,3 +304,46 @@ lessons, both the system working:
   real work until the true cumulative burn genuinely reaches 58, close at
   the true number, and record the misreport here. The error is mine, not
   the mechanism's — the mechanism is what caught it.
+
+## 2026-11-02 19:56 — J051 closed: the first real job through gc
+
+Row 206. The close re-ran the goal line itself — `cargo test --release -q &&
+gc verify`, exit 0, 56 tests — and recorded `goal line: pass (command re-run
+by gc, exit 0)`. 58 crew-min against a promise of 140, overrun 0, penalty 0,
+debt 0, on time (27 job-min of the 360-minute allowance). The crew-minutes
+are the checkpoint floor, not the true burn (~45): the correction rides in
+the close row's goal_line note and in the 19:52 entry above.
+
+What the book gained from one real job:
+
+- the **promise curve** has its first real pair: 58/140 = 0.414 (every
+  earlier "bid" was a reconstructed proxy);
+- zcode's **on-time rate** on build-feature is now measured (1/1) instead of
+  n/a — J051 was the first job in the ledger with a deadline and a promise;
+- the class factor for zcode build-feature moved to 1.38 over 2 clean runs
+  (262.3, 58.0) — two runs is still thin, and the shrinkage says so.
+
+The ledger stands at 207 rows, chain intact, head c39249508a6626c8. v2 ends
+where it started: the numbers are only as good as what a seat honestly
+reports, and the checks exist to catch the rest — this seat included.
+
+## 2026-11-02 19:57 — the state at the end of the seat
+
+Five commits on the Thor this seat (`7662354` opening, `4476003` v2 code,
+plus the notes and this close), nothing pushed. 56 tests passing (41 unit,
+15 through the binary), build warning-free, std only.
+
+What is left, and the risks:
+
+- **One promise pair is not a calibration.** The bid factors still lean on
+  reconstructed proxies; the curve fills only as real jobs run through gc.
+- **The clause grammar has two operators** (>=, <=) and scalar metrics. No
+  ranges, no string metrics, no per-window grace. Enough for the contracts
+  we have written; argue for more when a job needs it.
+- **The forecast assumes work starts at the award.** A seat that idles first
+  looks cheaper than it is. Unmeasured.
+- **The close's acceptance re-run has no environment profile.** A goal line
+  needing a GPU or a container records inconclusive; there is no --check-cwd
+  yet (README and docs/model.md say so).
+- **desk.sh still not edited** — docs/integration.md carries the proposal,
+  updated for the v2 close.

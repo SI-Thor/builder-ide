@@ -44,8 +44,8 @@ gc award --job J001 --auto                       the contract block appended
                                                -> the seat reads the terms
 ... the seat works, reporting burn ...
                                                gc checkpoint --job J001 --crew-used-min 45
-gc close --job J001 --crew-min 120 --accepted
-gc report --sub zcode
+gc close --job J001 --crew-min 120            # the goal line is re-run here,
+gc report --sub zcode                         # not reported by the seat
 ```
 
 The seat's own `gc` calls also need the ledger, so the seat must be told
