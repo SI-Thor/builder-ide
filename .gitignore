@@ -61,3 +61,8 @@ tools/posestream/target/
 
 # The autopilot study clone (READ-ONLY research copy; never built)
 third_party/
+
+# The private world: the server copy, its world, its snapshots and its
+# logs. It is runtime state on this box, not source — the tool that makes
+# it is in tools/mcsnap/.
+mc-snap/

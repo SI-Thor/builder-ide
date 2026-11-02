@@ -2553,3 +2553,56 @@ started), so the `lm` binary on the box and its source agree — the built
 binary is what the proof above was measured with. `git checkout m1-integration`
 in `~/last-mile` puts that repository back where it was; the two commits
 stay on the branch either way.
+
+---
+
+## 2026-11-01 21:30 — build #1: the snapshot tool, and the join to the ledger
+
+**Tried:** the primitive the design note calls missing (§6.1 row 6): a tool
+that takes a world apart with a manifest and puts it back. The note's
+measured numbers say the world is 20 MB and `level.dat` is 467 B, so the
+cost was never the question — the question was whether a *live* Paper
+server could be copied at all.
+
+**Happened:** `tools/mcsnap/python/mcsnap/` — eleven modules, no
+dependencies outside the standard library:
+
+* `nbt.py` — a small NBT reader, enough to read `level.dat` (the seed, the
+  tick, the time of day, the data version);
+* `world.py` — what a snapshot copies: the regions, the entities, the
+  points of interest, each dimension's data, the world's own data
+  (scoreboard, stopwatches, boss events), the datapacks, the players' own
+  data, and the Paper settings — and what it leaves behind (`session.lock`,
+  `level.dat_old`), each with the reason;
+* `manifest.py` — the manifest: a file list with sizes and sha256s, the
+  server version, the world's tick and seed, the ledger row the moment
+  sits behind, the per-section totals, and the timings; plus the
+  verification that checks a restored tree **by content**;
+* `rcon.py` — the server's own console: `save-off`, `save-all flush`,
+  `save-on`;
+* `snapshot.py` — the snapshot: stop the writing, flush, copy, hash,
+  manifest, and give the writing back even if the copy failed;
+* `restore.py` — the restore: stop, **move the old world aside (never
+  delete it)**, copy the snapshot in, verify every file by hash, start;
+* `server.py` — the private server: its own port, its own loopback, its
+  own honest `thor-admit` lease;
+* `ledger.py` — the ledger's head, read read-only;
+* `cli.py` — `snapshot`, `restore`, `verify`, `list`, `server`, `rewind`.
+
+And `core/rewind/snapshot.py` — the join. A rewind point on the world
+ledger is a *row*; a snapshot is a *state*; the two meet at the ledger's
+`seq`. The plan says which of the kept work between the snapshot and the
+point can be put back (**a block placement, which mineflayer can make
+again**), which is only a **record** the ledger already keeps (a judge's
+verdict), and which is **lost** (a mined block, a killed mob, the time of
+day moving on). The coordinates come from a **placement journal** — the
+world mutations the bots recorded — because the ledger's rows do not carry
+them: a `tile.played` row says which skill ran on which bot, not what it
+did to the world.
+
+**Box state:** the Thor, 14 CPUs. The tool is CPU-only and needs no GPU
+and no model. The private server has not been started yet.
+
+**Decided next:** start the private server on 127.0.0.1:25610 under
+`thor-admit`, take a snapshot at idle, and measure.
+
