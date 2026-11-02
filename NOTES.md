@@ -2026,3 +2026,45 @@ kept at artifacts/night-v5-crashed-2118, not deleted.
 Also: the finisher's own first launch (21:18) never started — its
 output redirect ran before the cd took effect (shell & precedence);
 the relaunch call fixes that.
+
+## 2026-11-01 23:13-23:25 — the seat picks the night up: the export was going to be cut
+
+**What I found.** The previous seat's night was still running (launched
+21:23:21), at the live view's scene export, started 22:44:04. `pgrep -af`
+showed it (`run_night.py --out artifacts/night-v5`, pid 2543483), the
+finisher beside it (`finish_night.sh`, pid 2543713) and the export itself
+(`export_scene.py`, pid 2666675). Box at 23:14: load1 20.9, 93 GB available
+of 122, swap 0.
+
+**What the ledger already holds.** All four seams answered on this run: the
+routed decoy cell on the box's d1-3B (accuracy 0.5208, decoy-first 0.561,
+act 59 / escalate 0 / surfaced 181, latency p50 0.063 s, 21:23:49), the
+library's ten measured crates into the plausibility prior as one labeled
+kind (21:23:50, gate live), 18 `night.prop_delegate` rows (the v4 picture-path
+fix working), and the neutral option order. Wave 1 ended 22:43:34 with
+`night.stopped` status "ran short": 0.1 lane-h cut at the 80 % bar, one
+prop re-queued, 33 min lost to a reboot. The heavy phase ended and the lease
+phased 40G -> 8G.
+
+**What the export was going to cost.** The runner bounds the scene export at
+3600 s. The export is Blender's glTF exporter walking the scene's
+**11,254,482** subdivided triangles (200,606 base) in Python, on the CPU,
+with the modifiers applied. The same scene measured **115 min** on this box
+(2026-10-31, world-stream-scratch/export2: 11:56:36 -> 13:52) and **136 min**
+(export1: 11:34 -> 13:51). The generation itself is cheap: 20.5 s
+(tonight's `worldstream/export/gen/metadata.json`). So the bound was shorter
+than the work it was given: tonight's export was going to be killed at
+**23:44:04**, about half done, with `scene.blend` (145,717,009 B) written
+and no `source.glb`. The live-view seam could never succeed, and the reason
+was a number in the runner, not the box.
+
+**What I changed.** One constant, `SCENE_EXPORT_TIMEOUT_S = 4 * 3600`, at the
+export's call site, with the two measurements in the comment beside it. The
+export is the same export; only the bound moved (about twice the worst
+measurement, and inside the night's own 4 h wall bar).
+
+**What I decided next.** Let this run end — its live view will record the
+gap, which is evidence — and keep its artifacts as
+`artifacts/night-v5-cut-2344`. Then run the night again from the one command
+with the bound fixed, so the live view is a seam that runs rather than a gap
+that is written down.

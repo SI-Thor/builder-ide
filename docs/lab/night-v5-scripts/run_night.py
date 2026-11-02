@@ -197,6 +197,19 @@ GPU_POOL_BAR_USED_GB = GPU_POOL_TOTAL_GB - GPU_POOL_NEED_GB
 #: The bar's bound. A night that waits forever is as dead as one that
 #: wedges, so past this the night goes anyway — and the row says so.
 GPU_POOL_WAIT_S = 45 * 60.0
+#: The live view's scene export, bounded. This scene is fixed: the generator
+#: ``room_livingroom_rand`` at seed 42 — 200,606 base triangles, 11,254,482
+#: after subdivision. The *generation* is cheap (20.5 s measured tonight) and
+#: the *glTF export* is not: Blender's exporter walks the 11 M triangles in
+#: Python, on the CPU, with the modifiers applied. Measured on this box for
+#: this exact scene: 115 min (2026-10-31, world-stream-scratch/export2:
+#: 11:56:36 -> 13:52) and 136 min (export1: 11:34 -> 13:51). The runner's
+#: old 3600 s bound was shorter than the work it was given, so the first
+#: attempt of this night was cut at exactly 3600 s with scene.blend written
+#: (145,717,009 B) and no source.glb — the seam could never succeed. The
+#: bound is now 4 h: about twice the worst measurement, and inside the
+#: night's own 4 h wall bar.
+SCENE_EXPORT_TIMEOUT_S = 4 * 3600.0
 V2_HOME = Path.home() / "lm-wt" / "v2-thor"
 SCRATCH = Path.home() / "lm-wt" / "world-stream-scratch"
 VIEWER = Path.home() / "lm-tools" / "viewer"
@@ -2036,7 +2049,7 @@ def world_stream(wires: list[dict], heavy: Heavy, out: Path) -> dict:
              SCRATCH / "export_scene.py",
              "--generator", "room_livingroom_rand", "--seed", str(WORLD_SEED),
              "--outdir", export_dir],
-            cwd=SCRATCH, timeout=3600)
+            cwd=SCRATCH, timeout=SCENE_EXPORT_TIMEOUT_S)
     if result.returncode != 0 or not (export_dir / "source.glb").exists():
         rows["export"]["error"] = (result.stderr or result.stdout)[-800:]
         log(f"scene export failed; the live view carries what compiled: "
