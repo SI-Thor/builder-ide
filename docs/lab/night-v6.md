@@ -117,7 +117,8 @@ than a wire that ran.
 ## 3. What changed
 
 The runner (`docs/lab/night-v6-scripts/run_night.py`) is night-v5's with
-three changes, plus the scripts that carry them:
+the brief's three changes, plus two repairs the night itself forced, and
+the scripts that carry them:
 
 1. **The letter speaks the ledger** — `decision_counts.py` is the one
    counter (the `measure.py` split factored out: local / cloud / refused
@@ -151,6 +152,14 @@ three changes, plus the scripts that carry them:
    placeholder materials, and the transform deltas the seam exists to
    measure are unaffected.
 
+The two repairs the night forced (both committed with their evidence,
+`3b3c344` and `dc12048`): the wedge-restart loop now honors the budget
+its own design states (two restarts, not one — the first launch died on
+the second of two wedges twelve minutes apart), with a 60 s quiet between
+a restart and its re-run; and `serve_model` waits out a loaded box (900 s
+health window) and no longer leaks the llama-server child it spawned when
+it gives up.
+
 `launch_night.sh` and `finish_night.sh` are v5's retargeted to this
 worktree (`artifacts/night-v6`, the diff against night-v5's artifacts);
 `measure.py`'s diff label no longer calls night-v5 "run D".
@@ -173,3 +182,161 @@ worktree (`artifacts/night-v6`, the diff against night-v5's artifacts);
   launched.
 * **The dry run**: the full wiring on the fake engine and judge; the
   morning holds `decisions.ledger` and `critic.ghost_policy`.
+
+## 5. The night itself
+
+Three launches, one night. The first (08:08) wedged ComfyUI twice in
+twelve minutes — the first wedge was survived exactly as designed (the
+first `night.comfy_restart` ever rowed in anger: stopped, log kept, back
+in 38 s), the second escaped a retry loop one restart short of its own
+stated budget and killed the night at 08:23. The second (08:37) died at
+start on a box a neighbour's 40 GB run held (`scenebloom-eval.bedroom`,
+load1 14.7): the d1-3B's model load did not finish inside the 360 s
+health window. Both dead runs are kept beside the live one
+(`artifacts/night-v6-wedged-0823`, `artifacts/night-v6-unhealthy-0841`)
+— a night that dies on a held box is a night that taught its runner two
+repairs. The third (09:32:01 → 11:01:27, 89.44 min) ended **"ran as
+planned — nothing failed"**.
+
+| stage | night-v5 (23:48:39 → 04:37:13) | night-v6 (09:32:01 → 11:01:27) |
+|---|---|---|
+| the box | load1 14.43, MemAvailable 97.3 GB before; load1 4.98, 98.1 GB after | load1 7.77, MemAvailable 98.3 GB before; load1 5.71, 102.1 GB after |
+| the leases | three thor-admit, peaks 6G / 6G / 40G, waits 0.0 / 0.1 / 0.1 s | three thor-admit, peaks 6G / 6G / 40G — the heavy the only one above 30 GB — waits 0.0 / 0.1 / 0.1 s |
+| the decision servers | two llama-servers, the night's own children | same, both healthy on the first ask |
+| the routed decoy cell | accuracy 0.5208, decoy-first 0.561, act 59 / escalate 0 / surfaced 181, p50 0.046 s | the same numbers on the same fixed replay (0.5208 / 0.561, act 59 / surfaced 181), p50 0.151 s on the loaded box |
+| the prior | 48 reference members, 2 groups (10 / 38), gate live | same fit, same gate |
+| the delegate | 18 calls, 0 failures, ~1.1 s each; 10 fired `holes` | 18 calls, 0 failures, p50 1.72 s; 10 fired `holes` |
+| the GPU-pool bar | armed, 0 waits | armed, 0 waits |
+| the wedge restart | armed, 0 restarts | armed, 0 restarts — after the first launch's two wedges put the budget fix in |
+| the heavy phase | 40G → 8G at 00:37:13 (0.02 s) | 40G → 8G at 10:59:58 (0.01 s, 95.5 GB free) |
+| the props | 3 kept (1.00 / 0.94 / 0.94), 15 rejected | **3 kept** (crate 1.00, lantern 0.946, anvil 0.947), 15 rejected — the owner's goal, again |
+| the ghost | fired once (lantern_r2_v3, 0.0385), dropped on the prior's word alone | fired once (**the same** lantern_r2_v3, 0.0385 — the plan is deterministic) — **dropped after the second look agreed** |
+| the second look | did not exist | renders 7.2 s + one call 19.6 s inside the night, 1,372 tokens, $0.0002; the cloud: "a plain cube with no openings, parts, or details resembling a lantern" |
+| the live view | export killed at its own 4 h bound, mid-walk, no source.glb | **source.glb 22,826,792 B in 85.2 s inside the night** (generate 17.1 s + export 66.3 s); 2 deltas of 676 B each compiled and applied |
+| the morning | written; the letter said "1 of 5" | written; the letter says **"245 of 251"** |
+| the wall | 288.57 min | **89.44 min** |
+
+**The ghost, both verdicts on the row.** The night's ledger holds
+`night.ghost_second_look` for `prop:lantern_r2_v3`: the prior's 0.0385
+beside the cloud's "plain cube" — `cloud_ghost: true`,
+`outcome: dropped_after_second_look`. The prop that ended night-v5 as an
+open question ended tonight as a decision with two receipts. That the
+same variant is the ghost two nights running is the plan's determinism
+doing its job: the seam is testable because the night is repeatable.
+
+## 6. The measurements, beside the box state
+
+From the night's own ledger and morning, measured by
+`docs/lab/night-v6-scripts/measure.py` and written to
+`artifacts/night-v6/measurements.txt` / `.json`:
+
+```
+PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
+    docs/lab/night-v6-scripts/measure.py \
+    --night artifacts/night-v6 --against ~/lm-wt/night-v5/artifacts/night-v5
+```
+
+```
+status      ran as planned — nothing failed
+wall        89.44 min (night-v5: 288.57 — the export is the difference)
+GPU         21.91 min of the 60-minute rail (night-v5: 14.66)
+jobs        39, in 84.95 min of job wall (night-v5: 46.0)
+leases      three thor-admit (peaks 6G / 6G / 40G), waits 0.0 / 0.1 / 0.1 s
+phase       40G → 8G at 10:59:58 (0.01 s, 95.5 GB free)
+decisions   251 rows — 245 on the local d1-3B (mean 0.0477 s), 4 on Jev, 2 refusals
+gates       181 surfaced / 66 act / 2 escalate
+props       3 kept (crate 1.00 · lantern 0.946 · anvil 0.947), 15 rejected
+ghost       1 of 18 — lantern_r2_v3, plausibility 0.0385 (gate 0.05)
+second look 1 call — the cloud agreed; renders 7.2 s, call 19.6 s, $0.0002
+delegate    18 of 18 answered, p50 1.72 s; 10 fired `holes`
+live view   source.glb 22,826,792 B in 85.2 s (generate 17.1 + export 66.3)
+box         before load1 7.77 / MemAvailable 98.3 GB; after load1 5.71 / 102.1 GB
+```
+
+`artifacts/` is not in git: the ledger, the morning, the report, the
+letter and the dead launches' artifacts stay on the Thor. This document
+and `docs/lab/night-v6-scripts/` are the record.
+
+## 7. The morning's letter
+
+`artifacts/night-v6/letter.md`, written by the finisher
+(`docs/lab/night-v6-scripts/write_letter.py`), **115 words**, every
+decision number counted from the ledger beside the morning:
+
+> Casey —
+>
+> The night kept 3 props (crate, lantern, anvil) in 89.44 minutes. The judge's decision model is the d1-3B now, the options go to it in the neutral order, and 245 of 251 judgments answered locally (4 went to the cloud, 2 were refusals). The library's 10 approved crates are in the prior, so its ghost gate can reach below 0.05.
+>
+> What surprised the night: the prior called 1 of 18 props ghosts, and the cloud's second look agreed on 1 of them.
+>
+> One question for you: the cloud agreed on every ghost tonight — should the second look also see the props the prior passed, or stay a second look only?
+>
+> The night,
+
+## 8. What it makes possible
+
+- **A prop can now be dropped with two receipts instead of one.** The
+  prior's sharpest instrument — a rank that says *this resembles nothing
+  we know* — no longer acts alone: the prop's own mesh is rendered, the
+  cloud looks, and the drop lands only when both agree. Tonight they
+  agreed on the one ghost they were shown, and the row carries both
+  verdicts. When they first disagree, the row will carry that too, and
+  the question of who to trust will be a number instead of a feeling.
+- **The live view is a wire that runs.** Four nights paid 115–240 minutes
+  at an export that never finished; tonight the source landed in
+  **85 seconds**, and the mechanism that made the difference is named
+  and measured — the material node-tree search, not the triangles. The
+  trade (5k-poly objects, placeholder materials) is on the stats file,
+  and the way back to real materials is a named problem, not a mystery.
+- **The night fits in a night again.** 89.44 minutes wall against v5's
+  288.57 — the export was three of those hours. A seam that runs in
+  minutes changes what a night can hold: tonight's whole margin (the
+  60-minute GPU rail at 21.9 used, the 4-hour wall bar at 1.5 used) is
+  headroom the owner can spend on more props, more rounds, or a second
+  kind in the library.
+- **The letter can be trusted on its numbers.** The morning, the letter,
+  the measurements and the test all speak the one ledger count. The unit
+  is named (a judgment row, one per attempt, refusals included), the
+  counter is one file, and the regression anchor is a real night.
+- **The workarounds have now fired in anger.** The wedge restart rowed
+  its first real restart (and survived it); the crash it could not
+  survive found the loop one restart short of its design, and that is
+  fixed with the dead run kept as evidence. A night that dies on a held
+  box now leaves a shorter, cleaner corpse: the model-start window waits
+  out the box, and no leaked child holds the port for the next seat.
+
+## 9. What was not verified
+
+- **The second look has only ever agreed.** One ghost, one agreement —
+  tonight and the desk probe. The disagreement path (the cloud overrules
+  the prior, the prop stays) is tested in the unit tests but has never
+  fired in a night; until it does, "both verdicts on the row" is a
+  promise kept once.
+- **The second look's question and model are first drafts.** One fixed
+  wording, one VLM (Qwen3-VL-30B-A3B), greedy decoding, three
+  orthographic views. No calibration against a labelled set of good and
+  degenerate props has been done — the wording was written once and
+  agreed with the only ghost it has been shown.
+- **The export's placeholder materials are a real loss.** The source.glb
+  carries geometry and default materials; anything downstream that needs
+  Infinigen's actual surfaces (a viewer that looks right) does not have
+  them. The mechanism to attack is named (the node-tree search); whether
+  baked textures or a patched search gets them back is not measured.
+- **The wedge's cause is still unknown.** Tonight's first launch wedged
+  ComfyUI twice in twelve minutes during a neighbour's 40 GB run;
+  night-v4's §9 finding stands (the log ends mid-load, no OOM, the
+  neighbour is the only name the box can offer). The runner survives the
+  shape up to its budget; it still says nothing about the cause.
+- **The three-launch story is one night's evidence.** The budget fix and
+  the model-start window have each been exercised exactly once (the
+  second launch's death), and the third launch never needed either. The
+  wedge restart's second restart, and the 900 s window's patience, are
+  untested in anger.
+- **`courtyard.room` is still excluded** (the engine's "procfunc proxy
+  iteration under trace"); the splice measures the same two subjects it
+  always has, and the fix belongs to the v2 engine.
+- **The morning's `props.attempts` list is empty** — the fold reads a key
+  the runner never wrote (`generated` and `meshes` both 0, on v5's
+  morning too). `measure.py` reads the job rows instead, which is where
+  the doc's prop numbers come from. Pre-existing, cosmetic, and now
+  said: a known gap, not a hidden one.
