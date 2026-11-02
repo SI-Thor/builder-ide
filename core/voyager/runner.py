@@ -131,10 +131,27 @@ class VoyagerLoop:
         """
         self._metrics.started_at = self._wall_clock()
         self._budget.start(self._clock)
+        failures = 0
         while not self._budget.exhausted():
-            record = self.step()
+            try:
+                record = self.step()
+            except Exception as exc:
+                # A world that falls over is not the end of the
+                # measurement: the turn is lost, the loop goes on, and
+                # the failures in a row are what say the world is gone.
+                failures += 1
+                self._log(f"step {self._index}: the world failed: {exc!r}")
+                if failures >= 5:
+                    self._log("five failures in a row: the run stops")
+                    break
+                continue
+            failures = 0
             if record is None:
                 break
+        return self.report()
+
+    def report(self) -> RunReport:
+        """The report as it stands, even when the run stopped early."""
         self._metrics.finished_at = self._wall_clock()
         self._metrics.wall_seconds = self._budget.elapsed()
         counts = self._skills.counts()
@@ -258,10 +275,13 @@ class VoyagerLoop:
                 proposal.verify_code, timeout_s=self._config.verify_timeout_s
             )
             self_verified = check.passed
-        truth = bool(self._env.goal_truth(goal.key))
-
         # -- judge --------------------------------------------------------------
         after = self._env.observe()
+        # The world's own answer is asked after the world is observed
+        # again: a milestone is about what the program just did, so it
+        # is judged against the inventory now and not against the one
+        # from before the program ran.
+        truth = bool(self._env.goal_truth(goal.key))
         verifier_reply = self._models.complete(
             "verifier",
             VERIFIER_SYSTEM,

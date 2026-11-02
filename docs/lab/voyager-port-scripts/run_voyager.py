@@ -155,6 +155,10 @@ def main() -> int:
         f"verifier={args.verifier_model}")
 
     milestones = getattr(env, "milestones", None)
+    # The adapter exposes the milestones as a method; the curriculum
+    # wants the milestones themselves.
+    if callable(milestones):
+        milestones = milestones()
     if milestones is None:
         milestones = ()
     curriculum = Curriculum(list(milestones), seed=args.seed)
@@ -175,11 +179,21 @@ def main() -> int:
     )
 
     report = None
+    failure = ""
     try:
         env.open()
         report = loop.run()
     except KeyboardInterrupt:
         log("the run was interrupted")
+    except Exception as exc:
+        # A run that falls over still has something to say: the report is
+        # taken from the loop as it stands, and the failure is on it.
+        log(f"the run stopped early: {exc!r}")
+        failure = repr(exc)
+        try:
+            report = loop.report()
+        except Exception as inner:
+            log(f"even the report could not be made: {inner!r}")
     finally:
         try:
             env.close()
@@ -191,6 +205,7 @@ def main() -> int:
         return 1
 
     payload = report.as_dict()
+    payload["failure"] = failure
     payload["cost_book"] = models.cost.snapshot()
     payload["budget"] = budget.as_dict()
     payload["wall_seconds_measured"] = round(time.time() - started, 1)

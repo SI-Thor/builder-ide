@@ -22,10 +22,10 @@ from core.voyager.adapters.minecraft import MinecraftAdapter
 
 STEPS: list[tuple[str, str]] = [
     ("look around",
-     "const r = await mc.scan(96);\n"
+     "const r = await mc.scan(128);\n"
      "console.log('nearby ' + JSON.stringify(r.nearby));"),
     ("walk to the tree",
-     "const r = await mc.move_to_block('oak_log', 96, 60000);\n"
+     "const r = await mc.move_to_block('oak_log', 128, 240000);\n"
      "console.log('at ' + JSON.stringify(r.at));"),
     ("cut the tree",
      "const r = await mc.collect('oak_log', 4, 16);\n"
@@ -43,7 +43,7 @@ STEPS: list[tuple[str, str]] = [
      "const r = await mc.craft('wooden_pickaxe', 1);\n"
      "console.log('pickaxe ' + JSON.stringify(r.inventory));"),
     ("mine the stone",
-     "const r = await mc.mine_block('stone', 32, 3);\n"
+     "const r = await mc.mine_block('stone', 64, 3);\n"
      "console.log('mined ' + r.mined + ' ' + JSON.stringify(r.inventory));"),
 ]
 
@@ -54,7 +54,7 @@ def main() -> int:
     time.sleep(10)
     for label, code in STEPS:
         started = time.time()
-        result = adapter.run_code(code, timeout_s=180)
+        result = adapter.run_code(code, timeout_s=300)
         print(f"--- {label}: {time.time() - started:.1f}s ok={result.ok}", flush=True)
         for line in result.log:
             print("   ", line, flush=True)

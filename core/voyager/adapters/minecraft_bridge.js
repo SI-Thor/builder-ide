@@ -32,7 +32,17 @@ const mineflayer = require(path.join(MINECRAFT_DIR, 'node_modules', 'mineflayer'
 const { pathfinder, Movements, goals } = require(
   path.join(MINECRAFT_DIR, 'node_modules', 'mineflayer-pathfinder'))
 const Vec3 = require(path.join(MINECRAFT_DIR, 'node_modules', 'vec3'))
-const Block = require(path.join(MINECRAFT_DIR, 'node_modules', 'prismarine-block'))
+// prismarine-block exports a loader, not the Block class: the class
+// needs the registry, which only exists once the bot has been made.
+let BlockClass = null
+
+function blockClass () {
+  if (BlockClass === null) {
+    BlockClass = require(
+      path.join(MINECRAFT_DIR, 'node_modules', 'prismarine-block'))(bot.registry)
+  }
+  return BlockClass
+}
 
 const HOST = process.env.VOYAGER_MC_HOST || '127.0.0.1'
 const PORT = parseInt(process.env.VOYAGER_MC_PORT || '25600', 10)
@@ -81,6 +91,25 @@ const logLines = []
 function say (line) {
   logLines.push(String(line))
   if (logLines.length > 400) logLines.shift()
+}
+
+// -- the stdout guard ----------------------------------------------------------
+
+// stdout is the protocol: one JSON object per line and nothing else. A
+// dependency's debug print or a stack trace on that channel would
+// desynchronise the two sides and end the run, so anything that is not
+// a protocol line is moved to stderr, where the bridge's own account of
+// itself belongs.
+const writeThrough = process.stdout.write.bind(process.stdout)
+process.stdout.write = function (chunk, encoding, callback) {
+  const text = Buffer.isBuffer(chunk) ? chunk.toString('utf8') : String(chunk)
+  if (text.startsWith('{"id"')) {
+    return writeThrough(chunk, encoding, callback)
+  }
+  try { process.stderr.write(text) } catch (err) { /* the pipe is gone */ }
+  if (typeof encoding === 'function') encoding()
+  else if (typeof callback === 'function') callback()
+  return true
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -185,7 +214,18 @@ function isSolidName (name) {
 // first version of this bridge did: every walk ran to its timeout and
 // then reported that it had not finished.
 
+// One walk at a time. The pathfinder has a single goal, so a second
+// walk supersedes the first; the first is cancelled and its listeners
+// come off. Without this, the listeners of every walk that is still
+// pending pile up, and node says so: "11 goal_reached listeners".
+let activeWalk = null
+
 function walkTo (goal, timeoutMs) {
+  if (activeWalk) {
+    const previous = activeWalk
+    activeWalk = null
+    previous.cancel()
+  }
   return new Promise((resolve, reject) => {
     let settled = false
     const cleanup = () => {
@@ -193,6 +233,7 @@ function walkTo (goal, timeoutMs) {
       bot.removeListener('goal_reached', onReached)
       bot.removeListener('path_update', onUpdate)
       bot.removeListener('path_stop', onStopped)
+      if (activeWalk && activeWalk.cancel === cancel) activeWalk = null
     }
     const settle = (why, err) => {
       if (settled) return
@@ -211,12 +252,20 @@ function walkTo (goal, timeoutMs) {
       }
     }
     const onStopped = () => settle('stopped', new Error('the walk was stopped before it finished'))
+    const cancel = () => settle('cancelled', new Error('the walk was cancelled by a newer walk'))
     const timer = setTimeout(
       () => settle('timeout', new Error('the walk did not finish in time')), timeoutMs)
+    activeWalk = { cancel }
     bot.on('goal_reached', onReached)
     bot.on('path_update', onUpdate)
     bot.on('path_stop', onStopped)
-    bot.pathfinder.setGoal(goal)
+    try {
+      bot.pathfinder.setGoal(goal)
+    } catch (err) {
+      // A goal the pathfinder refuses must not leave the listeners
+      // behind: the walk is over, one way or the other.
+      settle('failed', err)
+    }
   })
 }
 
@@ -224,7 +273,7 @@ function walkTo (goal, timeoutMs) {
 // a second and a bit a block is a fair clock; the floor covers the short
 // walk, where the pathfinder's own thinking time dominates.
 function walkBudget (distanceBlocks) {
-  return Math.min(300000, Math.max(30000, Math.round(distanceBlocks * 1200)))
+  return Math.min(300000, Math.max(45000, Math.round(distanceBlocks * 1500)))
 }
 
 async function gotoPosition (position, timeoutMs) {
@@ -349,7 +398,7 @@ function stateName (stateId) {
   let name = stateNames.get(stateId)
   if (name === undefined) {
     try {
-      name = Block.fromStateId(stateId, 0).name
+      name = blockClass().fromStateId(stateId, 0).name
     } catch (err) {
       name = null
     }
@@ -835,18 +884,36 @@ async function runInSandbox (code, timeoutMs) {
   })
   const script = new vm.Script('(async () => {\n' + code + '\n})()')
   const limit = Math.max(1000, timeoutMs)
+  // The clock is cleared when the program ends, so a program that
+  // failed early does not leave a timer behind to fire later and take
+  // the bridge down with it.
+  let timer = null
+  const clock = new Promise((resolve, reject) => {
+    timer = setTimeout(
+      () => reject(new Error('the program ran out of time')), limit)
+  })
   try {
-    const value = await Promise.race([
-      script.runInContext(context, { timeout: limit }),
-      sleep(limit).then(() => { throw new Error('the program ran out of time') })
-    ])
+    const running = script.runInContext(context, { timeout: limit })
+    // The program keeps running when the clock wins the race. When it
+    // finally fails, its rejection would be an unhandled one, and node
+    // treats that as fatal: the bridge dies and the run ends with it.
+    // The catch marks it handled; the race is what reports the failure.
+    if (running && typeof running.catch === 'function') running.catch(() => {})
+    const value = await Promise.race([running, clock])
     return { value, log: captured }
   } catch (err) {
     // The program may still be walking or digging: stop it, so the next
     // program starts from a bot that is standing still.
     try { bot.pathfinder.stop() } catch (e) { /* no path */ }
     try { bot.stopDigging() } catch (e) { /* not digging */ }
+    if (activeWalk) {
+      const walk = activeWalk
+      activeWalk = null
+      walk.cancel()
+    }
     throw err
+  } finally {
+    if (timer) clearTimeout(timer)
   }
 }
 
@@ -941,8 +1008,20 @@ function waitForChunks (timeoutMs) {
 
 // -- the wire --------------------------------------------------------------------
 
-const rl = readline.createInterface({ input: process.stdin })
-rl.on('line', async (line) => {
+// The bridge is a service: a program that fails is a failed program, not
+// a dead bridge. These are recorded and the bridge keeps serving,
+// because the loop's whole job is to see what went wrong and try again.
+process.on('unhandledRejection', (reason) => {
+  const text = String((reason && reason.message) || reason)
+  say('unhandled rejection: ' + text)
+})
+
+process.on('uncaughtException', (err) => {
+  const text = String((err && err.message) || err)
+  say('uncaught exception: ' + text)
+})
+
+async function handleLine (line) {
   let request = null
   try {
     request = JSON.parse(line)
@@ -993,6 +1072,21 @@ rl.on('line', async (line) => {
       log: logLines.slice(-20)
     }) + '\n')
   }
+}
+
+const rl = readline.createInterface({ input: process.stdin })
+rl.on('line', (line) => {
+  // The handler is async, so a failure inside it is a rejected promise.
+  // It is caught here and answered, so the caller gets an answer rather
+  // than a dead pipe.
+  handleLine(line).catch((err) => {
+    const text = String((err && err.message) || err)
+    try {
+      process.stdout.write(JSON.stringify({
+        id: 0, ok: false, error: text, log: logLines.slice(-20)
+      }) + '\n')
+    } catch (e) { /* the pipe is gone */ }
+  })
 })
 
 rl.on('close', () => {

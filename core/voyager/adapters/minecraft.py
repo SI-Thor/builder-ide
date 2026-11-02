@@ -354,26 +354,40 @@ class MinecraftAdapter:
         process = self._process
         if process is None or process.stdin is None or process.stdout is None:
             raise RuntimeError("the bridge is not running")
+        answer: dict[str, Any] | None = None
+        skipped: list[str] = []
         with self._lock:
             self._next_id += 1
             request = {"id": self._next_id, "cmd": cmd}
             request.update(payload)
             process.stdin.write(json.dumps(request) + "\n")
             process.stdin.flush()
-            line = process.stdout.readline()
-        if not line:
+            # A line that is not a JSON object means something wrote to
+            # the bridge's stdout that was not a response. The line is
+            # the only evidence of what got in the way, so it is kept
+            # and shown; but a stray line is not the end of the run, so
+            # the lines are read until the answer arrives.
+            for _ in range(64):
+                line = process.stdout.readline()
+                if not line:
+                    break
+                try:
+                    answer = json.loads(line)
+                    break
+                except ValueError:
+                    skipped.append(line.rstrip())
+        if answer is None:
+            if skipped:
+                raise RuntimeError(
+                    "the bridge sent no answer; the lines that were not JSON were "
+                    + repr(skipped[:5])
+                )
             raise RuntimeError("the bridge closed the pipe")
-        try:
-            answer = json.loads(line)
-        except ValueError as exc:
-            # A line that is not a JSON object means the two sides are out
-            # of step: something wrote to the bridge's stdout that is not
-            # a response. Say so, and show the line, because the line is
-            # the only evidence of what got in the way.
-            raise RuntimeError(
-                "the bridge sent a line that is not JSON: "
-                f"{exc}; the line was {line[:300]!r}"
-            ) from exc
+        if skipped:
+            self._log(
+                f"bridge: {len(skipped)} lines that were not JSON were skipped: "
+                + repr(skipped[:3])
+            )
         if not answer.get("ok"):
             raise RuntimeError(str(answer.get("error", "the bridge refused the request")))
         return answer.get("result")
@@ -389,12 +403,18 @@ class MinecraftAdapter:
         ores: dict[str, Any] = {}
         # A scan is a read, and the facts are worth the two calls: a
         # player knows what is in reach.
+        # The facts are what the planner reasons over, so they are the
+        # world as a player would describe it: what is in reach and what
+        # is in the world around. The scan reaches the loaded area of
+        # the server, which is where the tree is when the tree is 86
+        # blocks away; a scan of sixteen blocks says "empty" and hides
+        # the only thing worth doing.
         try:
-            nearby = (self._call("run", timeout_s=45.0, code="return await mc.scan(16)", timeout_ms=30000) or {}).get("nearby", {})
+            nearby = (self._call("run", timeout_s=45.0, code="return await mc.scan(96)", timeout_ms=30000) or {}).get("nearby", {})
         except Exception:
             nearby = {}
         try:
-            ores = (self._call("run", timeout_s=45.0, code="return await mc.scan_ore(16)", timeout_ms=30000) or {}).get("ores", {})
+            ores = (self._call("run", timeout_s=45.0, code="return await mc.scan_ore(32)", timeout_ms=30000) or {}).get("ores", {})
         except Exception:
             ores = {}
         return {

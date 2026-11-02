@@ -271,13 +271,43 @@ def verifier_prompt(
     return "\n".join(lines)
 
 
-def parse_json_block(text: str) -> dict[str, Any]:
+def _brace_starts (text):
+    """Where the balanced objects in the text begin."""
+    starts = []
+    depth = 0
+    in_string = False
+    escape = False
+    for index, char in enumerate(text):
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            if depth == 0:
+                starts.append(index)
+            depth += 1
+        elif char == "}":
+            if depth > 0:
+                depth -= 1
+    return starts
+
+
+def parse_json_block (text: str) -> dict[str, Any]:
     """Read a JSON object out of a model's answer.
 
-    Models fence their JSON and sometimes say a word before it. The
-    reader takes the first balanced ``{...}`` in the text. When there is
-    none, it raises — a reply that cannot be read is not a reply, and
-    guessing at it would put a fabrication into the log.
+    Models fence their JSON and sometimes say a word before it, and a
+    coder that shows a JavaScript object before its answer puts the
+    answer second. So every balanced {...} in the reply is a candidate
+    and the first one that is JSON is the answer.
+
+    When there is none, it raises: a reply that cannot be read is not a
+    reply, and guessing at it would put a fabrication into the log.
     """
     text = text.strip()
     if text.startswith("```"):
@@ -290,28 +320,33 @@ def parse_json_block(text: str) -> dict[str, Any]:
             if candidate.startswith("{"):
                 text = candidate
                 break
-    start = text.find("{")
-    if start < 0:
-        raise ValueError("no JSON object in the reply")
-    depth = 0
-    in_string = False
-    escape = False
-    for index in range(start, len(text)):
-        char = text[index]
-        if in_string:
-            if escape:
-                escape = False
-            elif char == "\\":
-                escape = True
-            elif char == '"':
-                in_string = False
-            continue
-        if char == '"':
-            in_string = True
-        elif char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0:
-                return json.loads(text[start : index + 1])
-    raise ValueError("the JSON object in the reply is not closed")
+    last_error = None
+    for start in _brace_starts(text):
+        depth = 0
+        in_string = False
+        escape = False
+        for index in range(start, len(text)):
+            char = text[index]
+            if in_string:
+                if escape:
+                    escape = False
+                elif char == "\\":
+                    escape = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start : index + 1])
+                    except ValueError as exc:
+                        last_error = exc
+                    break
+    if last_error is not None:
+        raise ValueError("no JSON object in the reply: " + str(last_error))
+    raise ValueError("no JSON object in the reply")
