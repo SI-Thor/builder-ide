@@ -1,0 +1,107 @@
+== pose stream benchmark ==
+seed 209937112109620  ticks 3600  (60 s at 60 Hz)  objects 10000  subscribers 64  mode Predictive
+network: one-way delay uniform in [2.0, 12.0] ms +/- 1.5 ms jitter, loss 0.00% per packet
+receiver: back-dating on (anchors at the packet's tick)
+interest regions: exit hysteresis 16 m
+leave list: delta-coded varints
+emitter phases (total over the run): region 1161 ms, records 574 ms, encode 627 ms
+world advance:       mean 0.258 ms/tick  p95 0.560 ms/tick
+emission:            mean 1.678 ms/tick  p95 2.621 ms/tick
+emitter tick total:  p50 1.762 ms  p95 3.153 ms  mean 1.936 ms
+emitter's own work:  p50 0.6076 ms  p95 1.1712 ms  (region + records + encode)
+delivery latency (link + decode/apply): p50 7.438 ms  p95 13.324 ms  max 15.840 ms
+subscriber service (decode + apply): p50 7.438 ms  p95 13.324 ms
+packet decode:       p50 3.6 us  p95 10.0 us
+link: the delay actually drawn was 0.50 - 13.50 ms (configured 0.50 - 13.50 ms), at most 1 packets in flight at once
+packets: 81714 sent, 3 lost (0.00%), 81711 delivered
+bytes: delivered 35883128 B over 60 s = 598.1 kB/s aggregate; per subscriber mean 9344.6 B/s, p95 25779.8 B/s
+bytes on the wire:   per subscriber mean 9345.0 B/s (the difference is what the link lost)
+byte breakdown (approx): header 5.0%  enter 2.9%  leave 0.4%  changed-set 5.7%  pos deltas 31.4%  vel deltas 32.6%  masks 8.7%  escapes 21.9%
+objects carried: 79891 enters, 66716 leaves, 12556607 change records (16110606 delivered states)
+reconstruction errors: 0   (max |reconstructed - truth| = 0.005000 m, bound = 0.005000 m per axis; worst reconstruction error 0.0 mm)
+mirror mismatches: 0 (the receiver's held state against the emitter's mirror; worst 0.0 mm)
+resyncs: 3 gap(s), 67 keyframe(s); recovery from the gap to the keyframe's arrival: p50 27.4 ms  p95 57.2 ms  max 57.2 ms
+motion-channel prediction between deliveries: p50 0.000000 m  p95 0.030000 m  p99 0.130000 m  max 32.000 m
+the drift budget, by delivery interval (the bound the world's motion parameters give):
+  every  1 ticks: orbiter    0.016 m   walker    0.211 m   fast mover    0.211 m
+  every  2 ticks: orbiter    0.018 m   walker    0.407 m   fast mover    0.407 m
+  every  3 ticks: orbiter    0.021 m   walker    0.602 m   fast mover    0.602 m
+  every  4 ticks: orbiter    0.024 m   walker    0.798 m   fast mover    0.994 m
+  every  6 ticks: orbiter    0.034 m   walker    1.190 m   fast mover    1.777 m
+  every 12 ticks: orbiter    0.085 m   walker    3.538 m   fast mover    5.887 m
+  every 30 ticks: orbiter    0.431 m   walker   17.629 m   fast mover   32.306 m
+drift by kind: walker p50 0.0 mm p95 30.0 mm max 5760.0 mm | orbiter p50 0.0 mm p95 10.0 mm max 320.0 mm | fast p50 10.0 mm p95 510.0 mm max 32000.0 mm
+drift against the budget: 41435004 checks, worst 32000.0 mm, 0 over the bound
+  worst over: 
+motion channel in the subscriber's frame: mean apparent speed 4.757 m/s, max 51.534 m/s, 100.0% of the objects are moving (>5 cm/s)
+late join resync (service time + link): [1.250688, 1.1973960000000001, 1.19396, 1.159308, 1.15028, 1.135427, 1.114185, 1.104323, 1.0808659999999999, 1.058726, 1.0685040000000001, 1.017528, 1.001165, 0.9808950000000001, 0.9822559999999999, 0.946817, 0.946855, 0.905601, 0.935196, 0.837882, 0.856457, 0.7937200000000001, 0.786219, 0.805685, 0.775108, 0.741309, 0.724083, 0.70173, 0.704009, 0.6732, 0.674025, 0.65142, 0.6362800000000001, 0.637642, 0.616871, 0.60299, 0.61388, 0.569321, 0.558967, 0.399777, 0.38909099999999996, 0.319502, 0.31139, 0.27052499999999996, 0.6238809999999999, 0.468069, 1.144919, 0.872032, 0.661838, 0.326715, 0.265274, 0.259402, 0.951726, 0.639624, 0.374053, 0.27568200000000004, 0.561014, 0.5815440000000001, 0.5891540000000001, 0.511389, 0.16658, 0.191869, 0.215556, 0.210964] ms
+  tick 793 sub 17: gap (held v789, offered v791) -> keyframe requested
+  tick 1031 sub 24: gap (held v1029, offered v1030) -> keyframe requested
+  tick 2741 sub 36: bitmap base mismatch -> keyframe requested
+stream digest (fnv1a over all delivered bytes): 0xceb67ca0be6de833
+
+id  shape  path    rate  region  deliveries  keyframes  resyncs  bytes/s   camera
+ 0  sphere  circle   60 Hz    204        3600         1        0   29178.0  shared
+ 1  frustum  circle   30 Hz     94        1800         1        0    5698.0  shared
+ 2  sphere  circle   30 Hz    356        1800         1        0   17148.3  shared
+ 3  frustum  circle   20 Hz     82        1200         1        0    5169.9  shared
+ 4  sphere  circle   15 Hz    354         900         1        0   13165.9  shared
+ 5  frustum  circle   10 Hz     96         600         1        0    3049.8  shared
+ 6  sphere  circle    5 Hz    340         300         1        0    6812.5  shared
+ 7  frustum  circle    2 Hz     69         120         1        0    1013.7  shared
+ 8  sphere  idle   60 Hz    252        3600         1        0   23557.9  
+ 9  frustum  circle   30 Hz    156        1800         1        0   11187.5  
+10  sphere  circle   30 Hz    347        1800         1        0   19574.8  
+11  frustum  circle   20 Hz     70        1200         1        0    5592.4  
+12  sphere  drift   15 Hz    270         900         1        0   11255.8  
+13  frustum  drift   10 Hz     88         600         1        0    2120.4  
+14  sphere  drift    5 Hz    274         300         1        0    5487.9  
+15  frustum  idle    2 Hz    103         120         1        0    1052.5  
+16  sphere  idle   60 Hz    505        3600         1        0   41584.2  
+17  frustum  idle   30 Hz    126        1800         2        1    7627.4  
+18  sphere  circle   30 Hz    212        1800         1        0   12225.9  
+19  frustum  circle   20 Hz    113        1200         1        0    4387.0  
+20  sphere  circle   15 Hz    479         900         1        0   18132.4  
+21  frustum  drift   10 Hz    109         600         1        0    4304.7  
+22  sphere  drift    5 Hz    208         300         1        0    3807.7  
+23  frustum  drift    2 Hz    250         120         1        0    3034.8  
+24  sphere  idle   60 Hz    102        3600         2        1   10118.7  
+25  frustum  idle   30 Hz    262        1800         1        0   15804.0  
+26  sphere  idle   30 Hz     84        1800         1        0    4874.2  
+27  frustum  circle   20 Hz    312        1200         1        0   20612.2  
+28  sphere  circle   15 Hz    104         900         1        0    4928.0  
+29  frustum  circle   10 Hz     94         600         1        0    3763.6  
+30  sphere  drift    5 Hz    196         300         1        0    4240.6  
+31  frustum  drift    2 Hz    525         120         1        0    5394.3  
+32  sphere  drift   60 Hz     68        3600         1        0    7028.9  
+33  frustum  idle   30 Hz     87        1800         1        0    4890.9  
+34  sphere  idle   30 Hz    461        1800         1        0   25779.8  
+35  frustum  idle   20 Hz     74        1200         1        0    3666.2  
+36  sphere  circle   15 Hz    384         900         2        1   16426.9  
+37  frustum  circle   10 Hz     85         600         1        0    3772.6  
+38  sphere  circle    5 Hz     94         300         1        0    1973.4  
+39  frustum  drift    2 Hz     81         120         1        0     882.4  
+40  sphere  drift   60 Hz    228        3600         1        0   20717.6  
+41  frustum  drift   30 Hz     49        1800         1        0    3324.7  
+42  sphere  idle   30 Hz    278        1800         1        0   16895.5  
+43  frustum  idle   20 Hz     35        1200         1        0    2486.5  
+44  sphere  idle   15 Hz    280         900         1        0   12087.6  
+45  frustum  circle   10 Hz     67         600         1        0    3418.8  
+46  sphere  circle    5 Hz    319         300         1        0    6508.4  
+47  frustum  circle    2 Hz    332         120         1        0    4634.3  
+48  sphere  drift   60 Hz    145        3600         1        0   12801.2  
+49  frustum  drift   30 Hz     94        1800         1        0    5563.1  
+50  sphere  drift   30 Hz    216        1800         1        0   13862.7  
+51  frustum  idle   20 Hz    125        1200         1        0    5349.3  
+52  sphere  idle   15 Hz    180         900         1        0    6768.1  
+53  frustum  idle   10 Hz     28         600         1        0    1045.8  
+54  sphere  circle    5 Hz    258         300         1        0    8836.2  
+55  frustum  circle    2 Hz     42         120         1        0     922.7  
+56  sphere  circle   60 Hz    486        3600         1        0   41087.1  
+57  frustum  drift   30 Hz     74        1800         1        0    4574.8  
+58  sphere  drift   30 Hz    143        1800         1        0    9023.9  
+59  frustum  drift   20 Hz    329        1200         1        0   16870.6  
+60  sphere  idle   15 Hz    174         676         1        0    5070.4  
+61  frustum  idle   10 Hz    229         301         1        0    4267.0  
+62  sphere  idle    5 Hz    266          76         1        0    1470.1  
+63  frustum  circle    2 Hz     71          21         1        0     139.7  

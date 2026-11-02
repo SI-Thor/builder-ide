@@ -1,20 +1,40 @@
 == pose stream benchmark ==
 seed 209937112109620  ticks 3600  (60 s at 60 Hz)  objects 10000  subscribers 64  mode Predictive
-emitter phases (total over the run): region 300 ms, records 285 ms, encode 438 ms
-world advance:       mean 0.225 ms/tick  p95 0.439 ms/tick
-emission:            mean 0.643 ms/tick  p95 0.998 ms/tick
-emitter tick total:  p50 0.794 ms  p95 1.433 ms  mean 0.868 ms
-delivery latency (world committed -> applied): p50 0.257 ms  p95 0.673 ms  max 0.968 ms
-subscriber service (build+encode+decode+apply+check): p50 0.017 ms  p95 0.040 ms
-packet decode:       p50 1.9 us  p95 5.6 us
-bytes: total 22257836 B over 60 s = 371.0 kB/s aggregate; per subscriber mean 5796.3 B/s, p95 16643.1 B/s
-byte breakdown (approx): header 8.1%  enter 5.1%  leave 0.4%  changed-set 5.5%  pos deltas 29.6%  vel deltas 30.5%  masks 8.1%  escapes 20.4%
+network: loopback: no delay, no loss
+receiver: back-dating on (anchors at the packet's tick)
+interest regions: exit hysteresis 0 m
+leave list: delta-coded varints
+emitter phases (total over the run): region 361 ms, records 330 ms, encode 452 ms
+world advance:       mean 0.249 ms/tick  p95 0.558 ms/tick
+emission:            mean 0.900 ms/tick  p95 1.359 ms/tick
+emitter tick total:  p50 1.060 ms  p95 1.913 ms  mean 1.149 ms
+emitter's own work:  p50 0.3150 ms  p95 0.5612 ms  (region + records + encode)
+delivery latency (link + decode/apply): p50 0.199 ms  p95 0.535 ms  max 1.149 ms
+subscriber service (decode + apply): p50 0.199 ms  p95 0.535 ms
+packet decode:       p50 2.3 us  p95 6.5 us
+link: the delay actually drawn was 0.00 - 0.00 ms (configured 0.50 - 13.50 ms), at most 1 packets in flight at once
+packets: 81714 sent, 3 lost (0.00%), 81711 delivered
+bytes: delivered 22256805 B over 60 s = 370.9 kB/s aggregate; per subscriber mean 5796.0 B/s, p95 16643.1 B/s
+bytes on the wire:   per subscriber mean 5796.3 B/s (the difference is what the link lost)
+byte breakdown (approx): header 8.1%  enter 5.1%  leave 0.7%  changed-set 5.5%  pos deltas 29.6%  vel deltas 30.5%  masks 8.1%  escapes 20.4%
 objects carried: 86786 enters, 79353 leaves, 7346143 change records (9471363 delivered states)
-reconstruction errors: 0   (max |reconstructed - truth| = 0.005000 m, bound = 0.005000 m per axis)
+reconstruction errors: 0   (max |reconstructed - truth| = 0.005000 m, bound = 0.005000 m per axis; worst reconstruction error 0.0 mm)
+mirror mismatches: 0 (the receiver's held state against the emitter's mirror; worst 0.0 mm)
+resyncs: 3 gap(s), 67 keyframe(s); recovery from the gap to the keyframe's arrival: p50 33.3 ms  p95 66.7 ms  max 66.7 ms
 motion-channel prediction between deliveries: p50 0.000000 m  p95 0.030000 m  p99 0.130000 m  max 32.000 m
+the drift budget, by delivery interval (the bound the world's motion parameters give):
+  every  1 ticks: orbiter    0.016 m   walker    0.211 m   fast mover    0.211 m
+  every  2 ticks: orbiter    0.018 m   walker    0.407 m   fast mover    0.407 m
+  every  3 ticks: orbiter    0.021 m   walker    0.602 m   fast mover    0.602 m
+  every  4 ticks: orbiter    0.024 m   walker    0.798 m   fast mover    0.994 m
+  every  6 ticks: orbiter    0.034 m   walker    1.190 m   fast mover    1.777 m
+  every 12 ticks: orbiter    0.085 m   walker    3.538 m   fast mover    5.887 m
+  every 30 ticks: orbiter    0.431 m   walker   17.629 m   fast mover   32.306 m
+drift by kind: walker p50 0.0 mm p95 30.0 mm max 3790.0 mm | orbiter p50 0.0 mm p95 10.0 mm max 320.0 mm | fast p50 10.0 mm p95 530.0 mm max 32000.0 mm
+drift against the budget: 24723279 checks, worst 32000.0 mm, 0 over the bound
+  worst over: 
 motion channel in the subscriber's frame: mean apparent speed 4.776 m/s, max 51.534 m/s, 100.0% of the objects are moving (>5 cm/s)
-late join resync (service time): [0.039485, 0.009448, 0.030518, 0.011762, 0.026279999999999998, 0.022952999999999998, 0.013936, 0.023774999999999998, 0.02137, 0.013716, 0.053322, 0.0102, 0.020499, 0.0072239999999999995, 0.027101, 0.008535999999999998, 0.025749, 0.004118, 0.067348, 0.008266, 0.060224, 0.006853000000000001, 0.006994, 0.0369, 0.026920999999999997, 0.011091, 0.014015999999999999, 0.006092, 0.025108000000000002, 0.003396, 0.025509, 0.011802, 0.005351, 0.018776, 0.009517999999999999, 0.013546, 0.034546, 0.0070940000000000005, 0.011772, 0.011361, 0.024868, 0.005169999999999999, 0.005821, 0.036198, 0.008416, 0.045655999999999995, 0.008746, 0.009779000000000001, 0.004298000000000001, 0.022482, 0.014237, 0.037361, 0.007665, 0.007825, 0.011462, 0.02074, 0.007154, 0.026982, 0.028404000000000002, 0.007304, 0.01066, 0.030868999999999997, 0.027482, 0.007304] ms
-  (end-to-end behind the same tick's other subscribers: [0.488027, 0.49808700000000006, 0.528685, 0.540547, 0.5668770000000001, 0.590101, 0.604148, 0.628124, 0.649564, 0.6634909999999999, 0.7170030000000001, 0.7275429999999999, 0.748092, 0.755396, 0.782547, 0.791284, 0.817093, 0.821531, 0.888929, 0.897486, 0.95779, 0.9647129999999999, 0.971747, 1.0086870000000001, 1.035698, 1.0468389999999999, 1.0609359999999999, 1.067098, 1.092256, 1.0957219999999999, 1.1212710000000001, 1.133584, 1.139005, 1.158041, 1.167659, 1.181265, 1.216031, 1.223185, 1.235007, 0.26249900000000004, 0.28744699999999995, 0.35636799999999996, 0.362259, 0.47524299999999997, 0.404949, 0.614868, 0.284661, 0.590022, 0.832262, 0.220589, 0.324797, 0.400802, 0.553112, 0.61547, 0.31124199999999996, 0.434466, 0.318496, 0.7968149999999999, 0.435056, 1.190753, 0.34384299999999995, 0.37374, 0.400131, 0.396153] ms)
+late join resync (service time + link): [0.9451550000000001, 0.906531, 0.916032, 0.8899729999999999, 0.892169, 0.881233, 0.865491, 0.86561, 0.850618, 0.8335699999999999, 0.859859, 0.798632, 0.796039, 0.781842, 0.789427, 0.761249, 0.765823, 0.738394, 0.771156, 0.7054739999999999, 0.727041, 0.6763319999999999, 0.6721659999999999, 0.696428, 0.675647, 0.648136, 0.6412180000000001, 0.6265780000000001, 0.634042, 0.610382, 0.620929, 0.600548, 0.589935, 0.5995199999999999, 0.583657, 0.5796389999999999, 0.592186, 0.553728, 0.551793, 0.316419, 0.31931800000000005, 0.274017, 0.270581, 0.257525, 0.513631, 0.43041999999999997, 0.7976409999999999, 0.666295, 0.5321049999999999, 0.292954, 0.255598, 0.24435700000000002, 0.7173919999999999, 0.527865, 0.28541500000000003, 0.239847, 0.42117899999999997, 0.508725, 0.460341, 0.465507, 0.103723, 0.119271, 0.13228099999999998, 0.12567899999999999] ms
   tick 793 sub 17: bitmap base mismatch -> keyframe requested
   tick 1031 sub 24: bitmap base mismatch -> keyframe requested
   tick 2741 sub 36: bitmap base mismatch -> keyframe requested
@@ -38,14 +58,14 @@ id  shape  path    rate  region  deliveries  keyframes  resyncs  bytes/s   camer
 14  sphere  drift    5 Hz    136         300         1        0    3226.6  
 15  frustum  idle    2 Hz     51         120         1        0     591.7  
 16  sphere  idle   60 Hz    313        3600         1        0   27614.7  
-17  frustum  idle   30 Hz     58        1800         2        1    4059.3  
+17  frustum  idle   30 Hz     58        1800         2        1    4057.9  
 18  sphere  circle   30 Hz    119        1800         1        0    7182.4  
 19  frustum  circle   20 Hz     74        1200         1        0    3133.7  
 20  sphere  circle   15 Hz    267         900         1        0   11747.9  
 21  frustum  drift   10 Hz     50         600         1        0    2480.7  
 22  sphere  drift    5 Hz    109         300         1        0    2182.4  
 23  frustum  drift    2 Hz    148         120         1        0    1959.1  
-24  sphere  idle   60 Hz     46        3600         2        1    5775.4  
+24  sphere  idle   60 Hz     46        3600         2        1    5774.0  
 25  frustum  idle   30 Hz    130        1800         1        0    8965.5  
 26  sphere  idle   30 Hz     35        1800         1        0    2785.5  
 27  frustum  circle   20 Hz    206        1200         1        0   14151.7  
@@ -57,7 +77,7 @@ id  shape  path    rate  region  deliveries  keyframes  resyncs  bytes/s   camer
 33  frustum  idle   30 Hz     36        1800         1        0    2760.1  
 34  sphere  idle   30 Hz    255        1800         1        0   16643.1  
 35  frustum  idle   20 Hz     26        1200         1        0    1782.9  
-36  sphere  circle   15 Hz    236         900         2        1   10748.8  
+36  sphere  circle   15 Hz    236         900         2        1   10734.4  
 37  frustum  circle   10 Hz     55         600         1        0    2493.9  
 38  sphere  circle    5 Hz     36         300         1        0    1033.0  
 39  frustum  drift    2 Hz     37         120         1        0     469.4  

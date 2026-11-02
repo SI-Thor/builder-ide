@@ -1,0 +1,484 @@
+== pose stream benchmark ==
+seed 209937112109620  ticks 3600  (60 s at 60 Hz)  objects 10000  subscribers 64  mode Predictive
+network: one-way delay uniform in [2.0, 12.0] ms +/- 1.5 ms jitter, loss 0.50% per packet
+receiver: back-dating on (anchors at the packet's tick)
+interest regions: exit hysteresis 0 m
+leave list: delta-coded varints
+emitter phases (total over the run): region 399 ms, records 369 ms, encode 452 ms
+world advance:       mean 0.259 ms/tick  p95 0.561 ms/tick
+emission:            mean 0.971 ms/tick  p95 1.477 ms/tick
+emitter tick total:  p50 1.094 ms  p95 2.001 ms  mean 1.231 ms
+emitter's own work:  p50 0.3184 ms  p95 0.5903 ms  (region + records + encode)
+delivery latency (link + decode/apply): p50 7.225 ms  p95 13.103 ms  max 16.687 ms
+subscriber service (decode + apply): p50 7.225 ms  p95 13.103 ms
+packet decode:       p50 2.3 us  p95 6.5 us
+link: the delay actually drawn was 0.50 - 13.50 ms (configured 0.50 - 13.50 ms), at most 1 packets in flight at once
+packets: 81714 sent, 381 lost (0.47%), 81333 delivered
+bytes: delivered 22698168 B over 60 s = 378.3 kB/s aggregate; per subscriber mean 5911.0 B/s, p95 16831.1 B/s
+bytes on the wire:   per subscriber mean 5940.0 B/s (the difference is what the link lost)
+byte breakdown (approx): header 7.9%  enter 7.8%  leave 0.7%  changed-set 5.3%  pos deltas 28.7%  vel deltas 29.6%  masks 7.9%  escapes 19.8%
+objects carried: 136578 enters, 78918 leaves, 7306546 change records (9384114 delivered states)
+reconstruction errors: 0   (max |reconstructed - truth| = 0.005000 m, bound = 0.005000 m per axis; worst reconstruction error 0.0 mm)
+mirror mismatches: 0 (the receiver's held state against the emitter's mirror; worst 0.0 mm)
+resyncs: 380 gap(s), 492 keyframe(s); recovery from the gap to the keyframe's arrival: p50 32.3 ms  p95 110.3 ms  max 505.7 ms
+motion-channel prediction between deliveries: p50 0.000000 m  p95 0.030000 m  p99 0.140000 m  max 32.000 m
+the drift budget, by delivery interval (the bound the world's motion parameters give):
+  every  1 ticks: orbiter    0.016 m   walker    0.211 m   fast mover    0.211 m
+  every  2 ticks: orbiter    0.018 m   walker    0.407 m   fast mover    0.407 m
+  every  3 ticks: orbiter    0.021 m   walker    0.602 m   fast mover    0.602 m
+  every  4 ticks: orbiter    0.024 m   walker    0.798 m   fast mover    0.994 m
+  every  6 ticks: orbiter    0.034 m   walker    1.190 m   fast mover    1.777 m
+  every 12 ticks: orbiter    0.085 m   walker    3.538 m   fast mover    5.887 m
+  every 30 ticks: orbiter    0.431 m   walker   17.629 m   fast mover   32.306 m
+drift by kind: walker p50 0.0 mm p95 30.0 mm max 3790.0 mm | orbiter p50 0.0 mm p95 10.0 mm max 2590.0 mm | fast p50 10.0 mm p95 550.0 mm max 32000.0 mm
+drift against the budget: 24722023 checks, worst 32000.0 mm, 0 over the bound
+  worst over: 
+motion channel in the subscriber's frame: mean apparent speed 4.775 m/s, max 51.534 m/s, 100.0% of the objects are moving (>5 cm/s)
+late join resync (service time + link): [0.669857, 0.639503, 0.6466879999999999, 0.628223, 0.6304649999999999, 0.622344, 0.610305, 0.611167, 0.600268, 0.58811, 0.6107140000000001, 0.579432, 0.577044, 0.565951, 0.5714509999999999, 0.550838, 0.552782, 0.5334289999999999, 0.556162, 0.5090560000000001, 0.524085, 0.480554, 0.49604499999999996, 0.480341, 0.46108, 0.45502200000000004, 0.444698, 0.449328, 0.432002, 0.437985, 0.424372, 0.415983, 0.422288, 0.411196, 0.407019, 0.416843, 0.388794, 0.386629, 0.22729, 0.228938, 0.200462, 0.198786, 0.18299700000000002, 0.359264, 0.332891, 0.301083, 0.599212, 0.49712900000000004, 0.39392499999999997, 0.213733, 0.18446200000000001, 0.177868, 0.549394, 0.413918, 0.22128, 0.183341, 0.35724599999999995, 0.42728900000000003, 0.402769, 0.45438500000000004, 0.380229, 0.121233, 0.134957, 0.122659] ms
+  tick 2 sub 32: bitmap base mismatch -> keyframe requested
+  tick 10 sub 3: bitmap base mismatch -> keyframe requested
+  tick 16 sub 16: gap (held v14, offered v15) -> keyframe requested
+  tick 23 sub 16: bitmap base mismatch -> keyframe requested
+  tick 40 sub 27: bitmap base mismatch -> keyframe requested
+  tick 43 sub 10: gap (held v39, offered v41) -> keyframe requested
+  tick 49 sub 17: gap (held v45, offered v47) -> keyframe requested
+  tick 71 sub 49: bitmap base mismatch -> keyframe requested
+  tick 89 sub 1: bitmap base mismatch -> keyframe requested
+  tick 90 sub 16: bitmap base mismatch -> keyframe requested
+  tick 121 sub 24: bitmap base mismatch -> keyframe requested
+  tick 137 sub 47: bitmap base mismatch -> keyframe requested
+  tick 155 sub 25: gap (held v151, offered v153) -> keyframe requested
+  tick 163 sub 26: gap (held v159, offered v161) -> keyframe requested
+  tick 174 sub 24: gap (held v172, offered v173) -> keyframe requested
+  tick 189 sub 36: bitmap base mismatch -> keyframe requested
+  tick 197 sub 2: bitmap base mismatch -> keyframe requested
+  tick 205 sub 0: bitmap base mismatch -> keyframe requested
+  tick 207 sub 45: bitmap base mismatch -> keyframe requested
+  tick 210 sub 6: bitmap base mismatch -> keyframe requested
+  tick 211 sub 57: gap (held v207, offered v209) -> keyframe requested
+  tick 212 sub 59: gap (held v206, offered v209) -> keyframe requested
+  tick 221 sub 25: bitmap base mismatch -> keyframe requested
+  tick 257 sub 0: gap (held v255, offered v256) -> keyframe requested
+  tick 257 sub 16: gap (held v255, offered v256) -> keyframe requested
+  tick 257 sub 26: gap (held v253, offered v255) -> keyframe requested
+  tick 257 sub 44: bitmap base mismatch -> keyframe requested
+  tick 275 sub 58: gap (held v271, offered v273) -> keyframe requested
+  tick 281 sub 28: bitmap base mismatch -> keyframe requested
+  tick 289 sub 19: bitmap base mismatch -> keyframe requested
+  tick 321 sub 12: bitmap base mismatch -> keyframe requested
+  tick 327 sub 50: gap (held v323, offered v325) -> keyframe requested
+  tick 339 sub 41: bitmap base mismatch -> keyframe requested
+  tick 345 sub 26: bitmap base mismatch -> keyframe requested
+  tick 350 sub 38: bitmap base mismatch -> keyframe requested
+  tick 353 sub 18: bitmap base mismatch -> keyframe requested
+  tick 361 sub 27: bitmap base mismatch -> keyframe requested
+  tick 362 sub 11: bitmap base mismatch -> keyframe requested
+  tick 369 sub 40: bitmap base mismatch -> keyframe requested
+  tick 373 sub 28: bitmap base mismatch -> keyframe requested
+  tick 380 sub 0: gap (held v378, offered v379) -> keyframe requested
+  tick 380 sub 24: gap (held v378, offered v379) -> keyframe requested
+  tick 389 sub 42: bitmap base mismatch -> keyframe requested
+  tick 423 sub 2: bitmap base mismatch -> keyframe requested
+  tick 433 sub 33: gap (held v429, offered v431) -> keyframe requested
+  tick 436 sub 51: bitmap base mismatch -> keyframe requested
+  tick 459 sub 41: bitmap base mismatch -> keyframe requested
+  tick 465 sub 1: gap (held v461, offered v463) -> keyframe requested
+  tick 469 sub 9: bitmap base mismatch -> keyframe requested
+  tick 476 sub 16: bitmap base mismatch -> keyframe requested
+  tick 491 sub 11: gap (held v485, offered v488) -> keyframe requested
+  tick 507 sub 32: gap (held v505, offered v506) -> keyframe requested
+  tick 512 sub 59: gap (held v506, offered v509) -> keyframe requested
+  tick 521 sub 28: gap (held v513, offered v517) -> keyframe requested
+  tick 524 sub 40: gap (held v522, offered v523) -> keyframe requested
+  tick 526 sub 27: gap (held v520, offered v523) -> keyframe requested
+  tick 554 sub 11: bitmap base mismatch -> keyframe requested
+  tick 559 sub 50: gap (held v555, offered v557) -> keyframe requested
+  tick 566 sub 38: gap (held v542, offered v554) -> keyframe requested
+  tick 575 sub 49: gap (held v571, offered v573) -> keyframe requested
+  tick 589 sub 41: gap (held v585, offered v587) -> keyframe requested
+  tick 592 sub 0: gap (held v590, offered v591) -> keyframe requested
+  tick 592 sub 56: gap (held v590, offered v591) -> keyframe requested
+  tick 611 sub 10: bitmap base mismatch -> keyframe requested
+  tick 617 sub 50: bitmap base mismatch -> keyframe requested
+  tick 637 sub 2: bitmap base mismatch -> keyframe requested
+  tick 641 sub 49: gap (held v637, offered v639) -> keyframe requested
+  tick 643 sub 57: bitmap base mismatch -> keyframe requested
+  tick 656 sub 40: bitmap base mismatch -> keyframe requested
+  tick 666 sub 56: bitmap base mismatch -> keyframe requested
+  tick 671 sub 9: gap (held v667, offered v669) -> keyframe requested
+  tick 671 sub 49: bitmap base mismatch -> keyframe requested
+  tick 677 sub 44: bitmap base mismatch -> keyframe requested
+  tick 681 sub 12: bitmap base mismatch -> keyframe requested
+  tick 685 sub 49: bitmap base mismatch -> keyframe requested
+  tick 685 sub 52: bitmap base mismatch -> keyframe requested
+  tick 692 sub 48: gap (held v690, offered v691) -> keyframe requested
+  tick 693 sub 21: gap (held v681, offered v687) -> keyframe requested
+  tick 707 sub 57: bitmap base mismatch -> keyframe requested
+  tick 714 sub 24: gap (held v712, offered v713) -> keyframe requested
+  tick 727 sub 40: bitmap base mismatch -> keyframe requested
+  tick 743 sub 25: gap (held v739, offered v741) -> keyframe requested
+  tick 746 sub 38: gap (held v722, offered v734) -> keyframe requested
+  tick 785 sub 56: bitmap base mismatch -> keyframe requested
+  tick 793 sub 17: bitmap base mismatch -> keyframe requested
+  tick 797 sub 8: bitmap base mismatch -> keyframe requested
+  tick 800 sub 24: gap (held v798, offered v799) -> keyframe requested
+  tick 813 sub 9: bitmap base mismatch -> keyframe requested
+  tick 819 sub 45: bitmap base mismatch -> keyframe requested
+  tick 819 sub 56: gap (held v817, offered v818) -> keyframe requested
+  tick 827 sub 42: gap (held v823, offered v825) -> keyframe requested
+  tick 850 sub 48: gap (held v848, offered v849) -> keyframe requested
+  tick 867 sub 58: gap (held v863, offered v865) -> keyframe requested
+  tick 881 sub 48: gap (held v879, offered v880) -> keyframe requested
+  tick 884 sub 35: gap (held v878, offered v881) -> keyframe requested
+  tick 893 sub 20: bitmap base mismatch -> keyframe requested
+  tick 894 sub 24: gap (held v892, offered v893) -> keyframe requested
+  tick 897 sub 18: gap (held v893, offered v895) -> keyframe requested
+  tick 902 sub 11: bitmap base mismatch -> keyframe requested
+  tick 905 sub 44: bitmap base mismatch -> keyframe requested
+  tick 913 sub 18: gap (held v909, offered v911) -> keyframe requested
+  tick 929 sub 2: bitmap base mismatch -> keyframe requested
+  tick 937 sub 37: bitmap base mismatch -> keyframe requested
+  tick 943 sub 9: bitmap base mismatch -> keyframe requested
+  tick 945 sub 15: bitmap base mismatch -> keyframe requested
+  tick 961 sub 49: gap (held v957, offered v959) -> keyframe requested
+  tick 963 sub 9: bitmap base mismatch -> keyframe requested
+  tick 969 sub 2: bitmap base mismatch -> keyframe requested
+  tick 985 sub 34: gap (held v981, offered v983) -> keyframe requested
+  tick 1009 sub 40: gap (held v1007, offered v1008) -> keyframe requested
+  tick 1016 sub 32: gap (held v1014, offered v1015) -> keyframe requested
+  tick 1019 sub 25: gap (held v1015, offered v1017) -> keyframe requested
+  tick 1022 sub 11: gap (held v1016, offered v1019) -> keyframe requested
+  tick 1023 sub 48: gap (held v1021, offered v1022) -> keyframe requested
+  tick 1027 sub 32: gap (held v1025, offered v1026) -> keyframe requested
+  tick 1031 sub 24: bitmap base mismatch -> keyframe requested
+  tick 1059 sub 40: gap (held v1057, offered v1058) -> keyframe requested
+  tick 1091 sub 29: bitmap base mismatch -> keyframe requested
+  tick 1099 sub 25: bitmap base mismatch -> keyframe requested
+  tick 1103 sub 23: bitmap base mismatch -> keyframe requested
+  tick 1107 sub 41: gap (held v1103, offered v1105) -> keyframe requested
+  tick 1134 sub 32: gap (held v1132, offered v1133) -> keyframe requested
+  tick 1136 sub 8: gap (held v1134, offered v1135) -> keyframe requested
+  tick 1153 sub 19: gap (held v1147, offered v1150) -> keyframe requested
+  tick 1153 sub 50: bitmap base mismatch -> keyframe requested
+  tick 1157 sub 2: bitmap base mismatch -> keyframe requested
+  tick 1173 sub 50: gap (held v1169, offered v1171) -> keyframe requested
+  tick 1190 sub 48: gap (held v1188, offered v1189) -> keyframe requested
+  tick 1227 sub 0: bitmap base mismatch -> keyframe requested
+  tick 1228 sub 48: gap (held v1226, offered v1227) -> keyframe requested
+  tick 1237 sub 8: gap (held v1235, offered v1236) -> keyframe requested
+  tick 1250 sub 40: gap (held v1248, offered v1249) -> keyframe requested
+  tick 1275 sub 2: gap (held v1271, offered v1273) -> keyframe requested
+  tick 1279 sub 0: gap (held v1277, offered v1278) -> keyframe requested
+  tick 1289 sub 34: bitmap base mismatch -> keyframe requested
+  tick 1291 sub 18: bitmap base mismatch -> keyframe requested
+  tick 1306 sub 22: bitmap base mismatch -> keyframe requested
+  tick 1307 sub 47: bitmap base mismatch -> keyframe requested
+  tick 1312 sub 24: gap (held v1310, offered v1311) -> keyframe requested
+  tick 1325 sub 32: gap (held v1323, offered v1324) -> keyframe requested
+  tick 1327 sub 57: gap (held v1323, offered v1325) -> keyframe requested
+  tick 1343 sub 25: bitmap base mismatch -> keyframe requested
+  tick 1352 sub 0: bitmap base mismatch -> keyframe requested
+  tick 1354 sub 16: gap (held v1352, offered v1353) -> keyframe requested
+  tick 1362 sub 54: bitmap base mismatch -> keyframe requested
+  tick 1369 sub 20: bitmap base mismatch -> keyframe requested
+  tick 1373 sub 32: gap (held v1371, offered v1372) -> keyframe requested
+  tick 1381 sub 0: bitmap base mismatch -> keyframe requested
+  tick 1382 sub 56: gap (held v1380, offered v1381) -> keyframe requested
+  tick 1388 sub 40: bitmap base mismatch -> keyframe requested
+  tick 1391 sub 58: bitmap base mismatch -> keyframe requested
+  tick 1393 sub 26: gap (held v1389, offered v1391) -> keyframe requested
+  tick 1401 sub 18: gap (held v1397, offered v1399) -> keyframe requested
+  tick 1405 sub 52: gap (held v1397, offered v1401) -> keyframe requested
+  tick 1422 sub 30: bitmap base mismatch -> keyframe requested
+  tick 1432 sub 27: bitmap base mismatch -> keyframe requested
+  tick 1433 sub 16: gap (held v1431, offered v1432) -> keyframe requested
+  tick 1453 sub 41: gap (held v1449, offered v1451) -> keyframe requested
+  tick 1457 sub 5: gap (held v1445, offered v1451) -> keyframe requested
+  tick 1465 sub 33: gap (held v1461, offered v1463) -> keyframe requested
+  tick 1475 sub 49: gap (held v1471, offered v1473) -> keyframe requested
+  tick 1504 sub 0: gap (held v1502, offered v1503) -> keyframe requested
+  tick 1505 sub 40: gap (held v1503, offered v1504) -> keyframe requested
+  tick 1507 sub 25: bitmap base mismatch -> keyframe requested
+  tick 1509 sub 17: bitmap base mismatch -> keyframe requested
+  tick 1517 sub 32: gap (held v1515, offered v1516) -> keyframe requested
+  tick 1520 sub 8: gap (held v1518, offered v1519) -> keyframe requested
+  tick 1521 sub 2: gap (held v1517, offered v1519) -> keyframe requested
+  tick 1525 sub 57: bitmap base mismatch -> keyframe requested
+  tick 1527 sub 33: bitmap base mismatch -> keyframe requested
+  tick 1533 sub 25: gap (held v1529, offered v1531) -> keyframe requested
+  tick 1540 sub 32: gap (held v1538, offered v1539) -> keyframe requested
+  tick 1555 sub 37: bitmap base mismatch -> keyframe requested
+  tick 1556 sub 35: gap (held v1550, offered v1553) -> keyframe requested
+  tick 1563 sub 50: gap (held v1559, offered v1561) -> keyframe requested
+  tick 1568 sub 8: gap (held v1566, offered v1567) -> keyframe requested
+  tick 1574 sub 14: bitmap base mismatch -> keyframe requested
+  tick 1578 sub 24: gap (held v1576, offered v1577) -> keyframe requested
+  tick 1579 sub 57: gap (held v1575, offered v1577) -> keyframe requested
+  tick 1605 sub 33: bitmap base mismatch -> keyframe requested
+  tick 1609 sub 33: bitmap base mismatch -> keyframe requested
+  tick 1643 sub 24: gap (held v1641, offered v1642) -> keyframe requested
+  tick 1673 sub 59: gap (held v1667, offered v1670) -> keyframe requested
+  tick 1687 sub 16: gap (held v1685, offered v1686) -> keyframe requested
+  tick 1693 sub 4: gap (held v1685, offered v1689) -> keyframe requested
+  tick 1694 sub 40: gap (held v1692, offered v1693) -> keyframe requested
+  tick 1717 sub 2: bitmap base mismatch -> keyframe requested
+  tick 1725 sub 16: gap (held v1723, offered v1724) -> keyframe requested
+  tick 1733 sub 1: bitmap base mismatch -> keyframe requested
+  tick 1753 sub 24: gap (held v1751, offered v1752) -> keyframe requested
+  tick 1761 sub 25: bitmap base mismatch -> keyframe requested
+  tick 1778 sub 32: gap (held v1776, offered v1777) -> keyframe requested
+  tick 1795 sub 43: gap (held v1789, offered v1792) -> keyframe requested
+  tick 1797 sub 45: gap (held v1785, offered v1791) -> keyframe requested
+  tick 1822 sub 27: bitmap base mismatch -> keyframe requested
+  tick 1832 sub 8: gap (held v1830, offered v1831) -> keyframe requested
+  tick 1833 sub 28: bitmap base mismatch -> keyframe requested
+  tick 1838 sub 14: bitmap base mismatch -> keyframe requested
+  tick 1845 sub 2: gap (held v1841, offered v1843) -> keyframe requested
+  tick 1867 sub 24: gap (held v1865, offered v1866) -> keyframe requested
+  tick 1879 sub 27: bitmap base mismatch -> keyframe requested
+  tick 1881 sub 18: bitmap base mismatch -> keyframe requested
+  tick 1891 sub 41: gap (held v1887, offered v1889) -> keyframe requested
+  tick 1897 sub 33: gap (held v1893, offered v1895) -> keyframe requested
+  tick 1904 sub 11: bitmap base mismatch -> keyframe requested
+  tick 1919 sub 53: gap (held v1907, offered v1913) -> keyframe requested
+  tick 1919 sub 56: gap (held v1917, offered v1918) -> keyframe requested
+  tick 1920 sub 24: bitmap base mismatch -> keyframe requested
+  tick 1921 sub 4: gap (held v1913, offered v1917) -> keyframe requested
+  tick 1924 sub 32: gap (held v1922, offered v1923) -> keyframe requested
+  tick 1930 sub 40: gap (held v1928, offered v1929) -> keyframe requested
+  tick 1930 sub 56: bitmap base mismatch -> keyframe requested
+  tick 1953 sub 28: bitmap base mismatch -> keyframe requested
+  tick 1954 sub 8: bitmap base mismatch -> keyframe requested
+  tick 1981 sub 37: bitmap base mismatch -> keyframe requested
+  tick 1985 sub 44: gap (held v1977, offered v1981) -> keyframe requested
+  tick 1989 sub 9: bitmap base mismatch -> keyframe requested
+  tick 2013 sub 21: bitmap base mismatch -> keyframe requested
+  tick 2017 sub 33: gap (held v2013, offered v2015) -> keyframe requested
+  tick 2021 sub 9: bitmap base mismatch -> keyframe requested
+  tick 2023 sub 57: gap (held v2019, offered v2021) -> keyframe requested
+  tick 2049 sub 0: gap (held v2047, offered v2048) -> keyframe requested
+  tick 2054 sub 16: bitmap base mismatch -> keyframe requested
+  tick 2061 sub 21: gap (held v2049, offered v2055) -> keyframe requested
+  tick 2069 sub 0: gap (held v2067, offered v2068) -> keyframe requested
+  tick 2071 sub 18: gap (held v2067, offered v2069) -> keyframe requested
+  tick 2075 sub 56: bitmap base mismatch -> keyframe requested
+  tick 2081 sub 18: bitmap base mismatch -> keyframe requested
+  tick 2119 sub 48: gap (held v2117, offered v2118) -> keyframe requested
+  tick 2135 sub 53: gap (held v2123, offered v2129) -> keyframe requested
+  tick 2138 sub 8: gap (held v2136, offered v2137) -> keyframe requested
+  tick 2140 sub 8: gap (held v2136, offered v2139) -> keyframe requested
+  tick 2141 sub 26: gap (held v2137, offered v2139) -> keyframe requested
+  tick 2143 sub 32: bitmap base mismatch -> keyframe requested
+  tick 2149 sub 25: gap (held v2145, offered v2147) -> keyframe requested
+  tick 2171 sub 56: bitmap base mismatch -> keyframe requested
+  tick 2175 sub 17: bitmap base mismatch -> keyframe requested
+  tick 2197 sub 1: bitmap base mismatch -> keyframe requested
+  tick 2201 sub 34: bitmap base mismatch -> keyframe requested
+  tick 2203 sub 16: gap (held v2201, offered v2202) -> keyframe requested
+  tick 2241 sub 9: bitmap base mismatch -> keyframe requested
+  tick 2249 sub 35: bitmap base mismatch -> keyframe requested
+  tick 2256 sub 48: gap (held v2254, offered v2255) -> keyframe requested
+  tick 2257 sub 13: gap (held v2245, offered v2251) -> keyframe requested
+  tick 2261 sub 16: gap (held v2259, offered v2260) -> keyframe requested
+  tick 2262 sub 32: gap (held v2260, offered v2261) -> keyframe requested
+  tick 2289 sub 48: bitmap base mismatch -> keyframe requested
+  tick 2290 sub 19: bitmap base mismatch -> keyframe requested
+  tick 2293 sub 17: bitmap base mismatch -> keyframe requested
+  tick 2302 sub 22: bitmap base mismatch -> keyframe requested
+  tick 2313 sub 48: gap (held v2311, offered v2312) -> keyframe requested
+  tick 2323 sub 2: bitmap base mismatch -> keyframe requested
+  tick 2325 sub 44: bitmap base mismatch -> keyframe requested
+  tick 2340 sub 16: bitmap base mismatch -> keyframe requested
+  tick 2377 sub 49: gap (held v2373, offered v2375) -> keyframe requested
+  tick 2387 sub 53: gap (held v2375, offered v2381) -> keyframe requested
+  tick 2388 sub 40: gap (held v2386, offered v2387) -> keyframe requested
+  tick 2394 sub 56: bitmap base mismatch -> keyframe requested
+  tick 2399 sub 26: gap (held v2395, offered v2397) -> keyframe requested
+  tick 2401 sub 4: bitmap base mismatch -> keyframe requested
+  tick 2426 sub 56: gap (held v2424, offered v2425) -> keyframe requested
+  tick 2428 sub 27: bitmap base mismatch -> keyframe requested
+  tick 2441 sub 1: gap (held v2437, offered v2439) -> keyframe requested
+  tick 2458 sub 43: gap (held v2452, offered v2455) -> keyframe requested
+  tick 2483 sub 0: bitmap base mismatch -> keyframe requested
+  tick 2497 sub 25: bitmap base mismatch -> keyframe requested
+  tick 2528 sub 11: bitmap base mismatch -> keyframe requested
+  tick 2536 sub 40: gap (held v2534, offered v2535) -> keyframe requested
+  tick 2539 sub 49: bitmap base mismatch -> keyframe requested
+  tick 2546 sub 35: bitmap base mismatch -> keyframe requested
+  tick 2550 sub 6: bitmap base mismatch -> keyframe requested
+  tick 2557 sub 12: bitmap base mismatch -> keyframe requested
+  tick 2557 sub 32: bitmap base mismatch -> keyframe requested
+  tick 2594 sub 11: bitmap base mismatch -> keyframe requested
+  tick 2607 sub 2: bitmap base mismatch -> keyframe requested
+  tick 2609 sub 5: bitmap base mismatch -> keyframe requested
+  tick 2609 sub 28: bitmap base mismatch -> keyframe requested
+  tick 2615 sub 59: gap (held v2609, offered v2612) -> keyframe requested
+  tick 2622 sub 16: gap (held v2620, offered v2621) -> keyframe requested
+  tick 2623 sub 58: bitmap base mismatch -> keyframe requested
+  tick 2626 sub 32: bitmap base mismatch -> keyframe requested
+  tick 2629 sub 52: gap (held v2621, offered v2625) -> keyframe requested
+  tick 2640 sub 48: gap (held v2638, offered v2639) -> keyframe requested
+  tick 2649 sub 34: gap (held v2645, offered v2647) -> keyframe requested
+  tick 2658 sub 48: bitmap base mismatch -> keyframe requested
+  tick 2663 sub 48: bitmap base mismatch -> keyframe requested
+  tick 2665 sub 33: gap (held v2661, offered v2663) -> keyframe requested
+  tick 2671 sub 9: gap (held v2667, offered v2669) -> keyframe requested
+  tick 2681 sub 32: gap (held v2679, offered v2680) -> keyframe requested
+  tick 2691 sub 42: gap (held v2687, offered v2689) -> keyframe requested
+  tick 2698 sub 19: gap (held v2692, offered v2695) -> keyframe requested
+  tick 2723 sub 11: bitmap base mismatch -> keyframe requested
+  tick 2725 sub 41: bitmap base mismatch -> keyframe requested
+  tick 2727 sub 17: gap (held v2723, offered v2725) -> keyframe requested
+  tick 2741 sub 36: bitmap base mismatch -> keyframe requested
+  tick 2743 sub 17: bitmap base mismatch -> keyframe requested
+  tick 2749 sub 18: bitmap base mismatch -> keyframe requested
+  tick 2768 sub 0: gap (held v2766, offered v2767) -> keyframe requested
+  tick 2773 sub 24: gap (held v2771, offered v2772) -> keyframe requested
+  tick 2779 sub 13: bitmap base mismatch -> keyframe requested
+  tick 2786 sub 38: bitmap base mismatch -> keyframe requested
+  tick 2807 sub 33: gap (held v2803, offered v2805) -> keyframe requested
+  tick 2808 sub 48: gap (held v2806, offered v2807) -> keyframe requested
+  tick 2837 sub 28: bitmap base mismatch -> keyframe requested
+  tick 2842 sub 0: gap (held v2840, offered v2841) -> keyframe requested
+  tick 2856 sub 56: bitmap base mismatch -> keyframe requested
+  tick 2864 sub 16: gap (held v2862, offered v2863) -> keyframe requested
+  tick 2867 sub 59: bitmap base mismatch -> keyframe requested
+  tick 2877 sub 36: bitmap base mismatch -> keyframe requested
+  tick 2885 sub 41: bitmap base mismatch -> keyframe requested
+  tick 2891 sub 56: bitmap base mismatch -> keyframe requested
+  tick 2893 sub 28: bitmap base mismatch -> keyframe requested
+  tick 2893 sub 52: gap (held v2885, offered v2889) -> keyframe requested
+  tick 2908 sub 32: gap (held v2906, offered v2907) -> keyframe requested
+  tick 2913 sub 12: gap (held v2905, offered v2909) -> keyframe requested
+  tick 2926 sub 16: bitmap base mismatch -> keyframe requested
+  tick 2939 sub 11: gap (held v2933, offered v2936) -> keyframe requested
+  tick 2941 sub 44: bitmap base mismatch -> keyframe requested
+  tick 2959 sub 41: bitmap base mismatch -> keyframe requested
+  tick 2969 sub 35: gap (held v2963, offered v2966) -> keyframe requested
+  tick 2971 sub 43: gap (held v2965, offered v2968) -> keyframe requested
+  tick 2989 sub 51: bitmap base mismatch -> keyframe requested
+  tick 2990 sub 38: bitmap base mismatch -> keyframe requested
+  tick 2999 sub 59: gap (held v2993, offered v2996) -> keyframe requested
+  tick 3019 sub 41: gap (held v3015, offered v3017) -> keyframe requested
+  tick 3027 sub 45: bitmap base mismatch -> keyframe requested
+  tick 3029 sub 4: bitmap base mismatch -> keyframe requested
+  tick 3030 sub 40: gap (held v3028, offered v3029) -> keyframe requested
+  tick 3033 sub 34: gap (held v3029, offered v3031) -> keyframe requested
+  tick 3057 sub 16: bitmap base mismatch -> keyframe requested
+  tick 3077 sub 20: bitmap base mismatch -> keyframe requested
+  tick 3080 sub 35: gap (held v3074, offered v3077) -> keyframe requested
+  tick 3106 sub 43: gap (held v3100, offered v3103) -> keyframe requested
+  tick 3114 sub 30: bitmap base mismatch -> keyframe requested
+  tick 3118 sub 16: gap (held v3116, offered v3117) -> keyframe requested
+  tick 3121 sub 28: bitmap base mismatch -> keyframe requested
+  tick 3123 sub 45: gap (held v3111, offered v3117) -> keyframe requested
+  tick 3128 sub 16: gap (held v3126, offered v3127) -> keyframe requested
+  tick 3129 sub 42: gap (held v3125, offered v3127) -> keyframe requested
+  tick 3131 sub 8: gap (held v3129, offered v3130) -> keyframe requested
+  tick 3145 sub 36: bitmap base mismatch -> keyframe requested
+  tick 3165 sub 28: bitmap base mismatch -> keyframe requested
+  tick 3173 sub 1: gap (held v3169, offered v3171) -> keyframe requested
+  tick 3180 sub 40: gap (held v3178, offered v3179) -> keyframe requested
+  tick 3185 sub 40: gap (held v3183, offered v3184) -> keyframe requested
+  tick 3190 sub 3: bitmap base mismatch -> keyframe requested
+  tick 3196 sub 60: bitmap base mismatch -> keyframe requested
+  tick 3256 sub 0: gap (held v3254, offered v3255) -> keyframe requested
+  tick 3256 sub 40: gap (held v3254, offered v3255) -> keyframe requested
+  tick 3268 sub 48: gap (held v3266, offered v3267) -> keyframe requested
+  tick 3283 sub 17: gap (held v3279, offered v3281) -> keyframe requested
+  tick 3285 sub 20: bitmap base mismatch -> keyframe requested
+  tick 3291 sub 18: gap (held v3287, offered v3289) -> keyframe requested
+  tick 3292 sub 43: bitmap base mismatch -> keyframe requested
+  tick 3302 sub 0: gap (held v3300, offered v3301) -> keyframe requested
+  tick 3307 sub 40: gap (held v3305, offered v3306) -> keyframe requested
+  tick 3315 sub 56: bitmap base mismatch -> keyframe requested
+  tick 3317 sub 28: bitmap base mismatch -> keyframe requested
+  tick 3323 sub 42: gap (held v3319, offered v3321) -> keyframe requested
+  tick 3353 sub 9: bitmap base mismatch -> keyframe requested
+  tick 3369 sub 33: bitmap base mismatch -> keyframe requested
+  tick 3371 sub 41: gap (held v3367, offered v3369) -> keyframe requested
+  tick 3385 sub 57: gap (held v3381, offered v3383) -> keyframe requested
+  tick 3412 sub 32: gap (held v3410, offered v3411) -> keyframe requested
+  tick 3417 sub 2: bitmap base mismatch -> keyframe requested
+  tick 3422 sub 24: gap (held v3420, offered v3421) -> keyframe requested
+  tick 3427 sub 32: gap (held v3425, offered v3426) -> keyframe requested
+  tick 3443 sub 18: bitmap base mismatch -> keyframe requested
+  tick 3448 sub 60: gap (held v3440, offered v3444) -> keyframe requested
+  tick 3461 sub 12: bitmap base mismatch -> keyframe requested
+  tick 3489 sub 21: bitmap base mismatch -> keyframe requested
+  tick 3504 sub 16: gap (held v3502, offered v3503) -> keyframe requested
+  tick 3515 sub 48: bitmap base mismatch -> keyframe requested
+  tick 3520 sub 3: gap (held v3514, offered v3517) -> keyframe requested
+  tick 3531 sub 45: bitmap base mismatch -> keyframe requested
+  tick 3537 sub 56: bitmap base mismatch -> keyframe requested
+  tick 3549 sub 12: bitmap base mismatch -> keyframe requested
+  tick 3556 sub 3: bitmap base mismatch -> keyframe requested
+  tick 3599 sub 58: gap (held v3595, offered v3597) -> keyframe requested
+  tick 3600 sub 8: bitmap base mismatch -> keyframe requested
+stream digest (fnv1a over all delivered bytes): 0x78fd9cfd53b21f79
+
+id  shape  path    rate  region  deliveries  keyframes  resyncs  bytes/s   camera
+ 0  sphere  circle   60 Hz    101        3600        20       16   19173.7  shared
+ 1  frustum  circle   30 Hz     59        1800         7        6    3840.1  shared
+ 2  sphere  circle   30 Hz    237        1800        14       13   11518.5  shared
+ 3  frustum  circle   20 Hz     48        1200         5        4    3621.9  shared
+ 4  sphere  circle   15 Hz    209         900         5        4    8515.4  shared
+ 5  frustum  circle   10 Hz     54         600         3        2    1985.3  shared
+ 6  sphere  circle    5 Hz    188         300         3        2    4002.4  shared
+ 7  frustum  circle    2 Hz     40         120         1        0     733.0  shared
+ 8  sphere  idle   60 Hz    134        3600        16       11   14848.0  
+ 9  frustum  circle   30 Hz     93        1800        11       10    7544.9  
+10  sphere  circle   30 Hz    205        1800         3        2   11647.1  
+11  frustum  circle   20 Hz     51        1200        11       10    4014.4  
+12  sphere  drift   15 Hz    145         900         7        6    6739.5  
+13  frustum  drift   10 Hz     53         600         3        2    1552.3  
+14  sphere  drift    5 Hz    136         300         3        2    3249.3  
+15  frustum  idle    2 Hz     51         120         2        1     593.7  
+16  sphere  idle   60 Hz    313        3600        28       20   28911.8  
+17  frustum  idle   30 Hz     58        1800         9        8    4118.1  
+18  sphere  circle   30 Hz    119        1800        12       11    7349.3  
+19  frustum  circle   20 Hz     74        1200         5        4    3156.7  
+20  sphere  circle   15 Hz    267         900         5        4   11896.4  
+21  frustum  drift   10 Hz     50         600         5        4    2501.4  
+22  sphere  drift    5 Hz    109         300         3        2    2197.7  
+23  frustum  drift    2 Hz    148         120         2        1    1958.5  
+24  sphere  idle   60 Hz     46        3600        24       15    5972.4  
+25  frustum  idle   30 Hz    130        1800        12       11    9179.1  
+26  sphere  idle   30 Hz     35        1800         7        6    2812.8  
+27  frustum  circle   20 Hz    206        1200         8        7   14410.7  
+28  sphere  circle   15 Hz     50         900        12       11    2954.5  
+29  frustum  circle   10 Hz     58         600         2        1    2711.6  
+30  sphere  drift    5 Hz     84         300         3        2    2413.7  
+31  frustum  drift    2 Hz    271         120         1        0    3619.6  
+32  sphere  drift   60 Hz     24        3600        27       19    3993.9  
+33  frustum  idle   30 Hz     36        1800        11       10    2811.5  
+34  sphere  idle   30 Hz    255        1800         6        5   16831.1  
+35  frustum  idle   20 Hz     26        1200         7        6    1804.7  
+36  sphere  circle   15 Hz    236         900         5        4   10812.8  
+37  frustum  circle   10 Hz     55         600         4        3    2508.2  
+38  sphere  circle    5 Hz     36         300         6        5    1047.6  
+39  frustum  drift    2 Hz     37         120         1        0     469.4  
+40  sphere  drift   60 Hz    113        3600        25       18   12407.6  
+41  frustum  drift   30 Hz     21        1800        12       11    1905.6  
+42  sphere  idle   30 Hz    152        1800         6        5   10629.3  
+43  frustum  idle   20 Hz     13        1200         6        5    1195.8  
+44  sphere  idle   15 Hz    165         900         7        6    7524.1  
+45  frustum  circle   10 Hz     41         600         7        6    2158.0  
+46  sphere  circle    5 Hz    191         300         1        0    4047.9  
+47  frustum  circle    2 Hz    243         120         3        2    3780.7  
+48  sphere  drift   60 Hz     74        3600        24       16    7686.1  
+49  frustum  drift   30 Hz     28        1800        10        9    2916.0  
+50  sphere  drift   30 Hz    125        1800         7        6    8236.6  
+51  frustum  idle   20 Hz     55        1200         3        2    2862.4  
+52  sphere  idle   15 Hz     99         900         5        4    3982.3  
+53  frustum  idle   10 Hz     22         600         4        3     828.7  
+54  sphere  circle    5 Hz    168         300         2        1    5946.8  
+55  frustum  circle    2 Hz     32         120         1        0     774.0  
+56  sphere  circle   60 Hz    277        3600        23       15   24974.0  
+57  frustum  drift   30 Hz     30        1800         9        8    2710.9  
+58  sphere  drift   30 Hz     55        1800         5        5    4969.8  
+59  frustum  drift   20 Hz    198        1200         7        6   11415.1  
+60  sphere  idle   15 Hz     90         676         3        2    3163.8  
+61  frustum  idle   10 Hz    154         301         1        0    2927.2  
+62  sphere  idle    5 Hz    201          76         1        0    1133.9  
+63  frustum  circle    2 Hz     42          21         1        0     103.1  
