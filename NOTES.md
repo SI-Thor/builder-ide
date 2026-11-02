@@ -2203,3 +2203,176 @@ plan needs Casey's approval and his TypeSafe + Anthropic keys.
 sits in every seat's worktree; it is already fixed on this branch —
 `fd9d776` "the integration suite is serial by default, and its waits no longer
 assume a quiet box" (round 8, item 4) is an ancestor of HEAD. Nothing to do.
+---
+
+## 2026-11-01 20:30 — build #5 starts: the selection is the missing piece
+
+**Tried:** read the desk brief, then `~/lm-wt/rewind-select/BRIEF.md` on the
+Thor in full, then `docs/design/vibecode-in-world.md` §2 and §4 (the ledger,
+the cost, the fork, the cherry-pick, the scrubber's one click), then §6.1's
+table and §6.2's ranking: build #5 is *"a selection expression over the
+ledger (a set of `seq`s), a preview that renders the cherry-picked result on
+a branch, and the pre-flight re-run on that branch before `main` moves"*.
+
+**Happened:** the brief is exactly §2.5 plus §6.1 row 18, and the gap is
+confirmed in the code. `core/recipe/merge.py` merges two *documents* and has
+no way to say which events are the ones to bring across; the recipe store's
+branches (`create_branch`, `move_head`, heads that never move backwards) can
+cut a fork, but nothing replays a *selection* onto one; and on the Bevy side
+`Change::DropDecisions` already exists in
+`last-mile/crates/lm-tools/src/branch.rs` and the simulation already honours
+it (`crates/lm-core/src/sim.rs:503` — the lineage fires on its tick) — but
+`lm branch` had no flag to reach it. So what was missing was a *selection*
+and a *way to drop an actor*, and the second was one flag away in a library
+that already had it.
+
+**Box state:** the Thor, 14 CPUs, load average 14.87 at the start (other
+seats running). Read-only survey first: nothing run, no lease needed, no
+model touched.
+
+**Decided next:** build `core/rewind/` — the selection language, the ledger
+readers, fork-at-point, replay-kept through the existing three-way merge
+with conflicts parked, the report — and make the Bevy proof on the round
+log, where byte-identical replay holds.
+
+---
+
+## 2026-11-01 20:40 — the Bevy world needed two things: a dump and a drop
+
+**Tried:** `last-mile` on the Thor, on branch `m1-integration` (clean), then
+`cargo build --release -p lm-tools` — 14.5 s, the tree is warm. The library
+had `Change::DropDecisions`; the CLI had `--reflex` and `--param` only; and
+nothing could read a round log's decisions from outside Rust (the format is
+postcard-encoded Rust structs under an FNV-64 hash chain).
+
+**Happened:** two additive CLI changes, on a new local branch
+`rewind-select/dump-and-drop` in the `last-mile` repository (not pushed):
+
+* `lm dump <log> [--header]` — the log's decisions, one per line, in the
+  format `lm run --inject` reads. The header line carries the round's seed,
+  its first and last tick, the roster and the lineage.
+* `lm branch --drop agent:3` — stop applying a source's decisions from the
+  branch tick on. `human:1` and `system` are the other spellings.
+
+The dump round-trips: feeding a dump back into `lm run --inject` writes
+**the same log, byte for byte** (the CLI test `a_dump_feeds_a_run_back`).
+Three new CLI cases, 15 in the suite, all passing; `cargo test --release -p
+lm-tools -p lm-core` green.
+
+**Box state:** the Thor, load average between 15 and 29 over the hour (other
+seats). The measurement below was taken at load 28.35, so its timings are an
+upper bound.
+
+**Decided next:** the selection in Python, reading the world's SQLite ledger
+and the Bevy dump through one row type.
+
+---
+
+## 2026-11-01 20:47 — `core/rewind`: the language, the fork, the replay
+
+**Tried:** the selection as a parsed expression rather than a config file, so
+that "these nine events" is one line a human can read and a machine can
+refuse.
+
+**Happened:** `core/rewind/` — `selection.py` (seven fields: `actor`,
+`agent`, `kind`, `id`, `verdict`, `at`, `seq`; eight operators; `and`/`or`/
+`not`; every dropped row carries the reason it was dropped; a date against a
+tick ledger is refused rather than compared with nonsense), `ledger.py` (the
+world's ledger and the core's audit ledger — both the `audit` table, read
+read-only — and a round log through `lm dump`), `fork.py` (fork-at-point:
+the canon's own branch does not move and no version is removed), `replay.py`
+(the kept work replayed onto the fork and merged through the existing
+`three_way_merge`; a conflict is parked as a `question.parked` event and the
+canon does not move), `report.py`, `bevy.py`. **33 tests** under
+`tests/rewind/`, all passing.
+
+Two things the implementation settled, written down so the next seat does not
+re-derive them:
+
+* the merge is *with* main, so a cherry-pick brings work across and does not
+  remove what main already holds; and
+* the cherry-pick lands on the **fork**, not on main — moving main is the
+  owner's separate step (`store.apply_branch`).
+
+**Box state:** CPU only; no GPU, no model, no `thor-admit` lease. The
+environment is `uv venv` + `uv pip install -e ".[dev]"` in the repository.
+
+**Decided next:** the Bevy proof.
+
+---
+
+## 2026-11-01 20:50 — the proof: the fork and the reference are the same world
+
+**Tried:** two mechanisms that share nothing but the ledger they read — the
+fork (`lm branch --at 150 --drop agent:3`, the round's own machinery) and
+the reference (`lm run --inject` with the decisions the selection kept,
+replayed by Python) — then `lm diff` between their logs.
+
+**Happened:** `IDENTICAL`. The fork's state equals a world in which only the
+kept actor acted after the rewind point, tick for tick. The fork parts
+company with its parent at tick **209** — the first state hash after the
+dropped decision's tick (200), the hashes being taken at 29, 59, … 299 — and
+the fork's header carries the drop: `{"lineage":{"at":150,"changes":1}}`.
+
+A finding, for the record: **the fork's log is not a record of what was
+applied.** `lm dump fork.lml` prints all four decisions, including agent 3's
+at tick 200 — the one the drop was meant to stop applying. The recorder
+writes what it hands to the simulation; the simulation drops what the
+lineage says, on the first run and on every replay, so `lm replay fork.lml`
+still checks out. The header's lineage is what says what was dropped. It is
+also why the reference run is built from the *parent's* dump: feeding the
+fork's own decisions back would reintroduce the dropped ones.
+
+And the limit, which the design note means by "where replay allows": the fork
+can only drop a **whole source**. A selection finer than that ("keep agent
+0's `Intent`s, drop its `Roll`s") cannot be said to `lm branch --drop`; the
+package names those sources in `partial_sources`, and the reference run is
+the only world that can show them.
+
+**Box state:** the Thor, load average ~29 on 14 CPUs (other seats); the Bevy
+part is CPU-only and takes about a second.
+
+**Decided next:** the cost per hour of world, then the report.
+
+---
+
+## 2026-11-01 20:54 — the cost per hour of world, and what is committed
+
+**Tried:** the world's ledger (live, read read-only), one cherry-pick over a
+canon on a SQLite ledger of record, and the Bevy fork.
+
+**Happened:** the world's ledger reads **91,487 rows over 24.508 h of
+world**, 123,977,728 B + 4,148,872 B of WAL — **5,227,962 B per hour of
+world**, the same rate §2.2 measured (≈5.1 MB/h over 22.07 h) two and a half
+hours earlier. Reading the whole ledger takes **1.983 s** (**0.081 s per hour
+of world**); running a selection over every row takes **0.578 s** (**0.024 s
+per hour of world**). One cherry-pick writes **5 events and 772 B of payload
+in 23.1 ms**, and the canon's head does not move.
+
+**Box state:** the Thor, 14 CPUs, load average **28.35 / 22.94 / 17.91**,
+92,844,048 kB (≈88.5 GiB) available — the timings are upper bounds, taken on
+a loaded box.
+
+**Committed:** on the `rewind-select` branch of `~/lm-wt/rewind-select`,
+`5b9e7c7` (`core/rewind` + the 33 tests) and `54d1ef6`
+(`docs/lab/exp-rewind-select.md`, the measurement script and its results).
+In `~/last-mile`, branch `rewind-select/dump-and-drop`: `3938654` (`lm dump`,
+`lm branch --drop`) and `af146e9` (the round's last tick in the dump
+header). Nothing pushed.
+
+**Not verified (also in the note's §4):** the Minecraft world does not replay
+byte-identically, and this build does not change that — the world's *state*
+still needs the snapshot/restore that §6.1 row 6 calls missing. The world's
+ledger rows were selected over and measured, but a cherry-pick over the
+world's own `tile.played` rows is not built: those rows carry no recipe
+ops. And no tick-to-hour mapping was established for the Bevy world, so its
+numbers are per round, not per hour.
+
+**Decided next:** the brief is done; nothing started on my own.
+
+**Working-tree state left behind:** the `last-mile` checkout is on
+`rewind-select/dump-and-drop` (it was on `m1-integration` when this seat
+started), so the `lm` binary on the box and its source agree — the built
+binary is what the proof above was measured with. `git checkout m1-integration`
+in `~/last-mile` puts that repository back where it was; the two commits
+stay on the branch either way.
