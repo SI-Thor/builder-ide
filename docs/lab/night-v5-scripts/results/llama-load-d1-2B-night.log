@@ -1,0 +1,39 @@
+thor-admit: "night-v5.llama-load.d1-2B-night" admitted after 0.006s (peak 20.0G, floor 25.0G)
+0.00.025.544 I srv  llama_server: initializing ...
+0.00.025.566 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.026.034 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.028.410 I srv    load_model: loading model '/home/caseydigennaro/models/d1-2B/d1-2B-Q8_0.gguf'
+0.01.446.242 I cmn          init: llama threadpool init, n_threads = 14
+0.01.531.222 I srv          init: decision model type: lfm3-d1
+0.01.531.244 W srv    load_model: cap image_max_tokens (original=4096) to 1024 (n_ubatch = 2048) because the model processes the prompt in one ubatch
+0.01.531.245 W srv    load_model: increase n_ubatch (-ub) to increase vision token budget
+0.01.747.283 I srv    load_model: loaded multimodal model, '/home/caseydigennaro/models/d1-2B/mmproj-d1-2B-Q8_0.gguf'
+0.01.747.329 W srv    load_model: speculative decoding not supported by this context
+0.01.747.331 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 8192, kv_unified = 'true'
+0.01.747.395 I srv    load_model: decision model: prompt cache disabled by default, use `--cache-ram N` to enable it
+0.01.752.056 W srv          init: chat template supports preserving reasoning, it is enabled by default (may use more tokens, disable via --no-reasoning-preserve)
+0.01.752.131 I srv  server_run_i: model loaded
+0.01.752.140 I srv  server_on_li: listening on http://127.0.0.1:8297
+0.01.996.676 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.01.996.703 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.02.105.505 I slot      release: id  0 | task 0 | stop processing: n_tokens = 199, truncated = 0
+0.02.479.523 I slot get_availabl: id  1 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.02.479.541 I slot launch_slot_: id  1 | task 2 | processing task, is_child = 0
+0.02.479.543 I slot get_availabl: id  2 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.02.479.546 I slot launch_slot_: id  2 | task 3 | processing task, is_child = 0
+0.02.479.547 I slot get_availabl: id  3 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.02.479.549 I slot launch_slot_: id  3 | task 4 | processing task, is_child = 0
+0.02.479.550 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 199, t_last = 13646944939
+0.02.479.552 I slot launch_slot_: id  0 | task 5 | processing task, is_child = 0
+0.03.072.237 I slot      release: id  0 | task 5 | stop processing: n_tokens = 1055, truncated = 0
+0.03.072.279 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.978 (> 0.100 thold), f_keep = 0.977
+0.03.072.287 I slot launch_slot_: id  0 | task 6 | processing task, is_child = 0
+0.03.616.105 I slot      release: id  0 | task 6 | stop processing: n_tokens = 1054, truncated = 0
+0.03.616.138 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 0.977 (> 0.100 thold), f_keep = 0.977
+0.03.616.146 I slot launch_slot_: id  0 | task 7 | processing task, is_child = 0
+0.04.152.904 I slot      release: id  0 | task 7 | stop processing: n_tokens = 1054, truncated = 0
+0.04.670.603 I slot      release: id  1 | task 2 | stop processing: n_tokens = 1057, truncated = 0
+0.05.191.352 I slot      release: id  2 | task 3 | stop processing: n_tokens = 1055, truncated = 0
+0.05.704.553 I slot      release: id  3 | task 4 | stop processing: n_tokens = 1055, truncated = 0
+0.05.731.065 I srv    operator(): operator(): cleaning up before exit...
+thor-admit: "night-v5.llama-load.d1-2B-night" finished with code 0 (peak RSS 1.0G)
