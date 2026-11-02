@@ -4124,3 +4124,35 @@ turns healthy (or after it is killed and a fresh load finishes fast),
 the box can load models again and the night launches. Polling, one
 blocking sleep per check. Launching into a box this held would spend the
 night's leases to learn nothing new.
+
+
+## 2026-11-02 11:10 — the night ran as planned; both seams answered
+
+**The run** (third launch, 09:32:01 → 11:01:27, 89.44 min): status "ran
+as planned — nothing failed". 39 jobs in 84.95 job-min; 21.91 GPU-min of
+the 60-min rail; leases 6G/6G/40G (the heavy the only one above 30 GB),
+waits 0.0/0.1/0.1 s; phase 40G → 8G at 10:59:58 (0.01 s, 95.5 GB free);
+3 props kept (crate 1.00, lantern 0.946, anvil 0.947), 15 rejected; 251
+judgment rows — 245 local, 4 cloud, 2 refusals; delegate 18/18, p50
+1.72 s, 10 fired `holes`; bar and restart armed, 0 firings.
+
+**The second look, in a night.** The ghost gate fired on the same
+deterministic variant as v5 (prop:lantern_r2_v3, plausibility 0.0385).
+The renders took 7.2 s, the cloud call 19.6 s (1,372 tokens, $0.0002),
+and the cloud agreed: "a plain cube with no openings, parts, or details
+resembling a lantern" — outcome `dropped_after_second_look`, both
+verdicts on the one row.
+
+**The export, in a night.** source.glb 22,826,792 B in 85.2 s inside the
+run (generate 17.1 s + export 66.3 s; 12 decimations, 28 subsurf caps,
+placeholder materials), 2 deltas of 676 B each compiled and applied. The
+seam's first glb ever, and the wall went 288.57 → 89.44 min.
+
+**The letter** (115 words): "245 of 251 judgments answered locally (4
+went to the cloud, 2 were refusals)" — the ledger's numbers, in the
+night's own hand, with the surprise (the prior called 1 of 18 ghosts,
+the cloud agreed) and the new question (should the second look also see
+the props the prior passed?).
+
+The doc is complete and committed (b9f564d). All four brief items are
+done; nothing else was started.
