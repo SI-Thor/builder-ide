@@ -2099,3 +2099,58 @@ ground truth the run has, not a selection out of a larger one.
 
 Nothing new was started. The auto-pause is still computed and named but not
 wired to `thor-admit`; that is build #3 and the note already says so.
+## 2026-11-01 (autopilot-study) — ramenvr/autopilot read as a worldbuilder; report `docs/research/autopilot.md`
+
+**Tried:** The brief (9 lines, and the whole of it: no addendum and no CONTINUE
+note at the end — `wc -l BRIEF.md`, `git log`/`git status` read first; the tree
+was clean at `0b29e76` and no earlier seat had touched this brief). Cloned
+`github.com/ramenvr/autopilot --depth 1` into `third_party/autopilot` (now
+gitignored), commit **`48966d1`**, 17 MB, and read the code rather than the
+README: `kit/harness.py`, `KIT.md`, `runtime.py`, `kit/game.py`,
+`agents/session.py`/`files.py`/`opencode.py`/`connect.py`, `mcp.py`, `memory.py`,
+`aura_memory.py`, `aura.py`, `telemetry.py`, `training.py`, `cli.py`,
+`engines/{base,godot,unity,unreal}.py` + their `.md`s, the three plugins'
+entry points (`editor_bridge.gd`, `rc.gd`, `keys.gd`, `PlaytestOps*.cpp`,
+`Ops.cs`, `LegacyInput*.cs`), `connect.py`, the Claude Code skill, and
+`CONTRIBUTING.md`'s configuration table.
+
+**Happened (the findings, all cited to file paths in the report):** two models
+split by speed — an LLM coding agent writes a harness (`kit/harness.py`
+contract: facts / macro-`Option`s / executors / `effect`), and **Jev**
+(TypeSafe, pinned `jev-1.13.0`, hosted, ~0.1-0.3 s per decision, 1.5 s timeout,
+warm connection) plays in a 15 Hz tick loop. Actions reach the engine as the
+**player's inputs only** (per-engine plugins listed). BYOK: the decision model
+is TypeSafe-only (`TYPESAFE_API_KEY`); the agent's and the vision model's
+providers each take `<PROVIDER>_BASE_URL`, so an OpenAI-compatible endpoint
+(DeepInfra) stands in there — that is the answer to the brief's question, and
+the one thing that cannot be swapped is Jev itself. Run sharing is **on by
+default** (`telemetry.sharing`), and what is sent when on is named in the report
+(every call whole, redacted; never the codex or notes.md/lib.py). Worldbuilder:
+play-session edits exist (calls the game exposes are even encouraged in
+probes), **persistent level editing does not** — no editor-side authoring verb
+anywhere, and the agent's file tools allow only its run folder, notes.md,
+lib.py. A fork means: editor-side ops in `editor_bridge.gd` /
+`PlaytestOps*.cpp` / `Ops.cs` / `rc.gd`, verbs in `bridge.py` + `kit/game.py`,
+and a write allow-list in `agents/files.py`. The map onto
+`docs/design/vibecode-in-world.md`, `core/tiles` and `core/judge` is a table in
+the report (an `Option` is a tile; their `effect` is our outcome predicate;
+their Noul/Score/Choice questions are `core/judge`'s four kinds — see also
+`docs/research/jev.md`, which already placed Jev); five things we would borrow
+even without running it, and a ProArt plan (Godot 4.7, small test level, BYOK)
+for Casey to approve.
+
+**Box state:** the Thor otherwise idle; the clone and greps only — a
+read-only study, so nothing was run and no `thor-admit` lease was needed (no
+model, no JAX). Every number in the report is the vendor's, quoted from its
+file; we measured nothing. Not verified (§6 of the report): all latency and
+cost claims, the absent `docs/protocol.md` (cited by docstrings but not in the
+public repo), DeepInfra end-to-end, and spawn-through-reflection in Unreal.
+
+**Decided next:** nothing started (the brief says report and stop). The ProArt
+plan needs Casey's approval and his TypeSafe + Anthropic keys.
+
+**Not ours, noted for the record:** `NOTE-FROM-DIRECTOR.md` in this seat
+(thor-admit integration tests flaking in parallel) is the broadcast note that
+sits in every seat's worktree; it is already fixed on this branch —
+`fd9d776` "the integration suite is serial by default, and its waits no longer
+assume a quiet box" (round 8, item 4) is an ancestor of HEAD. Nothing to do.
