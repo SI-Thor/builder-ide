@@ -32,6 +32,7 @@ const mineflayer = require(path.join(MINECRAFT_DIR, 'node_modules', 'mineflayer'
 const { pathfinder, Movements, goals } = require(
   path.join(MINECRAFT_DIR, 'node_modules', 'mineflayer-pathfinder'))
 const Vec3 = require(path.join(MINECRAFT_DIR, 'node_modules', 'vec3'))
+const Block = require(path.join(MINECRAFT_DIR, 'node_modules', 'prismarine-block'))
 
 const HOST = process.env.VOYAGER_MC_HOST || '127.0.0.1'
 const PORT = parseInt(process.env.VOYAGER_MC_PORT || '25600', 10)
@@ -86,18 +87,53 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 // -- the helpers ---------------------------------------------------------------
 
+// The numeric id of an item.
+//
+// In this build the registry hands out the item *object*, not the number:
+// bot.registry.itemsByName.oak_planks is {id: 36, name: 'oak_planks', ...}.
+// Every recipe lookup is made by id, so passing the object where the
+// number belongs is what made the recipe book look empty: the recipe
+// book is keyed by the id of the item a recipe produces, and
+// recipesFor(object) finds nothing.
 function itemId (name) {
   if (!bot) throw new Error('the bot is not connected')
-  const id = bot.registry.itemsByName[name]
-  if (id === undefined) throw new Error('no item named ' + name)
+  const entry = bot.registry.itemsByName[name]
+  if (entry === undefined || entry === null) {
+    throw new Error('no item named ' + name)
+  }
+  const id = typeof entry === 'object' ? entry.id : entry
+  if (id === undefined || id === null) {
+    throw new Error('no item named ' + name)
+  }
   return id
 }
 
 function blockId (name) {
   if (!bot) throw new Error('the bot is not connected')
-  const id = bot.registry.blocksByName[name]
-  if (id === undefined) throw new Error('no block named ' + name)
+  const entry = bot.registry.blocksByName[name]
+  if (entry === undefined || entry === null) {
+    throw new Error('no block named ' + name)
+  }
+  const id = typeof entry === 'object' ? entry.id : entry
+  if (id === undefined || id === null) {
+    throw new Error('no block named ' + name)
+  }
   return id
+}
+
+// The distance to hand to findBlock for a given reach.
+//
+// findBlock does not search a sphere of the radius it is given. It walks
+// an octahedron of chunk *sections* whose radius is
+// ceil((maxDistance + 8) / 16), and a target D blocks away can be up to
+// three sections out in each axis, so it needs an apothem of about
+// 3 * ceil(D / 16). Asking for less than that is why the only tree in
+// the world went missing: the bot was twelve blocks below it after
+// digging, the sections no longer lined up, and findBlock answered
+// "no oak_log within 96" about a tree it could see with its eyes.
+function searchMaxDistance (reach) {
+  const apothem = 3 * Math.ceil(Math.max(1, reach) / 16) + 2
+  return Math.min(600, apothem * 16 - 8)
 }
 
 function inventoryCounts () {
@@ -301,6 +337,111 @@ async function pickUp (itemName, timeoutMs) {
   return (counts[itemName] || 0) > 0
 }
 
+// The name of a block state, cached.
+//
+// prismarine-block makes a whole Block object for a state id, which is
+// far too slow to do a hundred thousand times in a row, so the names are
+// worked out once and kept.
+const stateNames = new Map()
+
+function stateName (stateId) {
+  if (stateId === undefined || stateId === null) return null
+  let name = stateNames.get(stateId)
+  if (name === undefined) {
+    try {
+      name = Block.fromStateId(stateId, 0).name
+    } catch (err) {
+      name = null
+    }
+    stateNames.set(stateId, name)
+  }
+  return name
+}
+
+// The nearest block of each name, in one pass over the loaded world.
+//
+// findBlock does not search a sphere. It walks an octahedron of chunk
+// sections, and for every section whose palette holds the name it reads
+// all 4096 blocks of that section. Twenty-six names therefore read the
+// world twenty-six times over: a scan of the loaded area took 60 s, and
+// a node process that is busy for 60 s cannot answer the server's
+// keep-alive packets, so the server kicks the bot in the middle of the
+// scan. This walks the world once, reads each section once, and stops
+// looking for a name as soon as it has been found.
+//
+// It returns null if the world does not answer in the shape expected,
+// and the caller falls back to findBlock.
+function nearestBlocks (names, maxDistance) {
+  const wanted = new Set(names)
+  const here = bot.entity.position
+  const chunkRadius = Math.ceil(maxDistance / 16) + 1
+  const cx0 = Math.floor(here.x / 16)
+  const cz0 = Math.floor(here.z / 16)
+
+  // The columns nearest first, so the first hit for a name is usually
+  // the nearest one.
+  const columns = []
+  for (let dx = -chunkRadius; dx <= chunkRadius; dx++) {
+    for (let dz = -chunkRadius; dz <= chunkRadius; dz++) {
+      columns.push([dx, dz, dx * dx + dz * dz])
+    }
+  }
+  columns.sort((a, b) => a[2] - b[2])
+
+  const best = new Map()
+  const pending = new Set(names)
+  for (const [dx, dz] of columns) {
+    if (pending.size === 0) break
+    const column = bot.world.getColumn(cx0 + dx, cz0 + dz)
+    if (!column || !column.sections) continue
+    const baseX = (cx0 + dx) * 16
+    const baseZ = (cz0 + dz) * 16
+    const minY = (typeof column.minY === 'number') ? column.minY : 0
+    for (let si = 0; si < column.sections.length; si++) {
+      const section = column.sections[si]
+      if (!section || !section.palette) continue
+      // The palette says which names are in this section without
+      // reading a single block.
+      const here1 = []
+      for (const stateId of section.palette) {
+        const name = stateName(stateId)
+        if (name && wanted.has(name) && pending.has(name)) here1.push(name)
+      }
+      if (!here1.length) continue
+      const sectionY = minY + si * 16
+      for (let ly = 0; ly < 16; ly++) {
+        for (let lz = 0; lz < 16; lz++) {
+          for (let lx = 0; lx < 16; lx++) {
+            const stateId = section.get({ x: lx, y: ly, z: lz })
+            const name = stateName(stateId)
+            if (!name || !wanted.has(name)) continue
+            const x = baseX + lx
+            const y = sectionY + ly
+            const z = baseZ + lz
+            const away = distance({ x, y, z }, here)
+            if (away > maxDistance) continue
+            const current = best.get(name)
+            if (!current || away < current.distance) {
+              best.set(name, { distance: away, x, y, z })
+            }
+          }
+        }
+      }
+      for (const name of here1) pending.delete(name)
+    }
+  }
+  const out = {}
+  for (const [name, value] of best.entries()) {
+    out[name] = {
+      distance: Math.round(value.distance * 10) / 10,
+      x: value.x,
+      y: value.y,
+      z: value.z
+    }
+  }
+  return out
+}
+
 // -- the primitives ------------------------------------------------------------
 
 const PRIMITIVES = {
@@ -314,9 +455,11 @@ const PRIMITIVES = {
     const reach = Math.min(128, maxDistance || 32)
     const found = bot.findBlock({
       matching: (b) => b && b.name === block,
-      maxDistance: reach
+      maxDistance: searchMaxDistance(reach)
     })
-    if (!found) throw new Error('no ' + block + ' within ' + reach)
+    if (!found || distance(found.position, bot.entity.position) > reach) {
+      throw new Error('no ' + block + ' within ' + reach)
+    }
     const why = await gotoBlock(found, timeoutMs || null)
     return { at: bot.entity.position, block: found.position, why }
   },
@@ -329,9 +472,9 @@ const PRIMITIVES = {
     for (let i = 0; i < want; i++) {
       const found = bot.findBlock({
         matching: (b) => b && b.name === block,
-        maxDistance: reach
+        maxDistance: searchMaxDistance(reach)
       })
-      if (!found) break
+      if (!found || distance(found.position, bot.entity.position) > reach) break
       try {
         await gotoBlock(found, null)
       } catch (err) {
@@ -366,9 +509,9 @@ const PRIMITIVES = {
       for (let i = 0; i < want; i++) {
         const found = bot.findBlock({
           matching: (b) => b && b.name === blockName,
-          maxDistance: reach
+          maxDistance: searchMaxDistance(reach)
         })
-        if (!found) break
+        if (!found || distance(found.position, bot.entity.position) > reach) break
         try {
           await gotoBlock(found, null)
         } catch (err) {
@@ -561,21 +704,34 @@ const PRIMITIVES = {
 
   async scan (radius) {
     const reach = Math.min(160, radius || 16)
-    const found = {}
+    let found = null
+    try {
+      found = nearestBlocks(INTERESTING, reach)
+    } catch (err) {
+      found = null
+    }
+    if (found !== null) return { nearby: found }
+    // The world did not answer in the shape the fast search expects;
+    // fall back to the slow way, which always works.
+    const slow = {}
     for (const name of INTERESTING) {
       const block = bot.findBlock({
         matching: (b) => b && b.name === name,
-        maxDistance: reach
+        maxDistance: searchMaxDistance(reach)
       })
       if (!block) continue
-      found[name] = {
-        distance: Math.round(distance(block.position, bot.entity.position) * 10) / 10,
+      const away = distance(block.position, bot.entity.position)
+      // The search is wider than the radius on purpose; the radius is
+      // the world the caller asked about.
+      if (away > reach) continue
+      slow[name] = {
+        distance: Math.round(away * 10) / 10,
         x: block.position.x,
         y: block.position.y,
         z: block.position.z
       }
     }
-    return { nearby: found }
+    return { nearby: slow }
   },
 
   async scan_ore (radius) {
@@ -736,12 +892,50 @@ function connect () {
       movements.allowParkour = false
       bot.pathfinder.setMovements(movements)
       spawned = true
-      resolve()
+      // The client is given the chunks around the spawn a moment after
+      // the spawn, not at it: a scan over a client that holds no chunks
+      // finds nothing, and "nothing" reads like "the world is empty".
+      // Wait for the ground under the bot and its neighbours to be
+      // there before the world is handed over.
+      waitForChunks(90000).then(resolve, reject)
     })
     bot.once('error', (err) => { if (!spawned) reject(err) })
     bot.once('kicked', (reason) => { if (!spawned) reject(new Error('kicked: ' + reason)) })
     bot.on('end', () => { spawned = false })
     setTimeout(() => { if (!spawned) reject(new Error('the bot did not spawn in time')) }, 60000)
+  })
+}
+
+// The chunks around the bot have arrived.
+//
+// The client is given the chunks a moment after the spawn. Until they
+// are there, a search over the world finds nothing at all.
+function waitForChunks (timeoutMs) {
+  const deadline = Date.now() + (timeoutMs || 60000)
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      if (!bot || !bot.entity) {
+        resolve(false)
+        return
+      }
+      const pos = bot.entity.position
+      const cx = Math.floor(pos.x / 16)
+      const cz = Math.floor(pos.z / 16)
+      let columns = 0
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          if (bot.world.getColumn(cx + dx, cz + dz)) columns++
+        }
+      }
+      const ground = bot.blockAt(new Vec3(Math.floor(pos.x), Math.floor(pos.y) - 1, Math.floor(pos.z)))
+      const standing = ground && isSolidName(ground.name)
+      if ((columns >= 9 && standing) || Date.now() > deadline) {
+        resolve(columns >= 9 && standing)
+        return
+      }
+      setTimeout(check, 500)
+    }
+    check()
   })
 }
 

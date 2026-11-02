@@ -247,6 +247,7 @@ class MinecraftAdapter:
         minecraft_dir: str | None = None,
         version: str = "26.1.2",
         timeout_s: float = 180.0,
+        stderr_path: str | None = None,
         log=None,
     ) -> None:
         self.host = host
@@ -264,6 +265,13 @@ class MinecraftAdapter:
         self._process: subprocess.Popen[str] | None = None
         self._next_id = 0
         self._lock = threading.Lock()
+        self.stderr_path = str(
+            stderr_path
+            or os.environ.get(
+                "VOYAGER_BRIDGE_STDERR",
+                "/tmp/voyager-bridge-stderr.log",
+            )
+        )
         self._items: dict[str, int] = {}
         self._milestones = {m.key: m for m in MC_MILESTONES}
         self._registry = mc_vocabulary()
@@ -312,14 +320,31 @@ class MinecraftAdapter:
         self._process = None
 
     def _drain_stderr(self) -> None:
-        """Read the bridge's stderr in a thread, so it never blocks."""
+        """Read the bridge's stderr in a thread, so it never blocks.
+
+        The bridge's stderr is also written to a file beside the run:
+        it is the only place the bridge's own account of itself appears,
+        and a crash there explains a death that the protocol alone does
+        not.
+        """
 
         def reader() -> None:
             process = self._process
             if process is None or process.stderr is None:
                 return
-            for line in process.stderr:
-                self._log("bridge: " + line.rstrip())
+            try:
+                handle = open(self.stderr_path, "a")
+            except Exception:
+                handle = None
+            try:
+                for line in process.stderr:
+                    self._log("bridge: " + line.rstrip())
+                    if handle is not None:
+                        handle.write(line)
+                        handle.flush()
+            finally:
+                if handle is not None:
+                    handle.close()
 
         thread = threading.Thread(target=reader, daemon=True)
         thread.start()
@@ -338,7 +363,17 @@ class MinecraftAdapter:
             line = process.stdout.readline()
         if not line:
             raise RuntimeError("the bridge closed the pipe")
-        answer = json.loads(line)
+        try:
+            answer = json.loads(line)
+        except ValueError as exc:
+            # A line that is not a JSON object means the two sides are out
+            # of step: something wrote to the bridge's stdout that is not
+            # a response. Say so, and show the line, because the line is
+            # the only evidence of what got in the way.
+            raise RuntimeError(
+                "the bridge sent a line that is not JSON: "
+                f"{exc}; the line was {line[:300]!r}"
+            ) from exc
         if not answer.get("ok"):
             raise RuntimeError(str(answer.get("error", "the bridge refused the request")))
         return answer.get("result")
