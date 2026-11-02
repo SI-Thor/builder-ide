@@ -276,6 +276,18 @@ So the loop closes: the snapshot says what the world was, the ledger says
 what happened after it, and the replayer puts the "what happened after it"
 back on top.
 
+**Where the replay numbers come from, exactly.** The `replay` section of
+[`world-snapshot-scripts/results/world-snapshot.json`](world-snapshot-scripts/results/world-snapshot.json)
+is from the run **before** the operator fix of §2.7, and it shows that
+failure: the bot was not an operator after the restore, so it stood 11
+blocks away from the blocks it was asked to place and the server refused
+every placement without answering. The replay quoted above was run against
+**the same restored world**, from the same plan file
+(`mc-snap/snapshots/replay-plan.json`), after the fix — and all five blocks
+came back, each read back from the running server as the expected block.
+The committed results file is left as it was: rewriting it would mean
+quoting numbers from a run this document does not describe.
+
 **What cannot be put back**, and the build says so rather than guessing:
 
 * a **mined** block — what was there cannot be invented; the plan calls it
