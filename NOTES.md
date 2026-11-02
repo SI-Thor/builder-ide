@@ -1036,3 +1036,195 @@ skill's behaviour survive? Answerable from the recordings the design keeps.
 measurement. The measurement to take is on our side: whether the nightly refit
 over a growing log drifts the old contexts' estimates (`core/tiles/ope.py` and
 our own log).
+## 2026-11-01 15:20 — the simulated link, and the referee that ticks
+
+The brief (round 2 of mission B) asks for the winner re-measured over a network: 2–12 ms of
+one-way delay with jitter, 0.5 % and 2 % packet loss, the same seed and the same 64
+subscribers.
+
+What I built: `tools/posestream/src/net.rs` (one link per subscriber: a per-packet delay
+drawn uniformly from 2–12 ms plus ±1.5 ms of jitter, a per-packet loss, and the resync
+request travelling back over the same link) and a rewrite of `src/bench.rs` around it. The
+clock is in microticks, 1e6 to a tick, because the receiver has to know when a packet
+arrived to better than a tick.
+
+The part that needed the most care was the referee. A delayed packet is applied after the
+world has moved on, so it cannot be checked against the world as it is now; the emitter's
+state at the moment it built the packet travels with the packet (the quantised truth at
+the packet's tick, and the emitter's mirror of the subscriber's state). The reconstruction
+is then checked at **the packet's tick**, not at the tick the packet arrived.
+
+Two numbers are kept apart: the **reconstruction error** (the bar: zero, within the bound)
+and the **mirror mismatch** (the receiver's held state against the emitter's mirror: zero
+means the delay never touched the state).
+
+Box state: the Thor under `thor-admit run --tier live --peak 2G --label posestream-net.*`,
+load average 12–22, 53 G free of 122.8 G, peak RSS 340 MB for the whole matrix.
+
+## 2026-11-01 15:30 — the loopback still delivers the same bytes
+
+The regression check: the new harness, run on the loopback with no network at all, must
+produce round 1's bytes exactly. It does — the stream digest is `0x43e63a399fcc4897`, the
+same as the committed round-1 log, and bytes/s per subscriber is 5,796.311 sent / 5,796.043
+delivered, against round 1's 5,796.311.
+
+Two of the numbers moved, and both are the harness, not the stream: the delivery latency
+(0.53 ms now against round 1's 0.67 ms) because round 1 timed the referee inside the
+delivery and round 2 does not, and the whole-tick CPU (1.91 ms p95 against 1.43 ms)
+because the whole tick now carries the snapshot and the referee. The emitter's own work —
+the interest query, the deltas and the encoding — is 0.56 ms p95, reported separately as
+`emitter_work_ms_per_tick_p95`.
+
+Decided: report both, and say in the README which is which.
+
+## 2026-11-01 15:40 — what the network costs
+
+The matrix (`tools/posestream/netbench.sh`, 15 runs, 5m41s on the Thor):
+
+| run | bytes/s | on the wire | latency p95 | errors | resyncs |
+|---|---:|---:|---:|---:|---:|
+| loopback | 5,796 | 5,796 | 0.54 ms | 0 | 3 |
+| 2–12 ms, no loss | 5,796 | 5,796 | 13.09 ms | 0 | 3 |
+| 2–12 ms, 0.5 % loss | 5,911 | 5,940 | 13.09 ms | 0 | 380 |
+| 2–12 ms, 2 % loss | 6,244 | 6,374 | 13.09 ms | 0 | 1,560 |
+
+The delay costs latency and nothing else: the digest is unchanged and the reconstruction
+is exact. Loss costs bytes — 2.0 % at 0.5 %, 7.7 % at 2 % — and the cost is the keyframe:
+every lost packet is one gap, every gap is one full-region keyframe (~1 kB). The recovery
+from a gap to the keyframe's arrival: median 32 ms, p95 108 ms, worst 509 ms (the 2 Hz
+subscriber's interval — a keyframe can only go out at a delivery).
+
+Decided: the bar holds. Zero reconstruction errors at both loss rates, zero mirror
+mismatches.
+
+## 2026-11-01 15:50 — the four ideas, each on its own
+
+(a) **The back-dating: kept.** With it, 0 reconstruction errors and the receiver's state
+bit-identical to the emitter's mirror. Without it (`--backdate off`, the receiver anchors
+at the arrival): 9,169,158 reconstruction errors out of 9,471,363 delivered states, up to
+2,140 mm. Essentially every delivery is wrong. The mechanism is the anchor: a receiver
+that anchors at the arrival adds the motion between the correction's tick and the arrival
+to the correction's base, and then adds it again when it extrapolates.
+
+(b) **The exit hysteresis: measured, not kept.** 8 m removes 9 % of the leaves (79,353 →
+72,251) but costs 33 % more bytes (5,796 → 7,697) and 57 % more emitter CPU, because every
+object it holds outside the region still costs a change record per delivery. The sweep
+(0/2/4/8/16 m) is in the runs: the cost rises monotonically with the margin. On this world
+the regions are small (14–30 m) against a dense world; zcode's were 80–180 m in a 1200 m
+arena, which is where the idea pays.
+
+(c) **The 2-byte evicts: measured, not kept.** The leave list is delta-coded varints,
+already at or below 2 bytes per object; the fixed 16-bit id costs 2 B/s per subscriber
+more (5,796 → 5,798).
+
+(d) **The drift budget: kept, as a stated bound.** Derived per kind of object from the
+world's own parameters (`src/budget.rs`), not measured and not typed in. Over the 60 s run
+at 2 % loss: 24,713,234 checks of the projection against the bound, **not one over it**;
+the worst was 87.3 m, a fast mover that turned, inside the 90.5 m its interval allows.
+
+The first attempt at the bound was wrong twice, and both times the measurement said so: the
+turns can land one tick after the anchor (not on the epoch boundary), and a turn is already
+in effect for the displacement of its own tick. The walker's bound was also wrong: the
+walkers' speeds are not capped at the 2.4 m/s they start at — the speed is re-sampled every
+turn and clamped only at 42 m/s — so the bound uses the clamp.
+
+## 2026-11-01 15:55 — what is left
+
+The scored run (`bench.sh`) reproduces round 1's digest on the Thor, `RESULT.json` gains the
+network keys, and the README and the verdict doc carry the round-2 numbers.
+
+Left open, and said so in the docs: the link is a model (no socket, no second machine), the
+loss is memoryless (a real link's losses come in bursts, which is worse), and the packets
+never reorder (the delay is below a tick) — the path where one does is not exercised.
+
+## 2026-11-01 16:05 — the runs are re-done, and one claim was wrong
+
+The harness now names the worst drift of the run (its kind, its staleness and the bound that
+covers it), because the claim in the first pass of the README was wrong. It said the worst
+interpolation, 87.3 m, was "inside the 90.5 m its interval allows" — but 90.5 m is the bound for
+a 30-tick interval, and the object's interval is 30 ticks at most. The truth: the worst
+interpolation was a fast mover **89 ticks past its last correction**, because the packets that
+should have corrected it were lost, and the bound for a 89-tick interval is 267.1 m. The
+staleness, not the interval, is what the bound is a function of, and a lossy link moves the
+staleness. Corrected in the README and in the verdict doc, in place.
+
+The whole matrix was re-run with the final binary (15 runs, 5m41s → 5m46s, peak RSS 336 MB),
+so every run in `runs/` comes from the same build. The byte numbers are identical to the first
+pass — they are a function of the seed — and the timings moved by a few hundredths of a
+millisecond, because the box was busier.
+
+The scored run (`bench.sh`) still reproduces round 1's digest on the Thor: `0x43e63a399fcc4897`,
+5,796.311 B/s sent, 5,796.043 delivered, p95 16,643.067 B/s, 0 reconstruction errors, 0 mirror
+mismatches, 0 interpolations over the drift budget.
+## 2026-11-01 16:30 — the resync path, corrected: the request is the only trigger
+
+What was wrong: the round-2 harness told the emitter about a gap the moment the projector
+found it. `resync_pending[si] = true` sat in `src/bench.rs`, next to the
+`links[si].request(...)` that was supposed to carry the news up the link — so the emitter
+sent its keyframe one delivery interval after the *detection*, not after the request came
+back. No real receiver can arrange that: the emitter cannot see the loss, so it cannot know
+of the gap until the request has travelled back up the link. It also double-counted — the
+request that arrived later set the flag again and bought a second keyframe for a break that
+had already been repaired (about 48 of them per 0.5 % run).
+
+What changed:
+
+- the emitter's keyframe is triggered only by a request that has arrived
+  (`links[si].request_arrived(...)`); nothing else sets the flag;
+- the receiver keeps its own state (`Rx` in `src/bench.rs`): a *broken* flag, when it noticed
+  the break, when it last asked, how many breaks and requests it have gone through;
+- the receiver asks **once per break**. The packets behind a break cannot be used either, and
+  asking for each of them would put a request per unusable packet on the uplink;
+- the uplink request is **lost like any other packet** now, and the receiver cannot tell, so
+  it asks again after a timeout: three of its own delivery periods plus the link's
+  worst-case round trip. That is long enough that a healthy repair never produces a second
+  request;
+- three numbers came with it: the requests sent, the packets rejected behind a break, and the
+  retries (the timeout firing). And two corrections to the log: "subscriber service" was
+  printing the delivery latency instead of the decode-and-apply time it claims to be, and the
+  stream digest was labelled as a hash of the delivered bytes when it is a hash of the bytes
+  the emitter produced (the lost ones included).
+
+**Superseded.** The first round-2 numbers, committed in `1da02a9` and `140b839`, were taken
+with that shortcut: 5,911 B/s per subscriber and 380 resyncs at 0.5 % loss, 6,244 B/s and
+1,560 resyncs at 2 %, with a median recovery of 32 ms and a p95 of 108 ms. The table below
+replaces them.
+
+What happened (the Thor, aarch64, `thor-admit run --tier live --peak 2G`, the matrix 15
+runs, peak RSS 377 MB):
+
+| run | bytes/s | on the wire | emitter CPU p95 | latency p95 | errors | breaks | keyframes |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| the loopback | 5,796 | 5,796 | 0.58 ms | 0.55 ms | 0 | 3 | 67 |
+| 2–12 ms, no loss | 5,796 | 5,796 | 0.56 ms | 13.08 ms | 0 | 3 | 67 |
+| 2–12 ms, 0.5 % loss | 5,903 | 5,932 | 0.56 ms | 13.10 ms | 0 | 406 | 470 |
+| 2–12 ms, 2 % loss | 6,190 | 6,313 | 0.56 ms | 13.09 ms | 0 | 1,496 | 1,592 |
+
+The loopback did not move: the same digest (`0x43e63a399fcc4897`), the same bytes, the same
+three breaks and 67 keyframes. With no delay the request reaches the emitter before its next
+delivery anyway, so the shortcut never showed there. The network runs did: the keyframe now
+costs a round trip. At 0.5 %: 411 requests for 406 breaks (5 of them the timeout firing),
+the recovery from the break to the keyframe's arrival is 34 ms at the median and 103 ms at
+p95, the worst 501 ms (the 2 Hz subscriber's interval), and 80 packets arrived behind a
+break and could not be used. At 2 %: 1,568 requests for 1,496 breaks (72 timeouts), the
+recovery 34.5 ms / 206 ms, the worst 807 ms, and 574 packets rejected. The bar holds: 0
+reconstruction errors and 0 mirror mismatches at both loss rates, and the drift budget's
+24,722,598 checks at 2 % still have not one over the bound.
+
+Box state: the Thor was unreachable from 15:45 and came back at 16:25 after a reboot (the
+same Wi-Fi trouble that hit it earlier today), so these numbers are from a box that was 4
+minutes up: load average 6.13 during the matrix, 84 G free of 122 G, 106 G free on disk,
+14 cores, two leases active (one was another seat's).
+
+Decided: keep the correction, and keep the numbers that go with it — the resync path now
+measures what a receiver can actually ask for. The four carried-over ideas are unchanged by
+this: the back-dating is kept (it is load-bearing: without it 9,145,691 of the 9,365,117
+delivered states are wrong, up to 2,110 mm), the exit hysteresis is not kept (it removes 9 %
+of the leaves and costs 33 % of the bytes and 56 % of the emitter's CPU), the 2-byte evicts
+are not kept (the delta-coded leave list is already at or below two bytes), and the drift
+budget is kept as a stated bound.
+
+What was not verified: the link is still a model, not a socket — the delay and the loss are
+drawn from a distribution, the loss is memoryless, and the packets of one subscriber never
+reorder. Nothing here says what a real congested link does to the resync path, and the
+uplink request bytes are still excluded from the bytes metric.

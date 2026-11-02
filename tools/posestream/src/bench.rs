@@ -1,6 +1,24 @@
 //! The benchmark harness: it runs the world, drives the emitter and the projectors, checks
 //! every reconstruction against the emitter's ground truth, and produces RESULT.json.
+//!
+//! The harness has two shapes, one code path:
+//!
+//! * the **loopback** (no network): the packet is handed to the receiver with no delay and
+//!   no loss. This is the run the winner was measured with, and the new harness reproduces
+//!   its bytes exactly.
+//! * the **network**: one lossy, delayed link per subscriber (see `net.rs`). The receiver
+//!   applies a packet when it arrives, and the referee checks it against the truth *at the
+//!   packet's tick*, not at the tick it arrived — that is what "back-dating" means.
+//!
+//! The referee keeps two numbers apart:
+//!
+//! * the **reconstruction error**: the projector's pose at the packet's tick, against the
+//!   emitter's quantised truth at that tick. This is the bar: zero, within the bound.
+//! * the **mirror mismatch**: the projector's held state against the emitter's mirror of
+//!   that subscriber's state. This is the state invariant: with back-dating the two are
+//!   bit-identical, whatever the link did.
 
+use crate::net::*;
 use crate::space::*;
 use crate::stream::*;
 use crate::wire;
@@ -13,18 +31,46 @@ pub struct Config {
     pub out_path: String,
     pub log_path: String,
     pub mode: Mode,
+    pub net: NetConfig,
+    /// True: the receiver back-dates the correction (anchors at the packet's tick).
+    pub backdate: bool,
+    /// The exit hysteresis on the interest regions, in metres.
+    pub hysteresis: f64,
+    /// Send the leave list as absolute 16-bit ids.
+    pub evict_abs: bool,
 }
 
 pub struct Report {
     pub bytes_mean: f64,
     pub bytes_p95: f64,
+    pub bytes_sent_mean: f64,
     pub emitter_p50: f64,
     pub emitter_p95: f64,
+    pub emitter_work_p50: f64,
+    pub emitter_work_p95: f64,
     pub latency_p95: f64,
     pub errors: u64,
     pub late_join_resync_ms: f64,
     pub notes: String,
     pub log: String,
+    // --- round 2: the network ---
+    pub packets_sent: u64,
+    pub packets_lost: u64,
+    pub packets_delivered: u64,
+    pub keyframes: u64,
+    pub resyncs: u64,
+    /// The resync requests the receivers sent, and how many were timeout re-requests.
+    pub resync_requests: u64,
+    /// The packets the receivers could not use, behind a break.
+    pub packets_rejected: u64,
+    pub mirror_mismatches: u64,
+    pub max_state_error_mm: f64,
+    pub max_reconstruction_error_mm: f64,
+    pub max_drift_mm: f64,
+    pub drift_over_budget: u64,
+    pub drift_checks: u64,
+    pub resync_recovery_ms_p95: f64,
+    pub reorders: u64,
 }
 
 fn percentile(sorted: &[f64], p: f64) -> f64 {
@@ -82,24 +128,146 @@ impl Hist {
     }
 }
 
+/// The state the emitter sent, kept with the packet so the referee can check a packet that
+/// arrives after the world has moved on.
+struct Snapshot {
+    ids: Vec<u32>,
+    /// The quantised truth at the packet's tick.
+    truth: Vec<[i32; 3]>,
+    /// The emitter's mirror: the truth at each object's last correction.
+    mirror_pos: Vec<[i32; 3]>,
+    mirror_vel: Vec<[i32; 3]>,
+    /// And the time that mirror state refers to.
+    mirror_anchor: Vec<u64>,
+}
+
+fn snapshot(em: &Emitter, si: usize) -> Snapshot {
+    let st = &em.state[si];
+    let n = st.set.len();
+    let mut ids = Vec::with_capacity(n);
+    let mut truth = Vec::with_capacity(n);
+    let mut mirror_pos = Vec::with_capacity(n);
+    let mut mirror_vel = Vec::with_capacity(n);
+    let mut mirror_anchor = Vec::with_capacity(n);
+    for (k, &id) in st.set.iter().enumerate() {
+        ids.push(id);
+        truth.push(quantise(em.world.pos[id as usize]));
+        mirror_pos.push(st.objs[k].pos);
+        mirror_vel.push(st.objs[k].vel);
+        mirror_anchor.push(st.objs[k].anchor_us);
+    }
+    Snapshot { ids, truth, mirror_pos, mirror_vel, mirror_anchor }
+}
+
+/// The receiver's side of the resync protocol.
+///
+/// The receiver is the only one that knows of a gap: the emitter cannot see the loss, so it
+/// cannot send a keyframe until the receiver's request has travelled back up the link. The
+/// receiver asks once per break — the packets that follow a break cannot be used either, and
+/// asking again for each of them would flood the uplink — and asks again after a timeout if
+/// its request, or the keyframe that answers it, was lost.
+#[derive(Clone, Copy, Debug, Default)]
+struct Rx {
+    /// The stream is broken: a packet is missing, so the deltas that follow cannot be used.
+    broken: bool,
+    /// When the break was noticed: the start of the recovery clock.
+    gap_at_us: u64,
+    /// When it last asked the emitter for a keyframe.
+    last_req_us: u64,
+    /// How many requests it has sent.
+    requests: u64,
+    /// How many breaks it has seen.
+    breaks: u64,
+    /// How many packets it could not use.
+    rejected: u64,
+}
+
+impl Rx {
+    fn new() -> Rx {
+        Rx::default()
+    }
+
+    /// The receiver noticed a gap. It asks the emitter for a keyframe once per break.
+    /// Returns true when this is a new break.
+    fn gap(&mut self, arrive_us: u64, link: &mut Link) -> bool {
+        if self.broken {
+            // The same break: the packets behind it are unusable as well.
+            self.rejected += 1;
+            return false;
+        }
+        self.broken = true;
+        self.breaks += 1;
+        self.gap_at_us = arrive_us;
+        self.last_req_us = arrive_us;
+        self.requests += 1;
+        link.request(arrive_us);
+        true
+    }
+
+    /// The receiver is still broken and its request has not been answered: ask again.
+    fn retry(&mut self, now_us: u64, timeout_us: u64, link: &mut Link) -> bool {
+        if !self.broken || now_us.saturating_sub(self.last_req_us) < timeout_us {
+            return false;
+        }
+        self.requests += 1;
+        self.last_req_us = now_us;
+        link.request(now_us);
+        true
+    }
+
+    /// A keyframe arrived and applied: the stream is whole again.
+    fn repaired(&mut self) {
+        self.broken = false;
+        self.gap_at_us = 0;
+    }
+}
+
+/// The index of a kind in the per-kind drift histograms.
+fn kind_index(k: Kind) -> usize {
+    match k {
+        Kind::Walker => 0,
+        Kind::Orbiter => 1,
+        Kind::Fast => 2,
+    }
+}
+
+/// The bytes a delta-coded id list costs: the varint length of each difference.
+fn varint_len(v: u64) -> u64 {
+    let mut n = 1u64;
+    let mut v = v >> 7;
+    while v != 0 {
+        n += 1;
+        v >>= 7;
+    }
+    n
+}
+
 pub fn run(cfg: &Config) -> Report {
     let n = 64usize;
     let mut em = Emitter::new(cfg.seed);
     em.mode = cfg.mode;
+    em.hysteresis = cfg.hysteresis;
+    em.evict_abs = cfg.evict_abs;
     let mut proj: Vec<Projector> = (0..n).map(|_| Projector::new()).collect();
     for p in proj.iter_mut() {
         p.mode = cfg.mode;
+        p.backdate = cfg.backdate;
     }
+    // one link per subscriber, each with its own random stream
+    let mut links: Vec<Link> = (0..n)
+        .map(|i| Link::new(cfg.net, cfg.seed ^ (i as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15)))
+        .collect();
 
-    let mut bytes = vec![0u64; n];
+    let mut bytes = vec![0u64; n]; // delivered
+    let mut bytes_sent = vec![0u64; n];
     let mut deliveries = vec![0u64; n];
     let mut keys = vec![0u64; n];
-    let mut resyncs = vec![0u64; n];
     let mut objects_seen = vec![0u64; n];
 
     let mut tick_ms: Vec<f64> = Vec::with_capacity(cfg.ticks as usize);
     let mut world_ms: Vec<f64> = Vec::with_capacity(cfg.ticks as usize);
     let mut emit_ms: Vec<f64> = Vec::with_capacity(cfg.ticks as usize);
+    let mut work_ms: Vec<f64> = Vec::with_capacity(cfg.ticks as usize);
     let mut lat: Vec<f64> = Vec::with_capacity(cfg.ticks as usize * 32);
     let mut service_lat: Vec<f64> = Vec::with_capacity(cfg.ticks as usize * 32);
     let mut decode_us: Vec<f64> = Vec::with_capacity(cfg.ticks as usize * 32);
@@ -121,9 +289,21 @@ pub fn run(cfg: &Config) -> Report {
     let mut errors: u64 = 0;
     let mut error_notes: Vec<String> = Vec::new();
     let mut max_pos_error: f64 = 0.0;
+    let mut max_reconstruction_error_mm: f64 = 0.0;
+    let mut max_state_error_mm: f64 = 0.0;
+    let mut mirror_mismatches: u64 = 0;
     let mut pred = Hist::new();
-    // the motion channel expressed in the subscriber's own frame: the apparent motion of
-    // every object in the region, which is what a projector renders (or reads as optical flow)
+    let mut drift = Hist::new();
+    // the drift, per kind of object: the bound is a worst case, these are what happened
+    let mut drift_kind: [Hist; 3] = [Hist::new(), Hist::new(), Hist::new()];
+    let mut max_drift_mm: f64 = 0.0;
+    let mut drift_over_budget: u64 = 0;
+    let mut drift_checks: u64 = 0;
+    let mut worst_over_mm: f64 = 0.0;
+    let mut worst_over_case = String::new();
+    let mut worst_drift_m: f64 = 0.0;
+    let mut worst_drift_case = String::new();
+    // the motion channel expressed in the subscriber's own frame
     let mut apparent_sum = 0.0f64;
     let mut apparent_max = 0.0f64;
     let mut apparent_n = 0u64;
@@ -131,10 +311,20 @@ pub fn run(cfg: &Config) -> Report {
 
     let mut late_join_ms: Vec<f64> = Vec::new();
     let mut late_join_e2e: Vec<f64> = Vec::new();
-    let drop_resync_ms: Vec<f64> = Vec::new();
     let mut gap_events: Vec<String> = Vec::new();
+    let mut recovery_ms: Vec<f64> = Vec::new();
+    let mut keyframes: u64 = 0;
+    // The resync requests the receivers sent again after the timeout.
+    let mut req_retries: u64 = 0;
+    let mut packets_sent: u64 = 0;
+    let mut packets_lost: u64 = 0;
+    let mut packets_delivered: u64 = 0;
+    // the observed link: the delay range and how many packets were in flight at once
+    let mut delay_min_us = u64::MAX;
+    let mut delay_max_us = 0u64;
+    let mut max_inflight = 0usize;
 
-    // Deterministic packet drops, to exercise the resync path.
+    // Deterministic packet drops, to exercise the resync path even without a lossy link.
     let mut drop_rng = Rng::new(cfg.seed ^ 0xD0D0_D0D0_D0D0_D0D0);
     let mut drops: Vec<(u32, u32)> = Vec::new();
     for _ in 0..6 {
@@ -145,38 +335,60 @@ pub fn run(cfg: &Config) -> Report {
         }
     }
 
+    // The emitter's side of the resync protocol: a request has come back up the link and a
+    // keyframe is owed. Nothing else sets this — the emitter cannot know of a gap until
+    // the receiver's request has arrived.
     let mut resync_pending = vec![false; n];
+    // The receiver's side: what it knows, and when it asked.
+    let mut rx: Vec<Rx> = (0..n).map(|_| Rx::new()).collect();
+    // How long the receiver waits before asking again: three of its own delivery periods
+    // plus the link's worst-case round trip. That is long enough for the first request to
+    // have been answered, so a healthy repair does not produce a second request.
+    let resend_us: Vec<u64> = (0..n)
+        .map(|si| {
+            let interval_ms = em.subs[si].interval as f64 * (TICK_US as f64 / MICROTICKS_PER_MS);
+            (3.0 * (interval_ms + cfg.net.round_trip_worst_ms()) * MICROTICKS_PER_MS) as u64
+        })
+        .collect();
     let mut digest: u64 = 0xcbf2_9ce4_8422_2325; // FNV-1a
+    let mut arrivals: Vec<InFlight> = Vec::with_capacity(256);
 
     for tick in 1..=cfg.ticks {
         let t_tick = Instant::now();
         em.step_world();
         let world_end = Instant::now();
         let t_world = world_end.duration_since(t_tick);
+        let work_before = em.t_region + em.t_records + em.t_encode;
 
         for si in 0..n {
             if !em.due(si, tick) {
                 continue;
             }
+            // Has the receiver's resync request reached the emitter? The request travels
+            // back up the link, so the emitter learns of the gap late — as late as a real
+            // receiver can make it learn.
+            if links[si].request_arrived(tick as u64 * TICK_US) {
+                resync_pending[si] = true;
+            }
             let is_late_join = !em.state[si].started;
             let want_key = resync_pending[si] || is_late_join;
             let t_build = Instant::now();
             em.build_packet(si, tick, want_key);
-            let _t_built = Instant::now();
             let nbytes = em.out.len();
             bytes_total += nbytes as u64;
-            bytes[si] += nbytes as u64;
+            bytes_sent[si] += nbytes as u64;
             deliveries[si] += 1;
+            packets_sent += 1;
             if want_key {
                 keys[si] += 1;
+                keyframes += 1;
                 resync_pending[si] = false;
             }
             // byte accounting
             {
                 let pk = &em.packet;
-                b_header += 22; // magic, flags, eight varints, eight width bytes
+                b_header += 22; // magic, flags, nine varints, eight width bytes
                 b_enter += pk.enter.len() as u64 * 13;
-                b_leave += pk.leave.len() as u64;
                 n_enters += pk.enter.len() as u64;
                 n_leaves += pk.leave.len() as u64;
                 if pk.flags & wire::FLAG_CHANGE_BITMAP != 0 {
@@ -217,122 +429,221 @@ pub fn run(cfg: &Config) -> Report {
                 b_vel += vbits / 8;
                 b_escape += esc * 2;
                 n_changes += pk.change.len() as u64;
+                // the leave list: delta-coded varints, or absolute 16-bit evicts
+                let mut prev = 0u32;
+                for &id in &pk.leave {
+                    if pk.flags & wire::FLAG_EVICT_ABS != 0 {
+                        b_leave += 2;
+                    } else {
+                        b_leave += varint_len((id - prev) as u64);
+                    }
+                    prev = id;
+                }
             }
             for &b in &em.out {
                 digest ^= b as u64;
                 digest = digest.wrapping_mul(0x1000_0000_01b3);
             }
 
-            // The link: this packet is lost.
-            if drops.iter().any(|&(s, t)| s == si as u32 && t == tick) {
+            // The link: the packet is either lost or on its way.
+            let deliberate_drop = drops.iter().any(|&(s, t)| s == si as u32 && t == tick);
+            if deliberate_drop || links[si].is_lost() {
+                packets_lost += 1;
+                links[si].lost += 1;
                 continue;
             }
+            let delay_us = links[si].draw_delay_us();
+            if delay_us < delay_min_us {
+                delay_min_us = delay_us;
+            }
+            if delay_us > delay_max_us {
+                delay_max_us = delay_us;
+            }
+            let arrive_us = tick as u64 * TICK_US + delay_us;
+            let snap = snapshot(&em, si);
+            links[si].send(InFlight {
+                bytes: em.out.clone(),
+                arrive_us,
+                tick,
+                emit_wait_ms: t_build.duration_since(world_end).as_secs_f64() * 1000.0,
+                build_start: t_build,
+                ids: snap.ids,
+                truth: snap.truth,
+                mirror_pos: snap.mirror_pos,
+                mirror_vel: snap.mirror_vel,
+                mirror_anchor: snap.mirror_anchor,
+            });
+        }
 
-            let t_dec = Instant::now();
-            let pkt = match wire::decode(&em.out, &proj[si].set) {
-                Ok(p) => p,
-                Err(wire::WireError::Gap) => {
-                    // The projector cannot use this packet (its state does not match the
-                    // packet's base version): ask the emitter for a keyframe.
-                    resync_pending[si] = true;
-                    resyncs[si] += 1;
-                    gap_events.push(format!(
-                        "tick {} sub {}: bitmap base mismatch -> keyframe requested",
-                        tick, si
-                    ));
-                    continue;
-                }
-                Err(e) => {
-                    errors += 1;
-                    if error_notes.len() < 8 {
-                        error_notes.push(format!("tick {} sub {}: decode error {}", tick, si, e));
-                    }
-                    continue;
-                }
-            };
-            let t_decoded = Instant::now();
-            let applied = proj[si].apply(&pkt);
-            let _t_apply = Instant::now();
-
-            match applied {
-                Ok(()) => {
-                    // The projector must now hold the emitter's ground truth for its region.
-                    let st = &em.state[si];
-                    if proj[si].set.len() != st.set.len() {
-                        errors += 1;
-                        if error_notes.len() < 8 {
-                            error_notes.push(format!(
-                                "tick {} sub {}: set size {} != {}",
-                                tick,
-                                si,
-                                proj[si].set.len(),
-                                st.set.len()
+        // ---- the receivers apply what has arrived ----
+        for si in 0..n {
+            // If the receiver is still broken and its request has not been answered, it
+            // asks again. The request may have been lost, or the keyframe that answered it.
+            if rx[si].retry(tick as u64 * TICK_US, resend_us[si], &mut links[si]) {
+                req_retries += 1;
+            }
+            // the link's occupancy, before this tick's arrivals are taken off it
+            let inflight = links[si].inflight();
+            if inflight > max_inflight {
+                max_inflight = inflight;
+            }
+            arrivals.clear();
+            // everything that has arrived by the end of this tick
+            links[si].drain((tick as u64 + 1) * TICK_US, &mut arrivals);
+            for pkt in arrivals.drain(..) {
+                packets_delivered += 1;
+                bytes[si] += pkt.bytes.len() as u64;
+                let t_dec = Instant::now();
+                let decoded = wire::decode(&pkt.bytes, &proj[si].set);
+                let t_decoded = Instant::now();
+                let pkt2 = match decoded {
+                    Ok(p) => p,
+                    Err(wire::WireError::Gap) => {
+                        // The projector cannot use this packet (its state does not match the
+                        // packet's base version). The receiver asks the emitter for a
+                        // keyframe; the emitter sends one when the request arrives.
+                        if rx[si].gap(pkt.arrive_us, &mut links[si]) {
+                            gap_events.push(format!(
+                                "tick {} sub {}: bitmap base mismatch -> keyframe requested",
+                                pkt.tick, si
                             ));
                         }
+                        continue;
                     }
-                    objects_seen[si] += st.set.len() as u64;
-                    for (i, &id) in st.set.iter().enumerate() {
-                        let got = proj[si].set.get(i).copied();
-                        if got != Some(id) {
-                            errors += 1;
-                            continue;
+                    Err(e) => {
+                        errors += 1;
+                        if error_notes.len() < 8 {
+                            error_notes.push(format!("tick {} sub {}: decode error {}", pkt.tick, si, e));
                         }
-                        let truth = quantise(em.world.pos[id as usize]);
-                        let p = proj[si].pose_at(id, tick);
-                        if p != truth {
+                        continue;
+                    }
+                };
+                // The receiver anchors the correction at the packet's tick when it
+                // back-dates, and at the packet's arrival when it does not.
+                let anchor_us = if cfg.backdate {
+                    pkt.tick as u64 * TICK_US
+                } else {
+                    pkt.arrive_us
+                };
+                let was_started = proj[si].started;
+                let applied = proj[si].apply(&pkt2, anchor_us);
+                let t_applied = Instant::now();
+                decode_us.push(t_decoded.duration_since(t_dec).as_secs_f64() * 1e6);
+
+                match applied {
+                    Ok(()) => {
+                        // The projector must now hold the emitter's state for its region.
+                        let snap = &pkt;
+                        if proj[si].set.len() != snap.ids.len() {
                             errors += 1;
                             if error_notes.len() < 8 {
-                                let o = &em.world.objs[id as usize];
-                                let k = st.set.binary_search(&id).unwrap_or(0);
-                                let so = st.objs.get(k).copied().unwrap_or_default();
-                                let po = proj[si].state_of(id).unwrap_or_default();
                                 error_notes.push(format!(
-                                    "tick {} sub {} obj {}: {:?} != {:?} | kind {:?} vel {:?} | emitter pos {:?} vel {:?} anchor {:?} tick {} | projector pos {:?} vel {:?} anchor {:?} tick {}",
-                                    tick, si, id, p, truth, o.kind, em.world.vel[id as usize],
-                                    so.pos, so.vel, so.anchor_vel, so.pos_tick,
-                                    po.pos, po.vel, po.anchor_vel, po.pos_tick
+                                    "tick {} sub {}: set size {} != {}",
+                                    pkt.tick,
+                                    si,
+                                    proj[si].set.len(),
+                                    snap.ids.len()
                                 ));
                             }
                         }
-                        let d = dequantise(p);
-                        let t = em.world.pos[id as usize];
-                        for a in 0..3 {
-                            let e = (d[a] - t[a]).abs();
-                            if e > max_pos_error {
-                                max_pos_error = e;
+                        objects_seen[si] += snap.ids.len() as u64;
+                        for (k, &id) in snap.ids.iter().enumerate() {
+                            if proj[si].set.get(k).copied() != Some(id) {
+                                errors += 1;
+                                continue;
+                            }
+                            // 1. the reconstruction at the packet's tick, against the truth
+                            //    at the packet's tick. This is the bar.
+                            let p = proj[si].pose_at(id, pkt.tick);
+                            if p != snap.truth[k] {
+                                errors += 1;
+                                let d = (0..3)
+                                    .map(|a| (p[a] - snap.truth[k][a]).abs() as f64 * Q)
+                                    .fold(0.0f64, f64::max)
+                                    * 1000.0;
+                                if d > max_reconstruction_error_mm {
+                                    max_reconstruction_error_mm = d;
+                                }
+                                if error_notes.len() < 8 {
+                                    error_notes.push(format!(
+                                        "tick {} sub {} obj {}: reconstruction {:?} != truth {:?} ({} mm)",
+                                        pkt.tick, si, id, p, snap.truth[k], d
+                                    ));
+                                }
+                            }
+                            // 2. the held state, against the emitter's mirror. This is the
+                            //    state invariant: the receiver holds exactly what it was told.
+                            let mp = proj[si].objs[k].pos;
+                            let mv = proj[si].objs[k].vel;
+                            let ma = proj[si].objs[k].anchor_us;
+                            if mp != snap.mirror_pos[k]
+                                || mv != snap.mirror_vel[k]
+                                || ma != snap.mirror_anchor[k]
+                            {
+                                mirror_mismatches += 1;
+                                let d = (0..3)
+                                    .map(|a| (mp[a] - snap.mirror_pos[k][a]).abs() as f64 * Q)
+                                    .fold(0.0f64, f64::max)
+                                    * 1000.0;
+                                if d > max_state_error_mm {
+                                    max_state_error_mm = d;
+                                }
+                            }
+                            // and the error against the float truth, for the bound
+                            let d = dequantise(p);
+                            let t = em.world.pos[id as usize];
+                            for a in 0..3 {
+                                let e = (d[a] - t[a]).abs();
+                                if e > max_pos_error {
+                                    max_pos_error = e;
+                                }
                             }
                         }
                     }
+                    Err(ApplyError::Gap { held, offered }) => {
+                        // A dropped packet: the receiver asks the emitter for a keyframe.
+                        if rx[si].gap(pkt.arrive_us, &mut links[si]) {
+                            gap_events.push(format!(
+                                "tick {} sub {}: gap (held v{}, offered v{}) -> keyframe requested",
+                                pkt.tick, si, held, offered
+                            ));
+                        }
+                        continue;
+                    }
                 }
-                Err(ApplyError::Gap { held, offered }) => {
-                    // A dropped packet: ask the emitter for a keyframe.
-                    resync_pending[si] = true;
-                    resyncs[si] += 1;
-                    gap_events.push(format!(
-                        "tick {} sub {}: gap (held v{}, offered v{}) -> keyframe requested",
-                        tick, si, held, offered
-                    ));
-                    continue;
+
+                // The delivery latency: the emitter's wait for this subscriber, the link,
+                // and the receiver's own service.
+                let t_checked = Instant::now();
+                let delay_ms =
+                    (pkt.arrive_us as f64 - pkt.tick as f64 * TICK_US as f64) / MICROTICKS_PER_MS;
+                let service_ms = t_applied.duration_since(t_dec).as_secs_f64() * 1000.0;
+                let total_ms = pkt.emit_wait_ms + delay_ms + service_ms;
+                lat.push(total_ms);
+                service_lat.push(service_ms);
+
+                if was_started == false {
+                    // The late-join figure, in the same terms as round 1: the emitter's
+                    // service of this subscriber plus the link plus the receiver's decode,
+                    // apply and verification.
+                    late_join_ms.push(t_checked.duration_since(pkt.build_start).as_secs_f64() * 1000.0);
+                    late_join_e2e.push(total_ms);
                 }
-            }
-
-            let t_done = Instant::now();
-            lat.push(t_done.duration_since(world_end).as_secs_f64() * 1000.0);
-            service_lat.push(t_done.duration_since(t_build).as_secs_f64() * 1000.0);
-            decode_us.push(t_decoded.duration_since(t_dec).as_secs_f64() * 1e6);
-
-            if is_late_join {
-                // Time from the join request to a complete, verified state: the emitter's
-                // service of this subscriber (build + encode + decode + apply + check).
-                late_join_ms.push(t_done.duration_since(t_build).as_secs_f64() * 1000.0);
-                // And the end-to-end figure, which also waits behind the other subscribers
-                // served in the same tick.
-                late_join_e2e.push(t_done.duration_since(t_tick).as_secs_f64() * 1000.0);
+                // the recovery time of a resync, from the break to the arrival of the
+                // keyframe that repairs it
+                if rx[si].broken && pkt2.flags & wire::FLAG_KEYFRAME != 0 {
+                    let r = (pkt.arrive_us as f64 - rx[si].gap_at_us as f64) / MICROTICKS_PER_MS;
+                    if r > 0.0 {
+                        recovery_ms.push(r);
+                    }
+                    rx[si].repaired();
+                }
             }
         }
 
         // Bonus: the motion channel lets a projector predict the poses it has not been told
-        // about yet. This is not part of the reconstruction guarantee; it is measured.
+        // about yet. This is not part of the reconstruction guarantee; it is measured, and
+        // it is checked against the drift budget.
         for si in 0..n {
             if tick % 10 == 0 {
                 // ... and expressed in the subscriber's frame it is the apparent motion
@@ -355,7 +666,7 @@ pub fn run(cfg: &Config) -> Report {
             if !p.started {
                 continue;
             }
-            for &id in &p.set {
+            for (k, &id) in p.set.iter().enumerate() {
                 let truth = quantise(em.world.pos[id as usize]);
                 let pr = p.predicted(id, tick);
                 let mut e = 0.0f64;
@@ -366,6 +677,55 @@ pub fn run(cfg: &Config) -> Report {
                     }
                 }
                 pred.add(e);
+                // the drift budget: the projection must stay inside the bound the world's
+                // motion parameters give for the object's staleness.
+                let anchor_tick = (p.objs[k].anchor_us / TICK_US) as u32;
+                let s = tick.saturating_sub(anchor_tick);
+                let kind = em.world.objs[id as usize].kind;
+                let b = crate::budget::drift_bound_m(kind, s);
+                drift.add(e);
+                drift_kind[kind_index(kind)].add(e);
+                if e * 1000.0 > max_drift_mm {
+                    max_drift_mm = e * 1000.0;
+                }
+                drift_checks += 1;
+                // the worst drift of the run, and the bound that covers it
+                if e > worst_drift_m {
+                    worst_drift_m = e;
+                    worst_drift_case = format!(
+                        "kind {:?} id {}, staleness {} ticks, bound {:.3} m, speed {:.2} m/s",
+                        kind,
+                        id,
+                        s,
+                        b,
+                        norm(em.world.vel[id as usize])
+                    );
+                }
+                // an interval that contains a wall reflection has its own bound
+                let reflected = em.world.reflect_tick[id as usize] > anchor_tick
+                    && em.world.reflect_tick[id as usize] <= tick;
+                if e > b && !(reflected && e <= crate::budget::drift_bound_reflect_m(s)) {
+                    drift_over_budget += 1;
+                    if e * 1000.0 > worst_over_mm {
+                        worst_over_mm = e * 1000.0;
+                        worst_over_case = format!(
+                            "kind {:?} id {} staleness {} ticks, anchor tick {}, last reflection {}, bound {:.3} m, speed {:.2} m/s\n    anchor pos {:?} anchor vel {:?} truth {:?} predicted {:?} anchor_us {} tick {}",
+                            kind,
+                            id,
+                            s,
+                            anchor_tick,
+                            em.world.reflect_tick[id as usize],
+                            b,
+                            norm(em.world.vel[id as usize]),
+                            p.objs[k].pos,
+                            p.objs[k].anchor_vel,
+                            truth,
+                            pr,
+                            p.objs[k].anchor_us,
+                            tick
+                        );
+                    }
+                }
             }
         }
 
@@ -373,20 +733,28 @@ pub fn run(cfg: &Config) -> Report {
         tick_ms.push(total.as_secs_f64() * 1000.0);
         world_ms.push(t_world.as_secs_f64() * 1000.0);
         emit_ms.push((total.as_secs_f64() - t_world.as_secs_f64()) * 1000.0);
+        work_ms.push(em.t_region + em.t_records + em.t_encode - work_before);
     }
 
     // ---------------------------------------------------------------- report
     let secs = cfg.ticks as f64 / TICK_HZ as f64;
     let per_sub_bytes: Vec<f64> = bytes.iter().map(|&b| b as f64 / secs).collect();
+    let per_sub_sent: Vec<f64> = bytes_sent.iter().map(|&b| b as f64 / secs).collect();
     let mut sorted_bytes = per_sub_bytes.clone();
     sorted_bytes.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let bytes_mean = mean(&per_sub_bytes);
     let bytes_p95 = percentile(&sorted_bytes, 0.95);
+    let bytes_sent_mean = mean(&per_sub_sent);
 
     let mut sorted_tick = tick_ms.clone();
     sorted_tick.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let emitter_p50 = percentile(&sorted_tick, 0.50);
     let emitter_p95 = percentile(&sorted_tick, 0.95);
+
+    let mut sorted_work = work_ms.clone();
+    sorted_work.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let emitter_work_p50 = percentile(&sorted_work, 0.50);
+    let emitter_work_p95 = percentile(&sorted_work, 0.95);
 
     let mut sorted_lat = lat.clone();
     sorted_lat.sort_by(|a, b| a.partial_cmp(b).unwrap());
@@ -400,6 +768,9 @@ pub fn run(cfg: &Config) -> Report {
     sorted_world.sort_by(|a, b| a.partial_cmp(b).unwrap());
     let mut sorted_emit = emit_ms.clone();
     sorted_emit.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let mut sorted_recovery = recovery_ms.clone();
+    sorted_recovery.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let resync_recovery_ms_p95 = percentile(&sorted_recovery, 0.95);
 
     let late_join_resync_ms = late_join_ms.iter().cloned().fold(0.0f64, f64::max);
 
@@ -416,6 +787,16 @@ pub fn run(cfg: &Config) -> Report {
         n,
         cfg.mode
     ));
+    log.push_str(&format!("network: {}\n", cfg.net.describe()));
+    log.push_str(&format!(
+        "receiver: back-dating {}\n",
+        if cfg.backdate { "on (anchors at the packet's tick)" } else { "off (anchors at the arrival)" }
+    ));
+    log.push_str(&format!(
+        "interest regions: exit hysteresis {} m\nleave list: {}\n",
+        cfg.hysteresis,
+        if cfg.evict_abs { "absolute 16-bit ids (2-byte evicts)" } else { "delta-coded varints" }
+    ));
     log.push_str(&format!(
         "emitter phases (total over the run): region {:.0} ms, records {:.0} ms, encode {:.0} ms\n",
         em.t_region, em.t_records, em.t_encode
@@ -427,7 +808,7 @@ pub fn run(cfg: &Config) -> Report {
     ));
     log.push_str(&format!(
         "emission:            mean {:.3} ms/tick  p95 {:.3} ms/tick\n",
-        mean(&emit_ms),
+        mean(&sorted_emit),
         percentile(&sorted_emit, 0.95)
     ));
     log.push_str(&format!(
@@ -437,13 +818,17 @@ pub fn run(cfg: &Config) -> Report {
         mean(&tick_ms)
     ));
     log.push_str(&format!(
-        "delivery latency (world committed -> applied): p50 {:.3} ms  p95 {:.3} ms  max {:.3} ms\n",
+        "emitter's own work:  p50 {:.4} ms  p95 {:.4} ms  (region + records + encode)\n",
+        emitter_work_p50, emitter_work_p95
+    ));
+    log.push_str(&format!(
+        "delivery latency (link + decode/apply): p50 {:.3} ms  p95 {:.3} ms  max {:.3} ms\n",
         percentile(&sorted_lat, 0.50),
         latency_p95,
         sorted_lat.last().copied().unwrap_or(0.0)
     ));
     log.push_str(&format!(
-        "subscriber service (build+encode+decode+apply+check): p50 {:.3} ms  p95 {:.3} ms\n",
+        "subscriber service (decode + apply): p50 {:.3} ms  p95 {:.3} ms\n",
         percentile(&sorted_service, 0.50),
         percentile(&sorted_service, 0.95)
     ));
@@ -453,12 +838,32 @@ pub fn run(cfg: &Config) -> Report {
         percentile(&sorted_decode, 0.95)
     ));
     log.push_str(&format!(
-        "bytes: total {} B over {} s = {:.1} kB/s aggregate; per subscriber mean {:.1} B/s, p95 {:.1} B/s\n",
-        bytes_total,
+        "link: the delay actually drawn was {:.2} - {:.2} ms (configured {:.2} - {:.2} ms), \
+         at most {} packets in flight at once\n",
+        delay_min_us as f64 / MICROTICKS_PER_MS,
+        delay_max_us as f64 / MICROTICKS_PER_MS,
+        cfg.net.min_delay_us() as f64 / MICROTICKS_PER_MS,
+        cfg.net.max_delay_us() as f64 / MICROTICKS_PER_MS,
+        max_inflight
+    ));
+    log.push_str(&format!(
+        "packets: {} sent, {} lost ({:.2}%), {} delivered\n",
+        packets_sent,
+        packets_lost,
+        100.0 * packets_lost as f64 / packets_sent.max(1) as f64,
+        packets_delivered
+    ));
+    log.push_str(&format!(
+        "bytes: delivered {} B over {} s = {:.1} kB/s aggregate; per subscriber mean {:.1} B/s, p95 {:.1} B/s\n",
+        bytes.iter().sum::<u64>(),
         secs,
-        bytes_total as f64 / secs / 1000.0,
+        bytes.iter().sum::<u64>() as f64 / secs / 1000.0,
         bytes_mean,
         bytes_p95
+    ));
+    log.push_str(&format!(
+        "bytes on the wire:   per subscriber mean {:.1} B/s (the difference is what the link lost)\n",
+        bytes_sent_mean
     ));
     log.push_str(&format!(
         "byte breakdown (approx): header {:.1}%  enter {:.1}%  leave {:.1}%  changed-set {:.1}%  \
@@ -480,10 +885,32 @@ pub fn run(cfg: &Config) -> Report {
         objects_seen.iter().sum::<u64>()
     ));
     log.push_str(&format!(
-        "reconstruction errors: {}   (max |reconstructed - truth| = {:.6} m, bound = {:.6} m per axis)\n",
+        "reconstruction errors: {}   (max |reconstructed - truth| = {:.6} m, bound = {:.6} m per axis; \
+         worst reconstruction error {:.1} mm)\n",
         errors,
         max_pos_error,
-        Q / 2.0
+        Q / 2.0,
+        max_reconstruction_error_mm
+    ));
+    log.push_str(&format!(
+        "mirror mismatches: {} (the receiver's held state against the emitter's mirror; worst {:.1} mm)\n",
+        mirror_mismatches, max_state_error_mm
+    ));
+    log.push_str(&format!(
+        "resyncs: {} break(s), {} request(s) sent ({} of them a timeout re-request), {} keyframe(s); \
+         recovery from the break to the keyframe's arrival: \
+         p50 {:.1} ms  p95 {:.1} ms  max {:.1} ms\n",
+        rx.iter().map(|r| r.breaks).sum::<u64>(),
+        rx.iter().map(|r| r.requests).sum::<u64>(),
+        req_retries,
+        keyframes,
+        percentile(&sorted_recovery, 0.50),
+        resync_recovery_ms_p95,
+        sorted_recovery.last().copied().unwrap_or(0.0)
+    ));
+    log.push_str(&format!(
+        "packets the receivers could not use, behind a break: {}\n",
+        rx.iter().map(|r| r.rejected).sum::<u64>()
     ));
     log.push_str(&format!(
         "motion-channel prediction between deliveries: p50 {:.6} m  p95 {:.6} m  p99 {:.6} m  max {:.3} m\n",
@@ -491,6 +918,27 @@ pub fn run(cfg: &Config) -> Report {
         pred.q(0.95),
         pred.q(0.99),
         pred.max
+    ));
+    log.push_str("the drift budget, by delivery interval (the bound the world's motion parameters give):\n");
+    for (s, orb, walk, fast) in crate::budget::tier_table(&[1, 2, 3, 4, 6, 12, 30]) {
+        log.push_str(&format!(
+            "  every {:2} ticks: orbiter {:8.3} m   walker {:8.3} m   fast mover {:8.3} m\n",
+            s, orb, walk, fast
+        ));
+    }
+    log.push_str(&format!(
+        "drift by kind: walker p50 {:.1} mm p95 {:.1} mm max {:.1} mm | orbiter p50 {:.1} mm p95 {:.1} mm max {:.1} mm | fast p50 {:.1} mm p95 {:.1} mm max {:.1} mm\n",
+        drift_kind[0].q(0.50) * 1000.0, drift_kind[0].q(0.95) * 1000.0, drift_kind[0].max * 1000.0,
+        drift_kind[1].q(0.50) * 1000.0, drift_kind[1].q(0.95) * 1000.0, drift_kind[1].max * 1000.0,
+        drift_kind[2].q(0.50) * 1000.0, drift_kind[2].q(0.95) * 1000.0, drift_kind[2].max * 1000.0,
+    ));
+    log.push_str(&format!(
+        "drift against the budget: {} checks, worst {:.1} mm, {} over the bound\n  worst over: {}\n  worst drift of the run: {}\n",
+        drift_checks,
+        max_drift_mm,
+        drift_over_budget,
+        worst_over_case,
+        worst_drift_case
     ));
     log.push_str(&format!(
         "motion channel in the subscriber's frame: mean apparent speed {:.3} m/s, max {:.3} m/s, \
@@ -500,21 +948,21 @@ pub fn run(cfg: &Config) -> Report {
         100.0 * apparent_moving as f64 / apparent_n.max(1) as f64
     ));
     log.push_str(&format!(
-        "late join resync (service time): {:?} ms\n  (end-to-end behind the same tick's other subscribers: {:?} ms)\n",
-        late_join_ms, late_join_e2e
+        "late join resync (service time + link): {:?} ms\n",
+        late_join_ms
     ));
-    if !drop_resync_ms.is_empty() {
-        log.push_str(&format!("dropped-packet resync: {:?} ms\n", drop_resync_ms));
-    }
     for g in &gap_events {
         log.push_str(&format!("  {}\n", g));
     }
     for e in &error_notes {
         log.push_str(&format!("  ERROR {}\n", e));
     }
-    log.push_str(&format!("stream digest (fnv1a over all delivered bytes): {:#018x}\n", digest));
+    log.push_str(&format!(
+        "stream digest (fnv1a over the bytes the emitter produced, the lost ones included): {:#018x}\n",
+        digest
+    ));
     log.push('\n');
-    log.push_str("id  shape  path    rate  region  deliveries  keyframes  resyncs  bytes/s   camera\n");
+    log.push_str("id  shape  path    rate  region  deliveries  keyframes  breaks  bytes/s   camera\n");
     for si in 0..n {
         let s = &em.subs[si];
         let shape = if s.shape == Shape::Sphere { "sphere" } else { "frustum" };
@@ -533,7 +981,7 @@ pub fn run(cfg: &Config) -> Report {
             em.state[si].set.len(),
             deliveries[si],
             keys[si],
-            resyncs[si],
+            rx[si].breaks,
             per_sub_bytes[si],
             group
         ));
@@ -552,55 +1000,164 @@ pub fn run(cfg: &Config) -> Report {
          projector applies the identical prediction, so the two agree exactly. Positions are \
          quantised to a 1 cm grid (round-to-nearest): a reconstruction is off by at most 5 mm \
          per axis (8.7 mm Euclidean) and never drifts, because every delta is taken against the \
-         quantised truth, never against an accumulated estimate. Deltas travel as biased \
-         fixed-width bit fields, one 64-bit word per object, whose width is chosen per axis to \
-         minimise the total cost (width times objects plus the escapes); outliers that do not \
-         fit escape into a varint list, so a few fast movers cannot widen the field for \
-         everybody else. The changed set travels as a bitmap over the subscriber's previous set \
-         whenever that is smaller than the id list. The motion channel carries each object's \
-         velocity in 1/64 quantum per tick in world coordinates; the projector converts it into \
-         its own frame (and into optical flow) locally, which is what lets it interpolate \
-         between deliveries. Every packet carries since_version, so a late joiner or a \
-         subscriber that lost a packet is detected and resynchronised from a keyframe (the full \
-         region with absolute poses), after which it rebuilds the emitter's ground truth \
-         exactly. The emitter is single threaded and serves the 64 subscribers on their own \
-         cadences (2-60 Hz, staggered, so the load per tick is even); {} delivered states were \
-         compared against the ground truth and {} mismatched.",
+         quantised truth, never against an accumulated estimate. Network: {}. The receiver \
+         back-dates: it anchors each correction at the tick the correction was computed for, so \
+         the held state is the emitter's truth at that tick whatever the link did, and the \
+         reconstruction is checked against the truth at the packet's tick, not at the tick the \
+         packet arrived. A resync request travels back up the link: the emitter sends a keyframe \
+         only when the request has arrived, and the receiver asks once per break and asks again \
+         after a timeout if the request or the keyframe that answered it was lost. {} delivered \
+         states were compared against the ground truth and {} \
+         mismatched; {} mirror mismatches.",
+        cfg.net.describe(),
         objects_seen.iter().sum::<u64>(),
-        errors
+        errors,
+        mirror_mismatches
     );
 
     Report {
         bytes_mean,
         bytes_p95,
+        bytes_sent_mean,
         emitter_p50,
         emitter_p95,
+        emitter_work_p50,
+        emitter_work_p95,
         latency_p95,
         errors,
         late_join_resync_ms,
         notes,
         log,
+        packets_sent,
+        packets_lost,
+        packets_delivered,
+        keyframes,
+        resyncs: rx.iter().map(|r| r.breaks).sum(),
+        resync_requests: rx.iter().map(|r| r.requests).sum(),
+        packets_rejected: rx.iter().map(|r| r.rejected).sum(),
+        mirror_mismatches,
+        max_state_error_mm,
+        max_reconstruction_error_mm,
+        max_drift_mm,
+        drift_over_budget,
+        drift_checks,
+        resync_recovery_ms_p95,
+        reorders: links.iter().map(|l| l.reorderings).sum(),
     }
 }
 
-pub fn write_result(path: &str, r: &Report, team: &str) -> std::io::Result<()> {
+pub fn write_result(path: &str, r: &Report, team: &str, cfg: &Config) -> std::io::Result<()> {
     let json = format!(
         "{{\n  \"team\": \"{}\",\n  \"bytes_per_s_per_subscriber_mean\": {:.3},\n  \
-         \"bytes_per_s_per_subscriber_p95\": {:.3},\n  \"emitter_cpu_ms_per_tick_p50\": {:.4},\n  \
-         \"emitter_cpu_ms_per_tick_p95\": {:.4},\n  \"delivery_latency_ms_p95\": {:.4},\n  \
-         \"reconstruction_errors\": {},\n  \"quantisation_bound\": \"{}\",\n  \
-         \"late_join_resync_ms\": {:.4},\n  \"notes\": \"{}\"\n}}\n",
+         \"bytes_per_s_per_subscriber_p95\": {:.3},\n  \
+         \"bytes_per_s_per_subscriber_sent_mean\": {:.3},\n  \
+         \"emitter_cpu_ms_per_tick_p50\": {:.4},\n  \
+         \"emitter_cpu_ms_per_tick_p95\": {:.4},\n  \
+         \"emitter_work_ms_per_tick_p50\": {:.4},\n  \
+         \"emitter_work_ms_per_tick_p95\": {:.4},\n  \
+         \"delivery_latency_ms_p95\": {:.4},\n  \
+         \"reconstruction_errors\": {},\n  \
+         \"quantisation_bound\": \"{}\",\n  \
+         \"late_join_resync_ms\": {:.4},\n  \
+         \"network\": \"{}\",\n  \
+         \"packets_sent\": {},\n  \"packets_lost\": {},\n  \"packets_delivered\": {},\n  \
+         \"keyframes\": {},\n  \"resyncs\": {},\n  \
+         \"resync_requests\": {},\n  \"packets_rejected\": {},\n  \
+         \"resync_recovery_ms_p95\": {:.4},\n  \
+         \"mirror_mismatches\": {},\n  \
+         \"max_reconstruction_error_mm\": {:.3},\n  \
+         \"max_state_divergence_mm\": {:.3},\n  \
+         \"max_drift_mm\": {:.3},\n  \
+         \"drift_over_budget\": {},\n  \
+         \"drift_checks\": {},\n  \
+         \"packets_reordered\": {},\n  \
+         \"notes\": \"{}\"\n}}\n",
         team,
         r.bytes_mean,
         r.bytes_p95,
+        r.bytes_sent_mean,
         r.emitter_p50,
         r.emitter_p95,
+        r.emitter_work_p50,
+        r.emitter_work_p95,
         r.latency_p95,
         r.errors,
         "5 mm per axis (1 cm position quantum, round-to-nearest); Euclidean <= 8.7 mm; exact \
          against the quantised truth at every delivered tick",
         r.late_join_resync_ms,
+        cfg.net.describe().replace('"', "'"),
+        r.packets_sent,
+        r.packets_lost,
+        r.packets_delivered,
+        r.keyframes,
+        r.resyncs,
+        r.resync_requests,
+        r.packets_rejected,
+        r.resync_recovery_ms_p95,
+        r.mirror_mismatches,
+        r.max_reconstruction_error_mm,
+        r.max_state_error_mm,
+        r.max_drift_mm,
+        r.drift_over_budget,
+        r.drift_checks,
+        r.reorders,
         r.notes.replace('"', "'")
     );
     std::fs::write(path, json)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The emitter cannot know of a gap until the receiver's request has travelled back
+    /// up the link. This is the property the harness rests on: the keyframe is triggered
+    /// by the request that came back, never by the receiver's detection.
+    #[test]
+    fn the_request_is_the_only_trigger() {
+        let cfg = NetConfig::standard(0.0);
+        let mut link = Link::new(cfg, 3);
+        let sent = 1_000_000u64;
+        assert!(!link.request_arrived(sent), "nothing has been asked for yet");
+        link.request(sent);
+        assert!(
+            !link.request_arrived(sent + 1),
+            "the request is still on the way: the emitter knows nothing"
+        );
+        // the request arrives after the link's delay, and then the emitter knows
+        assert!(link.request_arrived(sent + 20_000_000));
+    }
+
+    /// The receiver asks once per break. The packets behind a break cannot be used
+    /// either, and asking for each of them would put a request per unusable packet on
+    /// the uplink.
+    #[test]
+    fn the_receiver_asks_once_per_break() {
+        let cfg = NetConfig::standard(0.0);
+        let mut link = Link::new(cfg, 5);
+        let mut rx = Rx::new();
+        assert!(rx.gap(1_000, &mut link), "the first gap is a new break");
+        assert!(!rx.gap(2_000, &mut link), "the second gap is the same break");
+        assert_eq!(rx.breaks, 1);
+        assert_eq!(rx.requests, 1);
+        assert_eq!(rx.rejected, 1);
+        assert_eq!(link.requests_sent, 1);
+    }
+
+    /// A broken receiver asks again after the timeout, and stops once it is repaired.
+    #[test]
+    fn the_receiver_asks_again_after_the_timeout() {
+        let cfg = NetConfig::standard(0.0);
+        let mut link = Link::new(cfg, 9);
+        let mut rx = Rx::new();
+        rx.gap(1_000, &mut link);
+        let timeout = 50_000u64;
+        assert!(!rx.retry(10_000, timeout, &mut link), "too early to ask again");
+        assert!(rx.retry(1_000 + timeout, timeout, &mut link), "the request was lost");
+        assert_eq!(rx.requests, 2);
+        // a keyframe arrives: the stream is whole again, and there is nothing to ask for
+        rx.repaired();
+        assert!(!rx.broken);
+        assert!(!rx.retry(1_000 + 10 * timeout, timeout, &mut link));
+    }
 }

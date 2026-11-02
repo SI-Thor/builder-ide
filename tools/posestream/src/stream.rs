@@ -26,15 +26,20 @@ pub enum Mode {
 /// subscriber's set, so the emitter's per-delivery work is sequential in memory.
 #[derive(Clone, Copy, Default)]
 pub struct ObjState {
-    /// The last quantised position sent (the truth at `pos_tick`).
+    /// The last quantised position sent (the truth at `anchor_us`).
     pub pos: [i32; 3],
     /// The last quantised velocity sent, in 1/64 quantum per tick.
     pub vel: [i32; 3],
     /// The velocity in effect when the position was last corrected: the prediction is a
-    /// snapshot, `pos + anchor_vel * (t - pos_tick)`.
+    /// snapshot, `pos + anchor_vel * (t - anchor)`.
     pub anchor_vel: [i32; 3],
-    /// The tick at which the position was last corrected.
-    pub pos_tick: u32,
+    /// The time the held position refers to, in microticks (1e6 microticks = 1 tick).
+    ///
+    /// The emitter always anchors at a whole tick. A receiver that back-dates anchors at
+    /// the packet's tick, so its held position is exactly the emitter's truth at that tick;
+    /// a receiver that does not back-dates anchors at the packet's arrival, and its held
+    /// position is then the truth plus the motion it double-counted.
+    pub anchor_us: u64,
 }
 
 pub struct SubState {
@@ -60,6 +65,13 @@ impl SubState {
 
 pub struct Emitter {
     pub mode: Mode,
+    /// The exit hysteresis on the interest regions, in metres (0: off). An object that has
+    /// drifted just outside the region stays in the subscriber's set until it is this far
+    /// outside, instead of being evicted and re-entered on the next delivery.
+    pub hysteresis: f64,
+    /// Send the leave list as absolute 16-bit ids (the "2-byte evict") instead of
+    /// delta-coded varints.
+    pub evict_abs: bool,
     /// phase timers (diagnostics)
     pub t_region: f64,
     pub t_records: f64,
@@ -72,6 +84,13 @@ pub struct Emitter {
     cand: Vec<u32>,
     new_set: Vec<u32>,
     new_objs: Vec<ObjState>,
+    /// The previous set, copied out so the hysteresis can read it while the scratch
+    /// buffers are written.
+    prev_copy: Vec<u32>,
+    /// The members the hysteresis keeps: they failed the enter test but passed the exit one.
+    retain: Vec<u32>,
+    /// The merge of `new_set` and `retain`.
+    merged: Vec<u32>,
     mark: Vec<u64>,
     pub packet: Packet,
     pub out: Vec<u8>,
@@ -89,6 +108,8 @@ impl Emitter {
         let state = (0..subs.len()).map(|_| SubState::new()).collect();
         Emitter {
             mode: Mode::Direct,
+            hysteresis: 0.0,
+            evict_abs: false,
             t_region: 0.0,
             t_records: 0.0,
             t_encode: 0.0,
@@ -99,6 +120,9 @@ impl Emitter {
             cand: Vec::with_capacity(4096),
             new_set: Vec::with_capacity(4096),
             new_objs: Vec::with_capacity(4096),
+            prev_copy: Vec::with_capacity(4096),
+            retain: Vec::with_capacity(4096),
+            merged: Vec::with_capacity(4096),
             mark: vec![0u64; (N_OBJECTS + 63) / 64],
             packet: Packet::default(),
             out: Vec::with_capacity(1 << 16),
@@ -127,11 +151,27 @@ impl Emitter {
     }
 
     /// The objects currently in the subscriber's region, ascending.
+    ///
+    /// With hysteresis on, an object that was in the region at the last delivery and is
+    /// still within `hysteresis` metres of it stays in the set: the exit test is the enter
+    /// test with the region grown by that margin. Without it, the membership is the enter
+    /// test alone and an object on the boundary churns in and out.
     fn region_set(&mut self, si: usize, tick: u32) {
         let region = self.subs[si].region_at(tick);
         let (lo, hi) = region.aabb();
+        let hyst = self.hysteresis;
         self.cand.clear();
-        self.grid.query_aabb(lo, hi, &mut self.cand);
+        // the candidate box is grown by the hysteresis margin, so a member that has drifted
+        // just outside is still a candidate
+        let (elo, ehi) = if hyst > 0.0 {
+            (
+                [lo[0] - hyst, lo[1] - hyst, lo[2] - hyst],
+                [hi[0] + hyst, hi[1] + hyst, hi[2] + hyst],
+            )
+        } else {
+            (lo, hi)
+        };
+        self.grid.query_aabb(elo, ehi, &mut self.cand);
         for id in self.cand.iter() {
             let id = *id;
             let p = self.world.pos[id as usize];
@@ -151,6 +191,39 @@ impl Emitter {
         for id in self.new_set.iter() {
             Self::mark_clear(&mut self.mark, *id);
         }
+        if hyst <= 0.0 {
+            return;
+        }
+        // The members of the previous set that failed the enter test but pass the exit test
+        // stay. The previous set is copied out first: the scratch buffers are written while
+        // it is read.
+        self.prev_copy.clear();
+        self.prev_copy.extend_from_slice(&self.state[si].set);
+        self.retain.clear();
+        for &id in self.prev_copy.iter() {
+            if self.new_set.binary_search(&id).is_ok() {
+                continue; // already inside the region
+            }
+            let p = self.world.pos[id as usize];
+            if region.contains_exit(p, hyst) {
+                self.retain.push(id);
+            }
+        }
+        // merge the two ascending lists
+        self.merged.clear();
+        let (mut i, mut j) = (0usize, 0usize);
+        while i < self.new_set.len() && j < self.retain.len() {
+            if self.new_set[i] <= self.retain[j] {
+                self.merged.push(self.new_set[i]);
+                i += 1;
+            } else {
+                self.merged.push(self.retain[j]);
+                j += 1;
+            }
+        }
+        self.merged.extend_from_slice(&self.new_set[i..]);
+        self.merged.extend_from_slice(&self.retain[j..]);
+        std::mem::swap(&mut self.new_set, &mut self.merged);
     }
 
     /// Build the packet for `si` at `tick`. A subscriber with no state (a late joiner) or a
@@ -161,6 +234,7 @@ impl Emitter {
         let t1 = std::time::Instant::now();
         self.t_region += (t1 - t0).as_secs_f64() * 1000.0;
         let mode = self.mode;
+        let evict_abs = self.evict_abs;
         let Emitter {
             world,
             state,
@@ -173,6 +247,9 @@ impl Emitter {
         let keyframe = keyframe || !st.started;
 
         packet.flags = FLAG_VELOCITY;
+        if evict_abs {
+            packet.flags |= FLAG_EVICT_ABS;
+        }
         packet.tick = tick;
         packet.n_region = new_set.len() as u32;
         packet.enter.clear();
@@ -198,7 +275,7 @@ impl Emitter {
                     pos: q,
                     vel: v,
                     anchor_vel: v,
-                    pos_tick: tick,
+                    anchor_us: tick as u64 * TICK_US,
                 });
             }
         } else {
@@ -223,8 +300,8 @@ impl Emitter {
                         Mode::Predictive => {
                             // what the projector will have predicted for itself: the anchor
                             // snapshot, extrapolated over the time since it was corrected
-                            let dt = tick as i64 - s.pos_tick as i64;
-                            let d = vel_displacement(s.anchor_vel, dt);
+                            let dt_us = tick as i64 * TICK_US as i64 - s.anchor_us as i64;
+                            let d = vel_displacement_us(s.anchor_vel, dt_us);
                             [
                                 q[0] - (s.pos[0] + d[0]),
                                 q[1] - (s.pos[1] + d[1]),
@@ -239,7 +316,7 @@ impl Emitter {
                         packet.change.push(ChangeRec { id: nid, dpos, dvel, has_pos, has_vel });
                         if has_pos {
                             s.pos = q;
-                            s.pos_tick = tick;
+                            s.anchor_us = tick as u64 * TICK_US;
                             s.anchor_vel = v;
                         }
                         if has_vel {
@@ -263,7 +340,7 @@ impl Emitter {
                         pos: q,
                         vel: v,
                         anchor_vel: v,
-                        pos_tick: tick,
+                        anchor_us: tick as u64 * TICK_US,
                     });
                     j += 1;
                 }
@@ -322,6 +399,10 @@ pub enum ApplyError {
 
 pub struct Projector {
     pub mode: Mode,
+    /// True: the receiver back-dates the correction, anchoring its state at the packet's
+    /// tick. False: it anchors at the packet's arrival, which is what a receiver does when
+    /// it applies a correction "now" without asking when the correction was computed.
+    pub backdate: bool,
     /// Objects in the subscriber's region (ascending ids).
     pub set: Vec<u32>,
     /// The state of each object, parallel to `set`.
@@ -337,6 +418,7 @@ impl Projector {
     pub fn new() -> Projector {
         Projector {
             mode: Mode::Direct,
+            backdate: true,
             set: Vec::new(),
             objs: Vec::new(),
             version: 0,
@@ -354,7 +436,13 @@ impl Projector {
             .and_then(|i| self.objs.get(i).copied())
     }
 
-    pub fn apply(&mut self, pkt: &Packet) -> Result<(), ApplyError> {
+    /// Apply a packet.
+    ///
+    /// `anchor_us` is the time the packet's corrections belong to, in microticks: the
+    /// packet's own tick when the receiver back-dates, the packet's arrival when it does
+    /// not. Back-dating is what keeps the delay out of the state: the held position then
+    /// is the emitter's truth at the packet's tick, exactly, whatever the link did.
+    pub fn apply(&mut self, pkt: &Packet, anchor_us: u64) -> Result<(), ApplyError> {
         if pkt.flags & FLAG_KEYFRAME != 0 {
             self.set.clear();
             self.objs.clear();
@@ -364,7 +452,7 @@ impl Projector {
                     pos: [e.pos[0] as i32, e.pos[1] as i32, e.pos[2] as i32],
                     vel: [e.vel[0] as i32, e.vel[1] as i32, e.vel[2] as i32],
                     anchor_vel: [e.vel[0] as i32, e.vel[1] as i32, e.vel[2] as i32],
-                    pos_tick: pkt.tick,
+                    anchor_us,
                 });
             }
             self.version = pkt.tick;
@@ -397,8 +485,8 @@ impl Projector {
                 let base = match self.mode {
                     Mode::Direct => s.pos,
                     Mode::Predictive => {
-                        let dt = pkt.tick as i64 - s.pos_tick as i64;
-                        let d = vel_displacement(s.anchor_vel, dt);
+                        let dt_us = anchor_us as i64 - s.anchor_us as i64;
+                        let d = vel_displacement_us(s.anchor_vel, dt_us);
                         [s.pos[0] + d[0], s.pos[1] + d[1], s.pos[2] + d[2]]
                     }
                 };
@@ -426,7 +514,7 @@ impl Projector {
                 s.vel = [s.vel[0] + c.dvel[0], s.vel[1] + c.dvel[1], s.vel[2] + c.dvel[2]];
             }
             if c.has_pos {
-                s.pos_tick = pkt.tick;
+                s.anchor_us = anchor_us;
                 s.anchor_vel = s.vel;
             }
             k += 1;
@@ -465,7 +553,7 @@ impl Projector {
                     pos: [en.pos[0] as i32, en.pos[1] as i32, en.pos[2] as i32],
                     vel: [en.vel[0] as i32, en.vel[1] as i32, en.vel[2] as i32],
                     anchor_vel: [en.vel[0] as i32, en.vel[1] as i32, en.vel[2] as i32],
-                    pos_tick: pkt.tick,
+                    anchor_us,
                 });
                 e += 1;
             }
@@ -480,11 +568,16 @@ impl Projector {
 
     /// The pose the projector holds for an object at `tick`.
     ///
-    /// * Direct mode: the position *is* the truth at the last delivery (deltas accumulate to
-    ///   it), so it is current at every delivery tick.
-    /// * Predictive mode: the position is the truth at the object's last correction; the pose
-    ///   at `tick` is that anchor extrapolated with the motion channel.
+    /// * Direct mode: the position *is* the truth at the last correction (deltas accumulate
+    ///   to it), so it is current at every delivery tick.
+    /// * Predictive mode: the position is the truth at the object's anchor; the pose at
+    ///   `tick` is that anchor extrapolated with the motion channel.
     pub fn pose_at(&self, id: u32, tick: u32) -> [i32; 3] {
+        self.pose_at_us(id, tick as u64 * TICK_US)
+    }
+
+    /// The pose the projector holds for an object at a time given in microticks.
+    pub fn pose_at_us(&self, id: u32, us: u64) -> [i32; 3] {
         let s = match self.state_of(id) {
             Some(s) => s,
             None => return [0; 3],
@@ -492,12 +585,10 @@ impl Projector {
         match self.mode {
             Mode::Direct => s.pos,
             Mode::Predictive => {
-                let dt = tick as i64 - s.pos_tick as i64;
-                let d = if dt > 0 {
-                    vel_displacement(s.anchor_vel, dt)
-                } else {
-                    [0; 3]
-                };
+                // the motion channel works both ways: a receiver that did not back-date
+                // holds an anchor later than the tick it is asked about
+                let dt_us = us as i64 - s.anchor_us as i64;
+                let d = vel_displacement_us(s.anchor_vel, dt_us);
                 [s.pos[0] + d[0], s.pos[1] + d[1], s.pos[2] + d[2]]
             }
         }
@@ -512,12 +603,8 @@ impl Projector {
                     Some(s) => s,
                     None => return [0; 3],
                 };
-                let dt = tick as i64 - self.version as i64;
-                let d = if dt > 0 {
-                    vel_displacement(s.anchor_vel, dt)
-                } else {
-                    [0; 3]
-                };
+                let dt_us = tick as i64 * TICK_US as i64 - self.version as i64 * TICK_US as i64;
+                let d = vel_displacement_us(s.anchor_vel, dt_us);
                 [s.pos[0] + d[0], s.pos[1] + d[1], s.pos[2] + d[2]]
             }
             Mode::Predictive => self.pose_at(id, tick),
@@ -561,7 +648,9 @@ mod tests {
                     }
                     em.build_packet(si, tick, false);
                     let pkt = crate::wire::decode(&em.out, &proj[si].set).expect("decode");
-                    proj[si].apply(&pkt).expect("apply");
+                    proj[si]
+                        .apply(&pkt, pkt.tick as u64 * TICK_US)
+                        .expect("apply");
                     for &id in &em.state[si].set {
                         let truth = quantise(em.world.pos[id as usize]);
                         if proj[si].pose_at(id, tick) != truth {
@@ -600,7 +689,7 @@ mod tests {
             // decoder notices the changed-set bitmap is about a set we do not hold, or the
             // projector notices the version does not line up.
             let gap = match crate::wire::decode(&em.out, &proj.set) {
-                Ok(pkt) => match proj.apply(&pkt) {
+                Ok(pkt) => match proj.apply(&pkt, pkt.tick as u64 * TICK_US) {
                     Ok(()) => false,
                     Err(ApplyError::Gap { .. }) => true,
                 },
@@ -612,7 +701,7 @@ mod tests {
                 // the emitter answers with a keyframe
                 em.build_packet(si, tick, true);
                 let kf = crate::wire::decode(&em.out, &proj.set).expect("decode");
-                proj.apply(&kf).expect("keyframe applies");
+                proj.apply(&kf, kf.tick as u64 * TICK_US).expect("keyframe applies");
             }
             for &id in &em.state[si].set {
                 let truth = quantise(em.world.pos[id as usize]);
@@ -620,5 +709,134 @@ mod tests {
             }
         }
         assert!(dropped && resynced, "the drop should have been detected");
+    }
+
+    /// The back-dating is what keeps the delay out of the state: a receiver that anchors at
+    /// the packet's tick holds the emitter's truth at that tick, whatever the link did; a
+    /// receiver that anchors at the arrival does not.
+    #[test]
+    fn back_dating_keeps_the_delay_out_of_the_state() {
+        let mut em = Emitter::new(99);
+        em.mode = Mode::Predictive;
+        let mut back = Projector::new();
+        back.mode = Mode::Predictive;
+        back.backdate = true;
+        let mut naive = Projector::new();
+        naive.mode = Mode::Predictive;
+        naive.backdate = false;
+        let si = 0usize;
+        // the delay changes from packet to packet, the way a real link's does
+        let mut delay_us = 9_000u64;
+        let mut naive_errors = 0u64;
+        let mut naive_mirror_errors = 0u64;
+        for tick in 1..=120u32 {
+            em.step_world();
+            if !em.due(si, tick) {
+                continue;
+            }
+            delay_us = 3_000 + (delay_us * 7 + 13_331) % 12_000;
+            em.build_packet(si, tick, false);
+            let pkt = crate::wire::decode(&em.out, &back.set).expect("decode");
+            let arrive_us = tick as u64 * TICK_US + delay_us;
+            let tick_us = tick as u64 * TICK_US;
+            back.apply(&pkt, tick_us).expect("apply");
+            naive.apply(&pkt, arrive_us).expect("apply");
+            for (k, &id) in em.state[si].set.iter().enumerate() {
+                let truth = quantise(em.world.pos[id as usize]);
+                // the back-dating receiver reproduces the truth at the packet's tick
+                assert_eq!(back.pose_at(id, tick), truth, "tick {} id {}", tick, id);
+                // and its held state is the emitter's own state, bit for bit
+                assert_eq!(back.objs[k].pos, em.state[si].objs[k].pos, "tick {}", tick);
+                assert_eq!(back.objs[k].vel, em.state[si].objs[k].vel, "tick {}", tick);
+                assert_eq!(
+                    back.objs[k].anchor_us, em.state[si].objs[k].anchor_us,
+                    "tick {}", tick
+                );
+                // the naive receiver does not
+                if naive.pose_at(id, tick) != truth {
+                    naive_errors += 1;
+                }
+                if naive.objs[k].anchor_us != em.state[si].objs[k].anchor_us
+                    || naive.objs[k].pos != em.state[si].objs[k].pos
+                {
+                    naive_mirror_errors += 1;
+                }
+            }
+        }
+        assert!(
+            naive_errors > 0,
+            "the naive receiver should not reproduce the truth at the packet's tick"
+        );
+        assert!(
+            naive_mirror_errors > 0,
+            "the naive receiver's held state should diverge from the emitter's mirror"
+        );
+    }
+
+    /// The exit hysteresis: an object that has drifted just outside the region stays in the
+    /// subscriber's set, so the region boundary does not churn.
+    #[test]
+    fn the_exit_hysteresis_holds_a_member_that_drifted_out() {
+        let mut em = Emitter::new(4242);
+        em.mode = Mode::Predictive;
+        let si = 0usize;
+        // without hysteresis, count the members that come and go
+        let mut churn_without = 0u64;
+        let mut churn_with = 0u64;
+        let mut em2 = Emitter::new(4242);
+        em2.mode = Mode::Predictive;
+        em2.hysteresis = 8.0;
+        let mut previous: Vec<u32> = Vec::new();
+        let mut previous2: Vec<u32> = Vec::new();
+        for tick in 1..=900u32 {
+            em.step_world();
+            em2.step_world();
+            em.build_packet(si, tick, false);
+            em2.build_packet(si, tick, false);
+            let now = em.state[si].set.clone();
+            let now2 = em2.state[si].set.clone();
+            // the number of members that left the set
+            churn_without += now.iter().filter(|id| !previous.contains(id)).count() as u64;
+            churn_with += now2.iter().filter(|id| !previous2.contains(id)).count() as u64;
+            previous = now;
+            previous2 = now2;
+        }
+        assert!(
+            churn_with <= churn_without,
+            "the hysteresis should not add churn: {} vs {}",
+            churn_with,
+            churn_without
+        );
+        // and it must actually change something, or the test proves nothing
+        assert_ne!(
+            churn_with, churn_without,
+            "the hysteresis made no difference at all"
+        );
+    }
+
+    /// The 2-byte evict: the leave list travels as absolute 16-bit ids, and the receiver
+    /// must read it back the same way.
+    #[test]
+    fn the_absolute_evicts_round_trip() {
+        let mut em = Emitter::new(31337);
+        em.mode = Mode::Predictive;
+        em.evict_abs = true;
+        let mut proj = Projector::new();
+        proj.mode = Mode::Predictive;
+        let si = 0usize;
+        for tick in 1..=200u32 {
+            em.step_world();
+            if !em.due(si, tick) {
+                continue;
+            }
+            em.build_packet(si, tick, false);
+            assert!(em.packet.flags & crate::wire::FLAG_EVICT_ABS != 0);
+            let pkt = crate::wire::decode(&em.out, &proj.set).expect("decode");
+            proj.apply(&pkt, pkt.tick as u64 * TICK_US).expect("apply");
+            for &id in &em.state[si].set {
+                let truth = quantise(em.world.pos[id as usize]);
+                assert_eq!(proj.pose_at(id, tick), truth, "tick {} id {}", tick, id);
+            }
+        }
     }
 }
