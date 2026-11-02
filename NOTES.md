@@ -2420,3 +2420,25 @@ defeat_zombie x151.
 Decided next: b (r2b) and c (r2c) on the fixed bridge, 2 h each,
 fresh worlds; the report then carries the correction chain and the
 three-seed numbers.
+
+## 2026-11-02 12:00 — round 2 closes: c lands, the report is written, the lease released
+
+c (seed `voyager-port-r2c`, fixed stack): **22 steps, 536,914 tokens,
+0 milestones** — 11 of 22 steps were `coder_unreadable` (the same
+no-JSON replies that ate b's tail; the doubled-budget retries are why
+c's steps cost ~2x and only 22 fit in 2 h), oak_log visible at 43–48
+blocks for the steps that scanned it, 0 wrapped programs. b's tally
+re-checked precisely: **no silent-fast programs at all** — 33 fast
+failures with logs, 21 honest throws (20 chasing `jungle_log`, which
+this world does not hold), 3 long runs, 1 syntax error; the
+hand-driven probe chops a tree end-to-end in 19 s. So on the fixed
+stack the Minecraft bottleneck is the coder's own programs — wrong
+block names and collect chains that miss — named as round 3's prompt
+lever.
+
+The report's round-2 section is appended (correction chain under
+"Superseded", the four MC runs, the crafter numbers); the scripts
+README carries the three new probes and `run_crafter_r2.sh`. The
+sandbox lease is released at the end of this note — nothing is left
+running. Decided next: nothing started; the round-2 brief is carried
+out and the next levers are named in the report.

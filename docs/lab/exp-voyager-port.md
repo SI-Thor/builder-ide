@@ -1,6 +1,6 @@
 # Voyager's loop as a system-agnostic core, measured on Minecraft
 
-Status: finished; both runs and all five crafter smokes measured.
+Status: round 2 finished (2026-11-02): the two named levers pulled, four Minecraft runs, the crafter run with 3 skills admitted; round 1 stands with its blindness reading superseded (§Round 2).
 Written per `~/lm-wt/DOC-RULES.md` (mechanism first, numbers with the
 box state beside them, suspected/confirmed labelled, what was *not*
 verified named). Every number on this page is read out of the runs'
@@ -269,3 +269,124 @@ tokens for 0.5 h; the per-hour rate of the measured run is in its
 payload. The tests (`tests/voyager/`, 28) need no world and no model;
 the crafter round-trip test skips itself where crafter is not
 installed.
+
+## Round 2 (2026-11-02): the two named levers, and what the runs found under them
+
+The director's round-2 note: widen the planner's facts scan 96 → 160
+and re-run the 2 h fresh-world run from spawn, then two more seeds so
+milestone times have repeats; give Crafter's `observe()` a spatial
+fact and run until skills are admitted; compare with the teacher
+(9.625 achievements/episode) and the round-1 students; release the
+sandbox lease at the end. Both levers were pulled — and the Minecraft
+runs found two harness defects stacked under the lever before it could
+be measured, each pinned by a probe and repaired mid-round (the
+commits carry the detail: `006432e`, `5ca45a7`, `bc7a85b`, `6d59947`).
+
+### Superseded: the round-1 blindness diagnosis
+
+> *"the planner was correctly blind for two hours … the facts reach 96
+> blocks"* — round 1's measured-run paragraph, **superseded**.
+
+The tree at 111 blocks from spawn is still measured fact
+(`probe_trees.py`), and a working 96-scan would still have missed that
+tree. But the planner never saw *any* block at *any* radius: the
+bridge's run op dropped the program's completion value, so every
+facts scan ever taken returned `{}` (all 51 steps of round 1's run,
+re-checked; all 91 of round 2's first run). Radius was never the
+binding constraint. The correction chain, in full: (1) the dropped
+scan value (`bc7a85b`); (2) the coder's self-wrapped programs running
+as fire-and-forget (`6d59947`). The round-1 numbers above stand as
+measured; their *mechanism* reading is what changed.
+
+### Minecraft: four runs, one lever, two defects, and where the bottleneck actually sits
+
+| run | seed | steps | tokens | items | milestones | what it measured |
+|---|---|---|---|---|---|---|
+| mc160-a (control) | voyager-port | 91 | 730,335 | 0 | 0 | the lever pulled but inert: scan value still dropped (24 of 91 programs already self-wrapped) |
+| mc160-a2 | voyager-port | 59 | 775,031 | 0 | 0 | eyes fixed, legs gone: oak_log visible 58/59 steps, but all 59 programs self-wrapped and vacuous |
+| mc160-b | voyager-port-r2b | 64 | 949,367 | 1 (oak_sapling ×2) | 0 | executor fixed: all 60 programs ran for real, tree visible 64/64 — the coder is the bottleneck |
+| mc160-c | voyager-port-r2c | 22 | 536,914 | 0 | 0 | executor fixed; half the steps lost to unreadable coder replies (11 of 22, the same plague that ate run b's tail); oak_log visible at 43–48 blocks while the walks carried the bot away from it |
+
+All four: fresh world from spawn, empty hands, 2 h wall, models
+planner MiMo-V2.6-Pro / coder Qwen3.8-27B / verifier Qwen3.8-Max,
+curriculum seed 7; the sandbox under its 3 GB thor-admit lease; the
+box shared with other seats (48–98 GB free across the day).
+
+**The mechanism, in order of discovery.** (1) `probe_scan_cost.py`:
+the widened scan is free (0.02 s at 160 against 0.03 s at 16) — the
+lever was safe to pull. (2) Run a came back identical to round 1 and
+its payload said why: `nearby` empty on all 91 steps while the same
+scan through `run_code` sees 19 block types — `probe_facts_value.py`
+found the run op discarding the completion value; fixed, and failed
+scans now log instead of vanishing into an empty dict. (3) Run a2 had
+eyes (oak_log in 58 of 59 steps' facts) and still zero: replaying its
+own step-4 program completed "ok" in 0.02 s with an empty log — the
+coder had drifted into wrapping whole programs in their own async
+IIFE (0/51 in round 1, 24/91 in the control run, 59/59 in a2; it
+spreads through the coder's `previous_code`), and the sandbox's own
+wrapper made the inner program fire-and-forget. The bridge unwraps
+one redundant IIFE and awaits thenable completion values now.
+(4) Run b, on the fixed stack: every program executed for real — 33
+logged fast failures, 21 honest throws, 3 long runs, 1 syntax error —
+with the tree visible at every step and (per the hand-driven
+sequence, `probe_wood_sequence.py`: move, mine, collect in 19 s) fully
+reachable. **The residual bottleneck is the coder's fact-binding:
+21 of 60 programs hunted `jungle_log`, a tree this world does not
+hold, in a prompt whose facts named `oak_log`.** That is the named
+lever for round 3 — block names from the facts as the only legal
+targets in the coder prompt — not a bridge defect: the primitives
+chop wood end-to-end when driven by hand.
+
+### Crafter: the spatial fact, and the loop's first admitted skills
+
+The lever: `observe()` now carries `spatial` — the nearest of each
+resource and creature **in the window the pixels already render**
+(the engine's own LocalView window, 9 × 8 with the player at its
+centre), as direction and distance in the move primitives' own words
+(left/right/up/down, |dx|+|dy| = the number of `mc.move` calls), plus
+the facing and the faced tile (the tile `do` acts on). crafter-lab's
+teacher reads the whole grid (privileged); the loop reads only what
+its pixels already show — the comparison stays honest. Deaths no
+longer stall the run (episodes end, score, reset; achievements
+max-accumulate so milestones survive).
+
+The run (4 h wall, 152 steps, 1,230,853 tokens — coder 631,780 /
+planner 293,111 / verifier 305,962):
+
+| | |
+|---|---|
+| achievements / episode | **4.176 over 17 finished episodes** |
+| teacher (privileged grid) | 9.625 |
+| students (round-1 lab: PPO / BC / teaching-moment BC) | 1.125 / 0.875 / 1.375 |
+| skills admitted | **3** — collect_wood (step 5, 228.0 s, 25,927 tokens), make_wood_pickaxe (step 99, 7556.7 s, 734,728 tokens), collect_stone (step 103, 7873.0 s, 763,975 tokens) |
+| achievements reached | 10 of 22, incl. defeat_zombie ×151, collect_drink ×4765, eat_cow, wake_up, place_table |
+
+The loop sits between the students and the teacher: **3.0× the best
+student at reading the same local view the students read as pixels**,
+43 % of the privileged teacher. The first skill was cheap (25,927
+tokens); the second cost 28× more — 93 rejected steps between the
+first and second admission, all spent on the pickaxe's table-near
+crafting chain. Not verified: the loop never slept on purpose
+(wake_up ×2 came from energy hitting zero, not planning), and
+episodes 2+ start from scratch like any episode — no cross-episode
+skill *replay* was measured (the library admits; whether replaying an
+admitted skill in a fresh episode works is round 3's question).
+
+### What round 2 did not establish (named)
+
+- **Minecraft milestones remain unmeasured** — all four round-2 runs
+  reached none. What IS established: observation works (the tree is
+  in the facts), execution works (programs run to their wall, logs
+  and errors honest), the primitives work (a hand-driven sequence
+  chops a tree in 19 s). The gap is the coder's program-writing
+  (wrong block names, collect-chains that miss) — a prompt lever,
+  measured next round.
+- **The scan's 160 reach was never the difference between milestones
+  and none** — in three of four runs the tree was within 6 blocks of
+  spawn. The lever stands as pulled (it costs nothing and round 1's
+  spawn measured a tree at 111), but no run isolated its effect.
+- **Crafter's 4.176 is one 4 h run**, not a mean over runs; the
+  teacher's 9.625 is crafter-lab's own number, measured on its own
+  episode budget.
+- The **drift detector still has not been run** over any run's ledger
+  (round 1's limit, unchanged).
