@@ -868,6 +868,18 @@ function missingIngredients (recipe) {
 
 // -- the sandbox ----------------------------------------------------------------
 
+// A program's completion value travels as JSON or not at all: the
+// answer line is JSON.stringify'd, and a value that will not survive
+// the round trip (a function, a cycle) becomes null instead of taking
+// the bridge down.
+function plainValue (value) {
+  try {
+    return JSON.parse(JSON.stringify(value === undefined ? null : value))
+  } catch (err) {
+    return null
+  }
+}
+
 async function runInSandbox (code, timeoutMs) {
   if (!bot) throw new Error('the bot is not connected')
   const captured = []
@@ -1041,7 +1053,16 @@ async function handleLine (line) {
     } else if (cmd === 'run') {
       const started = Date.now()
       const outcome = await runInSandbox(request.code, request.timeout_ms || 120000)
-      result = { ok: true, log: outcome.log, seconds: (Date.now() - started) / 1000 }
+      // The completion value is carried: the facts scans read their
+      // answer through it. It was dropped here from the first version,
+      // so every facts scan ever taken came back empty — the planner
+      // was totally blind, not radius-blind (found by round 2's run).
+      result = {
+        ok: true,
+        value: plainValue(outcome.value),
+        log: outcome.log,
+        seconds: (Date.now() - started) / 1000
+      }
     } else if (cmd === 'evaluate') {
       const started = Date.now()
       const outcome = await runInSandbox(request.code, request.timeout_ms || 30000)

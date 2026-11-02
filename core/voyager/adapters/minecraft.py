@@ -440,12 +440,18 @@ class MinecraftAdapter:
         # walks the loaded columns once, so the extra reach is measured
         # cheap (0.02 s at 160, against 0.03 s at 16 — probe_scan_cost).
         try:
-            nearby = (self._call("run", timeout_s=45.0, code="return await mc.scan(160)", timeout_ms=30000) or {}).get("nearby", {})
-        except Exception:
+            answer = self._call("run", timeout_s=45.0, code="return await mc.scan(160)", timeout_ms=30000) or {}
+            nearby = (answer.get("value") or {}).get("nearby", {})
+        except Exception as exc:
+            # a facts scan that fails is a fact the run's reader must
+            # see, not an empty world masquerading as one
+            self._log(f"the facts scan failed: {exc}")
             nearby = {}
         try:
-            ores = (self._call("run", timeout_s=45.0, code="return await mc.scan_ore(32)", timeout_ms=30000) or {}).get("ores", {})
-        except Exception:
+            answer = self._call("run", timeout_s=45.0, code="return await mc.scan_ore(32)", timeout_ms=30000) or {}
+            ores = (answer.get("value") or {}).get("ores", {})
+        except Exception as exc:
+            self._log(f"the ore scan failed: {exc}")
             ores = {}
         return {
             "world": "minecraft",

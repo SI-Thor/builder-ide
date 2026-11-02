@@ -2352,3 +2352,36 @@ from spawn), then two new seeds (`voyager-port-r2b`, `-r2c`); the
 crafter run starts in parallel and runs until skills are admitted or
 its budget stops it. Outputs under `results/mc160-{a,b,c}/` and
 `results/crafter-r2/`, one directory per run, so the ledgers never mix.
+
+## 2026-11-02 05:30 — round 2, run 1: the lever was pulled but inert — the bridge dropped the value
+
+Run 1 (seed `voyager-port`, fresh world, spawn, 160 facts scan, 2 h):
+**91 steps, 730,335 tokens (coder 502,721 / planner 93,438 / verifier
+134,176), 0 items, 0 milestones, 0 skills — the same zero as round
+1**, and the payload names the reason: every step's `nearby` was {},
+all 91, while the same `mc.scan(160)` through run_code sees 19 block
+types (probe_scan_cost). Round 1's 51-step run re-checked: all 51
+`nearby` {} too. `probe_facts_value.py` found the mechanism:
+`runInSandbox` returns the program's completion value, but the run op
+built its answer from log and seconds only — the value was dropped,
+so `return await mc.scan(...)` could never deliver anything at any
+radius, since fe1f0ff. The adapter's `except Exception: nearby = {}`
+swallowed the shape mismatch and let it read as an empty world.
+
+**Correction of the round-1 report** (DOC-RULES item 5): "the planner
+was correctly blind for two hours" because "the facts reach 96" was
+incomplete — the planner never saw *any* block at *any* radius; the
+tree at 111 is still measured fact, but the radius was never the
+binding constraint. The report gets a Superseded note.
+
+The repair is committed (bridge carries the value, adapter reads it,
+failed scans log instead of vanishing); measured after it, scan 160
+hands the planner deepslate 60, gravel 54.5, diamond ore 109.2, iron
+ore 64.5, coal 20.5. 33 tests pass. The crafter run (spatial fact)
+runs on untouched — it shares no bridge; its first skill was admitted
+at step 5 (03:27), episodes 1-6 scored 4, 2, 2, 7, 4 so far.
+
+Decided next: the three-seed measurement runs with the repaired
+facts — same seed as round 1 (`mc160-a2`), then `voyager-port-r2b`
+(`mc160-b`) and `voyager-port-r2c` (`mc160-c`); `mc160-a` is kept as
+the honest control (the lever pulled but inert).
