@@ -81,6 +81,7 @@ def facts(m: dict) -> dict:
         "prior_largest": prior.get("largest_group"),
         "prior_threshold": prior.get("ghost_threshold"),
         "lease_wait_s": (m.get("memory", {}) or {}).get("lease_wait_s"),
+        "status_note": str(m.get("status_note") or "").strip(),
     }
 
 
@@ -153,9 +154,8 @@ def the_letter(m: dict) -> str:
             "",
             f"The wiring is in and measured: the decision model is the "
             f"{f['model']} now, the options go to it in the neutral order, "
-            f"and the prior and the delegate answer for the props. The night "
-            f"itself did not run — the Thor hung under it at 15:50 and wants "
-            f"a power cycle.",
+            f"and the prior and the delegate answer for the props. "
+            f"{f['status_note'] or 'The night itself did not run.'}",
             "",
             f"What surprised me: {the_surprise(f, ran=False)}.",
             "",

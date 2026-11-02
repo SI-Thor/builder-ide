@@ -887,3 +887,73 @@ so the lease owns it (that is what `ff62313` bought).
 **What I decided next.** Run F starts from the commit that carries the
 wait (`29152a0`). The failed attempt's artifacts are kept, not deleted
 (`artifacts/night-v4-crashed-1713`).
+
+## 2026-11-01 18:02-18:25 — run F, the delegate's path, and the letter
+
+**Run F** started at 17:22:39 from the commit that carries the wait
+(`29152a0`): three `thor-admit` leases, all admitted in 0 s, 108.4 GB free
+after the loads, the routed cell again at 0.5208 / act 59 / surfaced 181 /
+0.046 s. It reached TRELLIS's mesh stage and died there at 18:06:05, with
+the client's own diagnosis this time — `ComfyError: prompt …: the server
+refused the connection 121 times over 120 s`. ComfyUI's log's last write
+is 18:02:05, at the end of the uv_unwrap.
+
+**What the ledger says about the delegate.** All eighteen
+`night.prop_delegate` rows carry the same error:
+
+    {"stage": "image", "task_id": "img:crate", "variant_id": "img:crate_r1_v1",
+     "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s102_00004_.png'"}
+
+The executor uploads the picture to ComfyUI and records the **name**
+ComfyUI gave it; ComfyUI keeps the file in its own input directory (the
+TRELLIS environment's `input/`); the delegate opened that name relative to
+the night's working directory, where there is no such file. So the seam the
+brief asked for — the d1-2B delegate answering for the props — answered
+**nothing** on tonight's eighteen pictures, and the night's fourteen
+rejections are the scripted critic's alone.
+
+**What I changed.** The runner resolves the picture against ComfyUI's input
+directory when the store's path is not absolute, and records the resolved
+path in the signal.
+
+**What I proved** (`docs/lab/night-v4-scripts/test_delegate_picture.py`):
+the night's own crate picture, named the same way, resolved the way the
+runner now resolves it, answered by the same delegate in 2.17 s — `holes`
+**0.510** (fired), `missing_object` 0.206, `texture_swap` 0.057,
+`noise_fireflies` 0.031, `black_frame` 0.003, `floating_object` 0.009. The
+same profile as the crate in the pre-run smoke: the delegate was always
+right about the picture; it was never given one.
+
+**The measurements** (`measure.py`, over the night's own ledger, with the
+diff against run D):
+
+| | run F | run D |
+|---|---|---|
+| wall | 43.4 min (36.5 min of job wall) | 152.61 min |
+| GPU-minutes | 12.29 (rail 60) | 25.74 |
+| leases | three `thor-admit`, waited 0.0 / 0.1 / 0.1 s (total 0.2 s) | one, waited 914.9 s |
+| decisions | 251 rows — 245 on the local d1-3B (mean 0.0475 s), 4 on Jev (0.588 s), 2 with no author | 12 rows — 5 d1-2B, 5 Jev, 2 none |
+| gates | 181 surfaced, 66 act, 2 escalate | 2 escalate, 2 surfaced, 6 none |
+| props | 0 kept, 14 rejected | 3 kept, 15 rejected |
+| box | before load1 5.52 / 116.3 GB free; after load1 13.31 / 105.9 GB | before 63.75 / 62.9; after 8.96 / 84.5 |
+
+**The letter** (125 words) is written from the night's own rows:
+`docs/lab/night-v4-scripts/facts_from_ledger.py` transcribes the ledger
+into `letter-facts.json` (the verdicts and their rungs, the leases and
+their waits, the eighteen delegate rows), and `write_letter.py --facts`
+writes the letter from that. The letter's surprise is the prior's gate
+(cannot fire: the largest group holds 7, and a group of n cannot score
+below 0.5/(n+1), so it needs ten) and its question is the library's
+approve-ten.
+
+**What was not reached.** No `morning.json`, no report, no live view, no
+phase-down row: the night never got past the heavy phase. The lease's
+waits are measured; its phase-down is still unproven in anger.
+
+**What I decided next.** The next run starts from the commit that carries
+the delegate's path, and it will have all four seams in it for the first
+time: the routed 3B, the neutral order, the prior, and the delegate that
+can see the pictures. The box is still hostile — another seat's
+`thor-admit-hog` test was allocating 32 GB at a time all evening, and the
+Wi-Fi driver aborted at 18:06:26 — so the mesh stage is where the night
+still has to survive.

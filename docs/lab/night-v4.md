@@ -275,8 +275,8 @@ taken in **0.04 s**; a child the lease's client starts directly is the
 lease's memory (**+1092 MB** in the lease's own accounting), and the same
 allocation through a shell that exits is not.
 
-**And then the night ran** (run E), from the commit that carries both fixes
-(`e3e83ce`, `ff62313`):
+**And then the night ran** (run E, 17:07:39), from the commit that carries
+both fixes (`e3e83ce`, `ff62313`):
 
 ```
 [night] 17:07:39 the night begins; box: {'load1': 3.82, 'MemTotal': 122.8, 'MemAvailable': 110.8}
@@ -295,6 +295,12 @@ Three leases, all `thor-admit`, all admitted in **0 s**, 105.4 GB free after
 the loads, and the sweep finding nothing to clear. The night's ComfyUI is
 its own child (`ps`: pid 61833's parent is 61554, the runner), and the
 daemon's status accounts for it in the heavy lease (now 3.3 G, saw 7.0 G).
+
+That run died in TRELLIS's mesh stage at 17:13:32, and the run after it
+(run F, 17:22:39) died in the same place, 36 minutes later, with the
+client's own diagnosis this time: *"the server refused the connection 121
+times over 120 s"*. The delegate's path, the night's real seam, was found
+in the ledger of that run and is fixed and proved (section 6).
 
 **The routed cell, asked on this box tonight** (240 steps, the fixed
 recorder's states): accuracy **0.5208**, decoy-first **0.561**, truth-first
@@ -365,10 +371,19 @@ D, which is the diff baseline:
 | **the memory** | one lease for the whole heavy phase, never phased down | the same lease, **phased down to 8 GB** when the heavy phase ends (the heavy services are stopped first), the row carrying the old peak, the new one, the reason and the box's free memory |
 | **the props** | the scripted critic | the scripted critic — physag-lite's MuJoCo action check is committed and runs, but it accepts nothing (0 of 7 counted props physics-valid, 0 stable) and the seat's tree still carries uncommitted work on the same files |
 
-The numbers that belong to the night itself — wall time, GPU-minutes, the
-lease wait, the decisions by rung, the props kept and rejected — are not
-here, because the night never got past its lease. The measurement script
-prints them and the diff against run D in one command as soon as it has run:
+The numbers that belong to the night itself, from the run that reached the
+props' mesh stage — **run F**, 17:22:39 → 18:06:05, measured by the same
+script over the night's own ledger:
+
+| | run F (night-v4) | run D (night-v3) | the diff |
+|---|---|---|---|
+| wall | **43.4 min** (36.5 min of job wall) | 152.61 min | a third of the wall, and the lease did not wait |
+| GPU-minutes | **12.29** against the 60-minute rail | 25.74 | less than half |
+| leases | **three**, all `thor-admit`, waited **0.0 / 0.1 / 0.1 s** (total **0.2 s**) | one, waited **914.9 s** | the box was free; the night did not queue |
+| decisions by rung | **251** rows: 245 on the local **d1-3B** (mean **0.0475 s**), 4 on **Jev** (0.588 s), 2 with no author | 12 rows: 5 on the local **d1-2B** (0.106 s), 5 on **Jev** (0.220 s), 2 with no author | the same 3B and the same order, twenty times the decisions |
+| gates | **181 surfaced**, 66 act, 2 escalate | 2 escalate, 2 surfaced, 6 none | |
+| props | **0 kept**, **14 rejected** (the night died before a winner was confirmed) | 3 kept, 15 rejected | |
+| box | before: load1 5.52, MemAvailable 116.3 GB; after: load1 13.31, MemAvailable 105.9 GB | before: load1 63.75, MemAvailable 62.9 GB; after: load1 8.96, MemAvailable 84.5 GB | |
 
 ```
 PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
@@ -376,24 +391,46 @@ PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
     --night artifacts/night-v4 --against ~/lm-wt/night-v3/artifacts/night-v3-d
 ```
 
+**What the run did not reach.** The night's own ledger holds no
+`morning.json`: the run died in TRELLIS's mesh stage, where the box's render
+server stopped answering — `ComfyError: prompt …: the server refused the
+connection 121 times over 120 s`. So there is no morning, no report, no
+phase-down row (the night never got past the heavy phase), and no live
+view. The lease's **phase-down** and the **live view** are therefore still
+unproven in anger; the lease's own waits are not.
+
+**And the delegate answered nothing.** All eighteen of the night's
+`night.prop_delegate` rows carry the same error — `FileNotFoundError:
+[Errno 2] No such file or directory: 'crate_s102_00004_.png'` — because the
+store records the **name** ComfyUI gave a picture and the delegate opened
+it relative to the night's working directory, where the picture is not.
+The picture is in the TRELLIS environment's input directory. That is fixed
+and proved on the night's own crate
+(`docs/lab/night-v4-scripts/test_delegate_picture.py`: `holes 0.510`
+fired, `missing_object 0.206`, `texture_swap 0.057`, `noise_fireflies
+0.031`, `black_frame 0.003`, `floating_object 0.009`, 2.17 s), but the night
+that found it had already been measured without the delegate.
+
 ## 7. The morning's letter
 
 The letter is at `artifacts/night-v4/letter.md`, written by
 `docs/lab/night-v4-scripts/write_letter.py` (which refuses to write over 150
-words and prints the count). **121 words.** It is written from the receipts
-this section names: the pre-run smoke's transcript and the night's own log
-head, transcribed into `docs/lab/night-v4-scripts/letter-facts.json`, which
-names the receipt behind each block. It is **not** written from a night's
-morning — there is no morning — and when the night runs, the same script
-writes the letter from the real `morning.json` instead.
+words and prints the count). **125 words.** It is written from the night's
+own ledger: `docs/lab/night-v4-scripts/facts_from_ledger.py` transcribes
+the rows into `docs/lab/night-v4-scripts/letter-facts.json` — the 251
+verdicts and their rungs, the three leases and their waits, the eighteen
+delegate rows — and that file names the receipt behind each block. It is
+**not** written from a night's morning, because there is no morning; when
+a night runs to the end, the same script writes the letter from the real
+`morning.json` instead.
 
 > Casey —
 >
-> The wiring is in and measured: the decision model is the d1-3B now, the options go to it in the neutral order, and the prior and the delegate answer for the props. The night itself did not run — the Thor hung under it at 15:50 and wants a power cycle.
+> The wiring is in and measured: the decision model is the d1-3B now, the options go to it in the neutral order, and the prior and the delegate answer for the props. The night itself ran to TRELLIS's mesh stage, where the box's render server stopped answering; its eighteen delegate calls had failed on a picture path, which is now fixed and proved on the crate.
 >
 > What surprised me: the plausibility prior's ghost gate cannot fire at all — its largest group holds 7 and a group of n cannot score below 0.5/(n+1), so the gate needs ten.
 >
-> One question for you: should the delegate be allowed to reject a picture outright on the product-picture domain, or keep its vote as it is now — a signal that decides which sibling wins?
+> One question for you: should the library approve ten objects of one kind, so the prior's ghost gate can express itself at all?
 >
 > The night,
 
@@ -425,15 +462,28 @@ writes the letter from the real `morning.json` instead.
 
 ## 9. What was not verified
 
-- **Why ComfyUI stopped answering at 17:13:32 is not verified.** The log's
-  last write is in the middle of `Remesh DC: 6/31`; the daemon's log has no
-  guard or watchdog event against that pid; the journal has no OOM kill and
-  no signal. The only thing the box can name is the neighbour: another
-  seat's `thor-admit-hog` test was allocating 32 GB at a time in the same
-  minutes, and the guard was stopping those hogs while the night's render
-  was loading. The night now *waits* for a server that refuses (up to 120 s
-  of refusals), which is what a busy server needs; whether the server comes
-  back on its own is the box's business and was not observed.
+- **The night did not reach its morning.** Both runs died in TRELLIS's mesh
+  stage, where the box's render server stopped answering. So there is no
+  `morning.json`, no report, no live view, no phase-down row (the night
+  never got past the heavy phase) and no letter written from a morning.
+  The run's own numbers are in the ledger, and the letter is written from
+  them.
+- **Why ComfyUI stops answering in the mesh stage is not verified.** The
+  log's last write is in the middle of the remesh (run E, 17:13:32) and at
+  the end of the uv_unwrap (run F, 18:02:05); the daemon's log has no
+  guard or watchdog event against that pid; the journal has no OOM kill
+  and no signal; the GPU's used bytes and its largest free block are flat
+  across the moment. The only thing the box can name is the neighbour:
+  another seat's `thor-admit-hog` test was allocating 32 GB at a time in
+  the same minutes, and the guard was stopping those hogs while the
+  night's render was loading. The night now *waits* for a server that
+  refuses (up to 120 s of refusals), which is what a busy server needs;
+  whether the server comes back on its own is the box's business and was
+  not observed.
+- **The delegate's eighteen calls were all failures.** The wiring is fixed
+  and proved on the night's own crate picture, but the night that measured
+  the props was measured **without** the delegate: the fourteen rejections
+  are the scripted critic's alone.
 - **The daemon's own numbering is not fixed.** The lock file is named after
   the lease's number, and the numbers start again at 1 when the daemon
   restarts, so a client left over from before a restart can hold the file

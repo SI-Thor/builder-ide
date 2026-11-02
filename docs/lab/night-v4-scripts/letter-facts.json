@@ -1,35 +1,42 @@
 {
   "night_id": "night-v4",
-  "what": "the night-v4 seat's receipts, transcribed: the pre-run smoke's four seams and the night's first four lines. NOT a night's morning — the night did not run; the Thor hung under it at 15:50.",
+  "what": "the night-v4 seat's receipts from the run that reached TRELLIS's mesh stage, transcribed from the night's own ledger and its own log. NOT a night's morning: the run died before it wrote one, so the letter is written from the rows the ledger does hold.",
   "receipts": {
-    "smoke": "/tmp/night-v4-smoke (the pre-run smoke's transcript and ledger, on the Thor; the numbers below are transcribed from its output)",
-    "run_log": "artifacts/night-v4/run.log on the Thor (the night's first four lines, transcribed below)"
+    "ledger": "artifacts/night-v4/ledger.db on the Thor \u2014 the night's own rows: 251 judge.verdict rows, 3 night.heavy_lease rows (each carrying the sweep that ran before it), 18 night.prop_delegate rows, the night's own 240-state decoy-cell probe and its prior fit",
+    "run_log": "artifacts/night-v4/run.log on the Thor \u2014 the night's log head, and the line it ended on",
+    "measurements": "artifacts/night-v4/measurements.json on the Thor \u2014 what docs/lab/night-v4-scripts/measure.py reads out of that ledger"
   },
-  "wall_minutes": null,
+  "status_note": "The night itself ran to TRELLIS's mesh stage, where the box's render server stopped answering; its eighteen delegate calls had failed on a picture path, which is now fixed and proved on the crate.",
+  "wall_minutes": 43.4,
   "props": {
     "kept": 0,
     "winners": [],
-    "note": "the night did not run: the Thor hung at 15:50 while the night's lease was still queued"
+    "note": "the night's props were judged \u2014 fourteen variants rejected by the critic \u2014 but the run died in the mesh stage before a winner was confirmed"
   },
   "decisions": {
-    "count": 0,
-    "local": 0,
-    "escalated": 0,
+    "count": 251,
+    "local": 249,
+    "escalated": 4,
     "surfaced": 0,
-    "note": "no decisions were made: the night never got past its lease"
+    "note": "the night's own ledger: 251 judge.verdict rows \u2014 245 on the local d1-3B, 4 on Jev, 2 with no author; 181 surfaced, 66 act, 2 escalate",
+    "rungs": {
+      "judge@d1:d1-3B": 245,
+      "judge@jev:jev-latest": 4,
+      "?": 2
+    }
   },
   "judge": {
     "model": "d1-3B",
     "order": "canonical",
     "route_probe": {
-      "steps": 10,
-      "accuracy": 0.4,
-      "decoy_first_accuracy": 0.5714,
-      "truth_first_accuracy": 0.0,
+      "steps": 240,
+      "accuracy": 0.5208,
+      "decoy_first_accuracy": 0.561,
+      "truth_first_accuracy": 0.5,
       "tau": 0.76,
       "tau_source": "calibrated",
-      "latency_p50_s": 0.055,
-      "note": "ten of the fixed recorder's states, asked on this box in the pre-run smoke; the night's own 240-state probe did not run"
+      "latency_p50_s": 0.046,
+      "note": "the night's own 240-state probe, asked on this box's d1-3B at 17:23 \u2014 the same numbers as the published \u00a79.4 run (0.5208, act 59, surfaced 181, 46.5 ms)"
     }
   },
   "critic": {
@@ -40,64 +47,122 @@
       "groups": 22,
       "largest_group": 7,
       "ghost_threshold": 0.05,
-      "note": "a group of n cannot score below 0.5/(n+1), so the ghost gate needs ten members in a group and cannot fire on this fit"
+      "note": "the night's approved set is empty, so the prior is fitted on the measured real objects alone; a group of n cannot score below 0.5/(n+1), so the ghost gate needs ten members in a group and cannot fire on this fit"
     },
     "signals": [
       {
         "stage": "image",
-        "picture": "crate_s102_00001_.png (the night's own prop picture, from run D's tree)",
-        "fired": ["holes"],
-        "probabilities": {
-          "black_frame": 0.003,
-          "noise_fireflies": 0.031,
-          "missing_object": 0.206,
-          "holes": 0.51,
-          "texture_swap": 0.057,
-          "floating_object": 0.009
-        },
-        "wall_s": 2.391
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r1_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s102_00004_.png'"
       },
       {
-        "stage": "mesh",
-        "occupied_volume": 0.994439,
-        "signed_volume": 0.912258,
-        "occupied_method": "convex",
-        "note": "the crate, measured in the pre-run probe"
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r1_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s103_00004_.png'"
       },
       {
-        "stage": "mesh",
-        "occupied_volume": 0.326282,
-        "signed_volume": 0.027029,
-        "occupied_method": "convex",
-        "note": "the lantern: the signed volume is a twelfth of the occupied one"
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r1_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s104_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r2_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s1102_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r2_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s1103_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r2_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s1104_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r1_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s203_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r1_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s204_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r1_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s205_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r2_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s1203_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r2_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s1204_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r2_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s1205_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r1_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s304_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r1_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s305_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r1_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s306_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r2_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s1304_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r2_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s1305_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r2_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s1306_00004_.png'"
       }
     ]
   },
   "memory": {
-    "heavy_peak": "40G",
-    "phase_peak": "8G",
-    "lease_wait_s": 232,
-    "lease_kind": "thor-admit",
-    "note": "the night's lease never came: the box went off the network while it was queued"
-  },
-  "box": {
-    "at_the_start": {
-      "ts": "2026-11-01T15:42:57-09:00",
-      "load1": 18.89,
-      "MemTotal": 122.8,
-      "MemAvailable": 79.1
-    },
-    "at_the_smoke": {
-      "ts": "2026-11-01T15:23:00-09:00",
-      "load1": 19.04,
-      "MemTotal": 122.8,
-      "MemAvailable": 60.3
-    }
-  },
-  "run_log_head": [
-    "[night] 15:42:57 the night begins; box: {'ts': '2026-11-01T15:42:57-09:00', 'load1': 18.89, 'MemTotal': 122.8, 'MemAvailable': 79.1}",
-    "[night] 15:42:58 d1-3B already answers on :8295",
-    "[night] 15:42:58 d1-2B already answers on :8296",
-    "[night] 15:42:58 queueing for a thor-admit lease (night-v4.heavy, peak 40G: the night's heavy phase: ComfyUI, the world's renders, the props)"
-  ]
+    "lease_wait_s": 0.2,
+    "note": "three thor-admit leases, waited 0.0 s / 0.1 s / 0.1 s in total",
+    "leases": 3
+  }
 }
