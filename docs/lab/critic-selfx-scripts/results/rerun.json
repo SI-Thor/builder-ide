@@ -1,0 +1,1155 @@
+{
+ "meta": {
+  "started": {
+   "load_average": [
+    24.92,
+    17.75,
+    12.56
+   ],
+   "mem_available_gb": 102.7
+  },
+  "ended": {
+   "load_average": [
+    24.92,
+    17.75,
+    12.56
+   ],
+   "mem_available_gb": 102.7
+  },
+  "seconds": 146.8,
+  "peak_rss_mb": 710.5,
+  "meshes": 38,
+  "python": "3.12.3",
+  "request": {
+   "id": "reference",
+   "prompt": "",
+   "negative": "",
+   "image": null,
+   "seeds": 3,
+   "triangle_budget": 1000000000,
+   "expected_aspect": null,
+   "aspect_tolerance": 0.25,
+   "fill_ratio": [
+    0.005,
+    1.0
+   ],
+   "resolution": 512,
+   "weight_dtype": "default",
+   "image_steps": 30,
+   "image_cfg": 7.0,
+   "image_sampler": "dpmpp_2m",
+   "image_scheduler": "karras",
+   "image_size": 1024,
+   "trellis_steps": [
+    12,
+    20,
+    12
+   ],
+   "trellis_cfg": 7.5,
+   "trellis_sampler": "euler",
+   "trellis_scheduler": "normal",
+   "base_seed": 0,
+   "repair": {
+    "method": "weld",
+    "tolerance": 1e-06,
+    "split_non_manifold": true,
+    "min_fidelity": 0.98,
+    "fidelity_samples": 1000000,
+    "fidelity_resolution": 128,
+    "fidelity_views": [
+     "+x",
+     "+y",
+     "+z"
+    ]
+   },
+   "diet": null
+  },
+  "verdicts_changed": 38
+ },
+ "rows": [
+  {
+   "name": "IV_pole_a01",
+   "triangles": 458714,
+   "watertight": false,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "458,714 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 0.002512263910652921,
+   "volume_reliable": false,
+   "parity_volume": 0.0013556739197054287,
+   "old_score": 0.444089,
+   "new_score": 0.516599,
+   "score_delta": 0.07251,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [
+    "centre_of_mass",
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "centre_of_mass",
+    "solid_volume",
+    "watertight"
+   ]
+  },
+  {
+   "name": "bodyPart_door_front_a01",
+   "triangles": 168604,
+   "watertight": true,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 6387,
+    "reason": ""
+   },
+   "signed_volume": 0.0007904336596994502,
+   "volume_reliable": false,
+   "parity_volume": 0.0007439185355489551,
+   "old_score": 0.779908,
+   "new_score": 0.678181,
+   "score_delta": -0.101727,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [
+    "solid_volume"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "solid_volume"
+   ]
+  },
+  {
+   "name": "bodyPart_trunk_lid_a01",
+   "triangles": 317648,
+   "watertight": true,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "317,648 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 0.0015045258198050939,
+   "volume_reliable": true,
+   "parity_volume": null,
+   "old_score": 0.993248,
+   "new_score": 0.994129,
+   "score_delta": 0.000881,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": []
+  },
+  {
+   "name": "box_long_a08",
+   "triangles": 4924,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 2896,
+    "reason": ""
+   },
+   "signed_volume": 0.0004864890902880412,
+   "volume_reliable": false,
+   "parity_volume": 0.0005849022218029847,
+   "old_score": 0.494141,
+   "new_score": 0.603601,
+   "score_delta": 0.10946,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "cabinet_file_a03",
+   "triangles": 19720,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 6050,
+    "reason": ""
+   },
+   "signed_volume": 0.003973585088919293,
+   "volume_reliable": false,
+   "parity_volume": 0.5335717106532124,
+   "old_score": 0.4,
+   "new_score": 0.521739,
+   "score_delta": 0.121739,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "centre_of_mass",
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "centre_of_mass",
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "cleaning_sponge_c01",
+   "triangles": 3552,
+   "watertight": true,
+   "self_intersection": {
+    "state": "clean",
+    "pairs": 0,
+    "reason": ""
+   },
+   "signed_volume": 0.00014663052851853056,
+   "volume_reliable": true,
+   "parity_volume": null,
+   "old_score": 0.999895,
+   "new_score": 0.999909,
+   "score_delta": 1.4e-05,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": []
+  },
+  {
+   "name": "consumable_fuse_micro_green_a01",
+   "triangles": 20496,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 1228,
+    "reason": ""
+   },
+   "signed_volume": 6.0527218204571e-06,
+   "volume_reliable": false,
+   "parity_volume": 6.427919357123327e-06,
+   "old_score": 0.499469,
+   "new_score": 0.608234,
+   "score_delta": 0.108765,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "container_system_sterilising_e01",
+   "triangles": 85800,
+   "watertight": true,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 7654,
+    "reason": ""
+   },
+   "signed_volume": 0.0033414875339947098,
+   "volume_reliable": false,
+   "parity_volume": 0.0033442074042658518,
+   "old_score": 0.998653,
+   "new_score": 0.868394,
+   "score_delta": -0.130259,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": [
+    "self_intersection"
+   ]
+  },
+  {
+   "name": "crate_white_a01",
+   "triangles": 60744,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 12818,
+    "reason": ""
+   },
+   "signed_volume": 0.0014963324706853975,
+   "volume_reliable": false,
+   "parity_volume": 0.0013119123288033317,
+   "old_score": 0.496597,
+   "new_score": 0.605736,
+   "score_delta": 0.10914,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "decor_candle_l01",
+   "triangles": 13856,
+   "watertight": true,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 760,
+    "reason": ""
+   },
+   "signed_volume": 0.00017106391433309898,
+   "volume_reliable": false,
+   "parity_volume": 0.00017084004987665753,
+   "old_score": 0.945741,
+   "new_score": 0.822383,
+   "score_delta": -0.123358,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [
+    "centre_of_mass"
+   ],
+   "new_failed": [
+    "centre_of_mass",
+    "self_intersection"
+   ]
+  },
+  {
+   "name": "dishware_mug_a01",
+   "triangles": 11876,
+   "watertight": true,
+   "self_intersection": {
+    "state": "clean",
+    "pairs": 0,
+    "reason": ""
+   },
+   "signed_volume": 4.330388188709641e-05,
+   "volume_reliable": true,
+   "parity_volume": null,
+   "old_score": 0.991364,
+   "new_score": 0.99249,
+   "score_delta": 0.001126,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": []
+  },
+  {
+   "name": "drum_fiber_a02",
+   "triangles": 25425,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 7985,
+    "reason": ""
+   },
+   "signed_volume": 0.02230799197831712,
+   "volume_reliable": false,
+   "parity_volume": 0.027565208559978967,
+   "old_score": 0.489864,
+   "new_score": 0.599881,
+   "score_delta": 0.110018,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "engineComponent_camshaft_b01",
+   "triangles": 361096,
+   "watertight": false,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "361,096 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 0.007271532141322183,
+   "volume_reliable": false,
+   "parity_volume": 0.005539346537326472,
+   "old_score": 0.487656,
+   "new_score": 0.728396,
+   "score_delta": 0.240741,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "watertight"
+   ]
+  },
+  {
+   "name": "equipment_bench_vise_a01",
+   "triangles": 106162,
+   "watertight": true,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 2771,
+    "reason": ""
+   },
+   "signed_volume": 0.0024735541962423147,
+   "volume_reliable": false,
+   "parity_volume": 0.0025729285866962375,
+   "old_score": 0.990712,
+   "new_score": 0.861489,
+   "score_delta": -0.129223,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [
+    "degenerate"
+   ],
+   "new_failed": [
+    "degenerate",
+    "self_intersection"
+   ]
+  },
+  {
+   "name": "fixture_cabinet_a01",
+   "triangles": 483180,
+   "watertight": true,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "483,180 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 0.05797835764264444,
+   "volume_reliable": true,
+   "parity_volume": null,
+   "old_score": 0.998969,
+   "new_score": 0.999103,
+   "score_delta": 0.000134,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [
+    "degenerate"
+   ],
+   "new_failed": [
+    "degenerate"
+   ]
+  },
+  {
+   "name": "food_processed_cannedFood_k01",
+   "triangles": 13140,
+   "watertight": true,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 420,
+    "reason": ""
+   },
+   "signed_volume": 0.0004857659437762794,
+   "volume_reliable": false,
+   "parity_volume": 0.0004848016522061268,
+   "old_score": 0.999584,
+   "new_score": 0.869204,
+   "score_delta": -0.130381,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": [
+    "self_intersection"
+   ]
+  },
+  {
+   "name": "handTool_hammer_crossPeen_b01",
+   "triangles": 540751,
+   "watertight": false,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "540,751 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 0.00028966070309782883,
+   "volume_reliable": false,
+   "parity_volume": 0.0003045366578931654,
+   "old_score": 0.472111,
+   "new_score": 0.714879,
+   "score_delta": 0.242768,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "degenerate",
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "degenerate",
+    "watertight"
+   ]
+  },
+  {
+   "name": "instrument_spoon_a01",
+   "triangles": 18624,
+   "watertight": true,
+   "self_intersection": {
+    "state": "clean",
+    "pairs": 0,
+    "reason": ""
+   },
+   "signed_volume": 5.490365558756978e-05,
+   "volume_reliable": true,
+   "parity_volume": null,
+   "old_score": 0.962949,
+   "new_score": 0.967782,
+   "score_delta": 0.004833,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": []
+  },
+  {
+   "name": "kitchenware_knife_b01",
+   "triangles": 7660,
+   "watertight": true,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 150,
+    "reason": ""
+   },
+   "signed_volume": 0.00018517522301773567,
+   "volume_reliable": false,
+   "parity_volume": 0.00020118579098101,
+   "old_score": 0.978316,
+   "new_score": 0.850709,
+   "score_delta": -0.127606,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": [
+    "self_intersection"
+   ]
+  },
+  {
+   "name": "lighting_overheadLed_hexGrid_a01",
+   "triangles": 189103,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 13866,
+    "reason": ""
+   },
+   "signed_volume": 0.014364403099626293,
+   "volume_reliable": false,
+   "parity_volume": 0.0,
+   "old_score": 0.481328,
+   "new_score": 0.418546,
+   "score_delta": -0.062782,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "solid_volume",
+    "watertight"
+   ]
+  },
+  {
+   "name": "misc_golfBall_a01",
+   "triangles": 12288,
+   "watertight": true,
+   "self_intersection": {
+    "state": "clean",
+    "pairs": 0,
+    "reason": ""
+   },
+   "signed_volume": 4.0556915974246514e-05,
+   "volume_reliable": true,
+   "parity_volume": null,
+   "old_score": 0.999947,
+   "new_score": 0.999954,
+   "score_delta": 7e-06,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": []
+  },
+  {
+   "name": "paint_container_bottle_orange_a02",
+   "triangles": 35100,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 567,
+    "reason": ""
+   },
+   "signed_volume": 5.04191053062513e-05,
+   "volume_reliable": false,
+   "parity_volume": 5.10657292635072e-05,
+   "old_score": 0.480475,
+   "new_score": 0.591717,
+   "score_delta": 0.111242,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "pallet_rackable_solid_top_blue_a02",
+   "triangles": 24078,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 18,
+    "reason": ""
+   },
+   "signed_volume": 0.07239041458884293,
+   "volume_reliable": false,
+   "parity_volume": 0.0708672373425473,
+   "old_score": 0.498916,
+   "new_score": 0.607753,
+   "score_delta": 0.108837,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "powerTool_cutting_tool_a01",
+   "triangles": 39858,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 2147,
+    "reason": ""
+   },
+   "signed_volume": 0.00012255945456259815,
+   "volume_reliable": false,
+   "parity_volume": 0.00012068244756855701,
+   "old_score": 0.48206,
+   "new_score": 0.593096,
+   "score_delta": 0.111036,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "degenerate",
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "degenerate",
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "ppe_respirator_halfMask_b01",
+   "triangles": 101780,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 10355,
+    "reason": ""
+   },
+   "signed_volume": 5.532629706001493e-05,
+   "volume_reliable": false,
+   "parity_volume": 7.154770349079014e-05,
+   "old_score": 0.49166,
+   "new_score": 0.601444,
+   "score_delta": 0.109783,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "rack_f04",
+   "triangles": 151834,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 30517,
+    "reason": ""
+   },
+   "signed_volume": 0.06757682095134206,
+   "volume_reliable": false,
+   "parity_volume": 0.07340057346212862,
+   "old_score": 0.485032,
+   "new_score": 0.59568,
+   "score_delta": 0.110648,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "serviceTool_brake_lathe_a01",
+   "triangles": 451042,
+   "watertight": false,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "451,042 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 0.3695056463179837,
+   "volume_reliable": false,
+   "parity_volume": 0.36593001447182205,
+   "old_score": 0.475926,
+   "new_score": 0.718196,
+   "score_delta": 0.242271,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "degenerate",
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "degenerate",
+    "watertight"
+   ]
+  },
+  {
+   "name": "sign_hospital_board_b02",
+   "triangles": 3920,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 597,
+    "reason": ""
+   },
+   "signed_volume": 0.005713760293057892,
+   "volume_reliable": false,
+   "parity_volume": 0.00880743165028882,
+   "old_score": 0.499624,
+   "new_score": 0.434456,
+   "score_delta": -0.065168,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "solid_volume",
+    "watertight"
+   ]
+  },
+  {
+   "name": "stationery_pen_plastic_a01",
+   "triangles": 83200,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 3847,
+    "reason": ""
+   },
+   "signed_volume": 9.75129154439434e-06,
+   "volume_reliable": false,
+   "parity_volume": 8.07793636403532e-06,
+   "old_score": 0.499333,
+   "new_score": 0.608116,
+   "score_delta": 0.108783,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "storage_shelf_basic_a01",
+   "triangles": 1326754,
+   "watertight": true,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "1,326,754 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 0.225409095363323,
+   "volume_reliable": true,
+   "parity_volume": null,
+   "old_score": 0.999148,
+   "new_score": 0.999259,
+   "score_delta": 0.000111,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [
+    "degenerate"
+   ],
+   "new_failed": [
+    "degenerate"
+   ]
+  },
+  {
+   "name": "structure_beam_a01",
+   "triangles": 11732,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 2695,
+    "reason": ""
+   },
+   "signed_volume": 0.7531191351049743,
+   "volume_reliable": false,
+   "parity_volume": 0.7166063854549376,
+   "old_score": 0.499967,
+   "new_score": 0.608667,
+   "score_delta": 0.1087,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "suspension_control_arm_rearward_left_a01",
+   "triangles": 21066,
+   "watertight": true,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 3452,
+    "reason": ""
+   },
+   "signed_volume": 7.088730153448545e-05,
+   "volume_reliable": false,
+   "parity_volume": 7.056094312794267e-05,
+   "old_score": 0.988606,
+   "new_score": 0.859657,
+   "score_delta": -0.128949,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": [
+    "self_intersection"
+   ]
+  },
+  {
+   "name": "tape_clear_a01",
+   "triangles": 2816,
+   "watertight": true,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 270,
+    "reason": ""
+   },
+   "signed_volume": 0.00017114356058180668,
+   "volume_reliable": false,
+   "parity_volume": 0.00017170125663061055,
+   "old_score": 0.999956,
+   "new_score": 0.869527,
+   "score_delta": -0.130429,
+   "flipped_checks": [
+    "self_intersection"
+   ],
+   "old_failed": [],
+   "new_failed": [
+    "self_intersection"
+   ]
+  },
+  {
+   "name": "testingTool_multimeter_clamp_b01",
+   "triangles": 72588,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 5810,
+    "reason": ""
+   },
+   "signed_volume": 0.0002826184931525874,
+   "volume_reliable": false,
+   "parity_volume": 0.00025155062158625297,
+   "old_score": 0.469223,
+   "new_score": 0.581933,
+   "score_delta": 0.11271,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "utensils_scissors_a01",
+   "triangles": 15176,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 715,
+    "reason": ""
+   },
+   "signed_volume": 7.9729668573352e-06,
+   "volume_reliable": false,
+   "parity_volume": 8.082658423889696e-06,
+   "old_score": 0.488654,
+   "new_score": 0.59883,
+   "score_delta": 0.110176,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "vehicleSupport_jack_stand_b01",
+   "triangles": 31466,
+   "watertight": false,
+   "self_intersection": {
+    "state": "self_intersecting",
+    "pairs": 2255,
+    "reason": ""
+   },
+   "signed_volume": 0.0013666035877976778,
+   "volume_reliable": false,
+   "parity_volume": 0.002054574398192325,
+   "old_score": 0.482596,
+   "new_score": 0.593562,
+   "score_delta": 0.110966,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "self_intersection",
+    "watertight"
+   ]
+  },
+  {
+   "name": "vehicle_forklift_blue_c01",
+   "triangles": 997893,
+   "watertight": false,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "997,893 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 1.8322308251186212,
+   "volume_reliable": false,
+   "parity_volume": 1.6204128779225844,
+   "old_score": 0.461538,
+   "new_score": 0.705685,
+   "score_delta": 0.244147,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "watertight"
+   ]
+  },
+  {
+   "name": "warehouse_conveyorBelt_a33",
+   "triangles": 306856,
+   "watertight": false,
+   "self_intersection": {
+    "state": "unchecked",
+    "pairs": 0,
+    "reason": "306,856 triangles is over the 200,000-triangle cap; the check's cost is unbounded above it and a decimated stand-in would be a verdict about a different mesh (docs/lab/exp-open3d-critic.md \u00a73.1, \u00a73.5)"
+   },
+   "signed_volume": 0.08453721674169351,
+   "volume_reliable": false,
+   "parity_volume": 0.15974669128430458,
+   "old_score": 0.449281,
+   "new_score": 0.695027,
+   "score_delta": 0.245746,
+   "flipped_checks": [
+    "self_intersection",
+    "solid_volume"
+   ],
+   "old_failed": [
+    "centre_of_mass",
+    "solid_volume",
+    "watertight"
+   ],
+   "new_failed": [
+    "centre_of_mass",
+    "watertight"
+   ]
+  }
+ ],
+ "watertight_flip_rows": [
+  {
+   "name": "bodyPart_door_front_a01",
+   "triangles": 168604,
+   "signed_volume": 0.0007904336596994502,
+   "parity_volume": 0.0007439185355489551,
+   "self_intersecting": true
+  },
+  {
+   "name": "bodyPart_trunk_lid_a01",
+   "triangles": 317648,
+   "signed_volume": 0.0015045258198050939,
+   "parity_volume": 0.0013583675456594392,
+   "self_intersecting": true
+  },
+  {
+   "name": "container_system_sterilising_e01",
+   "triangles": 85800,
+   "signed_volume": 0.0033414875339947098,
+   "parity_volume": 0.0033442074042658518,
+   "self_intersecting": true
+  },
+  {
+   "name": "decor_candle_l01",
+   "triangles": 13856,
+   "signed_volume": 0.00017106391433309898,
+   "parity_volume": 0.00017084004987665753,
+   "self_intersecting": true
+  },
+  {
+   "name": "equipment_bench_vise_a01",
+   "triangles": 106162,
+   "signed_volume": 0.0024735541962423147,
+   "parity_volume": 0.0025729285866962375,
+   "self_intersecting": true
+  },
+  {
+   "name": "fixture_cabinet_a01",
+   "triangles": 483180,
+   "signed_volume": 0.05797835764264444,
+   "parity_volume": 0.0587020395787749,
+   "self_intersecting": true
+  },
+  {
+   "name": "food_processed_cannedFood_k01",
+   "triangles": 13140,
+   "signed_volume": 0.0004857659437762794,
+   "parity_volume": 0.0004848016522061268,
+   "self_intersecting": true
+  },
+  {
+   "name": "kitchenware_knife_b01",
+   "triangles": 7660,
+   "signed_volume": 0.00018517522301773567,
+   "parity_volume": 0.00020118579098101,
+   "self_intersecting": true
+  },
+  {
+   "name": "storage_shelf_basic_a01",
+   "triangles": 1326754,
+   "signed_volume": 0.225409095363323,
+   "parity_volume": 0.057597677540416045,
+   "self_intersecting": true
+  },
+  {
+   "name": "suspension_control_arm_rearward_left_a01",
+   "triangles": 21066,
+   "signed_volume": 7.088730153448545e-05,
+   "parity_volume": 7.056094312794267e-05,
+   "self_intersecting": true
+  },
+  {
+   "name": "tape_clear_a01",
+   "triangles": 2816,
+   "signed_volume": 0.00017114356058180668,
+   "parity_volume": 0.00017170125663061055,
+   "self_intersecting": true
+  },
+  {
+   "name": "storage_shelf_basic_c01",
+   "triangles": 457760,
+   "signed_volume": 0.027647314900281165,
+   "parity_volume": 0.04399684774373911,
+   "self_intersecting": true
+  }
+ ]
+}
