@@ -796,3 +796,47 @@ inside a 10 s window), but the night does not rely on that.
 
 **What I decided next.** The night runs again with both fixes in it: the
 lease-lock sweep (`e3e83ce`) and the ComfyUI ownership.
+
+## 2026-11-01 17:07 — the night starts again, with both fixes in it
+
+```
+[night] 17:07:39 the night begins; box: {'ts': '2026-11-01T17:07:39-09:00', 'load1': 3.82, 'MemTotal': 122.8, 'MemAvailable': 110.8}
+[night] 17:07:39 lease sweep: 0 numbered lock files, none stale (start d1-3B llama-server)
+[night] 17:07:39 queueing for a thor-admit lease (night-v4.d1, peak 40G: start d1-3B llama-server)
+[night] 17:07:39 got the thor-admit lease after 0 s (start d1-3B llama-server)
+[night] 17:07:41 d1-3B serving on :8295 (pid 61659, peak RSS 784 MB)
+[night] 17:07:41 lease sweep: 0 numbered lock files, none stale (start d1-2B llama-server)
+[night] 17:07:41 got the thor-admit lease after 0 s (start d1-2B llama-server)
+[night] 17:07:43 d1-2B serving on :8296 (pid 61773, peak RSS 786 MB)
+[night] 17:07:43 lease sweep: 0 numbered lock files, none stale (the night's heavy phase: ComfyUI, the world's renders, the props)
+[night] 17:07:43 got the thor-admit lease after 0 s (the night's heavy phase: ComfyUI, the world's renders, the props)
+[night] 17:07:43 ComfyUI started by the night: pid 61833 (log /home/caseydigennaro/lm-wt/trellis/logs/comfy_server.log)
+[night] 17:07:49 ComfyUI ready
+[night] 17:07:49 free after the loads: 105.4 GB
+[night] 17:07:49 asking the routed decoy cell on this box's d1-3B
+```
+
+Three leases, all `thor-admit`, all admitted in **0 s**, 105.4 GB free after
+the loads. The sweep found nothing to clear (the box was clean — the
+`agent-world` seat's server had already released the file it held). The
+night's ComfyUI is its own child: `ps` shows pid 61833's parent is 61554,
+the runner, and the daemon's status shows the heavy lease (now 3.3 G, saw
+7.0 G) accounting for it — which is what the guard's rule asks for.
+
+**The routed cell, asked on this box tonight** (240 steps, the fixed
+recorder's states): accuracy **0.5208**, decoy-first **0.561**, truth-first
+0.5, gates: act 59, escalate 0, surfaced 181, latency p50 **0.046 s** —
+the same numbers as the published §9.4 run (0.5208, act 59, surfaced 181,
+46.5 ms), measured on the night's own server.
+
+**The prior, fitted on the night's own measured objects:** 38 reference
+members, 22 groups, the largest holding 7, the ghost gate at 0.05. A group
+of n cannot score below 0.5/(n+1), so the gate needs ten members in a
+group and **cannot fire on this fit** — the night's approved set is empty,
+so the prior is fitted on the measured real objects alone. That is recorded
+in the log and it is a fact about tonight, not a claim about the prior.
+
+**The box under the night.** The `crafter-lab` seat ran a deliberate guard
+test at 17:08 (`thor-admit-hog`, a 45 GB allocation) and the guard stopped
+it: `guard.gone … name "thor-admit-hog"`. The night's own processes were
+not touched.
