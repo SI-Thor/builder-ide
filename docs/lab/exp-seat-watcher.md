@@ -106,6 +106,23 @@ Rates need a *contiguous* history: the window ends at any gap larger than 30 s,
 so no rate is ever computed across a daemon restart or across the box going
 down.
 
+**Correction (2026-11-01, from the seat-watch-live experiment).** The scripts
+also build a sixth gate, `abplus`, labelled "level+rate+telemetry-dark" in
+`scripts/gates.py`. **That gate runs no level condition at all.** The level
+block is guarded by `if which in ("a", "ab"):` (`scripts/gates.py:260`), and
+`abplus` is not in that tuple, so the gate labelled "level+rate+telemetry-dark"
+is the rate gate plus the telemetry-dark condition — `bplus` under another
+name. The committed artefact shows it: `data/events.json` gives `abplus`
+**77** speeches and its condition set is exactly `bplus`'s, while `ab` has 95.
+The gate the label names has 101 (its `ab`'s 95 plus the 6 telemetry-dark
+events).
+
+This does not change any number in this note: the tables in §2.1 do not list
+`abplus`, and `RESULT.json`'s `abplus` row is the score of the gate that
+actually ran. The defect is in the artefact, not in the measurement. It was
+found by replaying the recorded day through an independent engine
+(`docs/lab/exp-seat-watch-live.md` §4.3) and comparing speech by speech.
+
 ### 1.4 The labels
 
 13 episodes, 8 kinds, hand-extracted from `TEAM.md`, the Thor's
@@ -188,11 +205,24 @@ exhaustion. That is the whole reason the stricter rule is reported.
 | E10 | hung-seat | 10:45 | 11:47 | 11:21:33 | clients lost | +25.4 | +25.4 |
 | E11 | API timeouts (Wi-Fi) | 11:49 | 13:07 | 11:52:30 | 26 aborts / 5 min | **+74.5** | +74.5 |
 | E12 | quota-exhausted | 14:20 | 14:38 | 14:22:43 | clients lost | +15.3 | +15.3 |
-| E13 | disk under floor | 14:58 | 15:10 | 15:03:35 | disk falling 55 GB/h | +6.4 | +6.4 |
+| E13 | disk under floor | 14:58 | 15:10 | 15:03:35 | disk falling ~~55 GB/h~~ **-29.0 GB/h** (corrected 2026-11-01, see the note under the table) | +6.4 | +6.4 |
 
 (The E03 row is the Alaska fold: 01:23:13 AKST is 10:23 UTC, which is 55 minutes
 *after* the 09:28 UTC onset, although the local clock reads earlier. All
 comparisons are in epoch seconds.)
+
+**Correction (2026-11-01, from the seat-watch-live experiment).** The E13 row
+above said "disk falling 55 GB/h". That number is not in the data. The lab's
+own committed event for that speech —
+`docs/lab/seat-watcher/data/events.json`, the `disk_falling_fast` event at
+`t=1793577815` (15:03:35) — says **-29.0 GB/h**, and that is the value the
+scorer used. The steepest of the day's three `disk_falling_fast` speeches is
+**-53.2 GB/h** (at 16:01:59); 55 appears nowhere in the committed events. The
+episode's own label file agrees with the smaller figure: `labels.py` records
+the board's own coarse series for the same fall as "32G free at 14:58:57 ->
+21G at 15:14:25 (-42.6 GB/h)", which is the board's whole-GB rounding, not
+the gate's 15-minute slope. Nothing else in the table changes: the gate still
+spoke at 15:03:35 and still led the director by 6.4 minutes.
 
 The same table for the level gate (a): it catches E03, E09, E10 and E13 only -
 **4 episodes**, of which E13 (disk under 30 GB) it catches 5.4 min before the
