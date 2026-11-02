@@ -194,12 +194,16 @@ class StallSignal(Signal):
 
 class SuccessSignal(Signal):
     """**Success rate falling** — the agent's win rate against its own
-    reference rate.
+    reference rate, one-sided.
 
     §3.4: "the rate over a window falls below the agent's own
     baseline". The value is the *drop*: the reference rate minus this
-    window's rate, so a positive number means "worse than this agent
-    normally is".
+    window's rate, **floored at zero** — an agent at or above its own
+    reference has no badness, however it moved. (Superseded: the
+    value was signed until 2026-11-02, negative while the agent beat
+    its reference; the rate gate then fired on a rise from far above
+    the reference to slightly above it — an improving agent — and the
+    alarm read "the success rate rose", 06:45 UTC on the live world.)
 
     The rate is pooled over the trailing ``signal_lookback_buckets``
     windows, not over one window: a rate over five plays is noise, and
@@ -235,7 +239,16 @@ class SuccessSignal(Signal):
                 if baseline is None or scored < config.min_scored_plays:
                     points.append(SignalPoint(bucket.start, agent, None))
                     continue
-                points.append(SignalPoint(bucket.start, agent, baseline - wins / scored))
+                # One-sided: an agent at or above its own reference has
+                # no badness, full stop. The signed form this replaces
+                # let the rate gate fire on a *rise from far above the
+                # reference to slightly above it* — an improving agent
+                # whose rate was still beating its baseline — and the
+                # alarm then read "the success rate rose" (2026-11-02
+                # 06:45 UTC, Pebble, on the live world).
+                points.append(
+                    SignalPoint(bucket.start, agent, max(0.0, baseline - wins / scored))
+                )
         return points
 
     @staticmethod

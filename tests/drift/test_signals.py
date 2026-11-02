@@ -71,11 +71,32 @@ def test_the_success_signal_is_the_drop_below_the_agents_own_rate(
     assert values
     # The agent wins for the first half of the run and stops winning in
     # the second. The drop is the reference rate minus this window's
-    # rate, so it is negative while the agent beats its own reference
-    # and positive once it stops winning.
-    assert min(values) <= 0
+    # rate, floored at zero: windows at or above the reference read 0
+    # (no badness, however the rate moved inside that zone — an
+    # improving agent must never alarm), and the decline reads positive
+    # once the agent stops winning.
+    assert min(values) == 0
     assert max(values) > 0
     assert values[-1] > values[0]
+
+
+def test_an_agent_above_its_own_reference_has_no_badness(
+    declining_ledger: Path,
+) -> None:
+    """The one-sided floor, at the seam the live world hit.
+
+    Pebble's 2026-11-02 06:45 alarm fired on a *rise from far above the
+    reference to slightly above it* — an improving agent, alarmed. The
+    floor makes every at-or-above-reference window exactly 0, so the
+    rate gate's rise across them is 0 too and cannot fire.
+    """
+    series = build_series(declining_ledger, bucket_seconds=300)
+    config = DriftConfig(min_scored_plays=1)
+    points = SuccessSignal().compute(series, config, _reference(series))
+    above = [p.value for p in points if p.scope == "Kite" and p.value is not None]
+    assert above
+    assert all(value >= 0 for value in above)
+    assert min(above) == 0
 
 
 def test_an_agent_at_its_own_baseline_has_no_drop(steady_ledger: Path) -> None:
