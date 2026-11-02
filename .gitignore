@@ -61,3 +61,18 @@ tools/posestream/target/
 
 # The autopilot study clone (READ-ONLY research copy; never built)
 third_party/
+
+# The Voyager port's private Minecraft sandbox: a copy of the Paper
+# server directory with its own world and its own port (25600). It is a
+# re-creatable runtime tree, not source — the script that makes it is
+# docs/lab/voyager-port-scripts/setup_mc_sandbox.sh.
+mc-sandbox/
+
+# The Voyager port's run outputs. The run's raw state — the log, the
+# ledger and the skill bodies — is not the evidence; the report and the
+# run.json beside it are.
+docs/lab/voyager-port-scripts/results/*.log
+docs/lab/voyager-port-scripts/results/*.sqlite3
+docs/lab/voyager-port-scripts/results/*.sqlite3-shm
+docs/lab/voyager-port-scripts/results/*.sqlite3-wal
+docs/lab/voyager-port-scripts/results/bodies/
