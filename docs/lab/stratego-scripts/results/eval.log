@@ -1,0 +1,49 @@
+thor-admit: "stratego.eval" waited 284.5s for room (it was 3 of 3 in the queue)
+thor-admit: "stratego.eval" admitted after 284.496s (peak 8.0G, floor 25.0G)
+<frozen importlib._bootstrap>:488: FutureWarning: pybind11-bound class 'pystratego.StrategoConf' is using an old-style placement-new '__init__' which has been deprecated. See the upgrade guide in pybind11's docs. This message is only visible when compiled in debug mode.
+<frozen importlib._bootstrap>:488: FutureWarning: pybind11-bound class 'pystratego.StrategoRolloutBuffer' is using an old-style placement-new '__init__' which has been deprecated. See the upgrade guide in pybind11's docs. This message is only visible when compiled in debug mode.
+/home/caseydigennaro/lm-wt/stratego/third_party/stratego/.venv/lib/python3.12/site-packages/wandb/sdk/launch/builder/build.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+arrangements: 1000 red / 1000 blue
+[µstratego:1793603862.769|>INFO] [stratego.cu:073] =========================================================
+[µstratego:1793603862.769|>INFO] [stratego.cu:074] =                        µSTRATEGO                      =
+[µstratego:1793603862.769|>INFO] [stratego.cu:075] =                      Rollout Buffer                   =
+[µstratego:1793603862.769|>INFO] [stratego.cu:076] =========================================================
+[µstratego:1793603862.769|>INFO] [stratego.cu:077] Env configuration
+[µstratego:1793603862.769|>INFO] [stratego.cu:078]   * Buffer size              : 4290 rows  x  128 envs
+[µstratego:1793603862.769|>INFO] [stratego.cu:079]   * Float dtype              : Float
+[µstratego:1793603862.769|>INFO] [stratego.cu:080]   * CUDA device              : 0
+[µstratego:1793603862.769|>INFO] [stratego.cu:081]   * Compilation mode         : RELEASE (ASSERTS)
+[µstratego:1793603862.769|>INFO] [stratego.cu:082]   * Move memory              : 86
+[µstratego:1793603862.769|>INFO] [stratego.cu:083]   * Max num moves            : 4000
+[µstratego:1793603862.769|>INFO] [stratego.cu:084]   * Reset behavior           : RANDOM_JB_CLASSIC_BOARD
+[µstratego:1793603862.801|>INFO] [stratego.cu:143] ---------------------------------------------------------
+[µstratego:1793603862.801|>INFO] [stratego.cu:144] CUDA allocations
+[µstratego:1793603862.801|>INFO] [stratego.cu:145]   * legal_action_mask                :    0.2304 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:146]   * board_state_tensor               :   18.1760 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:147]   * move_summary_history_tensor      :    0.0660 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:148]   * infostate_tensor                 :   22.5792 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:149]   * reward_pl0                       :    0.0005 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:150]   * is_unknown_piece                 :    0.0128 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:151]   * piece_type_onehot                :    0.1792 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:152]   * two_square_rule_applies          :    0.0001 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:153]   * distrib_                         :    0.9216 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:154]   * init_offset_red_                 :    2.1965 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:155]   * init_offset_blue_                :    2.1965 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:156]   * private_action_mask_             :    0.2304 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:157]   * d_boards_                        : 1054.3104 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:158]   * d_zero_boards_                   : 1054.3104 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:159]   * d_num_moves_                     :    2.1965 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:160]   * d_num_moves_since_last_attack_   :    2.1965 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:161]   * d_num_moves_since_reset_         :    2.1965 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:162]   * d_terminated_since_              :    0.5491 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:163]   * d_flag_captured_                 :    0.5491 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:164]   * d_has_legal_movement_            :    0.5491 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:165]   * d_twosquare_state_red_           :    2.1965 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:166]   * d_init_twosquare_state_red_      :    0.0005 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:167]   * d_twosquare_state_blue_          :    2.1965 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:168]   * d_init_twosquare_state_blue_     :    0.0005 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.cu:169]   * d_action_history_                :    2.1965 MBytes
+[µstratego:1793603862.801|>INFO] [stratego.     ema_vs_random:   256W     0L     0T (win 1.000 / loss 0.000 / tie 0.000)  mean reward +1.0000  [239.7s, 1 games/s]
+ weights_vs_random:   256W     0L     0T (win 1.000 / loss 0.000 / tie 0.000)  mean reward +1.0000  [216.4s, 1 games/s]
+thor-admit: "stratego.eval" finished with signal 15 (peak RSS 1.6G)

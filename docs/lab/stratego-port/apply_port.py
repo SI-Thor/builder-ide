@@ -184,6 +184,40 @@ set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")""",
     "--expt-relaxed-constexpr restored for nvcc (needed by PyTorch 2.15's CUB)",
 )
 
+# --- 8. pyengine/utils/helper.py: NVML does not exist on the Thor. -----------
+# The trainer logs a GPU-memory counter every iteration (RL.log_stats,
+# pyengine/core/rl.py:386 -> utils.get_gpumem_usage_gb()). That helper asks
+# NVML for the device's used memory. On the Jetson Thor, NVML is not
+# supported: nvidia-smi reports "Not Supported" for memory, and
+# nvmlDeviceGetMemoryInfo raises NVMLError_NotSupported. The exception is not
+# caught, so the *first* log_stats() after the first iteration kills the run -
+# the training itself is fine, the counter is not.
+#
+# The fallback is this process's own reserved GPU memory. On the Thor that is
+# the better number anyway: the GPU memory IS the system memory, so a
+# device-wide "used" figure counts other seats' work as ours.
+change(
+    "pyengine/utils/helper.py",
+    """def get_gpumem_usage_gb():
+    handle = nvmlDeviceGetHandleByIndex(0)
+    mem = nvmlDeviceGetMemoryInfo(handle)
+    return mem.used / (2**30)""",
+    """def get_gpumem_usage_gb():
+    # Thor port: NVML is not supported on the Jetson Thor (nvidia-smi reports
+    # "Not Supported" for memory), so nvmlDeviceGetMemoryInfo raises
+    # NVMLError_NotSupported and takes the whole training run down at the first
+    # log_stats(). Fall back to this process's own reserved GPU memory, which
+    # is the meaningful number here anyway: on the Thor the GPU memory IS the
+    # system memory, so NVML's device-wide "used" counts other seats' work.
+    try:
+        handle = nvmlDeviceGetHandleByIndex(0)
+        mem = nvmlDeviceGetMemoryInfo(handle)
+        return mem.used / (2**30)
+    except Exception:
+        return torch.cuda.memory_reserved() / (2**30)""",
+    "the GPU-memory counter degrades gracefully when NVML is unsupported",
+)
+
 
 def main() -> int:
     if len(sys.argv) != 2:

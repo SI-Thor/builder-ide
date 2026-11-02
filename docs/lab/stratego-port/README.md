@@ -13,13 +13,13 @@ the port is tracked, the upstream tree is not. Upstream commit: `92db29e`.
 
 | file | what it is |
 |---|---|
-| `apply_port.py` | the seven edits, applied as exact string replacements |
+| `apply_port.py` | the eight edits, applied as exact string replacements |
 | `build_thor.sh` | configure + build the extension on the Thor |
 | `run_ctest.sh` | the upstream ctest suite (45 cases) — the port's correctness gate |
 | `time_one_test.sh` | time one ctest case alone, to separate "the port is slow" from "the box is busy" |
 | `ctest.log` | the log of the last full run |
 
-## The seven changes
+## The eight changes
 
 `apply_port.py` refuses to continue if an anchor string is missing, so it is
 idempotent and loud: re-running it on an already-ported checkout prints
@@ -34,6 +34,7 @@ idempotent and loud: re-running it on an already-ported checkout prints
 | 5 | `CMakeLists.txt` | quote the arguments of the `message()` calls | an empty value must not abort cmake ("message called with incorrect number of arguments") |
 | 6 | `CMakeLists.txt` | C++20 for both the host compiler and nvcc | PyTorch >= 2.6 refuses anything older (`#error C++20 or later compatible compiler is required`) |
 | 7 | `CMakeLists.txt` | restore `--expt-relaxed-constexpr` for nvcc | upstream wipes Torch's CUDA flags, and PyTorch 2.15's bundled CUB calls `constexpr __host__` functions from device code |
+| 8 | `pyengine/utils/helper.py` | the GPU-memory counter degrades gracefully when NVML is unsupported | **NVML does not exist on the Thor.** The trainer logs a GPU-memory counter every iteration (`pyengine/core/rl.py:386`), and `nvmlDeviceGetMemoryInfo` raises `NVMLError_NotSupported` - uncaught, so the first `log_stats()` after the first iteration killed the training run. The fallback is this process's own reserved GPU memory, which is the better number here anyway: the GPU memory *is* the system memory |
 
 ## How to run it
 

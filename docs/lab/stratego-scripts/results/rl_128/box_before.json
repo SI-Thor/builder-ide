@@ -1,0 +1,8 @@
+{
+  "label": "before",
+  "loadavg": "29.54 24.66 20.20 28/1417 2670369",
+  "mem_available_kb": "97307564",
+  "nproc": "14",
+  "gpu": "NVIDIA Thor, 26 %, [N/A];",
+  "top_cpu": "%CPU| 505| 412| 107| 38.5| 38.4| "
+}

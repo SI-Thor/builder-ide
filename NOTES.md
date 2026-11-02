@@ -2353,3 +2353,96 @@ land, which none of the port's seven changes touch. `test_replay_games` and
 `test_save_games` failed on `ModuleNotFoundError: No module named 'msgpack'`;
 msgpack is in upstream's `environment.yml` but was missing from the venv, so it
 is now installed with `uv pip install --no-deps` and both are re-run.
+## 2026-11-01 23:15 — stratego: the three measurements, the gate's five failures, and the report
+
+What changed — (1) The port gained an **eighth** change, and it was the one
+that stopped the RL run from ever finishing. The trainer logs a GPU-memory
+counter every iteration (`RL.log_stats`, `pyengine/core/rl.py:386` ->
+`utils.get_gpumem_usage_gb()`), and that helper asks NVML for the device's used
+memory. **NVML does not exist on the Jetson Thor**: `nvidia-smi` reports "Not
+Supported" for memory and `nvmlDeviceGetMemoryInfo` raises
+`NVMLError_NotSupported`. The exception is not caught, so the *first*
+`log_stats()` after the first iteration killed the run - the training was fine,
+the counter was not. The fix falls back to this process's own reserved GPU
+memory, which is the better number on this box anyway, since the GPU memory IS
+the system memory and NVML's device-wide "used" would count other seats' work
+as ours. (2) `docs/lab/exp-stratego.md` — the report, with the numbers and the
+box state beside them. (3) The results are committed under
+`docs/lab/stratego-scripts/results/`.
+
+What happened — the three measurements the brief asks for:
+
+**(a) One RL iteration at `--num_envs 128`.** The trainer's own counter:
+**58.21 s** for the first iteration and **34.90 s** for the second, against
+upstream's "10-20 s on an RTX A6000". The first iteration pays for cuDNN
+autotuning and the first-touch allocations (its `train` step is 18.59 s
+against 4.85 s afterwards), so 34.90 s is the steady state. The breakdown is
+the trainer's own stopwatch: rollout 26.97 s, train 4.85 s,
+update_arrangements 2.78 s, prep_data 0.06 s, arr_train 0.23 s. The rollout
+is where the time goes, and it is **the policy, not the environment**: iteration
+2 made 51,456 env steps in 26.97 s, and the environment alone does 35,862
+env-steps/s at batch 128, so the environment's share is about 1.4 s of those
+27 s. The rest is the transformer forward and the per-step `.item()` calls,
+which force a GPU sync every step. **Caveat, and it is a real one: the box was
+never quiet.** Load average 29.54 / 24.66 / 20.20 on 14 cores before the run,
+with two other seats' processes at 505% and 412% CPU. The honest statement is
+"34.90 s per iteration on a Thor sharing its CPU with other jobs", not "the
+Thor is 3x slower than an A6000".
+
+**(b) The pretrained model against a random policy.** **256 games, 256 wins, 0
+losses, 0 draws** - a 1.000 win rate - with both the EMA weights
+(`model42400.pthm`) and the raw weights (`model42400.pthw`), against the
+environment's own uniform sampler over legal actions, over the checkpoint's own
+1000 arrangements, 128 games per seat. The control (EMA against itself, which
+should score about 0) was **not** completed: it was still running when the two
+matchups the brief asks for had finished, and it was holding the GPU lease
+that measurement (a) was queued behind, so it was stopped. It is not claimed.
+
+**(c) Env steps/s.** Batch 128: **35,862 env-steps/s** (27.885 us per
+env-step) for the environment alone, 33,301 with the infostate observation.
+Batch 1024: **281,482 env-steps/s** (3.553 us per env-step), 145,614 with the
+infostate. The 7.8x improvement *per game* from 128 to 1024 is the batch-size
+effect the study predicts: the step is one thread per game, so at 128 games
+the Thor's GPU is not filled and the step is launch-latency-bound rather than
+work-bound. **4096 was not measured**: that configuration needs 6.26 GB of GPU
+memory (the env's own allocation table - `d_boards_` 2013 MB,
+`d_zero_boards_` 2013 MB, `d_illegal_chase_actions_` 881 MB, plus the
+observation tensors) and the box's GPU pool would not give it; the
+constructor returned and the process then wedged in uninterruptible sleep
+holding the allocation. That is a capacity result and it is reported as one.
+
+**The correctness gate.** The upstream ctest suite finished: **40 of 45
+passed (89%)**, 5708 s wall clock. The five failures are now all accounted
+for, and none of them is the port's:
+
+- `test_replay_games` and `test_save_games` failed on
+  `ModuleNotFoundError: No module named 'msgpack'` - msgpack is in upstream's
+  `environment.yml` but was not in the venv. After `uv pip install
+  --no-deps msgpack`: **test_replay_games OK (237.4 s)** and **test_save_games
+  OK (24.8 s)**. The latter only core-dumped when five tests ran at once on a
+  contended GPU; run alone it passes.
+- `test_env_state`, `test_magnet_policy` and `test_twosquare_rule` abort at
+  **the same line**, `pyengine/core/env.py:99`, inside `Stratego.__init__` ->
+  `pystratego.StrategoRolloutBuffer(...)` -> `ParseStrategoConf(kwargs)`
+  (`src/pybind.cc:188`). All three pass `custom_inits=` to the constructor, but
+  the upstream API's parameter is `initial_arrangements`
+  (`src/pybind.cc:42`), and an unknown key is answered with
+  `MUSTRATEGO_FATAL("Unrecognized configuration key %s")`
+  (`src/pybind.cc:52`), which aborts. `custom_inits` appears nowhere in
+  `pyengine/`. It is a stale name in three upstream test files and one
+  upstream script, and it would fail identically on upstream's own x86_64 /
+  CUDA 11.8 build.
+
+So the gate reads **42 of 45 passing, 3 failing, and all three failures are the
+same upstream defect**. The port itself has no failing case.
+
+Decided next — nothing. The brief's three items are done: the study
+(`docs/research/stratego.md`), the port with its measurements
+(`docs/lab/exp-stratego.md`), and the design (`docs/design/batched-sim.md`).
+The next build is not this seat's: the design's first build is the drift
+simulator in `core/sim/systems/drift/`, and the first thing it needs is a
+bit-for-bit check against the Python reference in `core/drift/`. Two things
+from this session are worth carrying forward: the GPU pool's largest free block
+is the number to size a workload against on this box (not the free system
+memory), and `nvidia-smi` can block in uninterruptible sleep here, so nothing
+that runs on the Thor should depend on it.
