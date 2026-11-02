@@ -17,7 +17,7 @@ def main() -> int:
     adapter = MinecraftAdapter(log=lambda m: print("adapter:", m, flush=True))
     adapter.open()
     time.sleep(15)
-    for radius in (16, 48, 96):
+    for radius in (16, 48, 96, 160):
         started = time.time()
         code = "const r = await mc.scan(%d);\nconsole.log('n=' + Object.keys(r.nearby).length);\n" % radius
         result = adapter.run_code(code, timeout_s=180)

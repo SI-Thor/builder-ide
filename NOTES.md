@@ -2326,3 +2326,29 @@ smokes (`results/crafter-smoke-1..5/`, `results/pilot-0.5h/`).
 Nothing was left running: the sandbox server stays up under its lease
 for the next seat's probes, the runs are done. Decided next: nothing
 started — the brief's measurement is taken, the doc names the levers.
+
+## 2026-11-02 — round 2: the two levers pulled, the runs started
+
+The director's round-2 note (BRIEF.md): pull the two named levers and
+measure — Minecraft's facts scan 96 -> 160 with three 2 h runs for
+repeats, Crafter's spatial fact with a run until skills are admitted;
+release the sandbox lease at the end. The levers went in first, each
+with its safety number, committed before any run:
+
+- **scan 160 costs nothing**: probe_scan_cost.py (which now measures
+  160) reads 0.02 s at 160 against 0.03 s at 16, world as the round-1
+  run left it — the repaired single-walk scan made the reach free.
+  The adapter's facts now scan 160 (`minecraft.py`).
+- **the crafter spatial fact**: nearest of each resource/creature in
+  the LocalView window the pixels render (9x8, player centred), in
+  the move primitives' own direction words with |dx|+|dy| moves, plus
+  facing and the faced tile — `crafter.py`; a sample: facing down,
+  grass in front, cow "4 right (4 moves)", tree "4 left, 3 up (7
+  moves)". The teacher stays privileged (whole grid); this is the
+  pixels' own information in words. 32 tests pass (28 before).
+
+Decided next: run 1 on the round-1 seed (`voyager-port`, fresh world
+from spawn), then two new seeds (`voyager-port-r2b`, `-r2c`); the
+crafter run starts in parallel and runs until skills are admitted or
+its budget stops it. Outputs under `results/mc160-{a,b,c}/` and
+`results/crafter-r2/`, one directory per run, so the ledgers never mix.
