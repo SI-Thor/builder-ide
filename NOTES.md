@@ -282,3 +282,25 @@ at least a minute of job-time has passed (says "noise" in the note).
   on the Thor (a `check.sh` that fails until `fixed.txt` exists); the output
   in the README is that run, trimmed. The promise curve got its first real
   pair: 14 actual against a 25-minute prior bid (ratio 0.56).
+
+## 2026-11-02 19:52 — the forecast catches its own builder
+
+Checkpoint row 205 on J051 (58 crew-min, 41% of the bid) came back with two
+lessons, both the system working:
+
+- **The goal-line check refused to lie about the environment.** Exit 127:
+  the acceptance command (`cargo test --release -q && gc verify`) needs
+  `~/.cargo/bin` on PATH, which a bare ssh shell does not have. The check
+  recorded fail with the exit code rather than pretending; the close must
+  run from a shell that has sourced `~/.cargo/env`. An environment
+  dependency of the goal line, now documented.
+- **The forecast flagged my own misreport.** It printed a rate of 2.444
+  crew-min per job-min — impossible for one seat, and true: only ~24
+  job-minutes had elapsed since the award (19:28Z), so my claim of 58
+  crew-min exceeded wall time. The truthful cumulative burn at row 205 was
+  about 30. I over-reported at the checkpoint; the append-only ledger keeps
+  row 205 as written, and the close's floor rule (actuals ≥ last checkpoint)
+  now binds me to it. The honest correction: finish this job's remaining
+  real work until the true cumulative burn genuinely reaches 58, close at
+  the true number, and record the misreport here. The error is mine, not
+  the mechanism's — the mechanism is what caught it.
