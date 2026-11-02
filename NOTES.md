@@ -2270,3 +2270,44 @@ the TTL short.
 
 Decided next — the lab note (exp-drift-pause.md), the README rows
 already in, then the full suite and the closing commit.
+
+## 2026-11-01 23:35 — drift-pause #3 closed: the lab note, the suites, the state of both repos
+
+What was done — the lab note is `docs/lab/exp-drift-pause.md`: the
+mechanism (the event, the schema change, the censoring, the pause's two
+doors), the before/after on the same thresholds and the same span of
+world, the two corrections of the earlier note written as corrections
+(the §5 mechanism story; the "seams wired" claim that the closed set
+would have rejected), and what is not verified (the live world has not
+written a yield event yet — the running reflex predates the change and
+its runtime imports builder-ide from main, which gets the closed-set
+change only when this branch merges; the world-side behaviour is
+pinned by agent-world/tests/test_drift_yield.py, 13 checks).
+
+The suites — tests/drift: 70 passed, 0.4 s (core-api venv). The blast
+radius of the shared-set change (night, daytime, tiles, judge, recipe
+ledger, drift): 810 passed, 25 s in a uv venv (/tmp/dp-venv, hard-linked
+installs); the 2 failures in tests/night/test_night_v3_ledger_payloads.py
+fail identically on the untouched build-#2 tree with the same venv —
+the venv's, not the change's. The full monorepo suite needs
+seat-specific envs (mujoco, pxr, dash) and was not the runner here;
+that is the same posture as build #2.
+
+Committed on drift-pause: `119d5fa` (the ledger gap closed at both
+ends), `7f68b8a` (the backfill and the before/after), `bf100d7` (the
+pause wired to action), and this note's commit. On agent-world:
+`9862541` (the reflex's two doors + its test) — only my three files;
+the other seat's uncommitted bots/ work was left untouched and is
+still moving.
+
+What is left, and the risks — the yield events and the pause file go
+live when this branch merges to main **and** the reflex restarts (a
+human's call; nothing here restarts anything); until then the negative
+control's independent version is unmeasured (the backfill shares a
+source with the labels — plumbing, not discovery). The thor-admit door
+has never fired in anger (no presence entry matches the default map);
+a first live use should be a watched `--enforce` on one labelled entry.
+The hang's one-window-later onset is one event, an anecdote and not a
+latency distribution. /tmp/dp-venv was removed after the runs; no
+process was left running by this seat (checked with pgrep before each
+measurement; nothing of ours is running now).
