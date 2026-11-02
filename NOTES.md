@@ -2203,3 +2203,17 @@ plan needs Casey's approval and his TypeSafe + Anthropic keys.
 sits in every seat's worktree; it is already fixed on this branch —
 `fd9d776` "the integration suite is serial by default, and its waits no longer
 assume a quiet box" (round 8, item 4) is an ancestor of HEAD. Nothing to do.
+## 2026-11-01 20:25 — nitrogen-study: clone, read, report
+
+**What I tried.** Cloned MineDojo/NitroGen --depth 1 into third_party/nitrogen (gitignored), read the full codebase (nitrogen.py, serve.py, play.py, game_env.py, inference_session.py, mm_tokenizers.py, cfg.py, modules.py), read the LICENSE, read arXiv:2601.02427 (paper abstract and README), read related docs: watching-teachers.md, exp-crafter-lab.md, autopilot.md, tools/d1dec/README.md. No model download, no serve run, no training.
+
+**What happened.** The repo is a 500M DiT flow-matching model (SigLIP-Large vision, 16-step denoising, 25-dim gamepad action horizon 16). Serve.py is a Linux ZMQ REP server; play.py is a Windows-only client using dxcam + vgamepad + xspeedhack. Dataset construction code is not in the repo — the paper says assembled exclusively from internet videos but the tokenizer expects pre-labelled gamepad actions. Licence is NVIDIA non-commercial research only (Section 3.3: research only, no military/surveillance/nuclear/biometric).
+
+**Key findings for our docs/design:**
+- watching-teachers.md: NitroGen trains on ALL frames (not curated teaching moments). exp-crafter-lab.md already proved random subset beats curated moments at fixed compute — NitroGen's scale follows that principle.
+- autopilot.md: NitroGen is a pure system-1 reflex (single-frame, no memory, 16-action chunk). Fits under system-2 harness (Jev/our judge) as the fast executor. Our d1-2B is faster (32 ms vs ~60-100 ms est.) and local; NitroGen brings gamepad-native multi-game coverage.
+- Size on Thor: ~4 GB lease for serve.py, ~12 GB combined with d1-2B.
+
+**What I decided next.** Wrote report to docs/research/nitrogen.md. Hands-on plan: download ng.pt to ~/models/nitrogen/, serve under thor-admit (4 GB lease), play Celeste from Windows client (needs ViGEmBus, HF token). Linux stand-in available if Windows box not ready.
+
+**Box state:** Thor idle, 122 GB unified memory, no leases held by this seat. Clone only, no GPU work.
