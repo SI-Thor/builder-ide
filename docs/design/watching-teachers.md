@@ -47,10 +47,43 @@ The first test of the teaching-moment filter (`docs/lab/exp-crafter-lab.md`, Cra
 | random frames, same count | 3,757 | **2.25** |
 | PPO alone, 131k steps | – | 1.125 |
 
-The moments beat "all frames", but a random subset of the same size beats the moments: at a fixed
+The moments beat "all frames", but ~~a random subset of the same size beats the moments~~ (the
+8-seed round-2 test did **not** replicate this; see "Measured, 2026-11-02"): at a fixed
 budget, the gain came from fewer frames (more gradient passes per frame), not from which frames.
-Action agreement with the teacher did not track score either. Until a test at a larger budget, with a
+Action agreement with the teacher did not track score either. ~~Until a test at a larger budget, with a
 memoryful student, says otherwise, the ladder's "demonstration" step should keep a random-subset
-control, and score students on per-skill decisive frames, not overall agreement.
+control, and score students on per-skill decisive frames, not overall agreement.~~
+**Superseded, 2026-11-02** — that test now ran; see the last section below (old text kept visible).
 Also see `docs/lab/exp-sleep-dreaming.md`: one policy trained on all demonstrations risks erasing old
 skills (measured next in exp-refit-drift).
+
+## Measured, 2026-11-02 (round 2: bigger budget, memoryful student, 8 seeds)
+
+The test the 2026-11-01 caveat asked for ran on the ProArt: 3 frame selections x 2
+students x 2 gradient budgets x 8 seeds, canonical 10000-step eval episodes, 8 held-out
+seeds. Full table, intervals and contrasts live with the experiment, in
+`/home/proart/lm-wt/crafter-r2/docs/exp-crafter-r2.md` (numbers not copied here).
+What changes in this note:
+
+1. **Moments ≈ random at a small budget; all frames win at 3x.** At the round-1
+   budget both subsets beat all frames and do not differ from each other; with 3x
+   the gradient budget all frames beat both subsets by ~1.8 achievements and the
+   subsets improve not at all. Subsampling is a compute-limited shortcut (more
+   passes per frame), not better lesson selection: the "demonstration" step should
+   use **all** frames when the fine-tune budget allows it (this box: ~30 passes per
+   frame), and subsample only under a tight budget — where a random subset does as
+   well as the surprise filter and is cheaper.
+2. **Surprise+good-outcome is a label, not a data filter.** It kept 98.8 % of the
+   decisive frames (nearly vacuous), and students trained on it memorized exactly
+   that selection (decisive-frame action agreement 0.989-1.000) while stalling at
+   ~1.2 achievements and 0.16 agreement elsewhere. Keep it to say which moment
+   mattered; do not let it decide what the weights see.
+3. **Flip the measure.** Per-decisive-frame agreement is gameable (it saturates while
+   competence stalls); overall agreement on the teacher's states tracked score
+   (r = 0.65 across the 12 arms). So "retire the teacher" must key on agreement over
+   **held-out** frames or the student's own visitation — a memorizing student would
+   otherwise silence its teacher and fail.
+4. **Memory and clone ceiling.** A 16-frame GRU student changed no score in 6 paired
+   contrasts (4-8.5x training cost; unverified for long streams), so the reflex can
+   stay memoryless here; and the best clone reached 38 % of the teacher, so keep
+   retiring skill by skill rather than expecting full distillation from recordings.
