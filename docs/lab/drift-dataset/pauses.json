@@ -1,0 +1,398 @@
+{
+ "meta": {
+  "mode": "rate",
+  "thresholds": {
+   "stall": {
+    "enter": 10.0,
+    "level_exit": 0.0
+   },
+   "success": {
+    "enter": 0.2,
+    "level_exit": 0.0
+   },
+   "errors": {
+    "enter": 0.8,
+    "level_exit": 0.0
+   },
+   "spend": {
+    "enter": 0.5,
+    "level_exit": 0.0
+   }
+  },
+  "generated_at": "2026-11-02T04:26:24Z",
+  "alarms": 37,
+  "hours": 22.667
+ },
+ "alarms": [
+  {
+   "at": 1793514000.0,
+   "iso": "2026-11-01T06:20:00Z",
+   "signal": "errors",
+   "agent": "",
+   "level": "tier",
+   "value": 1.0,
+   "fed": 1.0,
+   "reason": "the world: the decision model's refusal rate moved to 1.000 \u2014 the world's work yields"
+  },
+  {
+   "at": 1793527200.0,
+   "iso": "2026-11-01T10:00:00Z",
+   "signal": "success",
+   "agent": "Pebble",
+   "level": "soft",
+   "value": -0.4692697444011226,
+   "fed": 0.3102981029810297,
+   "reason": "Pebble: the success rate rose 0.469 against its own reference rate"
+  },
+  {
+   "at": 1793534400.0,
+   "iso": "2026-11-01T12:00:00Z",
+   "signal": "spend",
+   "agent": "Pebble",
+   "level": "tier",
+   "value": 1.546175055721632,
+   "fed": 0.5495288821179147,
+   "reason": "Pebble: the cost per decision moved to 1.55x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793534400.0,
+   "iso": "2026-11-01T12:00:00Z",
+   "signal": "spend",
+   "agent": "Sprout",
+   "level": "tier",
+   "value": 1.9049597828118592,
+   "fed": 0.801085996491494,
+   "reason": "Sprout: the cost per decision moved to 1.90x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793546100.0,
+   "iso": "2026-11-01T15:15:00Z",
+   "signal": "spend",
+   "agent": "Kite",
+   "level": "tier",
+   "value": 1.5377158116079042,
+   "fed": 0.8085365367865252,
+   "reason": "Kite: the cost per decision moved to 1.54x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793546100.0,
+   "iso": "2026-11-01T15:15:00Z",
+   "signal": "spend",
+   "agent": "Sprout",
+   "level": "tier",
+   "value": 1.416714799577329,
+   "fed": 0.5834588301876004,
+   "reason": "Sprout: the cost per decision moved to 1.42x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793546700.0,
+   "iso": "2026-11-01T15:25:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "soft",
+   "value": 1.9112785576772984,
+   "fed": 0.8654338247915478,
+   "reason": "Timber: the cost per decision moved to 1.91x its own reference"
+  },
+  {
+   "at": 1793548500.0,
+   "iso": "2026-11-01T15:55:00Z",
+   "signal": "success",
+   "agent": "Pebble",
+   "level": "soft",
+   "value": -0.2773505524819307,
+   "fed": 0.5454545454545454,
+   "reason": "Pebble: the success rate rose 0.277 against its own reference rate"
+  },
+  {
+   "at": 1793549700.0,
+   "iso": "2026-11-01T16:15:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "soft",
+   "value": 3.170846621340244,
+   "fed": 1.3590140227206964,
+   "reason": "Timber: the cost per decision moved to 3.17x its own reference"
+  },
+  {
+   "at": 1793551200.0,
+   "iso": "2026-11-01T16:40:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "soft",
+   "value": 1.8998302889225946,
+   "fed": 1.0284722036874219,
+   "reason": "Timber: the cost per decision moved to 1.90x its own reference"
+  },
+  {
+   "at": 1793555700.0,
+   "iso": "2026-11-01T17:55:00Z",
+   "signal": "errors",
+   "agent": "",
+   "level": "tier",
+   "value": 1.0,
+   "fed": 0.9064748201438849,
+   "reason": "the world: the decision model's refusal rate moved to 1.000 \u2014 the world's work yields"
+  },
+  {
+   "at": 1793556600.0,
+   "iso": "2026-11-01T18:10:00Z",
+   "signal": "spend",
+   "agent": "Sprout",
+   "level": "tier",
+   "value": 0.8646540736513695,
+   "fed": 0.6967931727689837,
+   "reason": "Sprout: the cost per decision moved to 0.86x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793556600.0,
+   "iso": "2026-11-01T18:10:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "tier",
+   "value": 1.0026765568172011,
+   "fed": 1.0026765568172011,
+   "reason": "Timber: the cost per decision moved to 1.00x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793556900.0,
+   "iso": "2026-11-01T18:15:00Z",
+   "signal": "spend",
+   "agent": "Kite",
+   "level": "tier",
+   "value": 1.9974597490916195,
+   "fed": 1.2409995989162712,
+   "reason": "Kite: the cost per decision moved to 2.00x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793556900.0,
+   "iso": "2026-11-01T18:15:00Z",
+   "signal": "spend",
+   "agent": "Pebble",
+   "level": "tier",
+   "value": 2.6816117365094976,
+   "fed": 1.935847613659944,
+   "reason": "Pebble: the cost per decision moved to 2.68x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793560500.0,
+   "iso": "2026-11-01T19:15:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "soft",
+   "value": 1.7298356483577184,
+   "fed": 0.5140438214548202,
+   "reason": "Timber: the cost per decision moved to 1.73x its own reference"
+  },
+  {
+   "at": 1793562000.0,
+   "iso": "2026-11-01T19:40:00Z",
+   "signal": "stall",
+   "agent": "Kite",
+   "level": "tier",
+   "value": 262.0,
+   "fed": 260.5,
+   "reason": "Kite: the trailing worst gap jumped to 262.0x its own median gap \u2014 the world's work yields"
+  },
+  {
+   "at": 1793562000.0,
+   "iso": "2026-11-01T19:40:00Z",
+   "signal": "stall",
+   "agent": "Pebble",
+   "level": "tier",
+   "value": 14.971428571428572,
+   "fed": 14.314285714285715,
+   "reason": "Pebble: the trailing worst gap jumped to 15.0x its own median gap \u2014 the world's work yields"
+  },
+  {
+   "at": 1793562000.0,
+   "iso": "2026-11-01T19:40:00Z",
+   "signal": "stall",
+   "agent": "Sprout",
+   "level": "tier",
+   "value": 23.454545454545453,
+   "fed": 22.363636363636363,
+   "reason": "Sprout: the trailing worst gap jumped to 23.5x its own median gap \u2014 the world's work yields"
+  },
+  {
+   "at": 1793563500.0,
+   "iso": "2026-11-01T20:05:00Z",
+   "signal": "spend",
+   "agent": "Pebble",
+   "level": "soft",
+   "value": 1.7724533442825707,
+   "fed": 1.2598404918727346,
+   "reason": "Pebble: the cost per decision moved to 1.77x its own reference"
+  },
+  {
+   "at": 1793564400.0,
+   "iso": "2026-11-01T20:20:00Z",
+   "signal": "errors",
+   "agent": "",
+   "level": "tier",
+   "value": 0.8571428571428571,
+   "fed": 0.8571428571428571,
+   "reason": "the world: the decision model's refusal rate moved to 0.857 \u2014 the world's work yields"
+  },
+  {
+   "at": 1793568900.0,
+   "iso": "2026-11-01T21:35:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "soft",
+   "value": 1.6673723436937327,
+   "fed": 1.6673723436937327,
+   "reason": "Timber: the cost per decision moved to 1.67x its own reference"
+  },
+  {
+   "at": 1793570100.0,
+   "iso": "2026-11-01T21:55:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "soft",
+   "value": 1.1275174393755147,
+   "fed": 0.727389151634385,
+   "reason": "Timber: the cost per decision moved to 1.13x its own reference"
+  },
+  {
+   "at": 1793570400.0,
+   "iso": "2026-11-01T22:00:00Z",
+   "signal": "spend",
+   "agent": "Pebble",
+   "level": "soft",
+   "value": 1.3306375455934962,
+   "fed": 0.7931021566361809,
+   "reason": "Pebble: the cost per decision moved to 1.33x its own reference"
+  },
+  {
+   "at": 1793574000.0,
+   "iso": "2026-11-01T23:00:00Z",
+   "signal": "success",
+   "agent": "Sprout",
+   "level": "soft",
+   "value": -0.3145999666046172,
+   "fed": 0.4897752239310462,
+   "reason": "Sprout: the success rate rose 0.315 against its own reference rate"
+  },
+  {
+   "at": 1793576400.0,
+   "iso": "2026-11-01T23:40:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "soft",
+   "value": 1.6792742907756046,
+   "fed": 0.6723758599703669,
+   "reason": "Timber: the cost per decision moved to 1.68x its own reference"
+  },
+  {
+   "at": 1793577300.0,
+   "iso": "2026-11-01T23:55:00Z",
+   "signal": "success",
+   "agent": "Sprout",
+   "level": "soft",
+   "value": -0.47820955289461586,
+   "fed": 0.4103396603396604,
+   "reason": "Sprout: the success rate rose 0.478 against its own reference rate"
+  },
+  {
+   "at": 1793577600.0,
+   "iso": "2026-11-02T00:00:00Z",
+   "signal": "spend",
+   "agent": "Timber",
+   "level": "soft",
+   "value": 1.5949584851460172,
+   "fed": 0.5289401670481706,
+   "reason": "Timber: the cost per decision moved to 1.59x its own reference"
+  },
+  {
+   "at": 1793578800.0,
+   "iso": "2026-11-02T00:20:00Z",
+   "signal": "stall",
+   "agent": "Sprout",
+   "level": "tier",
+   "value": 19.731818181818184,
+   "fed": 18.51,
+   "reason": "Sprout: the trailing worst gap jumped to 19.7x its own median gap \u2014 the world's work yields"
+  },
+  {
+   "at": 1793578800.0,
+   "iso": "2026-11-02T00:20:00Z",
+   "signal": "spend",
+   "agent": "Kite",
+   "level": "tier",
+   "value": 2.589959042600817,
+   "fed": 0.9419254277474833,
+   "reason": "Kite: the cost per decision moved to 2.59x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793578800.0,
+   "iso": "2026-11-02T00:20:00Z",
+   "signal": "spend",
+   "agent": "Pebble",
+   "level": "tier",
+   "value": 2.8749914014390003,
+   "fed": 1.4699724627231283,
+   "reason": "Pebble: the cost per decision moved to 2.87x its own reference \u2014 the world's work yields"
+  },
+  {
+   "at": 1793579400.0,
+   "iso": "2026-11-02T00:30:00Z",
+   "signal": "success",
+   "agent": "Sprout",
+   "level": "soft",
+   "value": -0.4201869303558643,
+   "fed": 0.5245161290322581,
+   "reason": "Sprout: the success rate rose 0.420 against its own reference rate"
+  },
+  {
+   "at": 1793580600.0,
+   "iso": "2026-11-02T00:50:00Z",
+   "signal": "stall",
+   "agent": "Kite",
+   "level": "tier",
+   "value": 193.0,
+   "fed": 185.42000000000002,
+   "reason": "Kite: the trailing worst gap jumped to 193.0x its own median gap \u2014 the world's work yields"
+  },
+  {
+   "at": 1793580600.0,
+   "iso": "2026-11-02T00:50:00Z",
+   "signal": "stall",
+   "agent": "Pebble",
+   "level": "tier",
+   "value": 11.657142857142857,
+   "fed": 10.056,
+   "reason": "Pebble: the trailing worst gap jumped to 11.7x its own median gap \u2014 the world's work yields"
+  },
+  {
+   "at": 1793580600.0,
+   "iso": "2026-11-02T00:50:00Z",
+   "signal": "stall",
+   "agent": "Sprout",
+   "level": "tier",
+   "value": 17.636363636363637,
+   "fed": 13.007272727272728,
+   "reason": "Sprout: the trailing worst gap jumped to 17.6x its own median gap \u2014 the world's work yields"
+  },
+  {
+   "at": 1793587200.0,
+   "iso": "2026-11-02T02:40:00Z",
+   "signal": "errors",
+   "agent": "",
+   "level": "tier",
+   "value": 1.0,
+   "fed": 1.0,
+   "reason": "the world: the decision model's refusal rate moved to 1.000 \u2014 the world's work yields"
+  },
+  {
+   "at": 1793588700.0,
+   "iso": "2026-11-02T03:05:00Z",
+   "signal": "stall",
+   "agent": "Sprout",
+   "level": "soft",
+   "value": 27.136363636363637,
+   "fed": 20.035,
+   "reason": "Sprout: the trailing worst gap jumped to 27.1x its own median gap"
+  }
+ ]
+}
