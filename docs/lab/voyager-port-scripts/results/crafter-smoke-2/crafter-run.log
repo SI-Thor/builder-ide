@@ -1,0 +1,6 @@
+[01:24:20] the run starts: world=crafter hours=0.25 max_steps=20 max_tokens=400000
+[01:24:20] the roles: planner=XiaomiMiMo/MiMo-V2.6-Pro coder=Qwen/Qwen3.8-27B verifier=Qwen/Qwen3.8-Max
+[01:24:21] the crafter world is open
+[01:25:29] step 1: goal=collect_wood verdict=DENIED truth=False disposition=rejected tokens=4969
+s open
+[01:25:29] step 1: goal=collect_wood verdict=DENIED truth=False disposition=rejected tokens=4969

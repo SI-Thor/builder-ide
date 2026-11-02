@@ -1,0 +1,33 @@
+var energy = 0;
+var i;
+for (i = 0; i < 9; i++) {
+  mc.act("consume_energy", 1);
+  energy = mc.achievements().energy;
+  if (energy > 0) break;
+}
+if (energy <= 0) {
+  console.log("Failed to restore energy.");
+  throw new Error("Energy not restored.");
+}
+
+var dirs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]];
+var found = false;
+var d;
+var s;
+var a;
+
+for (d = 0; d < dirs.length && !found; d++) {
+  for (s = 1; s <= 8 && !found; s++) {
+    mc.move(dirs[d][0] > 0 ? "east" : dirs[d][0] < 0 ? "west" : dirs[d][1] > 0 ? "south" : "north", s);
+    a = mc.act("chop_tree", 1);
+    if (a > 0) found = true;
+  }
+}
+
+if (!found) {
+  console.log("No tree found nearby.");
+  throw new Error("No tree found.");
+}
+
+mc.act("pick_up_wood", 1);
+console.log("Chopped a tree and picked up wood.");

@@ -1,0 +1,57 @@
+const directions = ['north','south','east','west','up','down','left','right','forward','back','N','S','E','W'];
+const actions = ['energy','use_energy','consume_energy','drink','eat','food','health','chop','chop_tree','hit_tree','break_tree','mine','break','hit','attack','interact','use','pickup','pick_up','pick','take','collect','gather','grab','loot'];
+
+let energyUsed = false;
+for (const a of ['energy','use_energy','consume_energy']) {
+  try {
+    mc.act(a, 1);
+    energyUsed = true;
+    break;
+  } catch (e) {}
+}
+
+let found = false;
+let wood = false;
+
+for (let r = 0; r < 8 && !found; r++) {
+  for (let dx = -r; dx <= r && !found; dx++) {
+    for (let dy = -r; dy <= r && !found; dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+
+      let moved = false;
+      for (const d of directions) {
+        try {
+          if (dx > 0) mc.move(d, dx);
+          else if (dx < 0) mc.move(d, -dx);
+          if (dy > 0) mc.move(d, dy);
+          else if (dy < 0) mc.move(d, -dy);
+          moved = true;
+          break;
+        } catch (e) {}
+      }
+
+      if (!moved && (dx !== 0 || dy !== 0)) continue;
+
+      for (const a of actions) {
+        try {
+          mc.act(a, 1);
+          found = true;
+          break;
+        } catch (e) {}
+      }
+
+      if (found) {
+        for (const p of ['pickup','pick_up','pick','take','collect','gather','grab','loot','interact','use']) {
+          try {
+            mc.act(p, 1);
+            wood = true;
+            break;
+          } catch (e) {}
+        }
+        break;
+      }
+    }
+  }
+}
+
+console.log('energy_used=' + energyUsed + ' wood_collected=' + wood);

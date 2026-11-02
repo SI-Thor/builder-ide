@@ -1,0 +1,31 @@
+const LOG_TYPES=['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log','pale_oak_log'];
+function heldLogs(){let n=0;for(const t of LOG_TYPES){const c=mc.count(t);n+=(c&&c.count)||0;}return n;}
+function logTypesIn(nearby){const out=[];for(const name of Object.keys(nearby||{})){if(LOG_TYPES.includes(name))out.push(name);}return out;}
+function tryMineType(t){
+  const approach=mc.move_to_block(t,128,60000);
+  if(approach&&approach.block&&typeof approach.block.x==='number'&&typeof approach.block.y==='number'&&typeof approach.block.z==='number'){
+    mc.look_at(approach.block.x,approach.block.y,approach.block.z);
+    for(let i=0;i<32;i++){
+      const mine=mc.mine_block(t,16,1);
+      const collect=mc.collect(t,64,16);
+      if((mine&&mine.mined>0)||(collect&&collect.collected>0)||heldLogs()>0) return true;
+    }
+  }
+  return heldLogs()>0;
+}
+if(heldLogs()>0){console.log('Already holding wood.');}
+if(heldLogs()===0){
+  let x=41.4,z=1.3,y=66;
+  for(let step=1;step<=48;step++){
+    const targetZ=z-step*8;
+    const move=mc.move_to(x,y,targetZ,30000);
+    if(move&&move.at&&typeof move.at.x==='number') x=move.at.x;
+    if(move&&move.at&&typeof move.at.y==='number') y=move.at.y;
+    if(move&&move.at&&typeof move.at.z==='number') z=move.at.z;
+    const scan=mc.scan(160);
+    const types=logTypesIn((scan&&scan.nearby)||{});
+    for(const t of types){if(tryMineType(t))break;}
+    if(heldLogs()>0) break;
+  }
+}
+if(heldLogs()>0){console.log('Wood collected.');}else{console.log('No wood collected.');throw new Error('No wood collected.');}

@@ -1,0 +1,36 @@
+const logTypes = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log','pale_oak_log'];
+
+let target = null;
+let scan = await mc.scan(160);
+let nearby = (scan && scan.nearby) || {};
+let candidates = Object.keys(nearby).filter((n) => n.endsWith('_log') && !n.startsWith('stripped'));
+if (candidates.length > 0) {
+  candidates.sort((a, b) => {
+    const pa = logTypes.includes(a) ? 0 : 1;
+    const pb = logTypes.includes(b) ? 0 : 1;
+    return pa - pb || (nearby[b] || 0) - (nearby[a] || 0);
+  });
+  target = candidates[0];
+}
+
+if (!target) {
+  for (const t of logTypes) {
+    const r = await mc.move_to_block(t, 128, 60000);
+    if (r && r.block && !r.problem) {
+      target = t;
+      break;
+    }
+  }
+}
+
+if (!target) {
+  console.log('No log block found.');
+  throw new Error('No log block found.');
+}
+
+const approach = await mc.move_to_block(target, 128, 60000);
+const mine = await mc.mine_block(target, 16, 64);
+const collect = await mc.collect(target, 64, 16);
+const have = await mc.count(target);
+
+console.log(`Mined ${target}: mined=${mine.mined || 0}, collected=${collect.collected || 0}, have=${have.count || 0}.`);

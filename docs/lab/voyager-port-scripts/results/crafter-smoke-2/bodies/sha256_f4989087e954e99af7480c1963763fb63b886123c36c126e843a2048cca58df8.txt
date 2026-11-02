@@ -1,0 +1,30 @@
+let energyAction = null;
+for (const candidate of ["use_energy", "energy", "consume_energy", "eat_energy", "drink_energy", "restore_energy"]) {
+  mc.act(candidate, 1);
+  energyAction = candidate;
+  break;
+}
+for (let i = 0; i < 8; i += 1) {
+  mc.act(energyAction, 1);
+}
+const dirs = ["north", "east", "south", "west"];
+let done = false;
+for (let radius = 1; radius <= 24 && !done; radius += 1) {
+  for (const dir of dirs) {
+    for (let step = 0; step < radius && !done; step += 1) {
+      mc.move(dir, 1);
+      mc.act("chop_tree", 1);
+      mc.act("pick_up_wood", 1);
+      const ach = mc.achievements();
+      if (ach.wood === true || ach.wood_collected === true || ach.collect_wood === true) {
+        done = true;
+      }
+    }
+  }
+}
+if (done) {
+  console.log("Collected wood.");
+} else {
+  console.log("Failed to collect wood.");
+  throw new Error("Failed to collect wood.");
+}

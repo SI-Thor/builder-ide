@@ -1,0 +1,55 @@
+const energyActions = ["use_energy", "eat_energy", "drink_energy", "consume_energy", "energy"];
+let restored = false;
+for (const action of energyActions) {
+  try {
+    const steps = mc.act(action, 1);
+    if (steps > 0) {
+      restored = true;
+      console.log(`Restored energy with ${action}`);
+      break;
+    }
+  } catch (e) {
+    // try next known energy action
+  }
+}
+if (!restored) {
+  console.log("No energy action succeeded");
+}
+
+const chopActions = ["chop_tree", "chop", "cut_tree", "harvest_tree", "gather_wood"];
+let chopped = false;
+for (const action of chopActions) {
+  try {
+    const steps = mc.act(action, 1);
+    if (steps > 0) {
+      chopped = true;
+      console.log(`Chopped a tree with ${action}`);
+      break;
+    }
+  } catch (e) {
+    // try next known chop action
+  }
+}
+if (!chopped) {
+  console.log("No chop action succeeded");
+}
+
+const pickupActions = ["pick_up_wood", "pick_up", "collect_wood", "collect", "take_wood"];
+let picked = false;
+for (const action of pickupActions) {
+  try {
+    const steps = mc.act(action, 1);
+    if (steps > 0) {
+      picked = true;
+      console.log(`Picked up wood with ${action}`);
+      break;
+    }
+  } catch (e) {
+    // try next known pickup action
+  }
+}
+if (!picked) {
+  console.log("No pickup action succeeded");
+}
+
+console.log(`Energy restored: ${restored}, tree chopped: ${chopped}, wood picked up: ${picked}`);

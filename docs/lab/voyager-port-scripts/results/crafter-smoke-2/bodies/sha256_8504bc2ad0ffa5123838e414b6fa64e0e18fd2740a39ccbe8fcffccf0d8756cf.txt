@@ -1,0 +1,78 @@
+const LOG_TYPES = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log','pale_oak_log'];
+
+function logCount() {
+  let total = 0;
+  for (const t of LOG_TYPES) {
+    const c = mc.count(t);
+    total += (c && c.count) || 0;
+  }
+  return total;
+}
+
+function logTypesInNearby(nearby) {
+  const found = [];
+  for (const name of Object.keys(nearby || {})) {
+    if (name.endsWith('_log') && !name.startsWith('stripped')) found.push(name);
+  }
+  return found;
+}
+
+function tryGetWood(types) {
+  for (const t of types) {
+    const mine = mc.mine_block(t, 64, 64);
+    const collect = mc.collect(t, 64, 16);
+    const have = mc.count(t);
+    if ((mine && mine.mined > 0) || (collect && collect.collected > 0) || (have && have.count > 0)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function approachAndMine(types) {
+  for (const t of types) {
+    const approach = mc.move_to_block(t, 128, 60000);
+    if (approach && approach.block) {
+      if (tryGetWood([t])) return true;
+    }
+  }
+  return false;
+}
+
+let scan = mc.scan(160);
+let nearby = (scan && scan.nearby) || {};
+let types = logTypesInNearby(nearby);
+
+if (types.length > 0 && approachAndMine(types)) {
+  console.log('Wood collected from a nearby tree.');
+  if (logCount() > 0) process.exit(0);
+}
+
+const startX = 41.4;
+const startZ = 1.3;
+const y = 66;
+const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+
+for (let step = 1; step <= 24; step++) {
+  const dist = step * 8;
+  for (const [dx, dz] of dirs) {
+    const targetX = startX + dx * dist;
+    const targetZ = startZ + dz * dist;
+    const move = mc.move_to(targetX, y, targetZ, 60000);
+    if (!move || !move.at) continue;
+
+    scan = mc.scan(160);
+    nearby = (scan && scan.nearby) || {};
+    types = logTypesInNearby(nearby);
+
+    if (types.length > 0) {
+      if (approachAndMine(types)) {
+        console.log('Wood collected after walking to a tree.');
+        if (logCount() > 0) process.exit(0);
+      }
+    }
+  }
+}
+
+console.log('No wood collected.');
+throw new Error('No wood collected.');

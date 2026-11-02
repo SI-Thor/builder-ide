@@ -1,0 +1,29 @@
+energy_actions = ["energy", "use_energy", "consume", "eat_energy", "drink_energy", "restore_energy"]
+restored = False
+for action in energy_actions:
+    try:
+        mc.act(action, 1)
+    except ValueError:
+        continue
+    if mc.achievements().get("energy", 0) > 0:
+        restored = True
+        break
+if not restored:
+    print("Energy was not restored.")
+    raise RuntimeError("Energy not restored")
+
+found = False
+for direction in ["north", "east", "south", "west"]:
+    for steps in range(1, 13):
+        mc.move(direction, steps)
+        if mc.act("chop_tree", 1) > 0:
+            found = True
+            break
+    if found:
+        break
+if not found:
+    print("No tree was found.")
+    raise RuntimeError("No tree found")
+
+mc.act("pick_up_wood", 1)
+print("Collected wood.")

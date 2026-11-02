@@ -1,0 +1,6 @@
+const before = mc.achievements();
+const drank = mc.act('drink_energy', 1);
+const chopped = mc.act('chop_tree', 1);
+const picked = mc.act('pick_up_wood', 1);
+const after = mc.achievements();
+console.log(`Drank energy: ${drank}, chopped tree: ${chopped}, picked wood: ${picked}, goal: ${after.collect_wood === true}`);

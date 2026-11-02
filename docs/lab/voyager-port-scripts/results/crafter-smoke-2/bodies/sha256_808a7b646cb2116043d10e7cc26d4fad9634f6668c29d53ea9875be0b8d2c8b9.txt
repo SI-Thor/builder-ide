@@ -1,0 +1,35 @@
+const logNames = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log'];
+const isLog = (n) => n.endsWith('_log') && !n.startsWith('stripped');
+const prefer = (n) => logNames.includes(n) ? 0 : 1;
+
+let found = null;
+let scan = await mc.scan(128);
+let nearby = scan.nearby || {};
+let candidates = Object.keys(nearby).filter(isLog).sort((a, b) => prefer(a) - prefer(b) || (nearby[b] || 0) - (nearby[a] || 0));
+if (candidates.length > 0) found = candidates[0];
+
+if (!found) {
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+  for (const [dx, dz] of dirs) {
+    for (let step = 1; step <= 12 && !found; step++) {
+      const move = await mc.move_to(41.4 + dx * step * 4, 66, 1.3 + dz * step * 4, 8000);
+      if (move && move.why && /fail|timeout|error/i.test(String(move.why))) break;
+      scan = await mc.scan(128);
+      nearby = scan.nearby || {};
+      candidates = Object.keys(nearby).filter(isLog).sort((a, b) => prefer(a) - prefer(b) || (nearby[b] || 0) - (nearby[a] || 0));
+      if (candidates.length > 0) found = candidates[0];
+    }
+  }
+}
+
+if (!found) {
+  console.log('No log block found while exploring.');
+  throw new Error('No log block found while exploring.');
+}
+
+const approach = await mc.move_to_block(found, 128, 30000);
+const mine = await mc.mine_block(found, 16, 64);
+const collect = await mc.collect(found, 64, 16);
+const have = await mc.count(found);
+
+console.log(`Mined ${found}: mined=${mine.mined || 0}, collected=${collect.collected || 0}, have=${have.count || 0}.`);

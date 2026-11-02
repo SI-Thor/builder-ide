@@ -1,0 +1,4 @@
+const before = mc.achievements();
+const taken = mc.act('drink', 1);
+const after = mc.achievements();
+console.log('Drank 1 energy item; steps taken: ' + taken + '; energy restored: ' + (after.energy !== before.energy));

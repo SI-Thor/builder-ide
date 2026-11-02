@@ -1,0 +1,85 @@
+const LOG_TYPES = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log','pale_oak_log'];
+
+function heldLogs() {
+  let total = 0;
+  for (const t of LOG_TYPES) {
+    const c = mc.count(t);
+    total += (c && c.count) || 0;
+  }
+  return total;
+}
+
+function logTypesIn(nearby) {
+  const found = [];
+  for (const name of Object.keys(nearby || {})) {
+    if (LOG_TYPES.includes(name)) found.push(name);
+  }
+  return found;
+}
+
+function tryGetWood(types) {
+  for (const t of types) {
+    const approach = mc.move_to_block(t, 128, 60000);
+    if (approach && approach.block) {
+      for (let i = 0; i < 8; i++) {
+        const mine = mc.mine_block(t, 64, 64);
+        const collect = mc.collect(t, 64, 64);
+        if ((mine && mine.mined > 0) || (collect && collect.collected > 0) || heldLogs() > 0) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+if (heldLogs() > 0) {
+  console.log('Already holding wood.');
+}
+
+if (heldLogs() === 0) {
+  let scan = mc.scan(160);
+  let nearby = (scan && scan.nearby) || {};
+  let types = logTypesIn(nearby);
+  if (types.length > 0 && tryGetWood(types)) {
+    console.log('Wood collected from a tree already in reach.');
+  }
+}
+
+if (heldLogs() === 0) {
+  const startX = 41.4;
+  const startZ = 1.3;
+  let y = 66;
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+
+  for (let r = 1; r <= 80; r++) {
+    const dist = r * 16;
+    for (const [dx, dz] of dirs) {
+      const targetX = startX + dx * dist;
+      const targetZ = startZ + dz * dist;
+      const move = mc.move_to(targetX, y, targetZ, 60000);
+      if (move && move.at) {
+        if (move.at.y) y = move.at.y;
+      }
+
+      scan = mc.scan(160);
+      nearby = (scan && scan.nearby) || {};
+      types = logTypesIn(nearby);
+
+      if (types.length > 0 && tryGetWood(types)) {
+        console.log('Wood collected after walking outward to a tree.');
+        break;
+      }
+
+      if (heldLogs() > 0) break;
+    }
+    if (heldLogs() > 0) break;
+  }
+}
+
+if (heldLogs() > 0) {
+  console.log('Wood collected.');
+} else {
+  console.log('No wood collected.');
+  throw new Error('No wood collected.');
+}
