@@ -665,3 +665,121 @@ Until that is run, the live copy is the round-12 text: it says the flock is
 only for when the daemon is gone, which is true, but it does not say that
 `flock ... thor-admit run ...` is the wrong order, and it does not mention
 `--lock`.
+
+## 2026-11-01 18:05 — round 13, item 0: the guard sees the GPU, and the numbers the director ran become the defaults
+
+Three changes, committed as `cc97802`:
+
+1. **The guard now sees GPU bytes.** The candidate ranking is
+   `rss_bytes + gpu_bytes`, from the merged per-process view
+   (`src/gpu.rs`). The new integration test
+   `the_guard_sees_a_process_by_its_gpu_bytes` is the one the brief asked
+   for: a 6 GiB CUDA allocation (`tests/cuda_probe.cu`, compiled with
+   `/usr/local/cuda/bin/nvcc -O2`) held by a process with a 68 MiB resident
+   set and no lease, against a scripted floor. The daemon stops it by its
+   GPU bytes, and the kernels OOM killer fires 0 times.
+
+## 2026-11-01 18:05 — round 13, item 0: the guard sees the GPU, and the numbers the director ran become the defaults
+
+Three changes, committed as `cc97802`:
+
+1. **The guard now sees GPU bytes.** The candidate ranking is
+   `rss_bytes + gpu_bytes`, from the merged per-process view
+   (`src/gpu.rs`). The new integration test
+   `the_guard_sees_a_process_by_its_gpu_bytes` is the one the brief asked
+   for: a 6 GiB CUDA allocation (`tests/cuda_probe.cu`, compiled with
+   `/usr/local/cuda/bin/nvcc -O2`) held by a process with a 68 MiB resident
+   set and no lease, against a scripted floor. The daemon stops it by its
+   GPU bytes, and the kernel's OOM killer fires 0 times.
+2. **The director's numbers become the defaults**: `--emergency-floor`
+   8 GiB → 16 GiB, `--guard-drop` 8 GiB/10 s → 12 GiB/120 s. Both hangs on
+   2026-11-01 ran the 8 GiB floor; 16 GiB is early enough that the watchdog
+   still has living processes to stop. 12 GiB in 120 s is still far smaller
+   than the incident (94.5 GiB in 20 s) and far larger than ordinary
+   churn — the afternoon log carries seven `guard.unexplained_drop` lines
+   in 80 s (02:08:30Z–02:09:50Z) at 8 GiB/10 s, on a box that was merely
+   working.
+3. **The driver's view says when it goes quiet.** A query to the driver is
+   bounded by `timeout -s KILL 5` (the 16:10 hang showed a hung driver
+   never answers), the per-process view carries its own timestamp, and a
+   view older than 10 s is re-asked once; a stale ranking is kept rather
+   than dropped, and `daemon.gpu_stale` is logged at most once a minute.
+
+Suite state after these: 167 unit tests, 48 integration tests, on a box at
+load 18.
+
+## 2026-11-01 18:30 — what the suite hit on the shared box, and the list the floor path was reading
+
+`three_thirty_gigabyte_hogs_are_serialised` failed four runs in a row
+(02:07–02:19Z, 15:07–15:19 local) while the box was shared. Two separate
+causes, both visible in the logs:
+
+**The live daemon's guard was stopping the suite's hogs.** The suite
+leases its hogs to its own test daemon; to the live daemon they are
+unleased work, and a 30 GiB fault-in in under a second is the runaway
+shape. The live log carries 26 `guard.terminated` lines between 01:28:28Z
+and 02:55:14Z, of them 25 `thor-admit-hog` (all `trigger: runaway`, with
+60–100 GiB free on the box — the guard did not need the box to be short).
+The fix is the operator's mechanism, not code: `thor-admit-hog` was added
+to `~/.local/state/thor-admit/protected.txt` with the reason in a comment,
+and the running daemon picked it up without a restart at 02:58:24Z
+(`guard.protection` with the three patterns). After that line the live log
+has no hog stops.
+
+**The box was through a real crisis, 03:00–03:25Z.** The `serve.glide`
+lease (peak 62 277 025 792 B = 58.1 GiB) started and died `137` three
+times: 03:07:15Z at 17.4 GiB resident, 03:09:31Z at 22.8 GiB, 03:17:51Z
+at 26.6 GiB — each restart re-faulting while the box was already busy. The
+live guard stopped two `llama-server`s in the window (03:08:59Z and
+03:09:33Z; the second escalated to `guard.killed`, SIGKILL, after
+3 996 ms). Co-tenant movement in the same window: up to 34.4 GiB lost in a
+119.5 s window (03:07:18Z). That morning the previous daemon instance had
+seen the box at **32.8 MiB available** (01:16:41Z, 34 430 976 B). The
+hogs of the 3-hog test ran in and after that window; with the storm over
+(03:45Z) the same test passed, with its margin raised from 4 GiB to
+16 GiB (`HOG_MARGIN_GIB`) so ordinary churn is not misread as the second
+hog.
+
+**One daemon defect, found in this and fixed here: the floor path was
+deciding with a stale protection list.** The list is re-read on the
+guard's clock (every 2 s); the floor check runs every sample (250 ms).
+On 2026-11-02 the first floor breach of the day stopped the Qwen3-Coder
+`llama-server` (pid 7813) — the process the operator had put on the list
+minutes before, *because its lease had been lost in a daemon restart*.
+`watchdog_floor` now calls `read_protected` before it chooses (one
+metadata call until the file changes). The regression test,
+`the_floor_breach_reads_the_protection_list_before_it_charges`, scripts a
+box that is below the emergency floor from the first sample, protects
+everything on the box but one 2 GiB unleased hog, and asserts the hog is
+the only thing stopped. It runs in 0.32 s. It was not verified against
+the pre-fix binary, on purpose: the pre-fix failure mode is "the test
+daemon stops a real co-tenant", which is what the daemon exists to
+prevent doing.
+
+## 2026-11-01 18:55 — the suite green, and what a live deployment would need
+
+    test result: ok. 167 passed; 0 failed   (unit)
+    test result: ok. 50 passed; 0 failed; finished in 242.40s   (integration)
+
+on the box with the other seats' work running (Paper, two d1 servers,
+ComfyUI, `run_student.py`, the lm-soak build).
+
+**What a live deployment would need (not done from here):** the live
+daemon is `~/lm-tools/thor-admit`, built 2026-11-01 13:51, i.e. before
+`cc97802`, run with the director's explicit flags (`--emergency-floor
+16G --guard-drop 12G --guard-window-secs 120`). A restart of that daemon
+on the rebuilt binary is what makes the new defaults, the bounded driver
+query, the `daemon.gpu_stale` line, and the floor-path list re-read live.
+The call is the director's.
+
+**Not solved, recorded:** between 03:04 and 03:25Z, hog processes were
+sent SIGTERM by something that is not any `thor-admit` daemon (no event in
+either daemon's log at the moments of death) and not the kernel's OOM
+killer (dmesg and journal clean, tens of GiB free). The deaths cluster in
+the `serve.glide` crash-loop window. After the loop stopped, every hog
+run finished — including the suite's own three 30 GiB hogs in the green
+run of 03:45Z. A memory watcher or a seat script on this box is the
+standing suspect. The box runs auditd with logs under `/var/log/audit/`,
+but it has no rules (checked 03:48Z: `auditctl -l` is empty), so there is
+no standing way on the box to attribute a userspace `kill`; adding one is
+the standing recommendation, left to the operator.

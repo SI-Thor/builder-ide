@@ -2831,6 +2831,13 @@ impl Daemon {
     /// The box is below the emergency floor: something must give the memory
     /// back.
     fn watchdog_floor(&self, state: &mut State, procs: Option<&HashMap<i32, ProcInfo>>) {
+        // The operator's protection list, re-read before it is used to
+        // choose a victim: this path runs every sample, while the list is
+        // refreshed on the guard's own clock, and a floor breach decided
+        // with a stale list is a stop made with someone else's rules. The
+        // read is one metadata call until the file changes.
+        self.read_protected(state);
+
         // The largest lease, by what it holds of the box right now: its
         // resident set **and** the bytes the driver says it holds on the
         // GPU. A lease whose work put 20 GiB on the GPU holds a fifth of
