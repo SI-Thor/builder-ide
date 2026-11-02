@@ -1075,3 +1075,31 @@ part 2 (one line per arm/seed lands in
 `results/watching_teachers.log`; ~8.5 min per seed). When it finishes: run
 the two calibration scripts (the reference table for reading part 2), write
 section 7 of the note, commit the final state.
+
+
+## 2026-11-01 21:58 — resumed the seat: exp2 crashed in the last arm; fixed and re-running whole
+
+**What happened.** The previous seat's part-2 run (launched 19:44, lease
+`refit-drift.exp2`) had completed three of four arms — `seq`, `seq_replay`,
+`whole`, 3 seeds each — and then crashed entering `per_skill_heads`:
+`AttributeError: 'MlpExtractor' object has no attribute 'latent_dim'` (this
+SB3 build exposes `latent_dim_pi`). The JSON is written at the end, so the
+per-stage record was lost; what survives are the summary lines in
+`results/watching_teachers.log` (newest 0.382–0.459, old mean 0.311–0.502,
+overall 0.324–0.521, env 1.0–3.0, 464–1080 s per run; box under the lease,
+peak 2G).
+
+**What was done.** (1) `HeadStudent` now falls back to `latent_dim_pi`.
+(2) `_diag_calib.py` and `_diag_budget.py` had a broken absolute ProArt
+`sys.path` line (`/home/proart/…`); they now use `Path(__file__).parent`,
+so the scripts run on the Thor. (3) Smoke run verified the fix: latent 64,
+head to 17 actions, forward pass clean (lease peak RSS 357M). (4) Re-ran
+**all four arms** × 3 seeds, `--passes-per-stage 262144`, detached at 21:58
+AKST under the 2G lease — the first attempt's JSON being lost, the re-run is
+the canonical record; the log is `results/watching_teachers.run2.log`, the
+output `results/watching_teachers.json`. First attempt averaged ~11 min per
+run, so ~2 h expected.
+
+**Decided next.** When it finishes: run `_diag_calib.py` and
+`_diag_budget.py` (the calibration table for reading part 2), write section
+7 of `docs/lab/exp-refit-drift.md`, add the missing scripts README, commit.

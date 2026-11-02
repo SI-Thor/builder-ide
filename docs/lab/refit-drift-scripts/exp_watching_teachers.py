@@ -180,7 +180,8 @@ class HeadStudent:
         self.policy = policy
         self.device = device
         self.heads: dict[str, th.nn.Linear] = {}
-        self._latent_dim = policy.mlp_extractor.latent_dim
+        self._latent_dim = (getattr(policy.mlp_extractor, "latent_dim", None)
+            or policy.mlp_extractor.latent_dim_pi)
 
     def features(self, obs: np.ndarray) -> th.Tensor:
         arr = np.ascontiguousarray(np.asarray(obs, np.uint8))
