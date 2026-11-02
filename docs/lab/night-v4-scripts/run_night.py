@@ -135,6 +135,11 @@ TRELLIS_COMFY_MAIN = TRELLIS_ROOT / "ComfyUI" / "main.py"
 TRELLIS_EXTRA_PATHS = TRELLIS_ROOT / "extra_model_paths.yaml"
 TRELLIS_LOG = TRELLIS_ROOT / "logs" / "comfy_server.log"
 TRELLIS_PIDFILE = TRELLIS_ROOT / "logs" / "comfy_server.pid"
+
+#: Where ComfyUI keeps the pictures the executor uploads. The store records
+#: the name ComfyUI gave a picture, so a caller that opens a picture has to
+#: resolve it here (see ``NightPropCritic._score_picture``).
+TRELLIS_INPUT = TRELLIS_ROOT / "input"
 COMFY_URL = "http://127.0.0.1:8188"
 HEAVY_LOCK = Path.home() / "lm-wt" / "heavy.lock"
 #: The box's admission daemon (MEMORY-RULE): a lease before the spend, the
@@ -1200,9 +1205,17 @@ class NightPropCritic:
         image = self._store.image(request.id, seed)
         if image is None or not self._delegate:
             return scripted
+        # The store records the name ComfyUI gave the picture; ComfyUI
+        # keeps it in its own input directory. The delegate has to be
+        # given a path it can open — this is where all eighteen of
+        # tonight's delegate calls failed, with the picture's name and no
+        # directory.
+        picture = Path(image.path)
+        if not picture.is_absolute():
+            picture = TRELLIS_INPUT / picture
         try:
             probabilities, wall_s, usage = ask_d1(
-                self._delegate, image.path,
+                self._delegate, picture,
                 {name: CLASS_QUESTIONS[name] for name in IMAGE_CLASSES},
             )
         except Exception as exc:
@@ -1221,7 +1234,7 @@ class NightPropCritic:
         score = round(scripted.score * (1.0 - peak), 4)
         note = {
             "stage": "image", "task_id": task.id, "variant_id": variant.id,
-            "picture": image.path, "probabilities": probabilities,
+            "picture": str(picture), "probabilities": probabilities,
             "fired": sorted(fired), "peak_fired": peak, "gate": DELEGATE_GATE,
             "wall_s": round(wall_s, 3), "scripted_score": scripted.score,
             "score": score,
