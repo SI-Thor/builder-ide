@@ -2211,3 +2211,62 @@ running detached as the port's correctness gate; then the three measurements
 the brief asks for: one RL iteration at `--num_envs 128` against upstream's
 "10-20 seconds on an RTX A6000", the pretrained model against a random
 baseline over N games, and env steps/s at batch 128/1024/4096.
+## 2026-11-01 21:30 — stratego: the seat resumes after the WSL crash; the scripts are checked against upstream before they are trusted
+
+The ProArt's WSL crashed and killed the previous seat mid-task. What it left:
+commit `1afb7d8` (the study, the port, the design) and a half-finished ctest
+run that had reached 6 of 45 cases. Checked for a leftover copy before
+starting anything: `pgrep -af` found nothing of ours; the three leases on the
+box (`serve.qwen3-vl-8b`, `refit-drift.exp2`, `voyager-port.mc`) belong to
+other work and were left alone.
+
+What changed — (1) `docs/lab/stratego-port/README.md`, the directory README
+DOC-RULES.md asks for beside every script that produces a number: the seven
+port changes as a table (file, change, why), the three commands, and the
+deliberate choice to build with no `CMAKE_BUILD_TYPE` (upstream's own `make`
+does the same, so the device asserts stay in and the timing stays comparable
+with upstream's 10-20 s figure). (2) `docs/lab/stratego-port/time_one_test.sh`
+was left untracked; it times one ctest case alone, which is how to tell "the
+port is slow" from "the box is busy". (3) `docs/lab/stratego-scripts/README.md`,
+the same for the four measurement scripts.
+
+What happened — the four measurement scripts were written by the previous seat
+but never run, so before running them I checked every API they use against the
+upstream tree at `92db29e`, and two of the checks changed the scripts:
+
+- `extract_action` (`pyengine/core/evaluation.py:16`) dispatches on the
+  agent's *type*, not on duck typing: a `Model` is called with five keyword
+  arguments, an `ActionTaker` with the legal-action mask, and anything else
+  raises `ValueError`. `ActionTaker` is the alias
+  `Callable[[torch.Tensor], torch.Tensor]` and `utils.extended_isinstance`
+  checks it with `typeguard`, so a one-argument plain function does match it.
+  A three-argument function would have matched `Model` instead and been
+  called the wrong way.
+- `evaluate` (`evaluation.py:100`) returns **2 x num_envs**, the first half
+  the agent as player 0 and the second half as player 1. So one `evaluate()`
+  call already covers both seats, and the game count is `2 * num_envs`, not
+  `num_envs`.
+
+Checked and correct as written: `load_pretrained_rl_model` returns
+`(model, arrangements)` as a tuple of two lists; `TransformerRL.forward`
+takes `infostate_tensor, piece_ids, legal_action_mask` and swallows the rest
+in `**kwargs`, which is exactly what `extract_action` passes it;
+`Stratego.__init__` takes `num_envs, traj_len_per_player` and takes
+`quiet`/`verbose` through `**kwargs` without complaint;
+`sample_random_legal_action(out=None)` allocates its own tensor when called
+with no argument; `env.seed_action_sampler(seed)` exists; and the trainer's
+CLI is **pyrallis, not argparse** (`rl_main.py` ends in
+`pyrallis.parse(config_class=MainConfig)`), so nested options take dots
+(`--rl.dtype float32`), and `RLConfig` does have `max_num_train`, `dtype`
+and `torch_compile`.
+
+Decided next — the ctest correctness gate is running detached under a
+`thor-admit` lease (`--peak 8G`, label `stratego.ctest`): 45 upstream cases
+over the rules engine, and it is the gate for everything else, because the
+three measurements are worthless if the port is wrong. It is slow — the
+four slowest cases take 3-6 minutes each — and it is CPU-heavy, so the
+timing measurements wait for it rather than run beside it and be distorted
+by the contention. Then the three measurements the brief asks for: (a) one
+RL iteration at `--num_envs 128` timed against upstream's 10-20 s on an RTX
+A6000, (b) the pretrained model against a random policy over N games, (c)
+env steps/s at batch 128/1024/4096.
