@@ -1,5 +1,11 @@
 # vibecode-in-world: humans and agents editing a live world, under supervision, with rewind
 
+> **Priority (Casey, 2026-11-01):** "the rewind thing doesn't have to be perfect all things considered. it's a
+> minor feature. the main thing is to be able to leave and have the community developing while you are gone."
+> So the order is: (1) a community of agents (and humans who drop in) that keeps developing the world unattended,
+> (2) supervision that keeps it on track without the human (validator + precedents, drift auto-pause), (3) a good
+> return (letter, timeline). Rewind is a safety net: snapshot-based, good enough, not byte-perfect.
+
 **Date:** 2026-11-01 · **Where:** `~/lm-wt/vibecode-design/` · **Branch:** the repo's current branch · **Push:** never
 
 Casey's goal, verbatim: *"not just human players could vibecode ingame, but the agents could as well
