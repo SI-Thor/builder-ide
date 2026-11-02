@@ -158,6 +158,13 @@ NIGHT_V5_EVENT_TYPES = frozenset(
     {"night.gpu_pool_bar", "night.comfy_restart", "night.library"}
 )
 
+#: The night-v6 integration seat's types: the cloud's second look on a
+#: prop the plausibility prior called a ghost — both verdicts (the
+#: prior's and the cloud's) ride one row, with the policy that decided.
+NIGHT_V6_EVENT_TYPES = frozenset(
+    {"night.ghost_second_look"}
+)
+
 EVENT_TYPES = frozenset(
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -180,6 +187,7 @@ EVENT_TYPES = frozenset(
     | NIGHT_V4_EVENT_TYPES
     | DRIFT_EVENT_TYPES
     | NIGHT_V5_EVENT_TYPES
+    | NIGHT_V6_EVENT_TYPES
 )
 
 #: The union of the groups above must be the shared closed set — this copy

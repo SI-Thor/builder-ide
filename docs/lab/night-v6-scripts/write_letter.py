@@ -97,6 +97,8 @@ def facts(m: dict, ledger: Path | None = None) -> dict:
         for name in note.get("fired", []):
             fired_classes[name] = fired_classes.get(name, 0) + 1
     prior = critic.get("prior", {}) or {}
+    second_looks = critic.get("second_looks", []) or []
+    looked = [(row.get("second_look") or {}) for row in second_looks]
     return {
         "ran": bool(winners) or bool(props.get("kept")),
         "kept": props.get("kept", 0),
@@ -115,6 +117,13 @@ def facts(m: dict, ledger: Path | None = None) -> dict:
         "fired_classes": fired_classes,
         "ghosts": len(ghosts),
         "props_scored": len(meshes),
+        "ghost_policy": critic.get("ghost_policy"),
+        "second_looks": len(second_looks),
+        "second_look_agreed": sum(1 for row in looked
+                                  if row.get("cloud_ghost") is True),
+        "second_look_disagreed": sum(
+            1 for row in looked
+            if row.get("ok") and row.get("cloud_ghost") is False),
         "prior_groups": prior.get("groups"),
         "prior_largest": prior.get("largest_group"),
         "prior_smallest": prior.get("smallest_group"),
@@ -158,6 +167,10 @@ def the_surprise(f: dict, *, ran: bool = True) -> str:
     """
     if not ran and f["prior_largest"] is not None:
         return the_gate_note(f)
+    if f["ghosts"] and f["second_looks"]:
+        return (f"the prior called {f['ghosts']} of {f['props_scored']} "
+                f"props ghosts, and the cloud's second look agreed on "
+                f"{f['second_look_agreed']} of them")
     if f["ghosts"]:
         return (f"the plausibility prior called {f['ghosts']} of "
                 f"{f['props_scored']} props ghosts")
@@ -176,10 +189,24 @@ def the_surprise(f: dict, *, ran: bool = True) -> str:
 
 
 def the_question(f: dict) -> str:
-    """The decision the night's numbers leave open."""
+    """The decision the night's numbers leave open.
+
+    The ghost question changed in night-v6: "drop it or second-look it"
+    is answered — the policy is second_look, and both verdicts are on the
+    row — so the question is now about what the second looks left open.
+    """
+    if f["ghosts"] and f["second_look_disagreed"]:
+        return (f"the cloud overruled the prior on "
+                f"{f['second_look_disagreed']} ghosts — should the prior's "
+                f"threshold move, or the cloud's question?")
+    if f["ghosts"] and f["second_looks"]:
+        return ("the cloud agreed on every ghost tonight — should the "
+                "second look also see the props the prior passed, or stay "
+                "a second look only?")
     if f["ghosts"]:
-        return ("what should the night do with a prop the prior calls a ghost "
-                "— drop it, or send it to the cloud for a second look?")
+        return (f"tonight's ghost policy was {f['ghost_policy']} — should "
+                f"the default be second_look, or is the prior's word alone "
+                f"enough?")
     if f["fired"]:
         return ("should the delegate be allowed to reject a picture outright "
                 "on the product-picture domain, or keep its vote as it is now "

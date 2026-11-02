@@ -3954,3 +3954,52 @@ answered locally (4 went to the cloud, 2 were refusals)", must not say
 night-v5 morning+ledger through the same path (the artifacts are on this
 box). CLI end-to-end on the real v5 pair: 107 words, the sentence
 corrected. The v5 artifacts themselves were not touched.
+
+
+## 2026-11-02 07:20 — night-v6, task 2: the ghost's second look, a parameter
+
+**What was built.** `--ghost-policy {second_look,drop,keep}` on the runner
+(default second_look). drop is night-v5's behaviour (the prior's word is
+final, score 0.0); keep records the ghost and keeps the score;
+second_look renders the prop's mesh and asks one cloud VLM call — the
+prop drops only if the cloud agrees. Both verdicts ride one
+`night.ghost_second_look` row (the prior's plausibility and the cloud's
+answer), and the prop_plausibility note carries the policy and outcome.
+The event type is registered in all three closed sets
+(core/night/events.py, core/records.py, core/recipe/events.py); the
+pinning asserts pass (17 ledger tests).
+
+**Why renders of the mesh, not the picture.** Night-v5's ghost
+(lantern_r2_v3) came from a perfectly good lantern *picture*
+(lantern_s1205_00007_.png — a well-formed brass hurricane lantern); the
+degeneracy was in the *mesh* (occupied volume 1.004 — a solid block). A
+second look at the picture would have praised it. So
+`render_prop_views.py` renders the shipped GLB (the diet's decimated GLB
+when the diet ran, else the generator's) from three orthographic
+turntable views, Cycles CPU, 640 px, and `second_look.py` sends those to
+DeepInfra's Qwen/Qwen3-VL-30B-A3B-Instruct with one fixed question,
+temperature 0.
+
+**Measured on the box.** The probe on night-v5's own ghost
+(lantern_s1205_00008_.glb, 698,897 triangles): renders 7.3 s, one VLM
+call 8.1 s, $0.0002, 1,306 prompt + 19 completion tokens. The answer:
+"No. The object is a solid cube with no openings or features resembling a
+brass lantern." — the cloud **agrees** with the prior. Both verdicts on
+the ghost agree; under second_look the prop would have dropped anyway.
+
+**Two box facts found on the way.** (1) This box's bpy segfaults during
+interpreter teardown after a Cycles render — rc -11 *after* every file is
+written; render_prop_views.py ends with `os._exit(0)` and the driver
+treats stats-on-disk as success, noting the code. (2) Launching the v2
+bpy python as a subprocess of the propmaker venv python segfaults the
+Cycles render itself with the parent's environment; the child gets a
+scrubbed env (HOME, PATH only).
+
+**Proof.** tests/night/test_ghost_policy.py — 6 passed: the real
+`_score_mesh` branch with the prior and the second look faked — drop
+gives night-v5's behaviour, keep keeps the scripted score, agreement
+drops with both verdicts on one row, disagreement keeps, a silent wire
+(error) is not agreement (kept, degraded, error on the row), and no GLB
+to render keeps the prop. The full dry run passes and its morning holds
+`decisions.ledger` (2 rows: 1 local, 1 refusal) and
+`critic.ghost_policy: second_look`.
