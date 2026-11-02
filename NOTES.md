@@ -462,3 +462,82 @@ Checked on the real box with the staged binary:
 The staged binary also reads the **live round-11 daemon's** status without
 trouble (`guard.enabled: false`, the rest defaulted), so a new client
 against an old daemon works — which is the swap window.
+
+---
+
+## 2026-11-01 15:05-16:05 — night-v4: the wiring, before the run
+
+**What I did.** Read the night-v4 brief on the Thor (`~/lm-wt/night-v4/BRIEF.md`),
+then `docs/lab/night-v3.md` (run D), `docs/research/dsmc.md` and
+`docs/lab/incident-2026-11-01-jax-hang.md`. The branch `night-v4` was at
+`18ec1be` with a clean tree — no earlier agent had started, so this is the
+first pass. Then I wrote the night-v4 runner as the night-v3 runner plus the
+four changes the brief asks for, and smoke-tested each seam on the box.
+
+**What merged since run D, and where it is.** `core/judge/ordering.py` (the
+neutral order), `core/genbatch/{occupancy,plausibility,reference}.py` (the
+occupancy-based prior), `core/critic/candidates/d1.py` (the d1-2B delegate)
+and `core/critic/candidates/questions.py` (the six fixed class questions) are
+all already merged into `night-v4`. What was missing was the *wiring*: the
+night still ran the d1-2B as its judge, still measured the props with the
+signed volume only, and still had no picture critic at all.
+
+**The four changes, and what they measured.**
+
+1. **The judge.** The decoy cell is routed to the d1-3B
+   (`exp-judge-calibration.md` §8.3, §9.4), so the night's decision model is
+   now `d1-3B-Q8` on :8295 (run D used the d1-2B). The options are presented
+   in the **neutral order**: each option is a named condition and the
+   conditions are sorted by their names, so the order carries no information
+   about the answer. Smoke: the canonical order and the wire's own
+   sorted-by-key order are **the same six ids** (`neutral: true`) — the
+   identity order and the canonical order agree. The night also asks the
+   routed cell **on its own server**: the fixed recorder's states through
+   `core.judge`'s own `Judge` on the d1-3B, at the calibrated τ (0.76, the
+   3B's own number, `tau_source: calibrated`). Smoke over ten states:
+   accuracy 0.4, decoy-first 0.5714, truth-first 0.0, all ten surfaced
+   (below τ), latency p50 55 ms.
+2. **The critic.** The prop critic gained two halves. The **occupancy-based
+   plausibility prior** (critic-shells) reads the volume the prop
+   *occupies* — which needed one core change: the executor measured only the
+   signed volume, and for a shell that is the wrong number. Measured on a real
+   TRELLIS mesh tonight: the lantern's signed volume is **0.027** against a
+   convex hull of **0.326** — a factor of twelve. The executor now measures
+   the hull (0.4 s, +400 MB per mesh, measured on two 700k-triangle meshes).
+   The **d1-2B delegate** (critic-delegate) answers the six fixed class
+   questions about the prop's own picture. Smoke on a real crate picture:
+   `holes 0.510` (fired), `missing_object 0.206`, `texture_swap 0.057`,
+   `noise_fireflies 0.031`, `black_frame 0.003`, `floating_object 0.009`,
+   2.39 s for the six. The crate's plank gaps read as holes — the delegate's
+   questions were measured on scene renders and tonight's pictures are
+   product pictures, so the night records the delegate's answer and lets it
+   decide which sibling wins the picture round, rather than voiding a prop on
+   a domain mismatch.
+3. **Memory.** Every heavy step stays under a `thor-admit` lease, and when the
+   heavy phase ends the lease is **phased down** from 40 GB to 8 GB
+   (thor-admit round 11's `phase` op): the night stops ComfyUI and the two
+   decision servers, then phases the lease and finishes the live view and the
+   morning under the smaller promise. The row carries the old peak, the new
+   one, the reason and the box's free memory.
+4. **Props.** physag-lite's MuJoCo action check **is** committed
+   (`core/physag/check.py`, HEAD `3e76eee`) and it does run MuJoCo — but it
+   accepts nothing: the TRELLIS arm's own summary has **0 of 7** counted props
+   physics-valid and **0** stable, and the seat's tree still carries
+   uncommitted work on the same files (a CAD rerun was still landing at 15:25).
+   So the night **keeps the scripted critic** and says so in its report.
+
+**What the prior could not do, and why.** Fitted on the 38 measured real
+objects (the night's approved set is empty), the prior's k-means fit gives 22
+groups, the largest holding **seven**. A group of *n* cannot score below
+`0.5/(n+1)`, and the ghost gate is at 0.05, so **the gate cannot fire on this
+fit** — it needs ten members in a group. The prior scores every prop and the
+night records the number; it cannot reject anything tonight.
+
+**Box state.** 69.6 GB free of 122.8 GB at 15:23, load1 19, one lease on the
+box (`lab-motion.ppo-matrix`, 25 GB) and an empty queue; the smoke's own 8 GB
+lease was admitted in 0.02 s.
+
+**What I decided next.** Run the night. The runner is
+`docs/lab/night-v4-scripts/run_night.py` (the diff against night-v3 is the
+change and nothing else), the README beside it says how to run it and how long
+it takes, and the smoke's four seams are all green.
