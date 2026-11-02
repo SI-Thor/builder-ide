@@ -14,7 +14,22 @@ oracle set uses:
   this one is all or nothing. It is measured on the **repaired** mesh: the
   repair stage (see :mod:`core.genbatch.repair`) welds the UV seams the
   generator leaves behind, and without it the check cannot tell a closed
-  solid from an open one.
+  solid from an open one. The edge census itself is unchanged: Open3D's
+  own watertight word also demands vertex-manifoldness and no
+  self-intersection and would flip 12 of the 45 swept rows
+  (docs/lab/exp-open3d-critic.md §3.1) — a semantic change this check
+  deliberately does not make.
+* **self_intersection** — no two triangles of the surface cross each other.
+  A mesh can be closed, consistently wound, and still pass a triangle
+  through its own skin: the overlap is counted twice in the signed volume
+  (the reference set's storage shelf reads 3.9x its ray-parity volume), so
+  a self-intersecting mesh's signed volume is flagged, not trusted, and
+  the solid-volume check reads the ray-parity fallback. The check runs
+  under a triangle cap
+  (:data:`~core.genbatch.o3d_geometry.SELF_INTERSECTION_CAP`); above it,
+  and when the ``o3d`` extra is absent, the verdict is **unchecked** with
+  the reason — never a guess, and never a punishment for a measurement
+  that was not made.
 * **repair_fidelity** — the repair did not quietly reshape the prop: the
   silhouette IoU between the repaired mesh and the mesh the generator
   handed over.
@@ -53,6 +68,10 @@ __all__ = ["CHECK_WEIGHTS", "PropCritic", "judge"]
 #: How much each check counts for.
 CHECK_WEIGHTS: dict[str, float] = {
     "watertight": 3.0,
+    # Half of watertight's weight: the two defects are neighbours but not
+    # the same — a mesh can pass the edge census and still pass a triangle
+    # through its own skin, and on such a mesh only this check notices.
+    "self_intersection": 1.5,
     "repair_fidelity": 1.0,
     "triangle_budget": 2.0,
     "bbox_aspect": 2.0,
@@ -134,6 +153,66 @@ def _check_watertight(
         passed=False,
         detail="; ".join(faults),
     )
+
+
+def _check_self_intersection(report: MeshReport) -> CheckResult:
+    """Do any two triangles of the surface cross each other?
+
+    The one geometry defect the edge census cannot see: a mesh can be
+    closed and consistently wound with a triangle passed through its own
+    skin, and the overlap inflates the signed volume (counted twice). The
+    check is all-or-nothing like watertightness — a pair of crossing
+    triangles is a defect, not a degree of one.
+
+    An **unchecked** verdict (the mesh over the triangle cap, or the
+    ``o3d`` extra absent) neither punishes nor vouches: it passes with its
+    reason, because a prop must not lose to a measurement that was never
+    made. What it does change is the volume below: an unchecked mesh's
+    signed volume is treated exactly as it was before the check existed.
+    """
+    weight = CHECK_WEIGHTS["self_intersection"]
+    if report.self_intersection == "self_intersecting":
+        return CheckResult(
+            name="self_intersection",
+            score=0.0,
+            weight=weight,
+            passed=False,
+            detail=(
+                f"{report.self_intersection_pairs:,} pairs of triangles "
+                "cross — the signed volume counts overlapped material "
+                "twice and is not trusted here"
+            ),
+        )
+    if report.self_intersection == "unchecked":
+        reason = report.self_intersection_reason or "not measured on this report"
+        return CheckResult(
+            name="self_intersection",
+            score=1.0,
+            weight=weight,
+            passed=True,
+            detail=f"not checked — {reason}",
+        )
+    return CheckResult(
+        name="self_intersection",
+        score=1.0,
+        weight=weight,
+        passed=True,
+        detail=f"no triangle pairs cross ({report.triangles:,} triangles checked)",
+    )
+
+
+def _volume_fault(report: MeshReport) -> str:
+    """Why the signed volume cannot be trusted, in words."""
+    faults: list[str] = []
+    if not (report.watertight and report.consistent_winding):
+        faults.append(
+            "is measured on a surface that is not closed and consistently wound"
+        )
+    if report.volume <= 0:
+        faults.append("is not positive")
+    if report.self_intersection == "self_intersecting":
+        faults.append("counts overlapped material twice")
+    return "; it ".join(faults) if faults else "is unreliable"
 
 
 def _check_repair_fidelity(
@@ -230,6 +309,17 @@ def _check_aspect(report: MeshReport, request: PropRequest) -> CheckResult | Non
 
 
 def _check_volume(report: MeshReport, request: PropRequest) -> CheckResult:
+    """The prop fills its own bounding box like a solid, not like a shell.
+
+    Which volume that is read from depends on what can be trusted. The
+    signed volume is the measurement when the surface earns it (closed,
+    wound, positive, not self-intersecting). When it does not, the
+    **ray-parity volume** stands in — winding-free, and the conservative
+    number on a self-intersecting mesh because it does not count overlapped
+    material twice — and the detail says so. When there is no fallback
+    either, the check fails rather than grade a number it has just said it
+    does not trust.
+    """
     weight = CHECK_WEIGHTS["solid_volume"]
     ex_x, ex_y, ex_z = report.extent
     box = ex_x * ex_y * ex_z
@@ -241,8 +331,29 @@ def _check_volume(report: MeshReport, request: PropRequest) -> CheckResult:
             passed=False,
             detail="the prop has no size",
         )
-    ratio = report.volume / box
     low, high = request.fill_ratio
+    if report.volume_reliable:
+        volume = report.volume
+        note = ""
+    elif report.parity_volume is not None:
+        volume = report.parity_volume
+        note = (
+            " — the ray-parity volume stands in, because the signed volume "
+            f"{_volume_fault(report)}"
+        )
+    else:
+        return CheckResult(
+            name="solid_volume",
+            score=0.0,
+            weight=weight,
+            passed=False,
+            detail=(
+                f"the signed volume ({report.volume:.4g}) cannot be trusted: "
+                f"it {_volume_fault(report)}; and no ray-parity fallback "
+                "was measured"
+            ),
+        )
+    ratio = volume / box
     if ratio < low:
         return CheckResult(
             name="solid_volume",
@@ -251,7 +362,7 @@ def _check_volume(report: MeshReport, request: PropRequest) -> CheckResult:
             passed=False,
             detail=(
                 f"the volume is {ratio:.3%} of its own bounding box — "
-                f"a shell, not a solid"
+                f"a shell, not a solid{note}"
             ),
         )
     if ratio > high + 1e-9:
@@ -262,7 +373,7 @@ def _check_volume(report: MeshReport, request: PropRequest) -> CheckResult:
             passed=False,
             detail=(
                 f"the volume is {ratio:.3%} of its own bounding box — "
-                f"a solid cannot be larger than the box around it"
+                f"a solid cannot be larger than the box around it{note}"
             ),
         )
     return CheckResult(
@@ -270,7 +381,7 @@ def _check_volume(report: MeshReport, request: PropRequest) -> CheckResult:
         score=1.0,
         weight=weight,
         passed=True,
-        detail=f"the volume is {ratio:.1%} of its own bounding box",
+        detail=f"the volume is {ratio:.1%} of its own bounding box{note}",
     )
 
 
@@ -387,6 +498,7 @@ def judge(
     """
     checks = [
         _check_watertight(report, repair),
+        _check_self_intersection(report),
         _check_repair_fidelity(repair, request),
         _check_budget(report, request),
         _check_aspect(report, request),

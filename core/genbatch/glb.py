@@ -1,4 +1,4 @@
-"""Read a GLB: the container, and the mesh primitive inside it.
+"""Read a GLB — and, since the diet stage, write the one we read.
 
 There is no glTF library on the Thor and the Thor does not need one. A GLB
 is a twelve-byte header, a JSON chunk and a binary chunk; the mesh is a
@@ -31,7 +31,15 @@ from typing import Any
 
 import numpy as np
 
-__all__ = ["Glb", "GlbError", "Mesh", "read_glb", "parse_glb"]
+__all__ = [
+    "Glb",
+    "GlbError",
+    "Mesh",
+    "encode_glb",
+    "parse_glb",
+    "read_glb",
+    "write_glb",
+]
 
 _MAGIC = b"glTF"
 _JSON_CHUNK = 0x4E4F534A
@@ -331,6 +339,96 @@ class Glb:
             raise GlbError(f"{self.path}: accessor {index} runs past the binary chunk")
         flat = np.frombuffer(self.binary, dtype=dtype, count=count * components, offset=offset)
         return flat.reshape(count, components).astype(np.float64)
+
+
+def _pad4(data: bytes, fill: bytes = b"\x00") -> bytes:
+    return data + fill * ((4 - len(data) % 4) % 4)
+
+
+def encode_glb(positions: np.ndarray, indices: np.ndarray) -> bytes:
+    """A GLB of one mesh primitive: POSITION (float32) + indices (uint32).
+
+    The inverse of what the reader reads, and nothing more — no materials,
+    no normals, no scene graph. What the reader accepts is the whole of
+    what the writer emits, so a mesh this box writes is a mesh it can read
+    back. This writer began life in the test fixtures; it moved here when
+    the diet stage started needing to write what it keeps.
+
+    ``positions`` is ``(n, 3)`` and ``indices`` is ``(m, 3)``; both are
+    cast to the storage dtypes, so float64 meshes lose their last digits
+    by glTF's own rules, not by accident.
+    """
+    positions = np.ascontiguousarray(positions, dtype=np.float64).reshape(-1, 3)
+    indices = np.ascontiguousarray(indices).reshape(-1)
+    if positions.shape[0] == 0:
+        raise GlbError("cannot write a GLB with no vertices")
+    if indices.size == 0:
+        raise GlbError("cannot write a GLB with no triangles")
+    if indices.max() >= positions.shape[0]:
+        raise GlbError("an index points past the last vertex")
+
+    pos_bytes = positions.astype(np.float32).tobytes()
+    idx_bytes = indices.astype(np.uint32).tobytes()
+    gltf = {
+        "asset": {"version": "2.0", "generator": "builder-ide-core"},
+        "scene": 0,
+        "scenes": [{"nodes": [0]}],
+        "nodes": [{"mesh": 0, "name": "mesh"}],
+        "meshes": [
+            {
+                "primitives": [
+                    {"attributes": {"POSITION": 0}, "indices": 1, "mode": 4}
+                ]
+            }
+        ],
+        "accessors": [
+            {
+                "bufferView": 0,
+                "componentType": 5126,
+                "count": int(positions.shape[0]),
+                "type": "VEC3",
+                "min": [float(axis.min()) for axis in positions.T],
+                "max": [float(axis.max()) for axis in positions.T],
+            },
+            {
+                "bufferView": 1,
+                "componentType": 5125,
+                "count": int(indices.size),
+                "type": "SCALAR",
+            },
+        ],
+        "bufferViews": [
+            {
+                "buffer": 0,
+                "byteOffset": 0,
+                "byteLength": len(pos_bytes),
+                "target": 34962,
+            },
+            {
+                "buffer": 0,
+                "byteOffset": len(pos_bytes),
+                "byteLength": len(idx_bytes),
+                "target": 34963,
+            },
+        ],
+        "buffers": [{"byteLength": len(pos_bytes) + len(idx_bytes)}],
+    }
+    # The GLB spec pads the JSON chunk with spaces and the binary chunk
+    # with zeros, each to a four-byte boundary.
+    json_bytes = _pad4(json.dumps(gltf).encode("utf-8"), b" ")
+    bin_bytes = _pad4(pos_bytes + idx_bytes)
+    total = 12 + 8 + len(json_bytes) + 8 + len(bin_bytes)
+    out = struct.pack("<4sII", _MAGIC, 2, total)
+    out += struct.pack("<II", len(json_bytes), _JSON_CHUNK) + json_bytes
+    out += struct.pack("<II", len(bin_bytes), _BIN_CHUNK) + bin_bytes
+    return out
+
+
+def write_glb(path: str | Path, mesh: Mesh) -> Path:
+    """Write a mesh as a GLB, and return its path."""
+    path = Path(path)
+    path.write_bytes(encode_glb(mesh.positions, mesh.indices))
+    return path
 
 
 def read_glb(path: str | Path) -> Glb:

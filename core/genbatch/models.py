@@ -16,6 +16,7 @@ from core.genbatch.repair import RepairRecipe
 
 __all__ = [
     "CheckResult",
+    "DietRecipe",
     "ImageResult",
     "LaneSplit",
     "NodeTiming",
@@ -36,6 +37,27 @@ class StageKind(str, Enum):
 
     IMAGE = "image"
     MESH = "mesh"
+
+
+class DietRecipe(BaseModel):
+    """The diet stage's part of the recipe: quadric decimation of the prop.
+
+    The step is **off by default** and the sweep says why: the diet opened
+    14 of the 19 closed meshes it ran on (docs/lab/exp-open3d-critic.md
+    §3.5), so a dieted prop measures differently from the prop the
+    generator handed over. It is for mesh diet and LODs — a night that
+    wants smaller meshes asks for it, keeps every triangle of the recipe,
+    and the critic then measures the mesh the night keeps. Never a
+    re-measure path: a watertightness or volume verdict read on a dieted
+    mesh is a verdict about the diet.
+    """
+
+    #: The fraction of the triangles to keep (0.1 keeps a tenth).
+    fraction: float = Field(default=0.1, gt=0.0, le=1.0)
+    #: The floor on the target, so a small prop cannot be decimated to
+    #: nothing — the sweep's 12-triangle control cube collapsed to 0
+    #: triangles at a target of 1.
+    min_triangles: int = Field(default=1_000, ge=1)
 
 
 class PropRequest(BaseModel):
@@ -106,6 +128,12 @@ class PropRequest(BaseModel):
     #: of what the night does — and because a different repair is a different
     #: prop.
     repair: RepairRecipe = Field(default_factory=RepairRecipe)
+    #: The diet stage: quadric decimation between the repair and the
+    #: measurement, for nights that want smaller meshes. ``None`` — the
+    #: default — keeps every triangle; decimation opens closed surfaces
+    #: (14 of 19 in the sweep), so it is a choice, not a default. Needs the
+    #: ``o3d`` extra.
+    diet: DietRecipe | None = None
 
     @field_validator("expected_aspect")
     @classmethod
