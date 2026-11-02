@@ -1,0 +1,154 @@
+{
+ "rooms": [
+  {
+   "attempt_times": [
+    {
+     "blender_ms": 1283,
+     "critic_ms": 1530,
+     "export_ms": 0.0,
+     "generate_ms": 2698,
+     "playtest_ms": 4394
+    }
+   ],
+   "attempts": 1,
+   "first_attempt_findings": [],
+   "room": "clean-a",
+   "seeded": null,
+   "verdict": "pass",
+   "wall_ms": 9970
+  },
+  {
+   "attempt_times": [
+    {
+     "blender_ms": 1240,
+     "critic_ms": 1621,
+     "export_ms": 0.0,
+     "generate_ms": 2670,
+     "playtest_ms": 4091
+    }
+   ],
+   "attempts": 1,
+   "first_attempt_findings": [],
+   "room": "clean-b",
+   "seeded": null,
+   "verdict": "pass",
+   "wall_ms": 9657
+  },
+  {
+   "attempt_times": [
+    {
+     "blender_ms": 1224,
+     "critic_ms": 1565,
+     "export_ms": 0.0,
+     "generate_ms": 2713,
+     "playtest_ms": 4410
+    },
+    {
+     "blender_ms": 1259,
+     "critic_ms": 1553,
+     "export_ms": 0.0,
+     "generate_ms": 2645,
+     "playtest_ms": 4179
+    }
+   ],
+   "attempts": 2,
+   "first_attempt_findings": [
+    "floating_object:crate.001 (qa)"
+   ],
+   "room": "float-a",
+   "seeded": "floating_object (crate.001 z=0.55)",
+   "verdict": "pass",
+   "wall_ms": 19607
+  },
+  {
+   "attempt_times": [
+    {
+     "blender_ms": 1271,
+     "critic_ms": 1627,
+     "export_ms": 0.0,
+     "generate_ms": 2590,
+     "playtest_ms": 4085
+    },
+    {
+     "blender_ms": 1195,
+     "critic_ms": 1485,
+     "export_ms": 0.0,
+     "generate_ms": 2572,
+     "playtest_ms": 4280
+    }
+   ],
+   "attempts": 2,
+   "first_attempt_findings": [
+    "blocked_door (qa)"
+   ],
+   "room": "block-a",
+   "seeded": "blocked_door (crate.003 in the gap)",
+   "verdict": "pass",
+   "wall_ms": 19174
+  },
+  {
+   "attempt_times": [
+    {
+     "blender_ms": 1224,
+     "critic_ms": 1446,
+     "export_ms": 0.0,
+     "generate_ms": 2548,
+     "playtest_ms": 4082
+    }
+   ],
+   "attempts": 1,
+   "first_attempt_findings": [
+    "unreachable_area (qa)"
+   ],
+   "room": "pocket-a",
+   "seeded": "unreachable_area (interior walls seal 2x4 m corner)",
+   "verdict": "fail",
+   "wall_ms": 9335
+  },
+  {
+   "attempt_times": [
+    {
+     "blender_ms": 1276,
+     "critic_ms": 1572,
+     "export_ms": 0.0,
+     "generate_ms": 2728,
+     "playtest_ms": 3937
+    },
+    {
+     "blender_ms": 1281,
+     "critic_ms": 1481,
+     "export_ms": 0.0,
+     "generate_ms": 2986,
+     "playtest_ms": 3902
+    }
+   ],
+   "attempts": 2,
+   "first_attempt_findings": [
+    "scale_bounds:crate.003 (critic)"
+   ],
+   "room": "scale-a",
+   "seeded": "scale_bounds (crate.003 7.5x family median)",
+   "verdict": "pass",
+   "wall_ms": 19227
+  },
+  {
+   "attempt_times": [
+    {
+     "blender_ms": 1228,
+     "critic_ms": 1518,
+     "export_ms": 0.0,
+     "generate_ms": 2632,
+     "playtest_ms": 4170
+    }
+   ],
+   "attempts": 1,
+   "first_attempt_findings": [
+    "self_intersection:stackpile (open3d)"
+   ],
+   "room": "selfx-a",
+   "seeded": "self_intersection (stackpile: two un-unioned boxes)",
+   "verdict": "fail",
+   "wall_ms": 9578
+  }
+ ]
+}

@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>vibe-sandbox viewer</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #101418; color: #cfd8dc;
+               font: 12px/1.5 monospace; overflow: hidden; }
+  #hud { position: fixed; top: 8px; left: 8px; padding: 6px 10px;
+         background: rgba(0,0,0,.55); border: 1px solid #2e3a42; white-space: pre; }
+  #err { position: fixed; bottom: 8px; left: 8px; right: 8px; color: #ff8a80;
+         white-space: pre-wrap; max-height: 30%; overflow: auto; }
+</style>
+</head>
+<body>
+<div id="hud">loading…</div>
+<div id="err"></div>
+<script type="importmap">
+{ "imports": { "three": "/three/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from '/three/examples/jsm/loaders/GLTFLoader.js';
+
+const hud = document.getElementById('hud');
+const errBox = document.getElementById('err');
+const notes = [];
+window.__roomState = { status: 'boot', room_id: null, attempt: 0 };
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor(0x141a20);
+document.body.appendChild(renderer.domElement);
+const gl = renderer.getContext();
+const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+window.__roomState.renderer = dbg
+  ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL)
+  : (gl.getParameter(gl.VERSION) || 'webgl');
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 200);
+scene.add(new THREE.HemisphereLight(0xdfe7ef, 0x30363c, 1.45));
+const key = new THREE.DirectionalLight(0xffffff, 1.0);
+key.position.set(-5, 12, 6);
+scene.add(key);
+
+const room = new THREE.Group();
+scene.add(room);
+const loader = new GLTFLoader();
+
+let orbit = { radius: 12, height: 6, t: 0 };
+let tris = 0;
+
+function frameCamera(scene_json) {
+  const r = scene_json.room;
+  orbit.radius = 0.95 * Math.max(r.width, r.depth);
+  orbit.height = 0.85 * r.height;
+}
+
+async function loadRoom(manifest) {
+  const gltf = await loader.loadAsync(manifest.glb);
+  while (room.children.length) {
+    const c = room.children.pop();
+    room.remove(c);
+  }
+  tris = 0;
+  gltf.scene.traverse((o) => {
+    if (o.isMesh) tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+  });
+  room.add(gltf.scene);
+  frameCamera(manifest.scene);
+  window.__roomState = {
+    status: 'loaded',
+    room_id: manifest.room_id,
+    attempt: manifest.attempt,
+    scene: manifest.scene,
+    tris: Math.round(tris),
+    renderer: window.__roomState.renderer,
+    loaded_at: performance.now(),
+  };
+}
+
+// the hot-load loop: poll the outbox manifest; a new room_id/attempt loads
+// without a restart
+let current = '';
+async function poll() {
+  try {
+    const m = await (await fetch('/outbox/manifest.json')).json();
+    const key = `${m.room_id}#${m.attempt}`;
+    if (key !== current) {
+      current = key;
+      window.__roomState.status = 'loading';
+      await loadRoom(m);
+      notes.length = 0; errBox.textContent = '';
+    }
+  } catch (e) { /* outbox not published yet */ }
+  hud.textContent =
+    `room ${window.__roomState.room_id ?? '-'} attempt ${window.__roomState.attempt} ` +
+    `${window.__roomState.status}  tris ${window.__roomState.tris ?? 0}\n` +
+    `${window.__roomState.renderer ?? ''}`;
+}
+setInterval(poll, 1200);
+poll();
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+(function draw() {
+  requestAnimationFrame(draw);
+  orbit.t += 0.004;
+  camera.position.set(
+    orbit.radius * Math.cos(orbit.t),
+    orbit.height,
+    orbit.radius * Math.sin(orbit.t)
+  );
+  camera.lookAt(0, 0.6, 0);
+  renderer.render(scene, camera);
+})();
+
+// ---------------------------------------------------------------------------
+// The playtest harness: a capsule walk over the manifest's collision model.
+//
+// v1's collision model is the authored one — the same scene.json the mesh was
+// built from: walls, interior walls and prop bboxes; a capsule (radius 0.35 m,
+// body up to 1.6 m) inflates every obstacle. The walk is a BFS over a 0.25 m
+// grid from the staging strip outside the door; frame time is measured on the
+// rendered scene (software WebGL in headless Chromium — the number is the
+// Thor's CPU raster path, said so in the report).
+// ---------------------------------------------------------------------------
+window.__playtest = async function () {
+  const st = window.__roomState;
+  if (st.status !== 'loaded') return { ok: false, error: 'room not loaded' };
+  const scene = st.scene;
+  const room_ = scene.room;
+  const door = room_.door;
+  const R = 0.35;            // capsule radius
+  const CELL = 0.25;         // grid step
+  const BODY_LO = 0.10, BODY_HI = 1.60;  // the capsule's body band
+
+  // obstacles in the Blender frame (z up)
+  const wallBoxes = [];
+  const t = 0.2;
+  const { width: W, depth: D } = room_;
+  const dx = door.offset, dw = door.width;
+  wallBoxes.push({ x0: -t, x1: dx, y0: -t, y1: 0, z0: -1, z1: 99 });          // north west of door
+  wallBoxes.push({ x0: dx + dw, x1: W + t, y0: -t, y1: 0, z0: -1, z1: 99 });  // north east of door
+  wallBoxes.push({ x0: -t, x1: W + t, y0: D, y1: D + t, z0: -1, z1: 99 });    // south
+  wallBoxes.push({ x0: -t, x1: 0, y0: 0, y1: D, z0: -1, z1: 99 });            // west
+  wallBoxes.push({ x0: W, x1: W + t, y0: 0, y1: D, z0: -1, z1: 99 });         // east
+  for (const s of room_.interior_walls || []) wallBoxes.push({
+    x0: Math.min(s.x0, s.x1) , x1: Math.max(s.x0, s.x1) + (s.x0 === s.x1 ? t : 0),
+    y0: Math.min(s.y0, s.y1), y1: Math.max(s.y0, s.y1) + (s.y0 === s.y1 ? t : 0),
+    z0: -1, z1: 99,
+  });
+
+  const blocks = (b, x, y) =>
+    x > b.x0 - R && x < b.x1 + R && y > b.y0 - R && y < b.y1 + R;
+
+  const propBoxes = scene.props.map((p) => ({ ...p }));
+  const propBlocks = (p, x, y) => {
+    const vertOverlap = p.z1 > BODY_LO && p.z0 < BODY_HI;
+    return vertOverlap && blocks(p, x, y);
+  };
+
+  const insideFloor = (x, y) => x >= 0 && x <= W && y >= 0 && y <= D;
+  const inStaging = (x, y) => x >= dx && x <= dx + dw && y >= -1.8 && y <= 0;
+
+  const walkable = (x, y) => {
+    if (!insideFloor(x, y) && !inStaging(x, y)) return false;
+    for (const b of wallBoxes) if (blocks(b, x, y)) return false;
+    for (const p of propBoxes) if (propBlocks(p, x, y)) return false;
+    return true;
+  };
+
+  // BFS from the staging spawn (door centre, outside)
+  const sx = dx + dw / 2, sy = -1.2;
+  const keyOf = (x, y) => `${Math.round(x / CELL)},${Math.round(y / CELL)}`;
+  const seen = new Set([keyOf(sx, sy)]);
+  const queue = [[sx, sy]];
+  const cameFrom = new Map();
+  while (queue.length) {
+    const [x, y] = queue.shift();
+    for (const [ox, oy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+      const nx = x + ox * CELL, ny = y + oy * CELL;
+      const k = keyOf(nx, ny);
+      if (seen.has(k) || !walkable(nx, ny)) continue;
+      seen.add(k);
+      cameFrom.set(k, [x, y]);
+      queue.push([nx, ny]);
+    }
+  }
+
+  const reachableInterior = [...seen].filter((k) => {
+    const [gx, gy] = k.split(',').map(Number);
+    return insideFloor(gx * CELL, gy * CELL);
+  });
+
+  // interior cells that are open floor once props are accounted for — the
+  // QA's "unreachable" means open floor nobody can walk to, not floor a
+  // crate is legitimately standing on
+  let propFreeInterior = 0;
+  for (let gx = 0; gx <= Math.round(W / CELL); gx++)
+    for (let gy = 0; gy <= Math.round(D / CELL); gy++) {
+      const x = gx * CELL, y = gy * CELL;
+      if (!insideFloor(x, y)) continue;
+      let ok = true;
+      for (const b of wallBoxes) if (blocks(b, x, y)) ok = false;
+      for (const p of propBoxes) if (propBlocks(p, x, y)) ok = false;
+      if (ok) propFreeInterior++;
+    }
+
+  const findings = [];
+
+  const enteredRoom = reachableInterior.length > 5;
+  if (!enteredRoom) findings.push({
+    kind: 'blocked_door', source: 'qa',
+    detail: `capsule cannot enter through the ${door.width.toFixed(2)} m door gap`,
+  });
+
+  const frac = propFreeInterior ? reachableInterior.length / propFreeInterior : 0;
+  if (enteredRoom && frac < 0.98) findings.push({
+    kind: 'unreachable_area', source: 'qa',
+    detail: `only ${(frac * 100).toFixed(1)}% of the open floor is reachable`,
+  });
+
+  for (const p of propBoxes) {
+    if (p.z0 > 0.06) findings.push({
+      kind: 'floating_object', source: 'qa', name: p.name,
+      detail: `base at z=${p.z0.toFixed(2)} m, ${(p.z0 * 100).toFixed(0)} cm above the floor`,
+    });
+    if (!enteredRoom) continue;
+    let near = false;
+    for (const k of seen) {
+      const [gx, gy] = k.split(',').map(Number);
+      const x = gx * CELL, y = gy * CELL;
+      if (x > p.x0 - 0.6 && x < p.x1 + 0.6 && y > p.y0 - 0.6 && y < p.y1 + 0.6) { near = true; break; }
+    }
+    if (!near) findings.push({
+      kind: 'prop_unreachable', source: 'qa', name: p.name,
+      detail: 'no reachable cell within 0.6 m of the prop',
+    });
+  }
+
+  // frame time over 150 frames of the live orbit
+  const dts = [];
+  await new Promise((resolve) => {
+    let n = 0, last = performance.now();
+    const tick = () => {
+      const now = performance.now();
+      dts.push(now - last);
+      last = now;
+      if (++n >= 150) resolve(); else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+  dts.sort((a, b) => a - b);
+  const mean = dts.reduce((a, b) => a + b, 0) / dts.length;
+  const p95 = dts[Math.floor(0.95 * dts.length)];
+
+  return {
+    room_id: st.room_id,
+    attempt: st.attempt,
+    ok: findings.length === 0,
+    findings,
+    metrics: {
+      frame_ms_mean: Math.round(mean * 10) / 10,
+      frame_ms_p95: Math.round(p95 * 10) / 10,
+      reachable_fraction: Math.round(frac * 1000) / 1000,
+      reachable_cells: reachableInterior.length,
+      open_floor_cells: propFreeInterior,
+      tris: st.tris,
+    },
+    renderer: st.renderer,
+    at: new Date().toISOString(),
+  };
+};
+</script>
+</body>
+</html>

@@ -61,3 +61,4 @@ tools/posestream/target/
 
 # The autopilot study clone (READ-ONLY research copy; never built)
 third_party/
+node_modules

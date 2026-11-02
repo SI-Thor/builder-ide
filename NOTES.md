@@ -2553,3 +2553,92 @@ started), so the `lm` binary on the box and its source agree — the built
 binary is what the proof above was measured with. `git checkout m1-integration`
 in `~/last-mile` puts that repository back where it was; the two commits
 stay on the branch either way.
+## 2026-11-01 19:55-20:35 — vibe-sandbox opened: the claims table (§A done, nothing built yet)
+
+Casey's SPEC.md ("End-to-End Vibecoding & Autonomous Playtesting Sandbox") was
+handed to this lane as claims to verify, then a thin slice to build on our
+stack. The CONTINUE note: the earlier seat stopped at quota before committing
+anything — git status showed only SPEC.md untracked; nothing to keep, started
+fresh.
+
+**The reality check (docs/research/vibe-sandbox.md §1).** All verified
+read-only: the ProArt PX13 has no wired adapter (Get-NetAdapter -Physical:
+one MediaTek Wi-Fi 7, up at 1.2 Gbps); the Thor's four mgbe ports have no
+link; the Thor boots graphical.target; Docker 29.9.2 active; system Blender
+4.0.2 at /usr/bin/blender; ramenvr/autopilot EXISTS (Apache-2.0, Python, 626
+stars, created 2026-10-30) but is a Windows/macOS editor plugin for
+UE5/Unity6/Godot with an Aura account — "runs on the Thor" is wrong as
+written and it is not zero-cloud. Playwright Chromium IS installed on the
+Thor's aarch64 (resolves the ingame-building survey's open item). All the
+reuse assets are present (TRELLIS, SceneBloom-eval, build123d in 13 venvs,
+core/critic, Open3D 0.20 in two venvs, physag-lite, three 0.128 in the
+agent-world viewer, posestream-net).
+
+**Decisions for the slice (§B):** generator = build123d (cheapest, CPU,
+deterministic; TRELLIS is the same seam under a lease, proven in physag-lite
+and cited rather than re-run); Blender 4.0.2 --background for decimate+GLB;
+critic = core.critic's probe + run_mesh_checks on a saved .blend (bpy venv:
+~/src/infinigen-thor/.venv) plus Open3D self-intersection; viewer = three.js
+page + Node server polling an outbox manifest; playtest = Playwright in
+headless Chromium driving a capsule walk in-page; gate = pass commits, fail
+feeds qa_report back to the generator, max 2 retries. Leases via thor-admit
+per stage with honest peaks. No Samba anywhere; inbox/outbox are Thor
+directories.
+
+## 2026-11-01 20:35-21:10 — vibe-sandbox: the thin slice built, measured, and reported
+
+**The build (tools/vibe-sandbox, commit 6e0cc22).** Seven stages, each
+under a thor-admit lease (tier study): build123d generator (spec JSON ->
+named STLs + scene.json, the one collision model every stage reads),
+system Blender 4.0.2 --background (assemble, decimate only over the 20k-tri
+budget, save .blend, export GLB), the repo critic reused untouched
+(core.critic probe on the .blend via the Infinigen bpy venv +
+run_mesh_checks) plus Open3D 0.20 self-intersection on the shipped GLB, an
+atomic outbox manifest, a three.js hot-load viewer reusing the agent-world
+viewer's three 0.128 copy, and a Playwright playtest agent in headless
+Chromium (aarch64 works; SwiftShader WebGL, frame p95 27 ms at 3.1k tris —
+this closes the survey's open item).
+
+**The numbers (docs/lab/exp-vibe-sandbox.md).** 7 rooms, 2 clean + 5
+seeded faults. Medians per attempt: generate 2.7 s, blender 1.2 s, critic
+1.5 s, playtest 4.1 s, wall 9.6 s (leases included), room GLB 60.8 KB.
+Pass 5/7: both clean rooms attempt 1; float-a, block-a, scale-a repaired
+on attempt 2; pocket-a and selfx-a fail honestly (no v1 repair). The catch
+matrix is clean: QA caught all three placement/nav faults, the critic both
+geometry faults, zero false positives anywhere. clean-b was measured
+through the watcher seam — prompt dropped in the inbox, room committed
+with no hand in the loop.
+
+**The dead end, kept.** block-a's first run burned three attempts
+unchanged: blocked_door findings carry no prop name and the repair path
+dropped nameless findings. The fix infers the culprit from the door-strip
+geometry; re-run passed on attempt 2. Lesson: a repair loop must decide
+what to do with anonymous findings before it runs.
+
+**What is not verified (said in the report):** the collision model is the
+authored manifest, not the shipped mesh (v2 item 1); frame time is
+SwiftShader CPU raster; prop_unreachable never fired; the hybrid/d1 model
+critic did not run (no renders were made); rooms are rectangles with one
+north door and five prop kinds.
+
+**Where it stands.** Room commits 89476c0, b9a5d2b, 4868718, 0aa9be2 +
+block-a's; build 6e0cc22; claims table 1fdb875. The report, the asks for
+Casey (adapter+cable first) and the ranked v2 plan (walk the triangles,
+TRELLIS arm, Windows/Godot client, VLM judge, stream+Autopilot, free-text
+prompts) are in docs/lab/exp-vibe-sandbox.md and
+docs/research/vibe-sandbox.md §2-4.
+
+## 2026-11-01 21:15 — post-crash check (next seat): lane already complete, nothing to resume
+
+The ProArt's WSL crashed at ~21:12 and killed the previous seat just after
+its last commit. This seat verified the state before touching anything:
+HEAD 5712aa4 is the §C report; the working tree is clean with no untracked
+files; NOTES.md's final entry (20:35-21:10) is committed inside HEAD, so
+nothing dangles. `pgrep -af` shows no vibe-sandbox process and `thor-admit
+status` lists no vibe-sandbox lease — the three active leases
+(serve.qwen3-vl-8b, refit-drift.exp2, voyager-port.mc) belong to other
+lanes and were left alone. §A (claims table, 1fdb875), §B (the thin slice,
+6e0cc22, plus room commits 89476c0/b9a5d2b/4868718/0fadfba/0aa9be2) and §C
+(the report, 5712aa4) are all done. Nothing was re-run and no v2 item was
+started (desk brief: no new rounds on my own); the v2 plan stays ranked in
+docs/research/vibe-sandbox.md §4. Lane closed.

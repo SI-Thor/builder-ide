@@ -1,0 +1,18 @@
+{
+ "room_id": "scale-a",
+ "attempt": 2,
+ "ok": true,
+ "findings": [],
+ "metrics": {
+  "frame_ms_mean": 18.3,
+  "frame_ms_p95": 24.9,
+  "reachable_fraction": 1,
+  "reachable_cells": 980,
+  "open_floor_cells": 980,
+  "tris": 2160
+ },
+ "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+ "at": "2026-11-02T05:17:49.641Z",
+ "console_errors": [],
+ "room_arg": "scale-a"
+}
