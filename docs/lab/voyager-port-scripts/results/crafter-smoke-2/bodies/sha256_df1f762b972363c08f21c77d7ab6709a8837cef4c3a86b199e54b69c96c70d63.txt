@@ -1,0 +1,35 @@
+const energyActions = ["energy", "use_energy", "consume_energy", "eat_energy", "drink_energy", "restore_energy"];
+let energyRestored = false;
+for (const action of energyActions) {
+  mc.act(action, 1);
+  if (mc.achievements().energy === true) {
+    energyRestored = true;
+    break;
+  }
+}
+if (!energyRestored) {
+  console.log("Energy was not restored.");
+  return;
+}
+
+let woodCollected = false;
+for (const direction of ["north", "east", "south", "west"]) {
+  for (let steps = 1; steps <= 12; steps += 1) {
+    mc.move(direction, steps);
+    mc.act("chop_tree", 1);
+    mc.act("pick_up_wood", 1);
+    if (mc.achievements().wood === true) {
+      woodCollected = true;
+      break;
+    }
+  }
+  if (woodCollected) {
+    break;
+  }
+}
+
+if (woodCollected) {
+  console.log("Collected wood.");
+} else {
+  console.log("No wood was collected.");
+}

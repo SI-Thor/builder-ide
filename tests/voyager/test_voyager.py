@@ -670,3 +670,50 @@ def test_the_crafter_adapter_round_trips():
         assert check.detail == "False"  # a fresh world: no wood yet
     finally:
         adapter.close()
+
+
+def test_the_coder_prompt_names_the_language():
+    from core.voyager.prompts import coder_prompt
+
+    prompt = coder_prompt(
+        goal="get wood",
+        goal_description="hold a log",
+        plan_description="walk to the tree",
+        facts={},
+        primitives={"mc.act": {"action": {"type": "string"}}},
+        language="python",
+    )
+    assert "THE LANGUAGE OF THE PROGRAM: python" in prompt
+
+
+def test_a_crafter_program_that_never_finishes_fails_instead_of_hanging():
+    pytest = __import__("pytest")
+    pytest.importorskip("crafter")
+    import time as _time
+    from core.voyager.adapters.crafter import CrafterAdapter
+
+    adapter = CrafterAdapter(log=lambda m: None)
+    adapter.open()
+    try:
+        started = _time.time()
+        result = adapter.run_code("while True:\n    pass", timeout_s=2.0)
+        assert not result.ok
+        assert "TimeoutError" in result.error
+        assert _time.time() - started < 30
+    finally:
+        adapter.close()
+
+
+def test_a_syntax_error_names_the_language_the_world_runs():
+    pytest = __import__("pytest")
+    pytest.importorskip("crafter")
+    from core.voyager.adapters.crafter import CrafterAdapter
+
+    adapter = CrafterAdapter(log=lambda m: None)
+    adapter.open()
+    try:
+        result = adapter.run_code("async function main() {}", timeout_s=10.0)
+        assert not result.ok
+        assert "runs python" in result.error
+    finally:
+        adapter.close()

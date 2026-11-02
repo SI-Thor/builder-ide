@@ -1,0 +1,7 @@
+const before = mc.achievements();
+const steps = mc.act("consume_energy", 1);
+const after = mc.achievements();
+console.log(`Consumed energy: ${steps} step(s); energy ${before.energy} -> ${after.energy}.`);
+if (steps !== 1 || after.energy <= before.energy) {
+  throw new Error("Energy was not restored.");
+}

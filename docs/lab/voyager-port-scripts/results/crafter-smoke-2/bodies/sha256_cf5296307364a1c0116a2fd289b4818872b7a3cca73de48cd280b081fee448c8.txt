@@ -1,0 +1,41 @@
+var usedEnergy = false;
+var usedFood = false;
+var energyActions = ["use_energy", "eat_energy", "consume_energy", "drink_energy", "energy", "restore_energy"];
+var foodActions = ["use_food", "eat_food", "consume_food", "food", "restore_food"];
+for (var i = 0; i < energyActions.length; i += 1) {
+  mc.act(energyActions[i], 1);
+  usedEnergy = true;
+  break;
+}
+for (var j = 0; j < foodActions.length; j += 1) {
+  mc.act(foodActions[j], 1);
+  usedFood = true;
+  break;
+}
+var dirs = ["north", "east", "south", "west"];
+var chopActions = ["chop_tree", "chop", "punch", "mine", "break", "hit", "attack"];
+var pickActions = ["pick_up_wood", "pick_up", "collect_wood", "collect", "gather_wood", "gather"];
+var done = false;
+for (var radius = 1; radius <= 24 && !done; radius += 1) {
+  for (var d = 0; d < dirs.length && !done; d += 1) {
+    for (var step = 0; step < radius && !done; step += 1) {
+      mc.move(dirs[d], 1);
+      for (var c = 0; c < chopActions.length && !done; c += 1) {
+        mc.act(chopActions[c], 1);
+        for (var p = 0; p < pickActions.length && !done; p += 1) {
+          mc.act(pickActions[p], 1);
+          var ach = mc.achievements();
+          if (ach.wood === true || ach.wood_collected === true || ach.collect_wood === true || ach.collected_wood === true) {
+            done = true;
+          }
+        }
+      }
+    }
+  }
+}
+if (done) {
+  console.log("Collected wood.");
+} else {
+  console.log("Failed to collect wood.");
+  throw new Error("Failed to collect wood.");
+}

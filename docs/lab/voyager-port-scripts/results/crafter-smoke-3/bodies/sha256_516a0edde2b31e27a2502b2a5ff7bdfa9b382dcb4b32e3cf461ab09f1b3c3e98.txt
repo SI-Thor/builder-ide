@@ -1,0 +1,5 @@
+const drank = mc.act('drink_energy', 3);
+const chopped = mc.act('chop_tree', 1);
+const picked = mc.act('pick_up_wood', 1);
+const goal = mc.achievements().collect_wood === true;
+console.log('drank=' + drank + ' chopped=' + chopped + ' picked=' + picked + ' goal=' + goal);

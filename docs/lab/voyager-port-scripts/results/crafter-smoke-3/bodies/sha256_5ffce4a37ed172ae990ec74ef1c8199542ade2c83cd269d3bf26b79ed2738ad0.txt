@@ -1,0 +1,5 @@
+var drank = mc.act('drink_energy', 9);
+var chopped = mc.act('chop_tree', 1);
+var picked = mc.act('pick_up_wood', 1);
+var goal = mc.achievements().collect_wood === true;
+console.log('drank=' + drank + ' chopped=' + chopped + ' picked=' + picked + ' goal=' + goal);

@@ -1,0 +1,66 @@
+const done = () => {
+  const a = mc.achievements();
+  return a.wood === true || a.wood_collected === true || a.collect_wood === true || a.collected_wood === true;
+};
+
+const tryAct = (name) => {
+  try {
+    mc.act(name, 1);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+const restore = ["eat", "drink", "consume", "use", "food", "energy", "drink", "health", "eat_food", "drink_drink", "use_energy", "use_food", "use_drink", "use_health", "consume_food", "consume_energy", "consume_drink", "consume_health", "restore_energy", "restore_food", "restore_health"];
+for (const name of restore) {
+  if (tryAct(name)) break;
+}
+
+if (done()) {
+  console.log("Wood already collected.");
+} else {
+  const dirs = ["up", "down", "left", "right", "forward", "back", "backward", "north", "east", "south", "west", "N", "E", "S", "W"];
+  const validDirs = [];
+  for (const d of dirs) {
+    try {
+      mc.move(d, 1);
+      validDirs.push(d);
+      mc.move(d, 1);
+    } catch (e) {}
+  }
+
+  const chops = ["chop", "chop_tree", "punch", "mine", "break", "hit", "attack", "collect", "gather", "pick_up", "pick_up_wood", "collect_wood", "gather_wood"];
+  let ok = false;
+
+  if (validDirs.length > 0) {
+    for (let r = 0; r < 25 && !ok; r++) {
+      for (const d of validDirs) {
+        for (let i = 0; i < r && !ok; i++) mc.move(d, 1);
+        for (const c of chops) {
+          if (tryAct(c)) {
+            if (done()) {
+              ok = true;
+              break;
+            }
+          }
+        }
+        for (let i = 0; i < r && !ok; i++) mc.move(d, 1);
+      }
+    }
+  } else {
+    for (const c of chops) {
+      if (tryAct(c) && done()) {
+        ok = true;
+        break;
+      }
+    }
+  }
+
+  if (ok) {
+    console.log("Collected wood.");
+  } else {
+    console.log("Failed to collect wood.");
+    throw new Error("Failed to collect wood.");
+  }
+}

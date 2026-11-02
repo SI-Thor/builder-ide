@@ -23,8 +23,10 @@ teacher–student experiments use, so the numbers can be compared with
 from __future__ import annotations
 
 import builtins
+import contextlib
+import signal
 from types import SimpleNamespace
-from typing import Any, Mapping, Sequence
+from typing import Any, Iterator, Mapping, Sequence
 
 from ..models import Milestone
 from ..ports import CheckResult, EnvironmentPort, ExecResult, ProgressSnapshot
@@ -41,6 +43,36 @@ __all__ = [
 #: The coder prompt carries these verbatim, for the same reason the
 #: Minecraft ones travel: a coder that guesses a shape writes checks
 #: that cannot fire.
+@contextlib.contextmanager
+def _alarm(seconds: float) -> Iterator[None]:
+    """Fire :class:`TimeoutError` into the code under it, when it runs
+    past ``seconds``.
+
+    ``exec`` cannot be interrupted from outside its thread, so the alarm
+    fires *inside* it. Only the main thread may take a signal; anywhere
+    else (a test runner's thread pool, say) the alarm is skipped and the
+    code runs unguarded rather than not running at all.
+    """
+    if seconds <= 0:
+        yield
+        return
+
+    def _raise(_sig, _frame):
+        raise TimeoutError(f"the program ran past its {seconds:.0f}s wall")
+
+    try:
+        previous = signal.signal(signal.SIGALRM, _raise)
+    except ValueError:
+        yield  # not the main thread; run unguarded
+        return
+    signal.setitimer(signal.ITIMER_REAL, seconds)
+    try:
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+
 CRAFTER_RETURNS: Mapping[str, str] = {
     "mc.act": "the number of steps taken",
     "mc.act_seq": "the number of actions that ran",
@@ -288,7 +320,8 @@ class CrafterAdapter:
                 "abs", "all", "any", "bool", "dict", "enumerate", "filter", "float",
                 "int", "len", "list", "max", "min", "print", "range", "reversed",
                 "round", "set", "sorted", "str", "sum", "tuple", "zip", "Exception",
-                "ValueError", "KeyError", "IndexError", "True", "False", "None",
+                "ValueError", "KeyError", "IndexError", "RuntimeError", "TypeError",
+                "True", "False", "None",
             )
             if hasattr(builtins, name)
         }
@@ -300,8 +333,30 @@ class CrafterAdapter:
             # very first call.
             "mc": SimpleNamespace(**primitives),
         }
+        # The timeout is the loop's rule: a skill that never finishes is
+        # a failed skill, not a stuck run. exec cannot be interrupted
+        # from outside its thread, so the alarm fires inside it — the
+        # first smoke run whose program said `while True:` held the
+        # whole run for twelve minutes before this existed.
         try:
-            exec(compile(code, "<skill>", "exec"), namespace)  # noqa: S102
+            with _alarm(timeout_s):
+                exec(compile(code, "<skill>", "exec"), namespace)  # noqa: S102
+        except SyntaxError as exc:
+            # The execution error is the coder's teacher, so it says
+            # what is actually wrong: this world runs Python, and the
+            # coder's JavaScript habit is a syntax error here. The
+            # message the loop fed back ("SyntaxError: invalid syntax,
+            # line 1") never said that, and the coder kept replying in
+            # JavaScript for five steps.
+            return ExecResult(
+                ok=False,
+                error=(
+                    f"SyntaxError in a world that runs "
+                    f"{self.language} — write {self.language} only: {exc}"
+                )[:600],
+                log=tuple(captured),
+                seconds=__import__("time").time() - started,
+            )
         except Exception as exc:
             return ExecResult(
                 ok=False,
@@ -332,11 +387,12 @@ class CrafterAdapter:
         }
         text = code.strip()
         try:
-            try:
-                value = eval(compile(text, "<verify>", "eval"), namespace)  # noqa: S307
-            except SyntaxError:
-                exec(compile(text, "<verify>", "exec"), namespace)  # noqa: S102
-                value = namespace.get("result", namespace.get("__result__"))
+            with _alarm(timeout_s):
+                try:
+                    value = eval(compile(text, "<verify>", "eval"), namespace)  # noqa: S307
+                except SyntaxError:
+                    exec(compile(text, "<verify>", "exec"), namespace)  # noqa: S102
+                    value = namespace.get("result", namespace.get("__result__"))
             return CheckResult(passed=bool(value), detail=str(value))
         except Exception as exc:
             return CheckResult(passed=False, detail=f"{type(exc).__name__}: {exc}"[:300])

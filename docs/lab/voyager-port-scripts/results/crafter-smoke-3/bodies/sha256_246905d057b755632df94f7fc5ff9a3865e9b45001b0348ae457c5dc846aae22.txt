@@ -1,0 +1,43 @@
+const tryAct = (action, times) => {
+  try {
+    return mc.act(action, times);
+  } catch (err) {
+    return 0;
+  }
+};
+
+tryAct('eat', 9);
+tryAct('drink', 9);
+tryAct('energy', 9);
+tryAct('food', 9);
+
+const dirs = ['north', 'south', 'east', 'west'];
+let done = !!mc.achievements().collect_wood;
+
+if (!done) {
+  tryAct('chop_tree', 1);
+  tryAct('pick_up_wood', 1);
+  done = !!mc.achievements().collect_wood;
+}
+
+if (!done) {
+  for (const dir of dirs) {
+    mc.move(dir, 1);
+    tryAct('chop_tree', 1);
+    tryAct('pick_up_wood', 1);
+    done = !!mc.achievements().collect_wood;
+    if (done) break;
+  }
+}
+
+if (!done) {
+  for (const dir of dirs) {
+    mc.move(dir, 2);
+    tryAct('chop_tree', 1);
+    tryAct('pick_up_wood', 1);
+    done = !!mc.achievements().collect_wood;
+    if (done) break;
+  }
+}
+
+console.log('collect_wood=' + String(!!mc.achievements().collect_wood));

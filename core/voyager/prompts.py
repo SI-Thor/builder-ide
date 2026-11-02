@@ -75,7 +75,9 @@ The rules for the body:
    for anything else — no `require`, no `bot`, no `process`, no network.
 3. The program must finish on its own. Do not wait for anything that may never
    happen; give every wait a timeout.
-4. Say what happened: `console.log(...)` a short line about what it did.
+4. Say what happened: log a short line about what it did, with the
+   language's own logging call (`console.log` in JavaScript, `print` in
+   Python — the prompt names the language).
 5. If the program fails, let it fail. Do not hide an error behind a catch-all.
 
 Answer with a single JSON object and nothing else:
@@ -202,6 +204,8 @@ def coder_prompt(
         f"GOAL: {goal}",
         f"WHAT THE GOAL MEANS: {goal_description}",
         f"THE STEP TO TAKE: {plan_description}",
+        f"THE LANGUAGE OF THE PROGRAM: {language} — write {language} only;"
+        " a program in another language is a syntax error here.",
         "",
         "THE WORLD RIGHT NOW:",
         _facts_block(facts),

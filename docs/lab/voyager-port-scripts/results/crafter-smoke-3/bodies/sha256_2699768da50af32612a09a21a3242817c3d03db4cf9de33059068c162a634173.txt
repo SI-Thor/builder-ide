@@ -1,0 +1,9 @@
+mc.act('eat_food', 1)
+mc.act('drink_energy', 1)
+mc.act('chop_tree', 1)
+mc.act('pick_up_wood', 1)
+for direction in ['north', 'south', 'east', 'west']:
+    mc.move(direction, 1)
+    mc.act('chop_tree', 1)
+    mc.act('pick_up_wood', 1)
+print('goal=' + str(mc.achievements().get('collect_wood', False)))

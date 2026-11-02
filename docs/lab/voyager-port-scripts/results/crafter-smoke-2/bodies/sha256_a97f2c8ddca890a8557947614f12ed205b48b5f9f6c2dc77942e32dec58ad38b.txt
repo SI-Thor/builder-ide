@@ -1,0 +1,50 @@
+def try_action(name):
+    try:
+        mc.act(name, 1)
+        return True
+    except Exception:
+        return False
+
+for name in ["use_energy", "eat_energy", "consume_energy", "drink_energy", "restore_energy", "energy", "eat", "drink"]:
+    if try_action(name):
+        break
+
+dirs = ["north", "east", "south", "west"]
+chops = ["chop_tree", "chop", "punch", "mine", "break", "hit", "attack"]
+picks = ["pick_up_wood", "pick_up", "collect_wood", "collect", "gather_wood", "gather"]
+
+def wood_done():
+    ach = mc.achievements()
+    for key in ["wood", "wood_collected", "collect_wood", "collected_wood"]:
+        if ach.get(key) is True:
+            return True
+    return False
+
+if wood_done():
+    console.log("Wood already collected.")
+else:
+    done = False
+    for radius in range(0, 25):
+        for d in range(4):
+            for _ in range(radius):
+                mc.move(dirs[d], 1)
+            for chop in chops:
+                if try_action(chop):
+                    for pick in picks:
+                        if try_action(pick):
+                            if wood_done():
+                                done = True
+                                break
+                    if done:
+                        break
+            for _ in range(radius):
+                mc.move(dirs[(d + 2) % 4], 1)
+            if done:
+                break
+        if done:
+            break
+    if done:
+        console.log("Collected wood.")
+    else:
+        console.log("Failed to collect wood.")
+        raise RuntimeError("Failed to collect wood.")

@@ -1,0 +1,33 @@
+const startX = 44.5;
+const startY = 67;
+const startZ = 36.5;
+const step = 8;
+const maxSteps = 16;
+const scanRadius = 32;
+
+let logBlock = null;
+let lastScan = {};
+
+for (let i = 1; i <= maxSteps; i++) {
+  const targetZ = startZ - i * step;
+  const move = await mc.move_to(startX, startY, targetZ, 10000);
+  const scan = await mc.scan(scanRadius);
+  lastScan = scan.nearby || {};
+
+  const logKeys = Object.keys(lastScan).filter((name) => name.endsWith('_log'));
+  if (logKeys.length > 0) {
+    logBlock = logKeys[0];
+    break;
+  }
+}
+
+if (!logBlock) {
+  console.log('No tree trunk found while walking north.');
+  throw new Error('No tree trunk found while walking north.');
+}
+
+const approach = await mc.move_to_block(logBlock, 16, 10000);
+const mine = await mc.mine_block(logBlock, 16, 64);
+const have = await mc.count(logBlock);
+
+console.log(`Found ${logBlock}, mined ${mine.mined || 0}, now holding ${have.count || 0}.`);

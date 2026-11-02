@@ -1,0 +1,82 @@
+const logTypes = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log','pale_oak_log'];
+
+function logCount() {
+  let total = 0;
+  for (const t of logTypes) {
+    const c = mc.count(t);
+    total += (c && c.count) || 0;
+  }
+  return total;
+}
+
+function tryMine(type) {
+  const mine = mc.mine_block(type, 64, 64);
+  const collect = mc.collect(type, 64, 16);
+  const have = mc.count(type);
+  return {
+    mined: (mine && mine.mined) || 0,
+    collected: (collect && collect.collected) || 0,
+    have: (have && have.count) || 0
+  };
+}
+
+let scan = mc.scan(160);
+let nearby = (scan && scan.nearby) || {};
+let candidates = Object.keys(nearby).filter((n) => n.endsWith('_log') && !n.startsWith('stripped'));
+
+if (candidates.length === 0) {
+  for (const t of logTypes) {
+    const found = mc.move_to_block(t, 128, 600000);
+    if (found && found.block && !found.problem) {
+      candidates.push(t);
+      break;
+    }
+  }
+}
+
+if (candidates.length === 0) {
+  console.log('No log block found.');
+  throw new Error('No log block found.');
+}
+
+candidates.sort((a, b) => {
+  const pa = logTypes.includes(a) ? 0 : 1;
+  const pb = logTypes.includes(b) ? 0 : 1;
+  return pa - pb || ((nearby[b] || 0) - (nearby[a] || 0));
+});
+
+let result = null;
+for (const t of candidates) {
+  result = tryMine(t);
+  if (result.have > 0) break;
+}
+
+if (!result || result.have === 0) {
+  for (const t of candidates) {
+    const approach = mc.move_to_block(t, 128, 600000);
+    result = tryMine(t);
+    if (result.have > 0) break;
+  }
+}
+
+if (!result || result.have === 0) {
+  const offsets = [[8,0],[-8,0],[0,8],[0,-8],[8,8],[-8,-8],[8,-8],[-8,8]];
+  for (const [dx, dz] of offsets) {
+    const move = mc.move_to(41.4 + dx, 66, 1.3 + dz, 60000);
+    const localScan = mc.scan(64);
+    const localNearby = (localScan && localScan.nearby) || {};
+    const localCandidates = Object.keys(localNearby).filter((n) => n.endsWith('_log') && !n.startsWith('stripped'));
+    for (const t of localCandidates) {
+      result = tryMine(t);
+      if (result.have > 0) break;
+    }
+    if (result && result.have > 0) break;
+  }
+}
+
+const total = logCount();
+console.log(`Wood attempt finished: total logs=${total}.`);
+
+if (total === 0) {
+  throw new Error('No logs collected.');
+}
