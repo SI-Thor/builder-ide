@@ -462,3 +462,39 @@ Checked on the real box with the staged binary:
 The staged binary also reads the **live round-11 daemon's** status without
 trouble (`guard.enabled: false`, the rest defaulted), so a new client
 against an old daemon works — which is the swap window.
+
+## 2026-11-01 17:20 — sleep-dreaming: the paper, found and read
+
+The brief's round 1: find Google's SLEEP paper, write the mechanism, map it
+onto our night, then measure a toy with and without a sleep phase.
+
+**The paper.** *Language Models Need Sleep: Learning to Self-Modify and
+Consolidate Memories* — Behrouz, Hashemi, Javanmard, Mirrokni (Google).
+arXiv:2606.03979 [cs.LG], v1 2026-06-02, v2 2026-07-10, **CC BY 4.0**. Blog:
+research.google, 2026-10-27. **No code is linked** from either the paper or the
+blog (searched both on 2026-11-01); the blog's "Discover open-source code" is
+site navigation, not a release.
+
+The mechanism, in one line: the sleep phase **freezes the old parameters,
+writes the new knowledge into newly unlocked low-rank experts in the stable
+block, distils it on the model's own samples rather than on raw data, and
+prunes the transient**. Read from the paper's own text and written up in
+`docs/research/sleep.md`.
+
+**A correction to the brief.** The brief points at
+`docs/design/watching-teachers.md`. **That file does not exist** — not on this
+branch, not on any branch (`git log --all --diff-filter=A -- "*watching-teachers*"`
+is empty). The tiles-to-weights path the brief means is `docs/design/tiles.md`
+§5 "The learning loop — the nightly retrain", implemented in
+`core/tiles/retrain.py`. The research note says so in writing and maps onto
+that file instead.
+
+**The mapping, in one line.** Our night already has SLEEP's lifecycle, the
+append-only log and the prune (tiles are retired, never deleted) — but our
+consolidation re-fits on **raw events**, which is the one thing the paper
+explicitly refuses, and our chooser has **no expansion**.
+
+**Decided next.** Build the smallest honest toy: a two-phase class-incremental
+MLP, five arms (no sleep / more waking / raw replay / sleep / sleep+dream), the
+same gradient-step budget in each, the forgetting measured per seed. Under
+`thor-admit run --tier practice --peak 2G`.
