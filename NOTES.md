@@ -1865,3 +1865,46 @@ headless Chromium driving a capsule walk in-page; gate = pass commits, fail
 feeds qa_report back to the generator, max 2 retries. Leases via thor-admit
 per stage with honest peaks. No Samba anywhere; inbox/outbox are Thor
 directories.
+
+## 2026-11-01 20:35-21:10 — vibe-sandbox: the thin slice built, measured, and reported
+
+**The build (tools/vibe-sandbox, commit 6e0cc22).** Seven stages, each
+under a thor-admit lease (tier study): build123d generator (spec JSON ->
+named STLs + scene.json, the one collision model every stage reads),
+system Blender 4.0.2 --background (assemble, decimate only over the 20k-tri
+budget, save .blend, export GLB), the repo critic reused untouched
+(core.critic probe on the .blend via the Infinigen bpy venv +
+run_mesh_checks) plus Open3D 0.20 self-intersection on the shipped GLB, an
+atomic outbox manifest, a three.js hot-load viewer reusing the agent-world
+viewer's three 0.128 copy, and a Playwright playtest agent in headless
+Chromium (aarch64 works; SwiftShader WebGL, frame p95 27 ms at 3.1k tris —
+this closes the survey's open item).
+
+**The numbers (docs/lab/exp-vibe-sandbox.md).** 7 rooms, 2 clean + 5
+seeded faults. Medians per attempt: generate 2.7 s, blender 1.2 s, critic
+1.5 s, playtest 4.1 s, wall 9.6 s (leases included), room GLB 60.8 KB.
+Pass 5/7: both clean rooms attempt 1; float-a, block-a, scale-a repaired
+on attempt 2; pocket-a and selfx-a fail honestly (no v1 repair). The catch
+matrix is clean: QA caught all three placement/nav faults, the critic both
+geometry faults, zero false positives anywhere. clean-b was measured
+through the watcher seam — prompt dropped in the inbox, room committed
+with no hand in the loop.
+
+**The dead end, kept.** block-a's first run burned three attempts
+unchanged: blocked_door findings carry no prop name and the repair path
+dropped nameless findings. The fix infers the culprit from the door-strip
+geometry; re-run passed on attempt 2. Lesson: a repair loop must decide
+what to do with anonymous findings before it runs.
+
+**What is not verified (said in the report):** the collision model is the
+authored manifest, not the shipped mesh (v2 item 1); frame time is
+SwiftShader CPU raster; prop_unreachable never fired; the hybrid/d1 model
+critic did not run (no renders were made); rooms are rectangles with one
+north door and five prop kinds.
+
+**Where it stands.** Room commits 89476c0, b9a5d2b, 4868718, 0aa9be2 +
+block-a's; build 6e0cc22; claims table 1fdb875. The report, the asks for
+Casey (adapter+cable first) and the ranked v2 plan (walk the triangles,
+TRELLIS arm, Windows/Godot client, VLM judge, stream+Autopilot, free-text
+prompts) are in docs/lab/exp-vibe-sandbox.md and
+docs/research/vibe-sandbox.md §2-4.

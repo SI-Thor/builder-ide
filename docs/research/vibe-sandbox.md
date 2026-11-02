@@ -45,14 +45,58 @@ honest peaks (§2).
 
 ## 2. The thin slice
 
-Built and measured; see **`docs/lab/exp-vibe-sandbox.md`** for the pipeline, the numbers and what
-the QA agent catches that the critic does not.
+Built and measured 2026-11-01/02: **`docs/lab/exp-vibe-sandbox.md`** holds the pipeline, the
+per-stage latencies (≈ 9.6 s per attempt, four `study`-tier leases, load1 14–18 on the Thor), the
+pass rate (5 of 7 rooms; the two failures are seeded faults v1 has no repair for), and the catch
+matrix — the QA agent catches every placement/navigation fault (floating, door-blocking,
+sealed-off floor), the critic every within-object fault (family-scale outlier, self-intersecting
+shells), and neither fires on a clean room. Code: `tools/vibe-sandbox/` (README = run book);
+the watcher seam is proven end to end (a prompt dropped in the inbox ran to a commit on its own).
 
 ## 3. The asks for Casey
 
-Populated with the experiment report (§2 of `docs/lab/exp-vibe-sandbox.md`), so the asks carry the
-measured cost of not having them.
+Ordered by what they unlock, with the measured cost of not having each today.
+
+1. **A USB4 10GbE adapter for the ProArt + Cat6A, and static IPs `10.10.10.1/.2`** (claims rows 1).
+   The v1 numbers are unaffected — the whole pipeline runs Thor-local, and a room's artifacts are
+   60.8 KB. What suffers on Wi-Fi is everything v2 wants: TRELLIS texture payloads, 4K PBR sets,
+   any H.264 viewport stream, and the Windows client's latency. Static IPs are a Thor system
+   change, so they are yours to approve, not ours to make.
+2. **Thor headless (`systemctl set-default multi-user.target`)** (row 2). A system change; the box
+   ran the whole batch at `graphical.target` with 107.6 GB free, so nothing in v1 needs it. It
+   becomes worth asking when the box's memory is contended by the desktop session.
+3. **An authenticated share, if the Windows engine wants a mounted path** (row 4). v1 crosses by
+   ssh/rsync and needs nothing; guest-writable Samba stays refused on rule. If the v2 client
+   prefers a mount, an authenticated (non-guest) export is the shape we would ask for.
+4. **input-leap KVM + the PbP monitor arrangement** (row 3): the human seat for a two-box loop.
+   Hardware/UX, no measured cost either way; surveyed in `docs/research/ingame-building.md` 1b.
+5. **A decision on Aura Autopilot** (row 11): the v2 candidate for the Windows engine's tester
+   (Godot 4.7+ plugin, Apache-2.0, Aura account or BYOK cloud keys). It needs your OK twice — a
+   third-party plugin inside the engine, and a cloud service on the agent path — before anything
+   is installed.
 
 ## 4. The ranked v2 plan
 
-Populated with the experiment report.
+Ranked by unlock per unit of work; each is a day-ish, not a phase.
+
+1. **Walk the shipped triangles.** The QA's collision model is the authored `scene.json`; a mesh
+   that disagreed with its manifest would pass. A raycast/capsule query over the loaded GLB in the
+   playtest page (or trimesh in the report step) closes the loop's one self-inflicted blind spot
+   and lets the playtest catch prop–prop interpenetration too.
+2. **The TRELLIS arm of the generator.** Same seam, real meshes: text→SDXL→TRELLIS.2 under a
+   ComfyUI lease (the path `physag-lite` proved), spec-driven placement on top. Organic props are
+   the biggest visual jump per hour of work; the measure to add is GPU-minutes per room beside the
+   CPU wall the v1 batch already logs.
+3. **The Windows/Godot client (the spec's phase 4).** It polls the outbox manifest exactly as the
+   three.js viewer does — the manifest is already the wire format — imports the GLB at runtime and
+   raises the completion event the spec names. This is where the ProArt re-enters the loop.
+4. **A VLM judge stage.** The critic's scripted checks see geometry, not look: renders of the room
+   scored by a leased VLM (`thor-admit serve` or DeepInfra cloud) for occlusion, style drift,
+   "does this read as a room". Agent renders only — the no-human-pixels rule is unchanged.
+5. **H.264 viewport stream + the Autopilot pattern (phase 5).** After 3: the client streams its
+   own game viewport (never a human session), an agent sends inputs back. Needs ask 1 (the wire)
+   and ask 5 (the Autopilot OK), and our Playwright harness is the local fallback that already
+   works.
+6. **Free-text prompts (the "vibecode" seam).** A cloud LLM writes the spec JSON from a sentence,
+   the schema validates it, and everything downstream is unchanged — recipes stay the source of
+   truth, which is the repo's standing rule.
