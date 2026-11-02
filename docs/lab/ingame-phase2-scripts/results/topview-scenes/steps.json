@@ -1,0 +1,3651 @@
+[
+  {
+    "scene": "crate",
+    "step": "project init",
+    "argv": [
+      "init",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "--force"
+    ],
+    "seconds": 0.167,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "metadata": {
+        "builderVersion": "1.0.12",
+        "revision": 0,
+        "format": "scene3d-local-project",
+        "schemaVersion": 2,
+        "cliVersion": "0.1.8",
+        "sceneSequence": 2,
+        "updatedAt": "2026-11-02T05:40:11Z"
+      }
+    }
+  },
+  {
+    "scene": "crate",
+    "step": "node batch",
+    "argv": [
+      "node",
+      "batch",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "-"
+    ],
+    "seconds": 0.792,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "revision": 1,
+      "sceneSequence": 9,
+      "dryRun": false,
+      "strictVersions": false,
+      "operationCount": 7,
+      "accepted": [
+        {
+          "sequence": 3,
+          "operationId": "batch_node_b1176c7161",
+          "batchId": "nodes_2bee3d0dae",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "cam-main",
+          "expectedEntityVersion": 1,
+          "entityVersionAfter": 2,
+          "status": "accepted"
+        },
+        {
+          "sequence": 4,
+          "operationId": "batch_node_16feb761ea",
+          "batchId": "nodes_2bee3d0dae",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "floor",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 5,
+          "operationId": "batch_node_52845f9947",
+          "batchId": "nodes_2bee3d0dae",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "wall_front",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 6,
+          "operationId": "batch_node_d9fb94deae",
+          "batchId": "nodes_2bee3d0dae",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "wall_back",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 7,
+          "operationId": "batch_node_0adbf0f36b",
+          "batchId": "nodes_2bee3d0dae",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "wall_left",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 8,
+          "operationId": "batch_node_3ed445efb2",
+          "batchId": "nodes_2bee3d0dae",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "wall_right",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 9,
+          "operationId": "batch_node_e3eaf2c4e7",
+          "batchId": "nodes_2bee3d0dae",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "lid",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        }
+      ],
+      "warnings": [],
+      "entityVersions": {
+        "director": 1,
+        "cam-main": 2,
+        "floor": 1,
+        "wall_front": 1,
+        "wall_back": 1,
+        "wall_left": 1,
+        "wall_right": 1,
+        "lid": 1
+      },
+      "createdIds": [
+        "floor",
+        "wall_front",
+        "wall_back",
+        "wall_left",
+        "wall_right",
+        "lid"
+      ],
+      "updatedIds": [
+        "cam-main"
+      ],
+      "deletedIds": [],
+      "changeCount": 7,
+      "expandedChangeCount": 7,
+      "state": {
+        "sceneSequence": 9,
+        "nodes": [
+          {
+            "nodeId": "cam-main",
+            "type": "camera",
+            "name": "crate-cam",
+            "entityVersion": 2,
+            "transform": {
+              "position": {
+                "x": 2.2,
+                "y": 2,
+                "z": 1.8
+              },
+              "rotation": {
+                "x": -38.049,
+                "y": 59.421,
+                "z": 0
+              }
+            },
+            "camera": {
+              "fov": 50,
+              "lookAt": {
+                "x": 0,
+                "y": 0,
+                "z": 0.5
+              }
+            }
+          },
+          {
+            "nodeId": "floor",
+            "type": "primitive",
+            "name": "floor",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.009,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.4,
+                "height": 0.018,
+                "depth": 0.3
+              },
+              "size": {
+                "x": 0.4,
+                "y": 0.018,
+                "z": 0.3
+              }
+            }
+          },
+          {
+            "nodeId": "wall_front",
+            "type": "primitive",
+            "name": "wall_front",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.125,
+                "z": -0.141
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.4,
+                "height": 0.214,
+                "depth": 0.018
+              },
+              "size": {
+                "x": 0.4,
+                "y": 0.214,
+                "z": 0.018
+              }
+            }
+          },
+          {
+            "nodeId": "wall_back",
+            "type": "primitive",
+            "name": "wall_back",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.125,
+                "z": 0.141
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.4,
+                "height": 0.214,
+                "depth": 0.018
+              },
+              "size": {
+                "x": 0.4,
+                "y": 0.214,
+                "z": 0.018
+              }
+            }
+          },
+          {
+            "nodeId": "wall_left",
+            "type": "primitive",
+            "name": "wall_left",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": -0.191,
+                "y": 0.125,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.018,
+                "height": 0.214,
+                "depth": 0.264
+              },
+              "size": {
+                "x": 0.018,
+                "y": 0.214,
+                "z": 0.264
+              }
+            }
+          },
+          {
+            "nodeId": "wall_right",
+            "type": "primitive",
+            "name": "wall_right",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0.191,
+                "y": 0.125,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.018,
+                "height": 0.214,
+                "depth": 0.264
+              },
+              "size": {
+                "x": 0.018,
+                "y": 0.214,
+                "z": 0.264
+              }
+            }
+          },
+          {
+            "nodeId": "lid",
+            "type": "primitive",
+            "name": "lid",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.241,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.4,
+                "height": 0.018,
+                "depth": 0.3
+              },
+              "size": {
+                "x": 0.4,
+                "y": 0.018,
+                "z": 0.3
+              }
+            }
+          }
+        ],
+        "geometry": {
+          "issues": [],
+          "issueCount": 0,
+          "skippedNodeCount": 0
+        }
+      }
+    }
+  },
+  {
+    "scene": "crate",
+    "step": "document validate",
+    "argv": [
+      "validate",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate"
+    ],
+    "seconds": 0.134,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "revision": 1,
+      "sceneSequence": 9,
+      "documentType": "biz/scene3d-director-document",
+      "danglingReferences": []
+    }
+  },
+  {
+    "scene": "crate",
+    "step": "document get --summary",
+    "argv": [
+      "get",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "--summary"
+    ],
+    "seconds": 0.135,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "revision": 1,
+      "sceneSequence": 9,
+      "summary": {
+        "suggestedMode": "edit",
+        "activeCameraNodeId": "cam-main",
+        "sceneSequence": 9,
+        "entityVersions": {
+          "director": 1,
+          "cam-main": 2,
+          "floor": 1,
+          "wall_front": 1,
+          "wall_back": 1,
+          "wall_left": 1,
+          "wall_right": 1,
+          "lid": 1
+        },
+        "timeline": {
+          "fps": 24,
+          "frameStart": 0,
+          "frameEnd": 120
+        },
+        "nodes": [
+          {
+            "id": "cam-main",
+            "type": "camera",
+            "name": "crate-cam",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "floor",
+            "type": "primitive",
+            "name": "floor",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "wall_front",
+            "type": "primitive",
+            "name": "wall_front",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "wall_back",
+            "type": "primitive",
+            "name": "wall_back",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "wall_left",
+            "type": "primitive",
+            "name": "wall_left",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "wall_right",
+            "type": "primitive",
+            "name": "wall_right",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "lid",
+            "type": "primitive",
+            "name": "lid",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          }
+        ],
+        "cameras": [
+          "cam-main"
+        ],
+        "clips": [],
+        "fcurvesNodeIds": [],
+        "editorial": {
+          "version": 1,
+          "activeSequenceId": "sequence_1",
+          "sequences": [
+            {
+              "id": "sequence_1",
+              "durationFrames": 0,
+              "clips": []
+            }
+          ]
+        },
+        "message": "Outline only: curves and full nodes omitted. Use `document get <dir> --entity <id>` for one node, clip or fcurves shard."
+      }
+    }
+  },
+  {
+    "scene": "crate",
+    "step": "evaluate",
+    "argv": [
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate"
+    ],
+    "seconds": 0.243,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "revision": 1,
+      "sceneSequence": 9,
+      "persisted": false,
+      "plan": null,
+      "frames": [
+        0
+      ],
+      "cameraNodeId": "cam-main",
+      "evaluation": {
+        "ok": true,
+        "issues": [],
+        "frames": [
+          {
+            "frame": 0,
+            "cameraTargetDistance": null,
+            "cameraNodeId": "cam-main",
+            "targetNodeId": null,
+            "targetInFrustum": null,
+            "nodes": [
+              {
+                "nodeId": "floor",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.4704583270801574,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_front",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.481825096124158,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_back",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.3328525319911773,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_left",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.53164352674502,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_right",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.285073210751931,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "lid",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.3427654718810293,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "cam-main",
+                "type": "camera",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": false,
+                "cameraDistance": 0,
+                "groundPenetration": false
+              }
+            ]
+          }
+        ],
+        "measurement": "primitive boxes and node origins (characters by origin); inspect views measures character meshes"
+      },
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 0
+      }
+    }
+  },
+  {
+    "scene": "crate",
+    "step": "inspect nodes",
+    "argv": [
+      "nodes",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "floor",
+      "wall_front",
+      "wall_back",
+      "wall_left",
+      "wall_right",
+      "lid",
+      "cam-main"
+    ],
+    "seconds": 1.221,
+    "exit": 0,
+    "output": {
+      "ok": false,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "revision": 1,
+      "sceneSequence": 9,
+      "frame": 0,
+      "groundTolerance": 0.02,
+      "nodes": [
+        {
+          "nodeId": "floor",
+          "name": "floor",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.4000000059604645,
+            "y": 0.017999999225139618,
+            "z": 0.30000001192092896
+          },
+          "bounds": {
+            "min": {
+              "x": -0.20000000298023224,
+              "y": 3.8743019036002746e-10,
+              "z": -0.15000000596046448
+            },
+            "max": {
+              "x": 0.20000000298023224,
+              "y": 0.01799999961256981,
+              "z": 0.15000000596046448
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.009,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.017999999612569807,
+              "area": 0.120000006556511,
+              "worldWidth": 0.4000000059604645,
+              "worldDepth": 0.30000001192092896,
+              "bounds": {
+                "min": {
+                  "x": -0.20000000298023224,
+                  "y": 0.01799999961256981,
+                  "z": -0.15000000596046448
+                },
+                "max": {
+                  "x": 0.20000000298023224,
+                  "y": 0.01799999961256981,
+                  "z": 0.15000000596046448
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.009,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.0,
+            "status": "grounded"
+          }
+        },
+        {
+          "nodeId": "wall_front",
+          "name": "wall_front",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.4000000059604645,
+            "y": 0.21400000154972076,
+            "z": 0.017999999225139618
+          },
+          "bounds": {
+            "min": {
+              "x": -0.20000000298023224,
+              "y": 0.017999999225139618,
+              "z": -0.1499999996125698
+            },
+            "max": {
+              "x": 0.20000000298023224,
+              "y": 0.23200000077486038,
+              "z": -0.13200000038743018
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.125,
+            "z": -0.141
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.23200000077486038,
+              "area": 0.007199999797344203,
+              "worldWidth": 0.4000000059604645,
+              "worldDepth": 0.017999999225139618,
+              "bounds": {
+                "min": {
+                  "x": -0.20000000298023224,
+                  "y": 0.23200000077486038,
+                  "z": -0.1499999996125698
+                },
+                "max": {
+                  "x": 0.20000000298023224,
+                  "y": 0.23200000077486038,
+                  "z": -0.13200000038743018
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.125,
+              "z": -0.141
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.018,
+            "status": "grounded"
+          }
+        },
+        {
+          "nodeId": "wall_back",
+          "name": "wall_back",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.4000000059604645,
+            "y": 0.21400000154972076,
+            "z": 0.017999999225139618
+          },
+          "bounds": {
+            "min": {
+              "x": -0.20000000298023224,
+              "y": 0.017999999225139618,
+              "z": 0.13200000038743018
+            },
+            "max": {
+              "x": 0.20000000298023224,
+              "y": 0.23200000077486038,
+              "z": 0.1499999996125698
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.125,
+            "z": 0.141
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.23200000077486038,
+              "area": 0.007199999797344203,
+              "worldWidth": 0.4000000059604645,
+              "worldDepth": 0.017999999225139618,
+              "bounds": {
+                "min": {
+                  "x": -0.20000000298023224,
+                  "y": 0.23200000077486038,
+                  "z": 0.13200000038743018
+                },
+                "max": {
+                  "x": 0.20000000298023224,
+                  "y": 0.23200000077486038,
+                  "z": 0.1499999996125698
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.125,
+              "z": 0.141
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.018,
+            "status": "grounded"
+          }
+        },
+        {
+          "nodeId": "wall_left",
+          "name": "wall_left",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.017999999225139618,
+            "y": 0.21400000154972076,
+            "z": 0.2639999985694885
+          },
+          "bounds": {
+            "min": {
+              "x": -0.1999999996125698,
+              "y": 0.017999999225139618,
+              "z": -0.13199999928474426
+            },
+            "max": {
+              "x": -0.1820000003874302,
+              "y": 0.23200000077486038,
+              "z": 0.13199999928474426
+            }
+          },
+          "origin": {
+            "x": -0.191,
+            "y": 0.125,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": -0.191,
+              "y": 0.125,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.018,
+            "status": "grounded"
+          }
+        },
+        {
+          "nodeId": "wall_right",
+          "name": "wall_right",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.017999999225139618,
+            "y": 0.21400000154972076,
+            "z": 0.2639999985694885
+          },
+          "bounds": {
+            "min": {
+              "x": 0.1820000003874302,
+              "y": 0.017999999225139618,
+              "z": -0.13199999928474426
+            },
+            "max": {
+              "x": 0.1999999996125698,
+              "y": 0.23200000077486038,
+              "z": 0.13199999928474426
+            }
+          },
+          "origin": {
+            "x": 0.191,
+            "y": 0.125,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0.191,
+              "y": 0.125,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.018,
+            "status": "grounded"
+          }
+        },
+        {
+          "nodeId": "lid",
+          "name": "lid",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.4000000059604645,
+            "y": 0.017999999225139618,
+            "z": 0.30000001192092896
+          },
+          "bounds": {
+            "min": {
+              "x": -0.20000000298023224,
+              "y": 0.23200000038743018,
+              "z": -0.15000000596046448
+            },
+            "max": {
+              "x": 0.20000000298023224,
+              "y": 0.2499999996125698,
+              "z": 0.15000000596046448
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.241,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.2499999996125698,
+              "area": 0.120000006556511,
+              "worldWidth": 0.4000000059604645,
+              "worldDepth": 0.30000001192092896,
+              "bounds": {
+                "min": {
+                  "x": -0.20000000298023224,
+                  "y": 0.2499999996125698,
+                  "z": -0.15000000596046448
+                },
+                "max": {
+                  "x": 0.20000000298023224,
+                  "y": 0.2499999996125698,
+                  "z": 0.15000000596046448
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.241,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.232,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "cam-main",
+          "status": "geometry-unavailable",
+          "type": "camera"
+        }
+      ],
+      "pairs": [
+        {
+          "nodeIds": [
+            "floor",
+            "wall_front"
+          ],
+          "originDistance": 0.1826,
+          "horizontalOriginDistance": 0.141,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.4,
+            "y": 0.0,
+            "z": 0.018
+          }
+        },
+        {
+          "nodeIds": [
+            "floor",
+            "wall_back"
+          ],
+          "originDistance": 0.1826,
+          "horizontalOriginDistance": 0.141,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.4,
+            "y": 0.0,
+            "z": 0.018
+          }
+        },
+        {
+          "nodeIds": [
+            "floor",
+            "wall_left"
+          ],
+          "originDistance": 0.2235,
+          "horizontalOriginDistance": 0.191,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.018,
+            "y": 0.0,
+            "z": 0.264
+          }
+        },
+        {
+          "nodeIds": [
+            "floor",
+            "wall_right"
+          ],
+          "originDistance": 0.2235,
+          "horizontalOriginDistance": 0.191,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.018,
+            "y": 0.0,
+            "z": 0.264
+          }
+        },
+        {
+          "nodeIds": [
+            "floor",
+            "lid"
+          ],
+          "originDistance": 0.232,
+          "horizontalOriginDistance": 0.0,
+          "boundsGap": 0.214,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_front",
+            "wall_back"
+          ],
+          "originDistance": 0.282,
+          "horizontalOriginDistance": 0.282,
+          "boundsGap": 0.264,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_front",
+            "wall_left"
+          ],
+          "originDistance": 0.2374,
+          "horizontalOriginDistance": 0.2374,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_front",
+            "wall_right"
+          ],
+          "originDistance": 0.2374,
+          "horizontalOriginDistance": 0.2374,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_front",
+            "lid"
+          ],
+          "originDistance": 0.1826,
+          "horizontalOriginDistance": 0.141,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.4,
+            "y": 0.0,
+            "z": 0.018
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_back",
+            "wall_left"
+          ],
+          "originDistance": 0.2374,
+          "horizontalOriginDistance": 0.2374,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_back",
+            "wall_right"
+          ],
+          "originDistance": 0.2374,
+          "horizontalOriginDistance": 0.2374,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_back",
+            "lid"
+          ],
+          "originDistance": 0.1826,
+          "horizontalOriginDistance": 0.141,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.4,
+            "y": 0.0,
+            "z": 0.018
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_left",
+            "wall_right"
+          ],
+          "originDistance": 0.382,
+          "horizontalOriginDistance": 0.382,
+          "boundsGap": 0.364,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_left",
+            "lid"
+          ],
+          "originDistance": 0.2235,
+          "horizontalOriginDistance": 0.191,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.018,
+            "y": 0.0,
+            "z": 0.264
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_right",
+            "lid"
+          ],
+          "originDistance": 0.2235,
+          "horizontalOriginDistance": 0.191,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.018,
+            "y": 0.0,
+            "z": 0.264
+          }
+        }
+      ],
+      "warnings": [
+        "[WARNING]\nMediabunny was loaded twice. This will likely cause Mediabunny not to work correctly. Check if multiple dependencies are importing different versions of Mediabunny, or if something is being bundled incorrectly."
+      ],
+      "blockedRequests": []
+    }
+  },
+  {
+    "scene": "crate",
+    "step": "inspect views",
+    "argv": [
+      "views",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "--camera",
+      "cam-main",
+      "--frames",
+      "0,24"
+    ],
+    "seconds": 2.179,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "revision": 1,
+      "sceneSequence": 9,
+      "stale": false,
+      "views": [
+        {
+          "cameraNodeId": "cam-main",
+          "frames": [
+            0,
+            24
+          ],
+          "sceneSequence": 9,
+          "numerical": {
+            "ok": true,
+            "issues": []
+          },
+          "render": {
+            "runId": "318e84956a0540af883be0f3b5b75204",
+            "contactSheet": {
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/318e84956a0540af883be0f3b5b75204/contact-sheet.png",
+              "sha256": "0049f44ed39510aef7af13ec07e1cb727b0a189aa62e4bbff639a367455e0606",
+              "sizeBytes": 43962
+            },
+            "frameSha256s": [
+              "bb93dbcc25e92af78699e7256e68a54171a519dc59ea31d0507c84707a979d11",
+              "bb93dbcc25e92af78699e7256e68a54171a519dc59ea31d0507c84707a979d11"
+            ],
+            "frames": [
+              {
+                "frame": 0,
+                "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/318e84956a0540af883be0f3b5b75204/frame-0.png",
+                "sha256": "bb93dbcc25e92af78699e7256e68a54171a519dc59ea31d0507c84707a979d11",
+                "sizeBytes": 27483
+              },
+              {
+                "frame": 24,
+                "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/318e84956a0540af883be0f3b5b75204/frame-24.png",
+                "sha256": "bb93dbcc25e92af78699e7256e68a54171a519dc59ea31d0507c84707a979d11",
+                "sizeBytes": 27483
+              }
+            ]
+          },
+          "renderStatus": "complete"
+        }
+      ],
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 0
+      },
+      "measurement": "character origins (no characters)",
+      "checksComplete": true,
+      "checksBlockedBy": [],
+      "visualStatus": "pending-model-review",
+      "bomPath": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/bom.json"
+    }
+  },
+  {
+    "scene": "crate",
+    "step": "render",
+    "argv": [
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/render-payload.json"
+    ],
+    "seconds": 2.398,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "runId": "872f02be45c54efc81149282f270a0a6",
+      "revision": 1,
+      "documentSha256": "81024431ce9b7b04e9d3d7b14d1211016ec5261731972cc9984d95ffb2074589",
+      "builderVersion": "1.0.12",
+      "cliVersion": "0.1.8",
+      "sceneSequence": 9,
+      "warnings": [],
+      "result": {
+        "outputDir": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/872f02be45c54efc81149282f270a0a6",
+        "manifest": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/872f02be45c54efc81149282f270a0a6/render.json",
+        "cameraNodeId": "cam-main",
+        "sceneSequence": 9,
+        "frames": [
+          {
+            "frame": 0,
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/872f02be45c54efc81149282f270a0a6/frame-0.png",
+            "mimeType": "image/png",
+            "sizeBytes": 49472,
+            "sha256": "92e1dc8620fdb0c6a6867130f3f1662f67900af4bf524f45e36ff38b6d6e346f"
+          },
+          {
+            "frame": 24,
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/872f02be45c54efc81149282f270a0a6/frame-24.png",
+            "mimeType": "image/png",
+            "sizeBytes": 49472,
+            "sha256": "92e1dc8620fdb0c6a6867130f3f1662f67900af4bf524f45e36ff38b6d6e346f"
+          }
+        ],
+        "contactSheet": {
+          "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/872f02be45c54efc81149282f270a0a6/contact-sheet.png",
+          "mimeType": "image/png",
+          "sizeBytes": 39937,
+          "sha256": "7e0dcdc1e168c0b94740e04733c1073131b44c048ac744354f2269027a5402d5"
+        },
+        "blank": false,
+        "blockedRequests": [],
+        "warnings": []
+      }
+    }
+  },
+  {
+    "scene": "crate",
+    "step": "renders show",
+    "argv": [
+      "show",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate"
+    ],
+    "seconds": 0.161,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate",
+      "revision": 1,
+      "sceneSequence": 9,
+      "runId": "872f02be45c54efc81149282f270a0a6",
+      "kind": "contactSheet",
+      "frame": null,
+      "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/872f02be45c54efc81149282f270a0a6/contact-sheet.png",
+      "mimeType": "image/png",
+      "sizeBytes": 39937,
+      "sha256": "7e0dcdc1e168c0b94740e04733c1073131b44c048ac744354f2269027a5402d5",
+      "cameraNodeId": "cam-main",
+      "stale": false
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "project init",
+    "argv": [
+      "init",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "--force"
+    ],
+    "seconds": 0.171,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "metadata": {
+        "builderVersion": "1.0.12",
+        "revision": 0,
+        "format": "scene3d-local-project",
+        "schemaVersion": 2,
+        "cliVersion": "0.1.8",
+        "sceneSequence": 2,
+        "updatedAt": "2026-11-02T05:40:18Z"
+      }
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "node batch",
+    "argv": [
+      "node",
+      "batch",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "-"
+    ],
+    "seconds": 0.815,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "revision": 1,
+      "sceneSequence": 9,
+      "dryRun": false,
+      "strictVersions": false,
+      "operationCount": 7,
+      "accepted": [
+        {
+          "sequence": 3,
+          "operationId": "batch_node_5ef0b8bd19",
+          "batchId": "nodes_bb4d87b954",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "cam-main",
+          "expectedEntityVersion": 1,
+          "entityVersionAfter": 2,
+          "status": "accepted"
+        },
+        {
+          "sequence": 4,
+          "operationId": "batch_node_13390c8f78",
+          "batchId": "nodes_bb4d87b954",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "bottom",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 5,
+          "operationId": "batch_node_de42fbc023",
+          "batchId": "nodes_bb4d87b954",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "wall_front",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 6,
+          "operationId": "batch_node_f50206d9f0",
+          "batchId": "nodes_bb4d87b954",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "wall_back",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 7,
+          "operationId": "batch_node_a2fc23f0dd",
+          "batchId": "nodes_bb4d87b954",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "wall_left",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 8,
+          "operationId": "batch_node_b604ded6f9",
+          "batchId": "nodes_bb4d87b954",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "wall_right",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 9,
+          "operationId": "batch_node_fb5862c219",
+          "batchId": "nodes_bb4d87b954",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "dome",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        }
+      ],
+      "warnings": [],
+      "entityVersions": {
+        "director": 1,
+        "cam-main": 2,
+        "bottom": 1,
+        "wall_front": 1,
+        "wall_back": 1,
+        "wall_left": 1,
+        "wall_right": 1,
+        "dome": 1
+      },
+      "createdIds": [
+        "bottom",
+        "wall_front",
+        "wall_back",
+        "wall_left",
+        "wall_right",
+        "dome"
+      ],
+      "updatedIds": [
+        "cam-main"
+      ],
+      "deletedIds": [],
+      "changeCount": 7,
+      "expandedChangeCount": 7,
+      "state": {
+        "sceneSequence": 9,
+        "nodes": [
+          {
+            "nodeId": "cam-main",
+            "type": "camera",
+            "name": "chest-cam",
+            "entityVersion": 2,
+            "transform": {
+              "position": {
+                "x": 2.4,
+                "y": 1.8,
+                "z": 1.6
+              },
+              "rotation": {
+                "x": -34.695,
+                "y": 67.38,
+                "z": 0
+              }
+            },
+            "camera": {
+              "fov": 50,
+              "lookAt": {
+                "x": 0,
+                "y": 0,
+                "z": 0.6
+              }
+            }
+          },
+          {
+            "nodeId": "bottom",
+            "type": "primitive",
+            "name": "bottom",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.01,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.6,
+                "height": 0.02,
+                "depth": 0.4
+              },
+              "size": {
+                "x": 0.6,
+                "y": 0.02,
+                "z": 0.4
+              }
+            }
+          },
+          {
+            "nodeId": "wall_front",
+            "type": "primitive",
+            "name": "wall_front",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.21,
+                "z": -0.19
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.6,
+                "height": 0.38,
+                "depth": 0.02
+              },
+              "size": {
+                "x": 0.6,
+                "y": 0.38,
+                "z": 0.02
+              }
+            }
+          },
+          {
+            "nodeId": "wall_back",
+            "type": "primitive",
+            "name": "wall_back",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.21,
+                "z": 0.19
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.6,
+                "height": 0.38,
+                "depth": 0.02
+              },
+              "size": {
+                "x": 0.6,
+                "y": 0.38,
+                "z": 0.02
+              }
+            }
+          },
+          {
+            "nodeId": "wall_left",
+            "type": "primitive",
+            "name": "wall_left",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": -0.29,
+                "y": 0.21,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.02,
+                "height": 0.38,
+                "depth": 0.36
+              },
+              "size": {
+                "x": 0.02,
+                "y": 0.38,
+                "z": 0.36
+              }
+            }
+          },
+          {
+            "nodeId": "wall_right",
+            "type": "primitive",
+            "name": "wall_right",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0.29,
+                "y": 0.21,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.02,
+                "height": 0.38,
+                "depth": 0.36
+              },
+              "size": {
+                "x": 0.02,
+                "y": 0.38,
+                "z": 0.36
+              }
+            }
+          },
+          {
+            "nodeId": "dome",
+            "type": "primitive",
+            "name": "dome",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.4,
+                "z": 0
+              },
+              "rotation": {
+                "x": 0,
+                "y": 0,
+                "z": 90
+              }
+            },
+            "primitive": {
+              "kind": "CylinderGeometry",
+              "parameters": {
+                "radiusTop": 0.2,
+                "radiusBottom": 0.2,
+                "height": 0.6,
+                "radialSegments": 48
+              },
+              "size": {
+                "x": 0.4,
+                "y": 0.6,
+                "z": 0.4
+              }
+            }
+          }
+        ],
+        "geometry": {
+          "issues": [],
+          "issueCount": 0,
+          "skippedNodeCount": 1
+        }
+      }
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "document validate",
+    "argv": [
+      "validate",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest"
+    ],
+    "seconds": 0.15,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "revision": 1,
+      "sceneSequence": 9,
+      "documentType": "biz/scene3d-director-document",
+      "danglingReferences": []
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "document get --summary",
+    "argv": [
+      "get",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "--summary"
+    ],
+    "seconds": 0.132,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "revision": 1,
+      "sceneSequence": 9,
+      "summary": {
+        "suggestedMode": "edit",
+        "activeCameraNodeId": "cam-main",
+        "sceneSequence": 9,
+        "entityVersions": {
+          "director": 1,
+          "cam-main": 2,
+          "bottom": 1,
+          "wall_front": 1,
+          "wall_back": 1,
+          "wall_left": 1,
+          "wall_right": 1,
+          "dome": 1
+        },
+        "timeline": {
+          "fps": 24,
+          "frameStart": 0,
+          "frameEnd": 120
+        },
+        "nodes": [
+          {
+            "id": "cam-main",
+            "type": "camera",
+            "name": "chest-cam",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "bottom",
+            "type": "primitive",
+            "name": "bottom",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "wall_front",
+            "type": "primitive",
+            "name": "wall_front",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "wall_back",
+            "type": "primitive",
+            "name": "wall_back",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "wall_left",
+            "type": "primitive",
+            "name": "wall_left",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "wall_right",
+            "type": "primitive",
+            "name": "wall_right",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "dome",
+            "type": "primitive",
+            "name": "dome",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          }
+        ],
+        "cameras": [
+          "cam-main"
+        ],
+        "clips": [],
+        "fcurvesNodeIds": [],
+        "editorial": {
+          "version": 1,
+          "activeSequenceId": "sequence_1",
+          "sequences": [
+            {
+              "id": "sequence_1",
+              "durationFrames": 0,
+              "clips": []
+            }
+          ]
+        },
+        "message": "Outline only: curves and full nodes omitted. Use `document get <dir> --entity <id>` for one node, clip or fcurves shard."
+      }
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "evaluate",
+    "argv": [
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest"
+    ],
+    "seconds": 0.237,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "revision": 1,
+      "sceneSequence": 9,
+      "persisted": false,
+      "plan": null,
+      "frames": [
+        0
+      ],
+      "cameraNodeId": "cam-main",
+      "evaluation": {
+        "ok": true,
+        "issues": [],
+        "frames": [
+          {
+            "frame": 0,
+            "cameraTargetDistance": null,
+            "cameraNodeId": "cam-main",
+            "targetNodeId": null,
+            "targetInFrustum": null,
+            "nodes": [
+              {
+                "nodeId": "bottom",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.394716483007086,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_front",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.3900147492304513,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_back",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.205651259884643,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_left",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.510583997001069,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_right",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.088721418321827,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "dome",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.2062439083762793,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "cam-main",
+                "type": "camera",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": false,
+                "cameraDistance": 0,
+                "groundPenetration": false
+              }
+            ]
+          }
+        ],
+        "measurement": "primitive boxes and node origins (characters by origin); inspect views measures character meshes"
+      },
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 1
+      }
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "inspect nodes",
+    "argv": [
+      "nodes",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "bottom",
+      "wall_front",
+      "wall_back",
+      "wall_left",
+      "wall_right",
+      "dome",
+      "cam-main"
+    ],
+    "seconds": 1.065,
+    "exit": 0,
+    "output": {
+      "ok": false,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "revision": 1,
+      "sceneSequence": 9,
+      "frame": 0,
+      "groundTolerance": 0.02,
+      "nodes": [
+        {
+          "nodeId": "bottom",
+          "name": "bottom",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.6000000238418579,
+            "y": 0.019999999552965164,
+            "z": 0.4000000059604645
+          },
+          "bounds": {
+            "min": {
+              "x": -0.30000001192092896,
+              "y": 2.2351741811588166e-10,
+              "z": -0.20000000298023224
+            },
+            "max": {
+              "x": 0.30000001192092896,
+              "y": 0.019999999776482584,
+              "z": 0.20000000298023224
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.01,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.01999999977648258,
+              "area": 0.240000013113022,
+              "worldWidth": 0.6000000238418579,
+              "worldDepth": 0.4000000059604645,
+              "bounds": {
+                "min": {
+                  "x": -0.30000001192092896,
+                  "y": 0.019999999776482584,
+                  "z": -0.20000000298023224
+                },
+                "max": {
+                  "x": 0.30000001192092896,
+                  "y": 0.019999999776482584,
+                  "z": 0.20000000298023224
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.01,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.0,
+            "status": "grounded"
+          }
+        },
+        {
+          "nodeId": "wall_front",
+          "name": "wall_front",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.6000000238418579,
+            "y": 0.3799999952316284,
+            "z": 0.019999999552965164
+          },
+          "bounds": {
+            "min": {
+              "x": -0.30000001192092896,
+              "y": 0.020000002384185783,
+              "z": -0.19999999977648258
+            },
+            "max": {
+              "x": 0.30000001192092896,
+              "y": 0.3999999976158142,
+              "z": -0.18000000022351742
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.21,
+            "z": -0.19
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.3999999976158142,
+              "area": 0.012000000208616246,
+              "worldWidth": 0.6000000238418579,
+              "worldDepth": 0.019999999552965164,
+              "bounds": {
+                "min": {
+                  "x": -0.30000001192092896,
+                  "y": 0.3999999976158142,
+                  "z": -0.19999999977648258
+                },
+                "max": {
+                  "x": 0.30000001192092896,
+                  "y": 0.3999999976158142,
+                  "z": -0.18000000022351742
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.21,
+              "z": -0.19
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.02,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "wall_back",
+          "name": "wall_back",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.6000000238418579,
+            "y": 0.3799999952316284,
+            "z": 0.019999999552965164
+          },
+          "bounds": {
+            "min": {
+              "x": -0.30000001192092896,
+              "y": 0.020000002384185783,
+              "z": 0.18000000022351742
+            },
+            "max": {
+              "x": 0.30000001192092896,
+              "y": 0.3999999976158142,
+              "z": 0.19999999977648258
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.21,
+            "z": 0.19
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.3999999976158142,
+              "area": 0.012000000208616246,
+              "worldWidth": 0.6000000238418579,
+              "worldDepth": 0.019999999552965164,
+              "bounds": {
+                "min": {
+                  "x": -0.30000001192092896,
+                  "y": 0.3999999976158142,
+                  "z": 0.18000000022351742
+                },
+                "max": {
+                  "x": 0.30000001192092896,
+                  "y": 0.3999999976158142,
+                  "z": 0.19999999977648258
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.21,
+              "z": 0.19
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.02,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "wall_left",
+          "name": "wall_left",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.019999999552965164,
+            "y": 0.3799999952316284,
+            "z": 0.36000001430511475
+          },
+          "bounds": {
+            "min": {
+              "x": -0.29999999977648256,
+              "y": 0.020000002384185783,
+              "z": -0.18000000715255737
+            },
+            "max": {
+              "x": -0.2800000002235174,
+              "y": 0.3999999976158142,
+              "z": 0.18000000715255737
+            }
+          },
+          "origin": {
+            "x": -0.29,
+            "y": 0.21,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.3999999976158142,
+              "area": 0.007200000125169748,
+              "worldWidth": 0.019999999552965164,
+              "worldDepth": 0.36000001430511475,
+              "bounds": {
+                "min": {
+                  "x": -0.29999999977648256,
+                  "y": 0.3999999976158142,
+                  "z": -0.18000000715255737
+                },
+                "max": {
+                  "x": -0.2800000002235174,
+                  "y": 0.3999999976158142,
+                  "z": 0.18000000715255737
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": -0.29,
+              "y": 0.21,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.02,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "wall_right",
+          "name": "wall_right",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.019999999552965164,
+            "y": 0.3799999952316284,
+            "z": 0.36000001430511475
+          },
+          "bounds": {
+            "min": {
+              "x": 0.2800000002235174,
+              "y": 0.020000002384185783,
+              "z": -0.18000000715255737
+            },
+            "max": {
+              "x": 0.29999999977648256,
+              "y": 0.3999999976158142,
+              "z": 0.18000000715255737
+            }
+          },
+          "origin": {
+            "x": 0.29,
+            "y": 0.21,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.3999999976158142,
+              "area": 0.007200000125169748,
+              "worldWidth": 0.019999999552965164,
+              "worldDepth": 0.36000001430511475,
+              "bounds": {
+                "min": {
+                  "x": 0.2800000002235174,
+                  "y": 0.3999999976158142,
+                  "z": -0.18000000715255737
+                },
+                "max": {
+                  "x": 0.29999999977648256,
+                  "y": 0.3999999976158142,
+                  "z": 0.18000000715255737
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0.29,
+              "y": 0.21,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.02,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "dome",
+          "name": "dome",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.600000023841858,
+            "y": 0.40000000596046464,
+            "z": 0.4000000059604645
+          },
+          "bounds": {
+            "min": {
+              "x": -0.300000011920929,
+              "y": 0.19999999701976773,
+              "z": -0.20000000298023224
+            },
+            "max": {
+              "x": 0.300000011920929,
+              "y": 0.6000000029802324,
+              "z": 0.20000000298023224
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.4,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.5974407806071801,
+              "area": 0.06278700888756031,
+              "worldWidth": 0.6000000238418579,
+              "worldDepth": 0.10352762043476105,
+              "bounds": {
+                "min": {
+                  "x": -0.3000000119209289,
+                  "y": 0.5931851655244826,
+                  "z": -0.051763810217380524
+                },
+                "max": {
+                  "x": 0.300000011920929,
+                  "y": 0.6000000029802324,
+                  "z": 0.051763810217380524
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.4,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 90
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.2,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "cam-main",
+          "status": "geometry-unavailable",
+          "type": "camera"
+        }
+      ],
+      "pairs": [
+        {
+          "nodeIds": [
+            "bottom",
+            "wall_front"
+          ],
+          "originDistance": 0.2759,
+          "horizontalOriginDistance": 0.19,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "bottom",
+            "wall_back"
+          ],
+          "originDistance": 0.2759,
+          "horizontalOriginDistance": 0.19,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "bottom",
+            "wall_left"
+          ],
+          "originDistance": 0.3523,
+          "horizontalOriginDistance": 0.29,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "bottom",
+            "wall_right"
+          ],
+          "originDistance": 0.3523,
+          "horizontalOriginDistance": 0.29,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "bottom",
+            "dome"
+          ],
+          "originDistance": 0.39,
+          "horizontalOriginDistance": 0.0,
+          "boundsGap": 0.18,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_front",
+            "wall_back"
+          ],
+          "originDistance": 0.38,
+          "horizontalOriginDistance": 0.38,
+          "boundsGap": 0.36,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_front",
+            "wall_left"
+          ],
+          "originDistance": 0.3467,
+          "horizontalOriginDistance": 0.3467,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.02,
+            "y": 0.38,
+            "z": 0.0
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_front",
+            "wall_right"
+          ],
+          "originDistance": 0.3467,
+          "horizontalOriginDistance": 0.3467,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.02,
+            "y": 0.38,
+            "z": 0.0
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_front",
+            "dome"
+          ],
+          "originDistance": 0.2687,
+          "horizontalOriginDistance": 0.19,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.6,
+            "y": 0.2,
+            "z": 0.02
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_back",
+            "wall_left"
+          ],
+          "originDistance": 0.3467,
+          "horizontalOriginDistance": 0.3467,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.02,
+            "y": 0.38,
+            "z": 0.0
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_back",
+            "wall_right"
+          ],
+          "originDistance": 0.3467,
+          "horizontalOriginDistance": 0.3467,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.02,
+            "y": 0.38,
+            "z": 0.0
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_back",
+            "dome"
+          ],
+          "originDistance": 0.2687,
+          "horizontalOriginDistance": 0.19,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.6,
+            "y": 0.2,
+            "z": 0.02
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_left",
+            "wall_right"
+          ],
+          "originDistance": 0.58,
+          "horizontalOriginDistance": 0.58,
+          "boundsGap": 0.56,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "wall_left",
+            "dome"
+          ],
+          "originDistance": 0.3467,
+          "horizontalOriginDistance": 0.29,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.02,
+            "y": 0.2,
+            "z": 0.36
+          }
+        },
+        {
+          "nodeIds": [
+            "wall_right",
+            "dome"
+          ],
+          "originDistance": 0.3467,
+          "horizontalOriginDistance": 0.29,
+          "boundsGap": 0.0,
+          "boundsIntersect": true,
+          "overlapSize": {
+            "x": 0.02,
+            "y": 0.2,
+            "z": 0.36
+          }
+        }
+      ],
+      "warnings": [
+        "[WARNING]\nMediabunny was loaded twice. This will likely cause Mediabunny not to work correctly. Check if multiple dependencies are importing different versions of Mediabunny, or if something is being bundled incorrectly."
+      ],
+      "blockedRequests": []
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "inspect views",
+    "argv": [
+      "views",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "--camera",
+      "cam-main",
+      "--frames",
+      "0,24"
+    ],
+    "seconds": 3.114,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "revision": 1,
+      "sceneSequence": 9,
+      "stale": false,
+      "views": [
+        {
+          "cameraNodeId": "cam-main",
+          "frames": [
+            0,
+            24
+          ],
+          "sceneSequence": 9,
+          "numerical": {
+            "ok": true,
+            "issues": []
+          },
+          "render": {
+            "runId": "03e4032023654b40be0467d022370424",
+            "contactSheet": {
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/03e4032023654b40be0467d022370424/contact-sheet.png",
+              "sha256": "e63bbbde0d52c86861762e482916ffdbac83d7f12e47b15911cbaee1eb86c715",
+              "sizeBytes": 50296
+            },
+            "frameSha256s": [
+              "f7a6573c0f95e685841b60869c331fca02c1be6290fdbc6b2e258d39e0260854",
+              "f7a6573c0f95e685841b60869c331fca02c1be6290fdbc6b2e258d39e0260854"
+            ],
+            "frames": [
+              {
+                "frame": 0,
+                "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/03e4032023654b40be0467d022370424/frame-0.png",
+                "sha256": "f7a6573c0f95e685841b60869c331fca02c1be6290fdbc6b2e258d39e0260854",
+                "sizeBytes": 35589
+              },
+              {
+                "frame": 24,
+                "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/03e4032023654b40be0467d022370424/frame-24.png",
+                "sha256": "f7a6573c0f95e685841b60869c331fca02c1be6290fdbc6b2e258d39e0260854",
+                "sizeBytes": 35589
+              }
+            ]
+          },
+          "renderStatus": "complete"
+        }
+      ],
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 1
+      },
+      "measurement": "character origins (no characters)",
+      "checksComplete": true,
+      "checksBlockedBy": [],
+      "visualStatus": "pending-model-review",
+      "bomPath": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/bom.json"
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "render",
+    "argv": [
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/render-payload.json"
+    ],
+    "seconds": 2.078,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "runId": "32f091a96e0047ad9f689ab39a3c0906",
+      "revision": 1,
+      "documentSha256": "83c81c9bf59ebda92c7a3e2eefe5980f45dfbec992ba530336401b216398b9ed",
+      "builderVersion": "1.0.12",
+      "cliVersion": "0.1.8",
+      "sceneSequence": 9,
+      "warnings": [],
+      "result": {
+        "outputDir": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/32f091a96e0047ad9f689ab39a3c0906",
+        "manifest": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/32f091a96e0047ad9f689ab39a3c0906/render.json",
+        "cameraNodeId": "cam-main",
+        "sceneSequence": 9,
+        "frames": [
+          {
+            "frame": 0,
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/32f091a96e0047ad9f689ab39a3c0906/frame-0.png",
+            "mimeType": "image/png",
+            "sizeBytes": 43929,
+            "sha256": "34fa20e3b22d2f829e6aa36928785bc93ae6bddc3a80d945a9a37556a42df720"
+          },
+          {
+            "frame": 24,
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/32f091a96e0047ad9f689ab39a3c0906/frame-24.png",
+            "mimeType": "image/png",
+            "sizeBytes": 43929,
+            "sha256": "34fa20e3b22d2f829e6aa36928785bc93ae6bddc3a80d945a9a37556a42df720"
+          }
+        ],
+        "contactSheet": {
+          "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/32f091a96e0047ad9f689ab39a3c0906/contact-sheet.png",
+          "mimeType": "image/png",
+          "sizeBytes": 36373,
+          "sha256": "e60a220b28e276f6df88f518423a4140d135912756d8387c3e9a529cd4397999"
+        },
+        "blank": false,
+        "blockedRequests": [],
+        "warnings": []
+      }
+    }
+  },
+  {
+    "scene": "chest",
+    "step": "renders show",
+    "argv": [
+      "show",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest"
+    ],
+    "seconds": 0.138,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest",
+      "revision": 1,
+      "sceneSequence": 9,
+      "runId": "32f091a96e0047ad9f689ab39a3c0906",
+      "kind": "contactSheet",
+      "frame": null,
+      "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/32f091a96e0047ad9f689ab39a3c0906/contact-sheet.png",
+      "mimeType": "image/png",
+      "sizeBytes": 36373,
+      "sha256": "e60a220b28e276f6df88f518423a4140d135912756d8387c3e9a529cd4397999",
+      "cameraNodeId": "cam-main",
+      "stale": false
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "project init",
+    "argv": [
+      "init",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "--force"
+    ],
+    "seconds": 0.167,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "metadata": {
+        "builderVersion": "1.0.12",
+        "revision": 0,
+        "format": "scene3d-local-project",
+        "schemaVersion": 2,
+        "cliVersion": "0.1.8",
+        "sceneSequence": 2,
+        "updatedAt": "2026-11-02T05:40:26Z"
+      }
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "node batch",
+    "argv": [
+      "node",
+      "batch",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "-"
+    ],
+    "seconds": 0.514,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "revision": 1,
+      "sceneSequence": 6,
+      "dryRun": false,
+      "strictVersions": false,
+      "operationCount": 4,
+      "accepted": [
+        {
+          "sequence": 3,
+          "operationId": "batch_node_7bfa86f110",
+          "batchId": "nodes_a75af564b6",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "cam-main",
+          "expectedEntityVersion": 1,
+          "entityVersionAfter": 2,
+          "status": "accepted"
+        },
+        {
+          "sequence": 4,
+          "operationId": "batch_node_d7170cbb03",
+          "batchId": "nodes_a75af564b6",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "hook",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 5,
+          "operationId": "batch_node_313f3bb7fa",
+          "batchId": "nodes_a75af564b6",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "housing",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        },
+        {
+          "sequence": 6,
+          "operationId": "batch_node_323fefacbb",
+          "batchId": "nodes_a75af564b6",
+          "baseSequence": 2,
+          "kind": "director.node.upsert",
+          "entityId": "base",
+          "expectedEntityVersion": null,
+          "entityVersionAfter": 1,
+          "status": "accepted"
+        }
+      ],
+      "warnings": [],
+      "entityVersions": {
+        "director": 1,
+        "cam-main": 2,
+        "hook": 1,
+        "housing": 1,
+        "base": 1
+      },
+      "createdIds": [
+        "hook",
+        "housing",
+        "base"
+      ],
+      "updatedIds": [
+        "cam-main"
+      ],
+      "deletedIds": [],
+      "changeCount": 4,
+      "expandedChangeCount": 4,
+      "state": {
+        "sceneSequence": 6,
+        "nodes": [
+          {
+            "nodeId": "cam-main",
+            "type": "camera",
+            "name": "lantern-cam",
+            "entityVersion": 2,
+            "transform": {
+              "position": {
+                "x": 2,
+                "y": 1.8,
+                "z": 1.9
+              },
+              "rotation": {
+                "x": -39.635,
+                "y": 66.975,
+                "z": 0
+              }
+            },
+            "camera": {
+              "fov": 50,
+              "lookAt": {
+                "x": 0,
+                "y": 0,
+                "z": 1.05
+              }
+            }
+          },
+          {
+            "nodeId": "hook",
+            "type": "primitive",
+            "name": "hook",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.44,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "BoxGeometry",
+              "parameters": {
+                "width": 0.04,
+                "height": 0.04,
+                "depth": 0.04
+              },
+              "size": {
+                "x": 0.04,
+                "y": 0.04,
+                "z": 0.04
+              }
+            }
+          },
+          {
+            "nodeId": "housing",
+            "type": "primitive",
+            "name": "housing",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.3,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "CylinderGeometry",
+              "parameters": {
+                "radiusTop": 0.09,
+                "radiusBottom": 0.09,
+                "height": 0.24,
+                "radialSegments": 48
+              },
+              "size": {
+                "x": 0.18,
+                "y": 0.24,
+                "z": 0.18
+              }
+            }
+          },
+          {
+            "nodeId": "base",
+            "type": "primitive",
+            "name": "base",
+            "entityVersion": 1,
+            "transform": {
+              "position": {
+                "x": 0,
+                "y": 0.165,
+                "z": 0
+              }
+            },
+            "primitive": {
+              "kind": "CylinderGeometry",
+              "parameters": {
+                "radiusTop": 0.099,
+                "radiusBottom": 0.099,
+                "height": 0.03,
+                "radialSegments": 48
+              },
+              "size": {
+                "x": 0.198,
+                "y": 0.03,
+                "z": 0.198
+              }
+            }
+          }
+        ],
+        "geometry": {
+          "issues": [],
+          "issueCount": 0,
+          "skippedNodeCount": 2
+        }
+      }
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "document validate",
+    "argv": [
+      "validate",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern"
+    ],
+    "seconds": 0.158,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "revision": 1,
+      "sceneSequence": 6,
+      "documentType": "biz/scene3d-director-document",
+      "danglingReferences": []
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "document get --summary",
+    "argv": [
+      "get",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "--summary"
+    ],
+    "seconds": 0.171,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "revision": 1,
+      "sceneSequence": 6,
+      "summary": {
+        "suggestedMode": "edit",
+        "activeCameraNodeId": "cam-main",
+        "sceneSequence": 6,
+        "entityVersions": {
+          "director": 1,
+          "cam-main": 2,
+          "hook": 1,
+          "housing": 1,
+          "base": 1
+        },
+        "timeline": {
+          "fps": 24,
+          "frameStart": 0,
+          "frameEnd": 120
+        },
+        "nodes": [
+          {
+            "id": "cam-main",
+            "type": "camera",
+            "name": "lantern-cam",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "hook",
+            "type": "primitive",
+            "name": "hook",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "housing",
+            "type": "primitive",
+            "name": "housing",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          },
+          {
+            "id": "base",
+            "type": "primitive",
+            "name": "base",
+            "visible": true,
+            "locked": false,
+            "assetId": null
+          }
+        ],
+        "cameras": [
+          "cam-main"
+        ],
+        "clips": [],
+        "fcurvesNodeIds": [],
+        "editorial": {
+          "version": 1,
+          "activeSequenceId": "sequence_1",
+          "sequences": [
+            {
+              "id": "sequence_1",
+              "durationFrames": 0,
+              "clips": []
+            }
+          ]
+        },
+        "message": "Outline only: curves and full nodes omitted. Use `document get <dir> --entity <id>` for one node, clip or fcurves shard."
+      }
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "evaluate",
+    "argv": [
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern"
+    ],
+    "seconds": 0.235,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "revision": 1,
+      "sceneSequence": 6,
+      "persisted": false,
+      "plan": null,
+      "frames": [
+        0
+      ],
+      "cameraNodeId": "cam-main",
+      "evaluation": {
+        "ok": true,
+        "issues": [],
+        "frames": [
+          {
+            "frame": 0,
+            "cameraTargetDistance": null,
+            "cameraNodeId": "cam-main",
+            "targetNodeId": null,
+            "targetInFrustum": null,
+            "nodes": [
+              {
+                "nodeId": "hook",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.075646273549675,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "housing",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.1400636936215163,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "base",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.206746793870698,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "cam-main",
+                "type": "camera",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": false,
+                "cameraDistance": 0,
+                "groundPenetration": false
+              }
+            ]
+          }
+        ],
+        "measurement": "primitive boxes and node origins (characters by origin); inspect views measures character meshes"
+      },
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 2
+      }
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "inspect nodes",
+    "argv": [
+      "nodes",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "hook",
+      "housing",
+      "base",
+      "cam-main"
+    ],
+    "seconds": 0.984,
+    "exit": 0,
+    "output": {
+      "ok": false,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "revision": 1,
+      "sceneSequence": 6,
+      "frame": 0,
+      "groundTolerance": 0.02,
+      "nodes": [
+        {
+          "nodeId": "hook",
+          "name": "hook",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.03999999910593033,
+            "y": 0.03999999910593033,
+            "z": 0.03999999910593033
+          },
+          "bounds": {
+            "min": {
+              "x": -0.019999999552965164,
+              "y": 0.42000000044703484,
+              "z": -0.019999999552965164
+            },
+            "max": {
+              "x": 0.019999999552965164,
+              "y": 0.45999999955296517,
+              "z": 0.019999999552965164
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.44,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.44,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.42,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "housing",
+          "name": "housing",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.18000000715255737,
+            "y": 0.23999999463558197,
+            "z": 0.18000000715255737
+          },
+          "bounds": {
+            "min": {
+              "x": -0.09000000357627869,
+              "y": 0.180000002682209,
+              "z": -0.09000000357627869
+            },
+            "max": {
+              "x": 0.09000000357627869,
+              "y": 0.419999997317791,
+              "z": 0.09000000357627869
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.3,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.41999999731779103,
+              "area": 0.025374291972453528,
+              "worldWidth": 0.18000000715255737,
+              "worldDepth": 0.18000000715255737,
+              "bounds": {
+                "min": {
+                  "x": -0.09000000357627869,
+                  "y": 0.419999997317791,
+                  "z": -0.09000000357627869
+                },
+                "max": {
+                  "x": 0.09000000357627869,
+                  "y": 0.419999997317791,
+                  "z": 0.09000000357627869
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.3,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.18,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "base",
+          "name": "base",
+          "type": "primitive",
+          "status": "measured",
+          "size": {
+            "x": 0.1979999989271164,
+            "y": 0.029999999329447746,
+            "z": 0.1979999989271164
+          },
+          "bounds": {
+            "min": {
+              "x": -0.0989999994635582,
+              "y": 0.15000000033527613,
+              "z": -0.0989999994635582
+            },
+            "max": {
+              "x": 0.0989999994635582,
+              "y": 0.17999999966472388,
+              "z": 0.0989999994635582
+            }
+          },
+          "origin": {
+            "x": 0,
+            "y": 0.165,
+            "z": 0
+          },
+          "localForwardAxis": {
+            "x": 0,
+            "y": 0,
+            "z": 1
+          },
+          "supportSurfaces": [
+            {
+              "height": 0.1799999996647239,
+              "area": 0.030702892497288414,
+              "worldWidth": 0.1979999989271164,
+              "worldDepth": 0.1979999989271164,
+              "bounds": {
+                "min": {
+                  "x": -0.0989999994635582,
+                  "y": 0.17999999966472388,
+                  "z": -0.0989999994635582
+                },
+                "max": {
+                  "x": 0.0989999994635582,
+                  "y": 0.17999999966472388,
+                  "z": 0.0989999994635582
+                }
+              }
+            }
+          ],
+          "semanticFront": "unknown; verify in preview",
+          "transform": {
+            "position": {
+              "x": 0,
+              "y": 0.165,
+              "z": 0
+            },
+            "rotation": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1,
+              "z": 1
+            }
+          },
+          "grounding": {
+            "groundHeight": 0.0,
+            "bottomOffset": 0.15,
+            "status": "floating"
+          }
+        },
+        {
+          "nodeId": "cam-main",
+          "status": "geometry-unavailable",
+          "type": "camera"
+        }
+      ],
+      "pairs": [
+        {
+          "nodeIds": [
+            "hook",
+            "housing"
+          ],
+          "originDistance": 0.14,
+          "horizontalOriginDistance": 0.0,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "hook",
+            "base"
+          ],
+          "originDistance": 0.275,
+          "horizontalOriginDistance": 0.0,
+          "boundsGap": 0.24,
+          "boundsIntersect": false
+        },
+        {
+          "nodeIds": [
+            "housing",
+            "base"
+          ],
+          "originDistance": 0.135,
+          "horizontalOriginDistance": 0.0,
+          "boundsGap": 0.0,
+          "boundsIntersect": false
+        }
+      ],
+      "warnings": [
+        "[WARNING]\nMediabunny was loaded twice. This will likely cause Mediabunny not to work correctly. Check if multiple dependencies are importing different versions of Mediabunny, or if something is being bundled incorrectly."
+      ],
+      "blockedRequests": []
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "inspect views",
+    "argv": [
+      "views",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "--camera",
+      "cam-main",
+      "--frames",
+      "0,24"
+    ],
+    "seconds": 2.114,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "revision": 1,
+      "sceneSequence": 6,
+      "stale": false,
+      "views": [
+        {
+          "cameraNodeId": "cam-main",
+          "frames": [
+            0,
+            24
+          ],
+          "sceneSequence": 6,
+          "numerical": {
+            "ok": true,
+            "issues": []
+          },
+          "render": {
+            "runId": "aafa9f9e0bb944a58d3247c42bbb072b",
+            "contactSheet": {
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/aafa9f9e0bb944a58d3247c42bbb072b/contact-sheet.png",
+              "sha256": "e2f413ac40548b629a82c733b6c3e1da212e496b355d19133609d3559998f92f",
+              "sizeBytes": 45107
+            },
+            "frameSha256s": [
+              "f9a226770d60642c5c109c6a3f7391fcdc1408d0701e8758c2a5464a148d9c63",
+              "f9a226770d60642c5c109c6a3f7391fcdc1408d0701e8758c2a5464a148d9c63"
+            ],
+            "frames": [
+              {
+                "frame": 0,
+                "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/aafa9f9e0bb944a58d3247c42bbb072b/frame-0.png",
+                "sha256": "f9a226770d60642c5c109c6a3f7391fcdc1408d0701e8758c2a5464a148d9c63",
+                "sizeBytes": 30631
+              },
+              {
+                "frame": 24,
+                "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/aafa9f9e0bb944a58d3247c42bbb072b/frame-24.png",
+                "sha256": "f9a226770d60642c5c109c6a3f7391fcdc1408d0701e8758c2a5464a148d9c63",
+                "sizeBytes": 30631
+              }
+            ]
+          },
+          "renderStatus": "complete"
+        }
+      ],
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 2
+      },
+      "measurement": "character origins (no characters)",
+      "checksComplete": true,
+      "checksBlockedBy": [],
+      "visualStatus": "pending-model-review",
+      "bomPath": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/bom.json"
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "render",
+    "argv": [
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/render-payload.json"
+    ],
+    "seconds": 2.105,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "runId": "7f4cc77b90664a65867a6b429233ca50",
+      "revision": 1,
+      "documentSha256": "5c91ca3878c9552b682e05d776ad61c6d9e54908ac19eec037fa69d906b78496",
+      "builderVersion": "1.0.12",
+      "cliVersion": "0.1.8",
+      "sceneSequence": 6,
+      "warnings": [],
+      "result": {
+        "outputDir": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/7f4cc77b90664a65867a6b429233ca50",
+        "manifest": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/7f4cc77b90664a65867a6b429233ca50/render.json",
+        "cameraNodeId": "cam-main",
+        "sceneSequence": 6,
+        "frames": [
+          {
+            "frame": 0,
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/7f4cc77b90664a65867a6b429233ca50/frame-0.png",
+            "mimeType": "image/png",
+            "sizeBytes": 48351,
+            "sha256": "cde05b0df8dde3cb837d4313750fb565723f7e4e4197ed9a0f5d6c9e215fe636"
+          },
+          {
+            "frame": 24,
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/7f4cc77b90664a65867a6b429233ca50/frame-24.png",
+            "mimeType": "image/png",
+            "sizeBytes": 48351,
+            "sha256": "cde05b0df8dde3cb837d4313750fb565723f7e4e4197ed9a0f5d6c9e215fe636"
+          }
+        ],
+        "contactSheet": {
+          "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/7f4cc77b90664a65867a6b429233ca50/contact-sheet.png",
+          "mimeType": "image/png",
+          "sizeBytes": 38265,
+          "sha256": "cf2e9eb815407c97fa0e97c9575420db2092e949ddd63206a78ec3cc25ea60e3"
+        },
+        "blank": false,
+        "blockedRequests": [],
+        "warnings": []
+      }
+    }
+  },
+  {
+    "scene": "lantern",
+    "step": "renders show",
+    "argv": [
+      "show",
+      "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern"
+    ],
+    "seconds": 0.167,
+    "exit": 0,
+    "output": {
+      "ok": true,
+      "project": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern",
+      "revision": 1,
+      "sceneSequence": 6,
+      "runId": "7f4cc77b90664a65867a6b429233ca50",
+      "kind": "contactSheet",
+      "frame": null,
+      "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/7f4cc77b90664a65867a6b429233ca50/contact-sheet.png",
+      "mimeType": "image/png",
+      "sizeBytes": 38265,
+      "sha256": "cf2e9eb815407c97fa0e97c9575420db2092e949ddd63206a78ec3cc25ea60e3",
+      "cameraNodeId": "cam-main",
+      "stale": false
+    }
+  }
+]

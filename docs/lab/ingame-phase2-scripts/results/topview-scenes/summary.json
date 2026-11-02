@@ -1,0 +1,554 @@
+[
+  {
+    "scene": "crate",
+    "groundTolerance": 0.02,
+    "nodes_inspected": [
+      "floor",
+      "wall_front",
+      "wall_back",
+      "wall_left",
+      "wall_right",
+      "lid",
+      "cam-main"
+    ],
+    "grounding": {
+      "floor": "grounded",
+      "wall_front": "grounded",
+      "wall_back": "grounded",
+      "wall_left": "grounded",
+      "wall_right": "grounded",
+      "lid": "floating",
+      "cam-main": null
+    },
+    "ground_bottom_offset": {
+      "floor": 0.0,
+      "wall_front": 0.018,
+      "wall_back": 0.018,
+      "wall_left": 0.018,
+      "wall_right": 0.018,
+      "lid": 0.232,
+      "cam-main": null
+    },
+    "pairs_intersecting": [
+      "floor-wall_front",
+      "floor-wall_back",
+      "floor-wall_left",
+      "floor-wall_right",
+      "wall_front-lid",
+      "wall_back-lid",
+      "wall_left-lid",
+      "wall_right-lid"
+    ],
+    "evaluate": {
+      "ok": true,
+      "persisted": false,
+      "evaluation": {
+        "ok": true,
+        "issues": [],
+        "frames": [
+          {
+            "frame": 0,
+            "cameraTargetDistance": null,
+            "cameraNodeId": "cam-main",
+            "targetNodeId": null,
+            "targetInFrustum": null,
+            "nodes": [
+              {
+                "nodeId": "floor",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.4704583270801574,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_front",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.481825096124158,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_back",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.3328525319911773,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_left",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.53164352674502,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_right",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.285073210751931,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "lid",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.3427654718810293,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "cam-main",
+                "type": "camera",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": false,
+                "cameraDistance": 0,
+                "groundPenetration": false
+              }
+            ]
+          }
+        ],
+        "measurement": "primitive boxes and node origins (characters by origin); inspect views measures character meshes"
+      },
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 0
+      },
+      "frames": [
+        0
+      ]
+    },
+    "checksComplete": true,
+    "checksBlockedBy": [],
+    "views": [
+      {
+        "cameraNodeId": "cam-main",
+        "frames": [
+          0,
+          24
+        ],
+        "sceneSequence": 9,
+        "numerical": {
+          "ok": true,
+          "issues": []
+        },
+        "render": {
+          "runId": "318e84956a0540af883be0f3b5b75204",
+          "contactSheet": {
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/318e84956a0540af883be0f3b5b75204/contact-sheet.png",
+            "sha256": "0049f44ed39510aef7af13ec07e1cb727b0a189aa62e4bbff639a367455e0606",
+            "sizeBytes": 43962
+          },
+          "frameSha256s": [
+            "bb93dbcc25e92af78699e7256e68a54171a519dc59ea31d0507c84707a979d11",
+            "bb93dbcc25e92af78699e7256e68a54171a519dc59ea31d0507c84707a979d11"
+          ],
+          "frames": [
+            {
+              "frame": 0,
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/318e84956a0540af883be0f3b5b75204/frame-0.png",
+              "sha256": "bb93dbcc25e92af78699e7256e68a54171a519dc59ea31d0507c84707a979d11",
+              "sizeBytes": 27483
+            },
+            {
+              "frame": 24,
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/318e84956a0540af883be0f3b5b75204/frame-24.png",
+              "sha256": "bb93dbcc25e92af78699e7256e68a54171a519dc59ea31d0507c84707a979d11",
+              "sizeBytes": 27483
+            }
+          ]
+        },
+        "renderStatus": "complete"
+      }
+    ],
+    "visualStatus": "pending-model-review",
+    "contact_sheet": {
+      "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/crate/.topview-3d/renders/872f02be45c54efc81149282f270a0a6/contact-sheet.png",
+      "sizeBytes": 39937,
+      "sha256": "7e0dcdc1e168c0b94740e04733c1073131b44c048ac744354f2269027a5402d5",
+      "runId": "872f02be45c54efc81149282f270a0a6"
+    },
+    "render": {
+      "ok": true,
+      "runId": "872f02be45c54efc81149282f270a0a6",
+      "warnings": []
+    }
+  },
+  {
+    "scene": "chest",
+    "groundTolerance": 0.02,
+    "nodes_inspected": [
+      "bottom",
+      "wall_front",
+      "wall_back",
+      "wall_left",
+      "wall_right",
+      "dome",
+      "cam-main"
+    ],
+    "grounding": {
+      "bottom": "grounded",
+      "wall_front": "floating",
+      "wall_back": "floating",
+      "wall_left": "floating",
+      "wall_right": "floating",
+      "dome": "floating",
+      "cam-main": null
+    },
+    "ground_bottom_offset": {
+      "bottom": 0.0,
+      "wall_front": 0.02,
+      "wall_back": 0.02,
+      "wall_left": 0.02,
+      "wall_right": 0.02,
+      "dome": 0.2,
+      "cam-main": null
+    },
+    "pairs_intersecting": [
+      "wall_front-wall_left",
+      "wall_front-wall_right",
+      "wall_front-dome",
+      "wall_back-wall_left",
+      "wall_back-wall_right",
+      "wall_back-dome",
+      "wall_left-dome",
+      "wall_right-dome"
+    ],
+    "evaluate": {
+      "ok": true,
+      "persisted": false,
+      "evaluation": {
+        "ok": true,
+        "issues": [],
+        "frames": [
+          {
+            "frame": 0,
+            "cameraTargetDistance": null,
+            "cameraNodeId": "cam-main",
+            "targetNodeId": null,
+            "targetInFrustum": null,
+            "nodes": [
+              {
+                "nodeId": "bottom",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.394716483007086,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_front",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.3900147492304513,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_back",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.205651259884643,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_left",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.510583997001069,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "wall_right",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.088721418321827,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "dome",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.2062439083762793,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "cam-main",
+                "type": "camera",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": false,
+                "cameraDistance": 0,
+                "groundPenetration": false
+              }
+            ]
+          }
+        ],
+        "measurement": "primitive boxes and node origins (characters by origin); inspect views measures character meshes"
+      },
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 1
+      },
+      "frames": [
+        0
+      ]
+    },
+    "checksComplete": true,
+    "checksBlockedBy": [],
+    "views": [
+      {
+        "cameraNodeId": "cam-main",
+        "frames": [
+          0,
+          24
+        ],
+        "sceneSequence": 9,
+        "numerical": {
+          "ok": true,
+          "issues": []
+        },
+        "render": {
+          "runId": "03e4032023654b40be0467d022370424",
+          "contactSheet": {
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/03e4032023654b40be0467d022370424/contact-sheet.png",
+            "sha256": "e63bbbde0d52c86861762e482916ffdbac83d7f12e47b15911cbaee1eb86c715",
+            "sizeBytes": 50296
+          },
+          "frameSha256s": [
+            "f7a6573c0f95e685841b60869c331fca02c1be6290fdbc6b2e258d39e0260854",
+            "f7a6573c0f95e685841b60869c331fca02c1be6290fdbc6b2e258d39e0260854"
+          ],
+          "frames": [
+            {
+              "frame": 0,
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/03e4032023654b40be0467d022370424/frame-0.png",
+              "sha256": "f7a6573c0f95e685841b60869c331fca02c1be6290fdbc6b2e258d39e0260854",
+              "sizeBytes": 35589
+            },
+            {
+              "frame": 24,
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/03e4032023654b40be0467d022370424/frame-24.png",
+              "sha256": "f7a6573c0f95e685841b60869c331fca02c1be6290fdbc6b2e258d39e0260854",
+              "sizeBytes": 35589
+            }
+          ]
+        },
+        "renderStatus": "complete"
+      }
+    ],
+    "visualStatus": "pending-model-review",
+    "contact_sheet": {
+      "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/chest/.topview-3d/renders/32f091a96e0047ad9f689ab39a3c0906/contact-sheet.png",
+      "sizeBytes": 36373,
+      "sha256": "e60a220b28e276f6df88f518423a4140d135912756d8387c3e9a529cd4397999",
+      "runId": "32f091a96e0047ad9f689ab39a3c0906"
+    },
+    "render": {
+      "ok": true,
+      "runId": "32f091a96e0047ad9f689ab39a3c0906",
+      "warnings": []
+    }
+  },
+  {
+    "scene": "lantern",
+    "groundTolerance": 0.02,
+    "nodes_inspected": [
+      "hook",
+      "housing",
+      "base",
+      "cam-main"
+    ],
+    "grounding": {
+      "hook": "floating",
+      "housing": "floating",
+      "base": "floating",
+      "cam-main": null
+    },
+    "ground_bottom_offset": {
+      "hook": 0.42,
+      "housing": 0.18,
+      "base": 0.15,
+      "cam-main": null
+    },
+    "pairs_intersecting": [],
+    "evaluate": {
+      "ok": true,
+      "persisted": false,
+      "evaluation": {
+        "ok": true,
+        "issues": [],
+        "frames": [
+          {
+            "frame": 0,
+            "cameraTargetDistance": null,
+            "cameraNodeId": "cam-main",
+            "targetNodeId": null,
+            "targetInFrustum": null,
+            "nodes": [
+              {
+                "nodeId": "hook",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.075646273549675,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "housing",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.1400636936215163,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "base",
+                "type": "primitive",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": true,
+                "cameraDistance": 3.206746793870698,
+                "groundPenetration": false
+              },
+              {
+                "nodeId": "cam-main",
+                "type": "camera",
+                "finite": true,
+                "positiveScale": true,
+                "visible": true,
+                "animated": false,
+                "inFrustum": false,
+                "cameraDistance": 0,
+                "groundPenetration": false
+              }
+            ]
+          }
+        ],
+        "measurement": "primitive boxes and node origins (characters by origin); inspect views measures character meshes"
+      },
+      "geometry": {
+        "issues": [],
+        "issueCount": 0,
+        "skippedNodeCount": 2
+      },
+      "frames": [
+        0
+      ]
+    },
+    "checksComplete": true,
+    "checksBlockedBy": [],
+    "views": [
+      {
+        "cameraNodeId": "cam-main",
+        "frames": [
+          0,
+          24
+        ],
+        "sceneSequence": 6,
+        "numerical": {
+          "ok": true,
+          "issues": []
+        },
+        "render": {
+          "runId": "aafa9f9e0bb944a58d3247c42bbb072b",
+          "contactSheet": {
+            "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/aafa9f9e0bb944a58d3247c42bbb072b/contact-sheet.png",
+            "sha256": "e2f413ac40548b629a82c733b6c3e1da212e496b355d19133609d3559998f92f",
+            "sizeBytes": 45107
+          },
+          "frameSha256s": [
+            "f9a226770d60642c5c109c6a3f7391fcdc1408d0701e8758c2a5464a148d9c63",
+            "f9a226770d60642c5c109c6a3f7391fcdc1408d0701e8758c2a5464a148d9c63"
+          ],
+          "frames": [
+            {
+              "frame": 0,
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/aafa9f9e0bb944a58d3247c42bbb072b/frame-0.png",
+              "sha256": "f9a226770d60642c5c109c6a3f7391fcdc1408d0701e8758c2a5464a148d9c63",
+              "sizeBytes": 30631
+            },
+            {
+              "frame": 24,
+              "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/aafa9f9e0bb944a58d3247c42bbb072b/frame-24.png",
+              "sha256": "f9a226770d60642c5c109c6a3f7391fcdc1408d0701e8758c2a5464a148d9c63",
+              "sizeBytes": 30631
+            }
+          ]
+        },
+        "renderStatus": "complete"
+      }
+    ],
+    "visualStatus": "pending-model-review",
+    "contact_sheet": {
+      "path": "/home/caseydigennaro/lm-wt/ingame-phase2/third_party/topview-scenes/lantern/.topview-3d/renders/7f4cc77b90664a65867a6b429233ca50/contact-sheet.png",
+      "sizeBytes": 38265,
+      "sha256": "cf2e9eb815407c97fa0e97c9575420db2092e949ddd63206a78ec3cc25ea60e3",
+      "runId": "7f4cc77b90664a65867a6b429233ca50"
+    },
+    "render": {
+      "ok": true,
+      "runId": "7f4cc77b90664a65867a6b429233ca50",
+      "warnings": []
+    }
+  }
+]

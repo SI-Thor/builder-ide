@@ -1833,3 +1833,118 @@ can see the pictures. The box is still hostile — another seat's
 `thor-admit-hog` test was allocating 32 GB at a time all evening, and the
 Wi-Fi driver aborted at 18:06:26 — so the mesh stage is where the night
 still has to survive.
+
+## 2026-11-01 20:05-20:45 — ingame-phase2 task 1: topview-3d-builder headless
+
+Phase-2 brief read in full (including the thumb rules and the maxims). Work
+plan: three tools, one day each, hands-on; report is `docs/lab/exp-ingame-phase2.md`,
+scripts under `docs/lab/ingame-phase2-scripts/`, nothing system-wide, clones in
+the gitignored `third_party/`.
+
+**topview-3d-builder (Apache-2.0; its `add_library` assets are CC-BY-4.0 and
+are not used here).** Cloned from the phase-1 clone with rsync, pnpm install in
+the clone (pnpm 10 needed `--allow-build=esbuild --allow-build=unrs-resolver`),
+`agent/.venv` via `uv venv --python 3.12` + editable install of the thin CLI
+(jsonschema only, 0.4 s cold). The Playwright browser pin unit needed action:
+`topview-3d-cli browser ensure` then `--with-deps` (the first ensure skipped
+deps; `doctor` was already clean afterwards: playwright 1.63.0, chromium 1243),
+one download at a time under `third_party/` where it landing.
+
+`docs/lab/ingame-phase2-scripts/{prop_scenes.json,run_topview_scenes.py}` build
+three scenes from our own props (crate/chest/lantern from
+`core/cadbakeoff/fixtures/props/`, mm -> metre, Z-up -> Y-up; the chest dome is
+approximated by a full cylinder; the LANERN scene keeps the floating part on
+purpose). Everything the tool records: `results/topview-scenes/{steps,summary}.json`.
+
+**What ran (all steps exit 0; CLI wall 21.9 s for three scenes at box loadavg
+~14).** Per scene: `project init` 0.17 s, one atomic `node batch` (4-6 pieces +
+camera) median **0.79 s**, `document validate` 0.15 s, `evaluate` 0.24 s,
+`inspect nodes` median **1.07 s**, `inspect views` median **2.18 s** (headless
+Chromium behind it), `render` (960x540, frames 0,24 + contact sheet) median
+**2.11 s**. `renderStatus: complete`, `warnings: []`, contact sheet 42-45 KB
+PNG under the project (kept in `third_party/`, not in the repo).
+
+**The check vocabulary, against our critic.** `inspect nodes` publishes
+`groundTolerance: 0.02` and classifies every node from its mesh bounds:
+`|bottom| <= 0.02 grounded, bottom > 0 floating, else penetrating`
+(`agent/topview_3d_cli/local_inspect.py:147`). On our three objects it reports:
+crate floor+walls grounded (bottom 0.000/0.018) but the **lid floating at +0.232**
+— correct per the definition (the lid sits on the closed crate), wrong as a
+defect signal; chest bottom grounded, walls at +0.02 (on the tolerance
+boundary) and dome at +0.200 floating; lantern hook/housing/base all floating
+(+0.15..+0.42) — our deliberate floating case, caught deterministically.
+`boundsIntersect` reports pairwise bounding-box overlaps (+ overlapSize): crate
+8 pairs (wall-floor joints share 0.018 m, lid joins), chest 8 pairs, lantern
+0. `evaluate` runs per frame per node: finite, positiveScale, visible, animated,
+inFrustum, cameraDistance, groundPenetration — and `checksComplete: true`,
+`checksBlockedBy: []` even with floating nodes present, `visualStatus:
+pending-model-review` (the contact sheet is for a reviewer).
+
+Our own critic (`core/critic/`) measures image channels (dark_holes, firelies,
+flat_patch, patch_seam, fireflies, black_frame...) and its `floating_blob`
+picks floating objects from the image with one TP/one FN on calibration
+(`CALIBRATION.md`). Best framing: the two are not rival implementations —
+topviews grounding/bounds check is a *deterministic geometry pre-flight*,
+## 2026-11-01 20:05-20:45 — ingame-phase2 task 1: topview-3d-builder headless
+
+Phase-2 brief read in full (including the thumb rules and the maxims). Work
+plan: three tools, one day each, hands-on; the report is
+`docs/lab/exp-ingame-phase2.md`, scripts under `docs/lab/ingame-phase2-scripts/`,
+nothing system-wide, clones in the gitignored `third_party/`.
+
+**topview-3d-builder (Apache-2.0; its `add_library` assets are CC-BY-4.0 and
+are not used here).** Installed from the phase-1 clone (detached rsync into
+`third_party/`), `npm`/pnpm install inside the clone (pnpm 10 needed
+`--allow-build=esbuild --allow-build=unrs-resolver`), `agent/.venv` via
+`uv venv --python 3.12` + editable install of the thin CLI (jsonschema only,
+0.4 s cold start). The pinned Playwright browser needed
+`topview-3d-cli browser ensure` then `--with-deps`; `doctor` clean afterwards
+(playwright 1.63.0, chromium 1243), one download at a time.
+
+`docs/lab/ingame-phase2-scripts/{prop_scenes.json,run_topview_scenes.py}` build
+three scenes from our own props (crate/chest/lantern from
+`core/cadbakeoff/fixtures/props/`, mm -> metre, Z-up -> Y-up; the chest dome is
+approximated by a full cylinder, a substitution recorded in the script header;
+the LANTERN scene keeps the floating part on purpose). Everything the tool
+outputs is recorded in `results/topview-scenes/{steps,summary}.json`.
+
+**What ran (all steps exit 0; 21.9 s of CLI wall for three scenes at box
+loadavg ~14).** Per scene: `project init` 0.17 s, one atomic `node batch`
+(4-6 pieces + camera) median **0.79 s**, `document validate` 0.15 s,
+`evaluate` 0.24 s, `inspect nodes` median **1.07 s**, `inspect views` median
+**2.18 s** (headless Chromium behind it), `render` (960x540, frames 0,24 plus a
+contact sheet) median **2.11 s**. `renderStatus: complete`, `warnings: []`,
+contact sheets 42-45 KB PNG, kept in the project dir under `third_party/`
+(not in the repo — the scenes are our own primitives, no CC-BY content).
+
+**The check vocabulary, against our critic.** `inspect nodes` publishes
+`groundTolerance: 0.02` and classifies every node from its mesh bounds:
+abs(bottom) <= 0.02 grounded, bottom > 0 floating, else penetrating
+(`agent/topview_3d_cli/local_inspect.py:147`). On our three objects it reports:
+crate floor+walls grounded (bottom 0.000/0.018) but the **lid floating at
++0.232** — correct per the definition (the lid sits on the closed crate),
+wrong as a defect signal; chest bottom grounded, walls at +0.02 (on the
+tolerance boundary) and dome at +0.200 floating; lantern hook/housing/base all
+floating (+0.15..+0.42) — our deliberate floating case, caught deterministically.
+`boundsIntersect` reports pairwise bounding-box overlaps with `overlapSize`:
+crate 8 pairs at the wall-floor joints (0.018 m overlap each), chest 8 pairs,
+lantern 0. `evaluate` runs per frame per node: finite, positiveScale, visible,
+animated, inFrustum, cameraDistance, groundPenetration. `checksComplete: true`
+and `checksBlockedBy: []` hold even with floating nodes present;
+`visualStatus: pending-model-review` — the contact sheet is for a reviewer.
+
+Our own critic (`core/critic/`) measures image channels (dark_holes, fireflies,
+flat_patch, patch_seam, black_frame...) and picks floating objects out of the
+image (`floating_blob` in `CALIBRATION.md`: one TP, one FN). The two are not
+rival implementations: topview's grounding/bounds work is a **deterministic
+geometry pre-flight**, ours is a **render-output critic**. Its grounding check
+would have caught the lantern before any render — and would have flagged the
+closed crate too. Verdict recorded in the lab report.
+
+Camera failure trail (kept because it is how the schema actually works):
+`add_camera` with `view` + `subjectNodeId` -> `CAMERA_VIEW_CONFLICT` ("use view
+with fov; omit position, rotation, distance and subjectNodeId"); `view.mode`
+"orbit" -> `CAMERA_SUBJECT_REQUIRES_CHARACTER` (a camera subject must be a
+*character* node). The resting shape is `update` on the `cam-main` the project
+init already creates, with `{name, fov, view: {mode: world, position, target}}`.
+Every rejection ended in "nothing was written": the batch is atomic.
