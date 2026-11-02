@@ -2148,3 +2148,42 @@ The open question the doc leaves for the director: 6 of the 9
 over-cap meshes sit between 306k and 1 M triangles where nobody has
 measured the check's cost — whether the cap should rise is a separate
 cost measurement.
+
+## 2026-11-01 22:18 — drift-pause #3, step 1: the ledger gap closed at both ends
+
+The brief's first half: the world writes no `drift.yield` event, so the
+stall signal cannot tell "could not act" from "chose not to act" (the
+negative control of exp-drift-detector §5). What was tried — the event
+added where the world refuses work (the reflex's admission seam,
+`agent-world/reflex/.../service.py::_answer`: one `drift.yield` per
+admission decision, the covered bots in the payload; a world-level
+drift pause and a per-bot soft pause go through the same door, read
+from the pause file `runtime/drift-pause.json`), and the **closed event
+set** (`core/records.py` §1.8) opened for the drift group — build #2
+claimed the `drift.rule_violation` and `drift.build_drift` seams were
+"wired", but the closed set would have rejected both; a schema change
+was owed. The detector folds yield points by agent and censors what a
+yield explains: a gap with a yield inside it is not stall evidence, and
+a window spent standing aside has no idle.
+
+What happened — 54 tests in tests/drift (46 + 8 new) in 0.42 s; the
+world-side checks (agent-world tests/test_drift_yield.py, 13) pass
+against this branch via `AW_BUILDER_IDE=~/lm-wt/drift-pause` — note the
+running reflex imports core from `~/src/builder-ide` (main), so the
+event goes live when this branch merges and the reflex restarts; the
+world test documents that door. Three night-suite tests fail in the
+core-api venv for a missing numpy — the same three fail on the clean
+build-#2 tree (`~/lm-wt/drift-detector`), so they are the venv's, not
+this change's. A measurement before building anything: of the 5-of-12
+alarmed designed-yield windows at the shipped thresholds, **all five
+coincide with labelled drift** (4 inside episodes, 1 the onset edge of
+the judge's first absence at 06:20Z) and **none was a stall alarm** —
+the earlier note's mechanism story ("a world that stops playing is
+exactly what the stall signal is for") is not what the shipped detector
+did; the correction goes in the lab note. The fix still matters: the
+leave-one-out folds and the two-sided gate alarmed on yields, and the
+resume-gap after a busy stretch is a stall alarm waiting to happen.
+
+Decided next — backfill the yields from bots.jsonl
+(`extract.py --yields-from-bots`), re-extract a second dataset, re-run
+the negative control and the holdout, and report before/after.

@@ -141,3 +141,53 @@ def test_the_build_signal_has_nothing_to_say(steady_ledger: Path) -> None:
     series = build_series(steady_ledger, bucket_seconds=300)
     config = DriftConfig()
     assert BuildDriftSignal().compute(series, config, _reference(series)) == []
+
+
+# -- the yields: the stall signal forgives a wait the world chose -------------
+
+
+def test_a_wait_the_world_chose_is_not_a_stall(yielding_ledger: Path) -> None:
+    """Two silences, one ledger, and only the yields tell them apart.
+
+    The fixture waits twice: ten minutes with a yield every minute
+    (the box busy — the world behaving correctly), then seven minutes
+    of unexplained silence. The stall signal must stay quiet across
+    the first and rise on the second.
+    """
+    series = build_series(yielding_ledger, bucket_seconds=300)
+    points = StallSignal().compute(series, DriftConfig(), _reference(series))
+    kite = {p.at: p.value for p in points if p.scope == "Kite"}
+    forgiven = [kite.get(bucket.start) for bucket in series.buckets[0:4]]
+    assert all(value is None or value <= 5.0 for value in forgiven), forgiven
+    unexplained = [kite.get(bucket.start) for bucket in series.buckets[4:6]]
+    assert any(value is not None and value > 5.0 for value in unexplained), unexplained
+
+
+def test_one_yield_in_the_silence_does_not_excuse_all_of_it(
+    stalled_ledger: Path,
+) -> None:
+    """The excuse is per gap and per window, not a blanket amnesty.
+
+    A single yield point in the middle of a long silence excuses the
+    gap it falls inside and the window it falls in — not the windows
+    on either side, which stay unexplained.
+    """
+    from core.drift.ledger import read_plays
+
+    plays = sorted(float(p["at"]) for p in read_plays(stalled_ledger))
+    big = max(range(len(plays) - 1), key=lambda i: plays[i + 1] - plays[i])
+    mid = (plays[big] + plays[big + 1]) / 2.0
+    series = build_series(
+        stalled_ledger,
+        bucket_seconds=300,
+        extra_yields=[{"at": mid, "agent": "Kite"}],
+    )
+    idles = [
+        bucket.agent("Kite").idle_seconds
+        for bucket in series.buckets
+        if bucket.agent("Kite").plays == 0
+    ]
+    excused = [value for value in idles if value is None]
+    counted = [value for value in idles if value is not None]
+    assert len(excused) == 1, "exactly one silent window carries the yield"
+    assert counted, "the rest of the silence stays unexplained"

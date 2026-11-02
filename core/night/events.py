@@ -19,6 +19,7 @@ __all__ = [
     "JUDGE_EVENT_TYPES",
     "NIGHT_V3_EVENT_TYPES",
     "NIGHT_V4_EVENT_TYPES",
+    "DRIFT_EVENT_TYPES",
 ]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
@@ -140,6 +141,15 @@ NIGHT_V4_EVENT_TYPES = frozenset(
      "night.prop_delegate", "night.heavy_phase"}
 )
 
+#: The drift seat's three types (core/drift). Mirrored here so every
+#: reader of the log agrees on the closed set (§1.8). One is written —
+#: the world's own stand-asides, one event per admission decision, the
+#: covered bots in the payload; two are seams the detector reads, and
+#: nothing writes them yet.
+DRIFT_EVENT_TYPES = frozenset(
+    {"drift.yield", "drift.rule_violation", "drift.build_drift"}
+)
+
 EVENT_TYPES = (
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -160,6 +170,7 @@ EVENT_TYPES = (
     | TILE_EVENT_TYPES
     | JUDGE_EVENT_TYPES
     | NIGHT_V3_EVENT_TYPES
+    | DRIFT_EVENT_TYPES
 )
 
 #: The types this seat (the night runner) writes. Everything else in the log

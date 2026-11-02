@@ -138,3 +138,95 @@ def test_the_series_survives_a_round_trip_through_the_dataset(
     assert len(rebuilt.buckets) == len(series.buckets)
     assert rebuilt.agents == series.agents
     assert rebuilt.buckets[0].agent("Kite").plays == series.buckets[0].agent("Kite").plays
+
+
+# -- the yields: "could not act" is not "chose not to" ------------------------
+
+
+def test_a_yield_names_every_bot_it_covers(yielding_ledger: Path) -> None:
+    from core.drift.ledger import read_yields
+
+    points = read_yields(yielding_ledger)
+    assert points, "the fixture wrote yields"
+    assert {p["agent"] for p in points} == {"Kite"}
+    assert all(p["reason"] for p in points)
+    assert len(points) == 10
+
+
+def test_a_gap_that_spans_a_yield_is_not_stall_evidence(
+    yielding_ledger: Path,
+) -> None:
+    series = build_series(yielding_ledger, bucket_seconds=300)
+    # Bucket 3 holds the resume after the ten-minute busy-box wait: the
+    # 610-second gap spans the yields, so only the ten-second gaps are
+    # left in the window.
+    assert series.buckets[3].agent("Kite").gap_max <= 10.0 + 1e-6
+    # Bucket 5 holds the resume after the unexplained silence: nothing
+    # excuses the 420-second gap.
+    assert series.buckets[5].agent("Kite").gap_max >= 400.0
+
+
+def test_a_window_spent_standing_aside_has_no_idle(yielding_ledger: Path) -> None:
+    series = build_series(yielding_ledger, bucket_seconds=300)
+    # Bucket 2 is the middle of the busy-box wait: yields inside it,
+    # so the idle is excused rather than counted.
+    assert series.buckets[2].agent("Kite").idle_seconds is None
+    assert series.buckets[2].agent("Kite").yields == 5
+    # Bucket 4 is the unexplained silence: no yield, so the idle is
+    # the stall.
+    assert series.buckets[4].agent("Kite").idle_seconds is not None
+    assert series.buckets[4].agent("Kite").idle_seconds >= 300.0
+    assert series.buckets[4].agent("Kite").yields == 0
+
+
+def test_extra_yields_censor_a_ledger_that_carries_no_events(
+    stalled_ledger: Path,
+) -> None:
+    plays = sorted(float(p["at"]) for p in read_plays(stalled_ledger))
+    big = max(range(len(plays) - 1), key=lambda i: plays[i + 1] - plays[i])
+    mid = (plays[big] + plays[big + 1]) / 2.0
+    raw = build_series(stalled_ledger, bucket_seconds=300)
+    excused = build_series(
+        stalled_ledger,
+        bucket_seconds=300,
+        extra_yields=[{"at": mid, "agent": "Kite"}],
+    )
+
+    def worst(series) -> float:
+        return max(
+            (entry.gap_max or 0.0)
+            for bucket in series.buckets
+            for name, entry in bucket.agents.items()
+            if name == "Kite"
+        )
+
+    # The resume gap is 1210 seconds raw and 10 seconds excused: the
+    # backfill and the ledger's own event go through the same door.
+    assert worst(raw) >= 1000.0
+    assert worst(excused) <= 20.0
+
+
+def test_the_dataset_round_trip_carries_the_yield_count(
+    yielding_ledger: Path,
+) -> None:
+    from core.drift.ledger import series_from_dataset
+
+    series = build_series(yielding_ledger, bucket_seconds=300)
+    document = {
+        "meta": {
+            "bucket_seconds": 300,
+            "reference_start": series.reference_start,
+        },
+        "buckets": [
+            {
+                "at": bucket.start,
+                "agents": {
+                    name: {"plays": entry.plays, "yields": entry.yields}
+                    for name, entry in bucket.agents.items()
+                },
+            }
+            for bucket in series.buckets
+        ],
+    }
+    rebuilt = series_from_dataset(document)
+    assert sum(bucket.agent("Kite").yields for bucket in rebuilt.buckets) == 10

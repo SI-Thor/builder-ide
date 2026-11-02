@@ -191,3 +191,48 @@ def violating_ledger(tmp_path: Path) -> Path:
         rows.append(_verdict("Kite", offset + 0.5))
     rows.append(_violation("Kite", 100.0))
     return _write(tmp_path / "violating.sqlite3", rows)
+
+
+def _yield(
+    bots: list[str],
+    offset: float,
+    reason: str = "the box has 3 GB free; the rule is 25 GB",
+) -> dict:
+    """One ``drift.yield`` event: the world stood aside, naming who."""
+    return {
+        "at": _stamp(offset),
+        "actor": json.dumps({"id": "reflex", "kind": "core", "via": "admission"}),
+        "type": "drift.yield",
+        "subject": json.dumps({"yield": "box-busy"}),
+        "payload": json.dumps({"reason": reason, "bots": bots, "count": len(bots)}),
+    }
+
+
+@pytest.fixture()
+def yielding_ledger(tmp_path: Path) -> Path:
+    """An agent that waits twice: once because the box is busy, once
+    for no reason the ledger can name.
+
+    Kite plays every 10 s, then stands aside for ten minutes with a
+    yield every minute (the box busy — the negative control), then
+    plays again, then goes silent for seven minutes with **no** yield
+    (a real stall), then plays again. Pebble plays steadily
+    throughout, so the windows exist and the silence is Kite's alone.
+
+    The two waits are the same silence; only the yield events tell
+    them apart, and only one of them is drift.
+    """
+    rows: list[dict] = []
+    for step in range(20):  # offsets 0..190: steady play
+        rows.append(_play("Kite", step * 10.0))
+    for step in range(20, 159):  # Pebble keeps the world alive
+        rows.append(_play("Pebble", step * 10.0, result="lose"))
+    # the busy box: a yield every minute across the ten-minute wait
+    for offset in range(240, 800, 60):
+        rows.append(_yield(["Kite"], float(offset)))
+    for step in range(80, 99):  # offsets 800..980: play resumes
+        rows.append(_play("Kite", step * 10.0))
+    # the unexplained silence: offsets 990..1390, no yield at all
+    for step in range(140, 159):  # offsets 1400..1580: play resumes
+        rows.append(_play("Kite", step * 10.0))
+    return _write(tmp_path / "yielding.sqlite3", rows)
