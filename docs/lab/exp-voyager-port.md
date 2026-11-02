@@ -1,12 +1,11 @@
 # Voyager's loop as a system-agnostic core, measured on Minecraft
 
-Status: pilot and crafter smokes measured; the 2 h Minecraft run's
-numbers are being filled in as it ends. Written per
-`~/lm-wt/DOC-RULES.md` (mechanism first, numbers with the box state
-beside them, suspected/confirmed labelled, what was *not* verified
-named). Every number on this page is read out of the runs' own payload
-files by `docs/lab/voyager-port-scripts/summarize_run.py`, so the page
-cannot drift from what was measured.
+Status: finished; both runs and all five crafter smokes measured.
+Written per `~/lm-wt/DOC-RULES.md` (mechanism first, numbers with the
+box state beside them, suspected/confirmed labelled, what was *not*
+verified named). Every number on this page is read out of the runs'
+own payload files by `docs/lab/voyager-port-scripts/summarize_run.py`,
+so the page cannot drift from what was measured.
 
 ## Mechanism
 
@@ -141,7 +140,36 @@ self-check. Payload: `results/pilot-0.5h/` on the Thor, committed at
 
 ### The measured run (2 h, Minecraft, after the fixes)
 
-<!-- MEASURED-RUN -->
+| | |
+|---|---|
+| wall | 7365.8 s (2.05 h), stopped by the wall clock |
+| steps | 51 of 200; 0 skills admitted, 51 rejected |
+| tokens | 369,468 — coder 244,153 / planner 53,584 / verifier 71,731 |
+| items / milestones | **0 unique items, 0 milestones** |
+| box beside it | load 7–14 (other seats' work), ~100 GB available of 122.8 GB, sandbox under its 3 GB lease |
+
+Every step's program failed to find wood, and the reason is measured,
+not guessed. At the bot's spawn the **nearest — and only — tree in the
+loaded area is 111 blocks away** (`probe_trees.py`, run against the
+sandbox at the end: scan 48 = `{}`, scan 96 = `{}`, scan 160 =
+`{oak_log: distance 111, at (-3, 66, 103)}`), while the facts the
+planner sees reach 96 blocks and the wood-searching primitives reach
+64–128 with coder-chosen distances that mostly sat below 111. No
+step's `nearby` ever held a log — checked across all 51 step records —
+so the planner was *correctly* blind for two hours; the bot's walks
+(120 s program wall) moved it around (it ended at (41, 66, 1), still
+111 from the tree) without ever closing the gap. Two walks hit the
+bridge's own script timeout, one the walk timeout; the other 48
+programs scanned, found nothing, and said so honestly.
+
+Read together, the two runs split the loop's difficulty in two: the
+pilot — whose bot an earlier session had **placed at the tree** —
+measured crafting (four milestones, 124,865 tokens); this run measured
+exploration and found the bottleneck: **the loop cannot cross a
+distance it cannot see.** The lever is named and cheap to check — the
+bridge's own scan reaches 160 blocks and the adapter's facts stop at
+96 — but it is deliberately not changed here: the measurement stands
+as taken, and the change belongs to the next run.
 
 ### Crafter (the second world, 0.25 h smokes)
 
@@ -157,8 +185,7 @@ under `results/crafter-smoke-N/`) taught the harness one thing each:
 | 2 | 1 (+hang) | `while True:` held the run 12 min | `run_code`'s `exec` ignored `timeout_s`; an alarm fires `TimeoutError` inside the exec now |
 | 3 | 5 | still JS 4/5 steps | naming the language once is not enough — the *execution error* now says "this world runs python" |
 | 4 | 5 | still JS 3/5; guessed actions ('eat_food', 'west') | the seventeen action *names* were never in the prompt — "one of 17 values" invites guessing; the hints name them now |
-
-<!-- CRAFTER-5 -->
+| 5 | 6 | **first executed program, first item**; still JS 4/6 | with the names in the prompt the coder ran `act`-based programs; the JavaScript habit is the model's, the blindness is the world's |
 
 **The honest state of the second world:** the loop runs end-to-end in
 Crafter (steps, verdicts, ledger events, token counts all land), but no
@@ -194,14 +221,17 @@ paper's numbers, and the difference is mostly named:
   four milestones in 0.5 h — wood at 154 s, planks 324 s,
   crafting_table 533 s, wooden_pickaxe 1812 s — for 124,865 tokens.
 - The measured run (same seed, **fresh world, bot at world spawn**)
-  shows what the loop does from an honest start: the numbers are in the
-  table above. Where the pilot had wood in two steps, the spawn run
-  spends its budget finding it — the start position is the largest
-  single factor in "how fast is Voyager", and neither run hides it.
+  shows what the loop does from an honest start: **zero milestones in
+  2 hours**, because the only tree sits 111 blocks out against a
+  96-block facts scan — the loop cannot cross a distance it cannot
+  see. The start position is the largest single factor in "how fast is
+  Voyager", and neither run hides it.
 - The three reply defects the pilot exposed (the planner's capped
   JSON, the verifier's silent episodes, the coder's unseen return
-  shapes) were each pinned by a probe and fixed; the measured run's
-  step records carry `finish_reason` so the distinction survives.
+  shapes) were each pinned by a probe and fixed; the measured run had
+  **zero unreadable replies** (the pilot lost 6 of 23 steps to them),
+  and its step records carry `finish_reason` so the distinction
+  survives.
 
 ## Limits of what these runs establish (explicitly NOT verified)
 

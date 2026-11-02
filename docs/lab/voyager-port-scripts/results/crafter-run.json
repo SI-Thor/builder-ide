@@ -1,0 +1,692 @@
+{
+  "box": {
+    "free_mb": 98475,
+    "loadavg": [
+      13.53662109375,
+      13.55810546875,
+      13.787109375
+    ]
+  },
+  "budget": {
+    "elapsed_seconds": 931.8,
+    "max_steps": 20,
+    "max_tokens": 400000,
+    "max_wall_seconds": 900.0,
+    "steps": 6,
+    "stopped_by": "wall_clock",
+    "tokens": 36408
+  },
+  "cost_book": {
+    "by_role": {
+      "coder": 19950,
+      "planner": 7537,
+      "verifier": 8921
+    },
+    "calls": {
+      "coder": 6,
+      "planner": 6,
+      "verifier": 6
+    },
+    "model_seconds": 931.7,
+    "total_tokens": 36408
+  },
+  "cost_cents": null,
+  "failure": "",
+  "finished_at": "2026-11-02T11:37:56.996Z",
+  "items": {
+    "collect_sapling": 1
+  },
+  "milestone_seconds": {},
+  "milestone_tokens": {},
+  "milestones_reached": [],
+  "models": {
+    "coder": "Qwen/Qwen3.8-27B",
+    "planner": "XiaomiMiMo/MiMo-V2.6-Pro",
+    "verifier": "Qwen/Qwen3.8-Max"
+  },
+  "seed": 7,
+  "skills_admitted": 0,
+  "skills_rejected": 6,
+  "skills_superseded": 0,
+  "started_at": "2026-11-02T11:22:25.199Z",
+  "steps": [
+    {
+      "at": "2026-11-02T11:26:12.664Z",
+      "disposition": "rejected",
+      "exec_error": "SyntaxError in a world that runs python \u2014 write python only: invalid syntax (<skill>, line 1)",
+      "exec_log": [],
+      "exec_ok": false,
+      "exec_seconds": 0.0,
+      "facts": {
+        "achievements": {},
+        "achievements_reached": [],
+        "energy": 0,
+        "food": 0,
+        "health": 9,
+        "inventory": {
+          "drink": 9,
+          "energy": 9,
+          "food": 9,
+          "health": 9
+        },
+        "position": {
+          "x": 32,
+          "y": 32
+        },
+        "unique_materials": [],
+        "world": "crafter"
+      },
+      "goal": "collect_wood",
+      "index": 1,
+      "plan": [
+        "Use an energy item to restore energy, then look for a tree",
+        "Eat food to restore energy",
+        "Drink to restore energy",
+        "Search for a tree first despite zero energy"
+      ],
+      "proposal": {
+        "code": "let log = (m) => console.log(m);\nlet rewardBefore = mc.reward();\n\nlog(\"Energy is 0; using an energy item.\");\nlet used = mc.act(\"do\", 1);\nlog(\"Energy-use action took \" + used + \" step(s).\" + (used === 0 ? \" It may have failed.\" : \"\"));\n\nlet dirs = [\n  [\"up\", 1],\n  [\"right\", 1],\n  [\"down\", 1],\n  [\"left\", 1]\n];\n\nlet chopped = false;\nlet rewardAfter = rewardBefore;\n\nfor (let d = 0; d < dirs.length && !chopped; d++) {\n  let dir = dirs[d][0];\n  let steps = dirs[d][1];\n  let moved = mc.move(dir, steps);\n  if (moved !== steps) {\n    log(\"Could not move \" + dir + \" \" + steps + \" step(s); tried \" + moved + \".\");\n    continue;\n  }\n\n  let before = mc.reward();\n  let acted = mc.act(\"do\", 1);\n  let after = mc.reward();\n  rewardAfter = after;\n\n  if (acted > 0 && after > before) {\n    chopped = true;\n    log(\"Chopped a tree while facing \" + dir + \".\");\n  } else {\n    log(\"No wood collected while facing \" + dir + \".\");\n  }\n\n  if (!chopped) {\n    let back = mc.move(dir === \"up\" ? \"down\" : dir === \"down\" ? \"up\" : dir === \"left\" ? \"right\" : \"left\", steps);\n    if (back !== steps) {\n      log(\"Could not return from \" + dir + \"; tried \" + back + \" step(s).\" + (back === 0 ? \" Stopping.\" : \"\"));\n      if (back === 0) break;\n    }\n  }\n}\n\nif (chopped && rewardAfter > rewardBefore) {\n  log(\"Goal met: wood collected. Reward changed from \" + rewardBefore + \" to \" + rewardAfter + \".\");\n} else {\n  log(\"Goal not met: no tree was found or chopped.\");\n}\n",
+        "description": "Restore energy, scan nearby tiles for a tree, chop it, and report the result.",
+        "family": "crafter.collect_wood",
+        "language": "python",
+        "milestone": "collect_wood",
+        "primitives": [
+          "mc.act",
+          "mc.move",
+          "mc.reward"
+        ],
+        "title": "Collect Wood",
+        "verify_code": "mc.reward() > 0"
+      },
+      "reason": "execution_error:SyntaxError in a world that runs python \u2014 write python only: invalid syntax (<skill>, line 1)",
+      "self_verified": false,
+      "skill_id": "tile_09cbcd325026",
+      "total_tokens": 5294,
+      "truth": false,
+      "usage": [
+        {
+          "completion_tokens": 736,
+          "cost_cents": null,
+          "model": "XiaomiMiMo/MiMo-V2.6-Pro",
+          "prompt_tokens": 374,
+          "role": "planner",
+          "seconds": 11.07,
+          "total_tokens": 1110
+        },
+        {
+          "completion_tokens": 2031,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-27B",
+          "prompt_tokens": 934,
+          "role": "coder",
+          "seconds": 210.31,
+          "total_tokens": 2965
+        },
+        {
+          "completion_tokens": 160,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-Max",
+          "prompt_tokens": 1059,
+          "role": "verifier",
+          "seconds": 6.07,
+          "total_tokens": 1219
+        }
+      ],
+      "verdict": "DENIED",
+      "verdict_detail": "The world state after the program ran is identical to the initial state, with no wood in the inventory and no achievements reached."
+    },
+    {
+      "at": "2026-11-02T11:28:31.612Z",
+      "disposition": "rejected",
+      "exec_error": "",
+      "exec_log": [
+        "Energy is 0; using an energy item.",
+        "Energy-use action took 1 step(s).",
+        "No wood collected while facing up.",
+        "No wood collected while facing right.",
+        "No wood collected while facing down.",
+        "No wood collected while facing left.",
+        "Goal not met: no tree was found or chopped."
+      ],
+      "exec_ok": true,
+      "exec_seconds": 0.02,
+      "facts": {
+        "achievements": {},
+        "achievements_reached": [],
+        "energy": 0,
+        "food": 0,
+        "health": 9,
+        "inventory": {
+          "drink": 9,
+          "energy": 9,
+          "food": 9,
+          "health": 9
+        },
+        "position": {
+          "x": 32,
+          "y": 32
+        },
+        "unique_materials": [],
+        "world": "crafter"
+      },
+      "goal": "collect_wood",
+      "index": 2,
+      "plan": [
+        "Drink/eat energy item first, then find and chop a tree",
+        "Eat food first to restore food, then chop a tree",
+        "Try chopping a tree immediately without restoring energy"
+      ],
+      "proposal": {
+        "code": "print(\"Energy is 0; using an energy item.\")\nused = mc.act(\"do\", 1)\nprint(\"Energy-use action took \" + str(used) + \" step(s).\")\n\nreward_before = mc.reward()\nchopped = False\n\nfor direction in [\"up\", \"right\", \"down\", \"left\"]:\n    if chopped:\n        break\n    moved = mc.move(direction, 1)\n    if moved != 1:\n        print(\"Could not move \" + direction + \".\")\n        continue\n\n    before = mc.reward()\n    acted = mc.act(\"do\", 1)\n    after = mc.reward()\n\n    if acted > 0 and after > before:\n        chopped = True\n        print(\"Chopped a tree while facing \" + direction + \".\")\n    else:\n        print(\"No wood collected while facing \" + direction + \".\")\n\n    if not chopped:\n        back_dir = {\"up\": \"down\", \"down\": \"up\", \"left\": \"right\", \"right\": \"left\"}[direction]\n        back = mc.move(back_dir, 1)\n        if back != 1:\n            print(\"Could not return from \" + direction + \".\")\n\nif chopped and mc.reward() > reward_before:\n    print(\"Goal met: wood collected.\")\nelse:\n    print(\"Goal not met: no tree was found or chopped.\")",
+        "description": "Restore energy with an energy item, then search nearby tiles for a tree and chop it to collect wood.",
+        "family": "crafter.collect_wood",
+        "language": "python",
+        "milestone": "collect_wood",
+        "primitives": [
+          "mc.act",
+          "mc.move",
+          "mc.reward"
+        ],
+        "title": "Drink energy then chop a tree",
+        "verify_code": "mc.reward() > 0"
+      },
+      "reason": "verifier:denied",
+      "self_verified": false,
+      "skill_id": "tile_f1d3e36be976",
+      "total_tokens": 5735,
+      "truth": false,
+      "usage": [
+        {
+          "completion_tokens": 608,
+          "cost_cents": null,
+          "model": "XiaomiMiMo/MiMo-V2.6-Pro",
+          "prompt_tokens": 404,
+          "role": "planner",
+          "seconds": 6.3,
+          "total_tokens": 1012
+        },
+        {
+          "completion_tokens": 1825,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-27B",
+          "prompt_tokens": 1517,
+          "role": "coder",
+          "seconds": 127.63,
+          "total_tokens": 3342
+        },
+        {
+          "completion_tokens": 168,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-Max",
+          "prompt_tokens": 1213,
+          "role": "verifier",
+          "seconds": 5.0,
+          "total_tokens": 1381
+        }
+      ],
+      "verdict": "DENIED",
+      "verdict_detail": "The goal was to collect wood, but the final state shows no wood collected and the program explicitly reported failure."
+    },
+    {
+      "at": "2026-11-02T11:31:42.346Z",
+      "disposition": "rejected",
+      "exec_error": "SyntaxError in a world that runs python \u2014 write python only: invalid syntax (<skill>, line 1)",
+      "exec_log": [],
+      "exec_ok": false,
+      "exec_seconds": 0.0,
+      "facts": {
+        "achievements": {
+          "collect_coal": 0,
+          "collect_diamond": 0,
+          "collect_drink": 0,
+          "collect_iron": 0,
+          "collect_sapling": 1,
+          "collect_stone": 0,
+          "collect_wood": 0,
+          "defeat_skeleton": 0,
+          "defeat_zombie": 0,
+          "eat_cow": 0,
+          "eat_plant": 0,
+          "make_iron_pickaxe": 0,
+          "make_iron_sword": 0,
+          "make_stone_pickaxe": 0,
+          "make_stone_sword": 0,
+          "make_wood_pickaxe": 0,
+          "make_wood_sword": 0,
+          "place_furnace": 0,
+          "place_plant": 0,
+          "place_stone": 0,
+          "place_table": 0,
+          "wake_up": 0
+        },
+        "achievements_reached": [
+          "collect_sapling"
+        ],
+        "energy": 0,
+        "food": 0,
+        "health": 9,
+        "inventory": {
+          "drink": 9,
+          "energy": 9,
+          "food": 9,
+          "health": 9,
+          "sapling": 1
+        },
+        "position": {
+          "x": 32,
+          "y": 32
+        },
+        "unique_materials": [
+          "collect_sapling"
+        ],
+        "world": "crafter"
+      },
+      "goal": "collect_wood",
+      "index": 3,
+      "plan": [
+        "Consume energy item first, then find and chop a tree",
+        "Consume food and energy items, then search for a tree",
+        "Try moving and chopping a tree without consuming anything"
+      ],
+      "proposal": {
+        "code": "function woodDone(){const a=mc.achievements();return a&&a.collect_wood===true;}\nfunction rewardNow(){try{return mc.reward();}catch(e){return 0;}}\nconsole.log(\"Collect wood: energy is 0, using an energy item first.\");\nmc.act(\"do\",1);\nif(woodDone()){console.log(\"Wood collected while using energy.\");return;}\nconst baseReward=rewardNow();\nconst dirs=[\"right\",\"down\",\"left\",\"up\"];const opp={right:\"left\",left:\"right\",down:\"up\",up:\"down\"};\nfunction tryDo(){const before=rewardNow();mc.act(\"do\",1);const after=rewardNow();return woodDone()||after>before;}\nif(tryDo()){console.log(\"Wood collected at starting tile.\");return;}\nfor(let r=1;r<=8;r++){for(let d=0;d<4;d++){const dir=dirs[(d+1)%4];const steps=r;if(mc.move(dir,steps)!==steps){console.log(\"Blocked moving \"+dir+\" by \"+steps+\".\");continue;}if(tryDo()){console.log(\"Wood collected after moving \"+dir+\" \"+steps+\".\");return;}const back=mc.move(opp[dir],steps);if(back!==steps){console.log(\"Could not return after \"+dir+\" \"+steps+\".\");return;}}}\nconsole.log(\"Wood not collected within search radius 8.\");",
+        "description": "Restore energy with a do action, then search nearby tiles in a bounded spiral and chop the first tree that grants wood.",
+        "family": "crafter.collect_wood",
+        "language": "python",
+        "milestone": "collect_wood",
+        "primitives": [
+          "mc.achievements",
+          "mc.act",
+          "mc.move",
+          "mc.reward"
+        ],
+        "title": "Use energy then spiral-chop a tree",
+        "verify_code": "mc.achievements().collect_wood === true"
+      },
+      "reason": "execution_error:SyntaxError in a world that runs python \u2014 write python only: invalid syntax (<skill>, line 1)",
+      "self_verified": false,
+      "skill_id": "tile_eabdc1dfe8fe",
+      "total_tokens": 6467,
+      "truth": false,
+      "usage": [
+        {
+          "completion_tokens": 842,
+          "cost_cents": null,
+          "model": "XiaomiMiMo/MiMo-V2.6-Pro",
+          "prompt_tokens": 644,
+          "role": "planner",
+          "seconds": 14.0,
+          "total_tokens": 1486
+        },
+        {
+          "completion_tokens": 1845,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-27B",
+          "prompt_tokens": 1542,
+          "role": "coder",
+          "seconds": 170.79,
+          "total_tokens": 3387
+        },
+        {
+          "completion_tokens": 193,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-Max",
+          "prompt_tokens": 1401,
+          "role": "verifier",
+          "seconds": 5.93,
+          "total_tokens": 1594
+        }
+      ],
+      "verdict": "DENIED",
+      "verdict_detail": "The world state after the program ran still shows no wood collected, with collect_wood at 0 and no wood in the inventory."
+    },
+    {
+      "at": "2026-11-02T11:34:03.864Z",
+      "disposition": "rejected",
+      "exec_error": "SyntaxError in a world that runs python \u2014 write python only: invalid syntax (<skill>, line 1)",
+      "exec_log": [],
+      "exec_ok": false,
+      "exec_seconds": 0.0,
+      "facts": {
+        "achievements": {
+          "collect_coal": 0,
+          "collect_diamond": 0,
+          "collect_drink": 0,
+          "collect_iron": 0,
+          "collect_sapling": 1,
+          "collect_stone": 0,
+          "collect_wood": 0,
+          "defeat_skeleton": 0,
+          "defeat_zombie": 0,
+          "eat_cow": 0,
+          "eat_plant": 0,
+          "make_iron_pickaxe": 0,
+          "make_iron_sword": 0,
+          "make_stone_pickaxe": 0,
+          "make_stone_sword": 0,
+          "make_wood_pickaxe": 0,
+          "make_wood_sword": 0,
+          "place_furnace": 0,
+          "place_plant": 0,
+          "place_stone": 0,
+          "place_table": 0,
+          "wake_up": 0
+        },
+        "achievements_reached": [
+          "collect_sapling"
+        ],
+        "energy": 0,
+        "food": 0,
+        "health": 9,
+        "inventory": {
+          "drink": 9,
+          "energy": 9,
+          "food": 9,
+          "health": 9,
+          "sapling": 1
+        },
+        "position": {
+          "x": 32,
+          "y": 32
+        },
+        "unique_materials": [
+          "collect_sapling"
+        ],
+        "world": "crafter"
+      },
+      "goal": "collect_wood",
+      "index": 4,
+      "plan": [
+        "Consume energy item first, then find and chop a tree",
+        "Eat food and drink first, then chop a tree",
+        "Move around to find a tree and attempt to chop it directly"
+      ],
+      "proposal": {
+        "code": "function woodDone(){const a=mc.achievements();return a&&a.collect_wood===true;}\nfunction rewardNow(){try{return mc.reward();}catch(e){return 0;}}\nfunction tryDo(){const before=rewardNow();mc.act(\"do\",1);const after=rewardNow();return woodDone()||after>before;}\nconsole.log(\"Collect wood: consume energy, then search for a tree.\");\nmc.act(\"do\",1);\nif(woodDone()){console.log(\"Wood collected after using energy.\");}\nelse if(tryDo()){console.log(\"Wood collected at starting tile.\");}\nelse{\n  const dirs=[\"right\",\"down\",\"left\",\"up\"];\n  const opp={right:\"left\",left:\"right\",down:\"up\",up:\"down\"};\n  let found=false;\n  for(let r=1;r<=16&&!found;r++){\n    for(let d=0;d<4&&!found;d++){\n      const dir=dirs[(d+1)%4];\n      const steps=r;\n      if(mc.move(dir,steps)!==steps){continue;}\n      if(tryDo()){console.log(\"Wood collected after moving \"+dir+\" \"+steps+\".\");found=true;}\n      else{\n        const back=mc.move(opp[dir],steps);\n        if(back!==steps){console.log(\"Could not return after \"+dir+\" \"+steps+\".\");found=true;}\n      }\n    }\n  }\n  if(!found){console.log(\"Wood not collected within search radius 16.\");}\n}\n",
+        "description": "Use an energy item, then search nearby tiles and chop a tree until wood is collected.",
+        "family": "crafter.collect_wood",
+        "language": "python",
+        "milestone": "collect_wood",
+        "primitives": [
+          "mc.achievements",
+          "mc.act",
+          "mc.move",
+          "mc.reward"
+        ],
+        "title": "Collect wood",
+        "verify_code": "mc.achievements().collect_wood === true"
+      },
+      "reason": "execution_error:SyntaxError in a world that runs python \u2014 write python only: invalid syntax (<skill>, line 1)",
+      "self_verified": false,
+      "skill_id": "tile_5b11f84773ca",
+      "total_tokens": 6331,
+      "truth": false,
+      "usage": [
+        {
+          "completion_tokens": 609,
+          "cost_cents": null,
+          "model": "XiaomiMiMo/MiMo-V2.6-Pro",
+          "prompt_tokens": 644,
+          "role": "planner",
+          "seconds": 8.12,
+          "total_tokens": 1253
+        },
+        {
+          "completion_tokens": 1863,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-27B",
+          "prompt_tokens": 1583,
+          "role": "coder",
+          "seconds": 127.25,
+          "total_tokens": 3446
+        },
+        {
+          "completion_tokens": 199,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-Max",
+          "prompt_tokens": 1433,
+          "role": "verifier",
+          "seconds": 6.14,
+          "total_tokens": 1632
+        }
+      ],
+      "verdict": "DENIED",
+      "verdict_detail": "The world state after the program ran still shows collect_wood as 0 and no wood in the inventory, so the goal was not achieved."
+    },
+    {
+      "at": "2026-11-02T11:35:47.345Z",
+      "disposition": "rejected",
+      "exec_error": "NameError: name 'log' is not defined",
+      "exec_log": [],
+      "exec_ok": false,
+      "exec_seconds": 0.0,
+      "facts": {
+        "achievements": {
+          "collect_coal": 0,
+          "collect_diamond": 0,
+          "collect_drink": 0,
+          "collect_iron": 0,
+          "collect_sapling": 1,
+          "collect_stone": 0,
+          "collect_wood": 0,
+          "defeat_skeleton": 0,
+          "defeat_zombie": 0,
+          "eat_cow": 0,
+          "eat_plant": 0,
+          "make_iron_pickaxe": 0,
+          "make_iron_sword": 0,
+          "make_stone_pickaxe": 0,
+          "make_stone_sword": 0,
+          "make_wood_pickaxe": 0,
+          "make_wood_sword": 0,
+          "place_furnace": 0,
+          "place_plant": 0,
+          "place_stone": 0,
+          "place_table": 0,
+          "wake_up": 0
+        },
+        "achievements_reached": [
+          "collect_sapling"
+        ],
+        "energy": 0,
+        "food": 0,
+        "health": 9,
+        "inventory": {
+          "drink": 9,
+          "energy": 9,
+          "food": 9,
+          "health": 9,
+          "sapling": 1
+        },
+        "position": {
+          "x": 32,
+          "y": 32
+        },
+        "unique_materials": [
+          "collect_sapling"
+        ],
+        "world": "crafter"
+      },
+      "goal": "collect_wood",
+      "index": 5,
+      "plan": [
+        "Restore energy first, then find and chop a tree",
+        "Explore directly for a tree without consuming anything",
+        "Plant the sapling and wait for a tree to grow"
+      ],
+      "proposal": {
+        "code": "def done():\n    a = mc.achievements()\n    return bool(a) and a.get('collect_wood') is True\n\nlog('collect wood: restore energy, then search for a tree')\nfor _ in range(3):\n    mc.act('do', 1)\n    if done():\n        log('wood collected after initial restore')\n        break\n\nif not done():\n    dirs = ['right', 'down', 'left', 'up']\n    opp = {'right': 'left', 'left': 'right', 'down': 'up', 'up': 'down'}\n    found = False\n    for r in range(1, 25):\n        for d in range(4):\n            if found:\n                break\n            dir = dirs[d]\n            if mc.move(dir, r) != r:\n                continue\n            mc.act('do', 1)\n            if done():\n                log('wood collected after moving ' + dir + ' ' + str(r))\n                found = True\n                break\n            mc.move(opp[dir], r)\n    if not found:\n        log('wood not collected within search radius 24')",
+        "description": "Restore energy, then search outward from the start for a tree and chop it.",
+        "family": "crafter.collect_wood",
+        "language": "python",
+        "milestone": "collect_wood",
+        "primitives": [
+          "mc.achievements",
+          "mc.act",
+          "mc.move"
+        ],
+        "title": "collect wood",
+        "verify_code": "mc.achievements().get('collect_wood') is True"
+      },
+      "reason": "execution_error:NameError: name 'log' is not defined",
+      "self_verified": false,
+      "skill_id": "tile_bb3f4a761eda",
+      "total_tokens": 6266,
+      "truth": false,
+      "usage": [
+        {
+          "completion_tokens": 630,
+          "cost_cents": null,
+          "model": "XiaomiMiMo/MiMo-V2.6-Pro",
+          "prompt_tokens": 644,
+          "role": "planner",
+          "seconds": 7.26,
+          "total_tokens": 1274
+        },
+        {
+          "completion_tokens": 1801,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-27B",
+          "prompt_tokens": 1639,
+          "role": "coder",
+          "seconds": 89.68,
+          "total_tokens": 3440
+        },
+        {
+          "completion_tokens": 196,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-Max",
+          "prompt_tokens": 1356,
+          "role": "verifier",
+          "seconds": 6.53,
+          "total_tokens": 1552
+        }
+      ],
+      "verdict": "DENIED",
+      "verdict_detail": "The world state after execution still shows collect_wood at 0 and no wood in the inventory, so the goal was not achieved."
+    },
+    {
+      "at": "2026-11-02T11:37:56.995Z",
+      "disposition": "rejected",
+      "exec_error": "SyntaxError in a world that runs python \u2014 write python only: invalid syntax (<skill>, line 3)",
+      "exec_log": [],
+      "exec_ok": false,
+      "exec_seconds": 0.0,
+      "facts": {
+        "achievements": {
+          "collect_coal": 0,
+          "collect_diamond": 0,
+          "collect_drink": 0,
+          "collect_iron": 0,
+          "collect_sapling": 1,
+          "collect_stone": 0,
+          "collect_wood": 0,
+          "defeat_skeleton": 0,
+          "defeat_zombie": 0,
+          "eat_cow": 0,
+          "eat_plant": 0,
+          "make_iron_pickaxe": 0,
+          "make_iron_sword": 0,
+          "make_stone_pickaxe": 0,
+          "make_stone_sword": 0,
+          "make_wood_pickaxe": 0,
+          "make_wood_sword": 0,
+          "place_furnace": 0,
+          "place_plant": 0,
+          "place_stone": 0,
+          "place_table": 0,
+          "wake_up": 0
+        },
+        "achievements_reached": [
+          "collect_sapling"
+        ],
+        "energy": 0,
+        "food": 0,
+        "health": 9,
+        "inventory": {
+          "drink": 9,
+          "energy": 9,
+          "food": 9,
+          "health": 9,
+          "sapling": 1
+        },
+        "position": {
+          "x": 32,
+          "y": 32
+        },
+        "unique_materials": [
+          "collect_sapling"
+        ],
+        "world": "crafter"
+      },
+      "goal": "collect_wood",
+      "index": 6,
+      "plan": [
+        "Eat food to restore energy, then find and chop a tree",
+        "Consume energy item directly, then chop a tree",
+        "Search for a tree and attempt to chop it without restoring stats",
+        "Consume drink item first, then restore energy and chop a tree"
+      ],
+      "proposal": {
+        "code": "console.log('collect wood: eat food, then search for a tree');\n\nfunction woodDone() {\n  const a = mc.achievements();\n  return Boolean(a && a.collect_wood);\n}\n\nfunction tryDo(n) {\n  if (n <= 0) return;\n  mc.act('do', n);\n}\n\ntryDo(3);\n\nif (!woodDone()) {\n  const dirs = ['right', 'down', 'left', 'up'];\n  const opp = { right: 'left', left: 'right', down: 'up', up: 'down' };\n\n  for (let r = 1; r <= 32 && !woodDone(); r++) {\n    for (let d = 0; d < dirs.length && !woodDone(); d++) {\n      const dir = dirs[d];\n      const moved = mc.move(dir, r);\n      if (moved !== r) continue;\n\n      tryDo(1);\n      if (woodDone()) break;\n\n      tryDo(1);\n      if (woodDone()) break;\n\n      mc.move(opp[dir], r);\n    }\n  }\n}\n\nif (woodDone()) {\n  console.log('wood collected');\n} else {\n  console.log('wood not collected within search radius 32');\n}",
+        "description": "Restore energy by using food, then search nearby for a tree and chop it until wood is collected.",
+        "family": "crafter.collect_wood",
+        "language": "python",
+        "milestone": "collect_wood",
+        "primitives": [
+          "mc.achievements",
+          "mc.act",
+          "mc.move"
+        ],
+        "title": "Eat and chop wood",
+        "verify_code": "mc.achievements().collect_wood === true"
+      },
+      "reason": "execution_error:SyntaxError in a world that runs python \u2014 write python only: invalid syntax (<skill>, line 3)",
+      "self_verified": false,
+      "skill_id": "tile_b20d5cca361c",
+      "total_tokens": 6315,
+      "truth": false,
+      "usage": [
+        {
+          "completion_tokens": 758,
+          "cost_cents": null,
+          "model": "XiaomiMiMo/MiMo-V2.6-Pro",
+          "prompt_tokens": 644,
+          "role": "planner",
+          "seconds": 25.51,
+          "total_tokens": 1402
+        },
+        {
+          "completion_tokens": 1842,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-27B",
+          "prompt_tokens": 1528,
+          "role": "coder",
+          "seconds": 97.86,
+          "total_tokens": 3370
+        },
+        {
+          "completion_tokens": 153,
+          "cost_cents": null,
+          "model": "Qwen/Qwen3.8-Max",
+          "prompt_tokens": 1390,
+          "role": "verifier",
+          "seconds": 6.28,
+          "total_tokens": 1543
+        }
+      ],
+      "verdict": "DENIED",
+      "verdict_detail": "The world after the program ran still shows collect_wood at 0 and no wood in the inventory, so the goal was not met."
+    }
+  ],
+  "tokens_by_role": {
+    "coder": 19950,
+    "planner": 7537,
+    "verifier": 8921
+  },
+  "total_tokens": 36408,
+  "unique_items": 1,
+  "wall_seconds": 931.8,
+  "wall_seconds_measured": 932.6,
+  "world": "crafter"
+}

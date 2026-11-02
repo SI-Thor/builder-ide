@@ -2291,3 +2291,38 @@ AttributeError (now a SimpleNamespace), and `evaluate` wanted
 `docs/lab/exp-voyager-port.md` quotes them through `summarize_run.py`.
 The stubs for vibe-sandbox and Bevy are interfaces only, as the brief
 asks.
+
+## 2026-11-02 03:15 — the measured runs land, and the report closes
+
+The 2 h Minecraft run (51 steps, 369,468 tokens: coder 244,153 /
+planner 53,584 / verifier 71,731): **0 items, 0 milestones, 0 skills
+admitted, 51 rejected — zero unreadable model replies** (the pilot
+lost 6 of 23 steps to them; the fixes hold). The mechanism is
+measured, not guessed: `probe_trees.py` against the sandbox at the end
+says the nearest — and only — tree in the loaded area is **111 blocks
+from the bot** (scan 48 = {}, scan 96 = {}, scan 160 = oak_log at 111,
+(-3, 66, 103)), while the planner's facts reach 96 blocks; no step's
+`nearby` ever held a log (checked across all 51 step records), so the
+planner was correctly blind for two hours and the bot's walks never
+closed the gap (it ended at (41, 66, 1), still 111 out). The pilot
+(bot placed at the tree by an earlier session) measured crafting: four
+milestones, 124,865 tokens, wood at 154 s → wooden_pickaxe at 1812 s.
+Read together: crafting works from reach; **the loop cannot cross a
+distance it cannot see.** The named lever — the bridge's scan reaches
+160, the adapter's facts stop at 96 — is deliberately left unchanged:
+the measurement stands as taken.
+
+Crafter smoke 5 (6 steps, 36,408 tokens): the first executed program
+("Energy is 0; using an energy item.") and the first item entered the
+world; the coder still wrote JavaScript 4 of 6 times with the language
+named in the prompt and in the error. The comparison the brief asks
+for (exp-crafter-lab.md: scripted teacher 9.625 achievements/episode
+reading the grid; PPO 1.125, BC 0.875, teaching-moment BC 1.375) says
+the lever is a spatial fact in observe(), not a bigger model.
+
+The report is `docs/lab/exp-voyager-port.md`; the payloads are
+`results/minecraft-run.json`, `results/crafter-run.json` and the kept
+smokes (`results/crafter-smoke-1..5/`, `results/pilot-0.5h/`).
+Nothing was left running: the sandbox server stays up under its lease
+for the next seat's probes, the runs are done. Decided next: nothing
+started — the brief's measurement is taken, the doc names the levers.

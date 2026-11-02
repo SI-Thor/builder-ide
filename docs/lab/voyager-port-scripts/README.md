@@ -41,6 +41,7 @@ actually installed, and each is cheap.
 | `drive_bridge.py` | drive the bridge by hand, with its stderr in a file |
 | `probe_planner_reply.py` | why the planner's reply sometimes has no JSON in it (the cap cut it) |
 | `probe_verifier_reply.py` | what the verifier returns for the call the run actually makes |
+| `probe_crafter_adapter.py` | the crafter adapter's whole port, for zero tokens |
 | `dump_level.js` / `dump_player.js` | the world's and the bot's saved NBT |
 | `move_bot.js` | put the bot at the tree |
 | `reset_hands.js` | empty the bot's inventory before a measured run |
