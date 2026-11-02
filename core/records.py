@@ -135,6 +135,10 @@ EVENT_TYPES: frozenset[str] = frozenset(
         # ends
         "night.decoy_cell", "night.prop_plausibility",
         "night.prop_delegate", "night.heavy_phase",
+        # the night-v5 integration seat: the GPU-pool bar's real waits
+        # before a mesh prompt, the wedge restart of the render server,
+        # and the approved library the prior is fitted with
+        "night.gpu_pool_bar", "night.comfy_restart", "night.library",
         # questions
         "question.parked", "question.answered", "assumption.recorded",
         # continuity

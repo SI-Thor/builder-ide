@@ -1,0 +1,2888 @@
+#!/usr/bin/env python
+"""night-v5 — the four seams together, on a box whose GPU pool fragments.
+
+The owner goal: "a small courtyard with three props: a weathered crate, a
+brass lantern, an iron anvil; make it feel lived-in." The same goal as
+night-v4; what changed is what the night survives and what its critic can
+say.
+
+night-v4's two runs died in TRELLIS's mesh stage, where the render server
+stopped answering. The box's own records name the cause: the GPU
+allocation pool's largest free **contiguous** block (tegrastats' ``lfb``,
+the same number the daemon's samples carry) ran 0.02-1.5 GB through the
+mesh stage with 80-100 GB of RAM free, and hit 0.00 GB when the bake
+allocated — no OOM kill, no signal, the process alive, the listener gone
+(docs/lab/night-v5.md §2). This night carries three answers:
+
+  gpu bar    before every mesh prompt the night waits until the box's
+             used GPU leaves room for the bake: the wall (61.5 GiB, where
+             run F's allocations stalled) minus the bake's measured need
+             (13.5 GiB) — bounded: 45 minutes, then it goes anyway and
+             says so; the wait is a row, like a lease wait
+  restart    a server that refused 121 connections in 120 s is not busy
+             but wedged: the night stops ComfyUI, keeps the log as
+             evidence, starts it again and re-runs the one prompt, once,
+             in a row — bounded at two restarts a night
+  honest     the decision servers start under 6 GB leases (measured:
+  peaks     3.09/2.39 GiB of GPU and <1.1 GB of RSS each), so the 40 GB
+             heavy lease is the one lease above 30 GB and it is held
+             alone
+
+And the library change Casey approved tonight, answering night-v4's
+letter: the library may approve **ten objects of one kind**, so the
+plausibility prior's ghost gate (0.05, which needs a group of ten before
+a member can score below it) can fire at all
+(docs/lab/night-v5-scripts/approved-crate-library.json, built from ten
+measured crate meshes by build_library.py).
+
+The four seams of night-v4 are unchanged in shape: the judge routed to
+the d1-3B with the neutral option order, the occupancy-based
+plausibility prior, and the d1-2B delegate that can finally see the
+pictures (the path fix run F needed). The decision servers now run with
+``--ctx-size 4096 -ub 1024``: measured under the night's own request
+shapes, the smaller flags hold the same class of GPU (3.09 vs 3.33 GiB)
+and answer the delegate's picture questions 1.8x faster (2.00 s vs
+3.56 s — measure_llama_gpu_under_load.py, same directory).
+
+Run on the Thor, from the night-v5 worktree, in the propmaker-batch venv:
+
+  PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
+      docs/lab/night-v5-scripts/run_night.py --out artifacts/night-v5
+"""
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import json
+import os
+import re
+import statistics
+import subprocess
+import sys
+import time
+from contextlib import contextmanager
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Sequence
+
+REPO = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO))
+
+from core.canon import content_hash, now_utc  # noqa: E402
+from core.engine import EngineFailed  # noqa: E402
+from core.engine.contract import PreviewRequest, StageRequest  # noqa: E402
+from core.engine.registry import open_engine  # noqa: E402
+from core.genbatch.comfy import ComfyClient  # noqa: E402
+from core.critic.candidates.d1 import ask_d1  # noqa: E402
+from core.critic.candidates.questions import (  # noqa: E402
+    CLASS_QUESTIONS, IMAGE_CLASSES,
+)
+from core.genbatch.critic import PropCritic  # noqa: E402
+from core.genbatch.executor import PropExecutor, Templates  # noqa: E402
+from core.genbatch.models import PropRequest, StageKind  # noqa: E402
+from core.genbatch.plausibility import features_from_report  # noqa: E402
+from core.genbatch.plausibility import judge as plausibility_judge  # noqa: E402
+from core.genbatch.reference import union_prior  # noqa: E402
+from core.genbatch.night import MeasuredClock, _winners  # noqa: E402
+from core.genbatch.schedule import NightPlan  # noqa: E402
+from core.genbatch.store import PropStore  # noqa: E402
+from core.genbatch.workflow import load_template  # noqa: E402
+from core.judge.backends import D1Backend, JevBackend  # noqa: E402
+from core.judge.gate import (  # noqa: E402
+    ConfidencePolicy,
+    EscalationLadder,
+    StandingGate,
+)
+from core.judge.gate import SEA_STATE_TASK  # noqa: E402
+from core.judge.judge import Judge  # noqa: E402
+from core.judge.models import Question  # noqa: E402
+from core.judge.ordering import canonical_order, condition_name  # noqa: E402
+from core.night.cost.admission import PlannedJob, admission_check  # noqa: E402
+from core.night.cost.estimates import owner_estimate  # noqa: E402
+from core.night.cost.pricing import price_job  # noqa: E402
+from core.night.iterate import CriticScore  # noqa: E402
+from core.night.ledger import SQLiteLedger  # noqa: E402
+from core.night.models import IterationPolicy, Rail  # noqa: E402
+from core.night.report import build_report, render_html, render_text  # noqa: E402
+from core.night.runner import NightRunner  # noqa: E402
+from core.records import Actor, GeneratorRef, Recipe, RecipeEntry, Task  # noqa: E402
+from core.tiles.library import TileLibrary  # noqa: E402
+from core.tiles.models import Outcome, TileStep, build_tile  # noqa: E402
+from core.tiles.models import TileAuthor  # noqa: E402
+from core.tiles.plays import record_play  # noqa: E402
+from core.vocab.registry import VocabularyRegistry  # noqa: E402
+from core.vocab.words import default_entries  # noqa: E402
+
+# ---------------------------------------------------------------- constants --
+
+NIGHT_ID = "night-v5"
+#: The judge's decision model. The decoy cell is routed to the d1-3B
+#: (docs/lab/exp-judge-calibration.md §8.3 and §9.4): on a cell whose
+#: prompt names a decoy the 2B reads the presentation and the 3B does
+#: not. The night's own tile and prop-brief cells name options, so the
+#: routed model answers them.
+PORT_D1 = 8295
+D1_MODEL = Path.home() / "models" / "d1-3B" / "d1-3B-Q8_0.gguf"
+D1_ALIAS = "d1-3B-Q8"
+#: The model name the calibrated τ table keys on (core/judge/gate.py:
+#: ("d1", "d1-3B", "sea-state.v1") is 0.76).
+D1_MODEL_NAME = "d1-3B"
+#: The critic's delegate: the d1-2B with its projector, so the model can
+#: see a picture (core/critic/candidates/d1.py). A different model from
+#: the judge's on purpose — the picture critic stays the 2B the bake-off
+#: measured.
+PORT_DELEGATE = 8296
+D1_2B_MODEL = Path.home() / "models" / "d1-2B" / "d1-2B-Q8_0.gguf"
+D1_2B_MMPROJ = Path.home() / "models" / "d1-2B" / "mmproj-d1-2B-Q8_0.gguf"
+LLAMA_SERVER = Path.home() / "llama.cpp-upstream" / "build-up" / "bin" / "llama-server"
+TRELLIS_ROOT = Path.home() / "lm-wt" / "trellis"
+
+#: The TRELLIS.2 environment's ComfyUI, started by the night itself. The
+#: command line and the log are the ones ``trellis/scripts/serve.sh`` uses,
+#: so the evidence lands where the box's other runs put it.
+TRELLIS_VENV_PYTHON = TRELLIS_ROOT / ".venv-e2" / "bin" / "python"
+TRELLIS_COMFY_MAIN = TRELLIS_ROOT / "ComfyUI" / "main.py"
+TRELLIS_EXTRA_PATHS = TRELLIS_ROOT / "extra_model_paths.yaml"
+TRELLIS_LOG = TRELLIS_ROOT / "logs" / "comfy_server.log"
+TRELLIS_PIDFILE = TRELLIS_ROOT / "logs" / "comfy_server.pid"
+
+#: Where ComfyUI keeps the pictures the executor uploads. The store records
+#: the name ComfyUI gave a picture, so a caller that opens a picture has to
+#: resolve it here (see ``NightPropCritic._score_picture``).
+TRELLIS_INPUT = TRELLIS_ROOT / "input"
+COMFY_URL = "http://127.0.0.1:8188"
+HEAVY_LOCK = Path.home() / "lm-wt" / "heavy.lock"
+#: The box's admission daemon (MEMORY-RULE): a lease before the spend, the
+#: flock only for when the daemon is gone. The python shim lives in the
+#: thor-admit worktree's crate; the driver adds it to the path, and if the
+#: shim or the daemon is unusable it falls back to the heavy lock *and says
+#: so* — in the log and in every lease row.
+THOR_ADMIT_PKG = (Path.home() / "lm-wt" / "thor-admit" / "tools"
+                  / "thor-admit" / "python")
+#: The heavy phase's declared peak, the honest worst of the phase together:
+#: ComfyUI with SDXL and TRELLIS.2 loaded (the coldshelf paint measurements
+#: saw ~11 GB GPU reserved) beside a v2 render at its worst (~24 GB) and
+#: the mesh repair's working set.
+HEAVY_PEAK = "40G"
+#: What the lease is phased down to when the heavy phase ends (thor-admit
+#: round 11's phase op): the night keeps a promise it no longer needs.
+HEAVY_PEAK_PHASE = "8G"
+#: The ghost gate of the plausibility prior (core/genbatch/plausibility.py:
+#: a prop less ordinary than this share of its group is a ghost).
+GHOST_THRESHOLD = 0.05
+#: The delegate's own gate (core/critic/candidates/d1.py: D1_GATE).
+DELEGATE_GATE = 0.5
+#: The decision servers' start leases, the honest peaks of a start: the
+#: d1-3B holds 3.09 GiB of GPU and 731 MB of RSS at its measured worst,
+#: the d1-2B with its projector 2.39 GiB and 910 MB
+#: (measure_llama_gpu_under_load.py, same directory). 6 GB covers both
+#: with margin, and keeps every lease but the heavy one under 30 GB, so
+#: the 40 GB heavy peak is the one lease above 30 GB — held alone.
+SERVER_PEAK = "6G"
+#: The GPU allocation pool's bar, in **used** bytes. The wall and the
+#: need are both measured, not guessed: run F's wedge samples show the
+#: pool refusing allocations at 60.49 and 61.06 GiB used with lfb 0.00
+#: (that is the wall), and the bake's own jump at the wedge was
+#: 47.6 -> 60.5 GiB in 10 s (that is the need). A mesh prompt waits
+#: while the box's used GPU (the per-process sum, the way the daemon
+#: counts it) is above the wall minus the need. tegrastats' ``lfb`` is
+#: recorded beside every wait as a signal, but it does not gate: on this
+#: box lfb sits near zero (44 MB with 86 GB of RAM free, 20:31 tonight)
+#: whether or not there is room, which round 10's note already said —
+#: lfb is a figure about contiguous blocks, not headroom.
+GPU_POOL_TOTAL_GB = 61.5
+GPU_POOL_NEED_GB = 13.5
+GPU_POOL_BAR_USED_GB = GPU_POOL_TOTAL_GB - GPU_POOL_NEED_GB
+#: The bar's bound. A night that waits forever is as dead as one that
+#: wedges, so past this the night goes anyway — and the row says so.
+GPU_POOL_WAIT_S = 45 * 60.0
+#: The live view's scene export, bounded. This scene is fixed: the generator
+#: ``room_livingroom_rand`` at seed 42 — 200,606 base triangles, 11,254,482
+#: after subdivision. The *generation* is cheap (20.5 s measured tonight) and
+#: the *glTF export* is not: Blender's exporter walks the 11 M triangles in
+#: Python, on the CPU, with the modifiers applied. Measured on this box for
+#: this exact scene: 115 min (2026-10-31, world-stream-scratch/export2:
+#: 11:56:36 -> 13:52) and 136 min (export1: 11:34 -> 13:51). The runner's
+#: old 3600 s bound was shorter than the work it was given, so the first
+#: attempt of this night was cut at exactly 3600 s with scene.blend written
+#: (145,717,009 B) and no source.glb — the seam could never succeed. The
+#: bound is now 4 h: about twice the worst measurement, and inside the
+#: night's own 4 h wall bar.
+SCENE_EXPORT_TIMEOUT_S = 4 * 3600.0
+V2_HOME = Path.home() / "lm-wt" / "v2-thor"
+SCRATCH = Path.home() / "lm-wt" / "world-stream-scratch"
+VIEWER = Path.home() / "lm-tools" / "viewer"
+SHOT = Path.home() / "lm-tools" / "playwright" / "shot.mjs"
+GQ = Path.home() / "lm-tools" / "gq.py"
+MIN_FREE_GB = 25.0
+NEVER_WAIT_SECONDS = 8.0
+
+#: The admission daemon's state directory, and the lock files in it. The
+#: daemon names a lease's lock file after the lease's number
+#: (``leases/<number>.lock``) and the client holds it with an exclusive
+#: ``flock(2)``. The night reads the directory before it asks for a lease,
+#: because a file that is still held by a client from before the daemon
+#: restarted stops the night where it stands (see
+#: :func:`sweep_stale_lease_locks`).
+THOR_ADMIT_STATE = Path(os.environ.get(
+    "THOR_ADMIT_STATE_DIR",
+    str(Path.home() / ".local" / "state" / "thor-admit")))
+THOR_ADMIT_LEASES = THOR_ADMIT_STATE / "leases"
+#: How long the night waits for a granted lease's lock before it says what
+#: is holding it. The daemon gives a grant 30 s to be taken and then stops
+#: the client, so the night has to speak before that.
+LEASE_LOCK_TIMEOUT_S = 20.0
+
+#: The generator resolution for this box, in the seam's own shape: the
+#: entry's generator name -> the v2 CLI's chain (the M1 table's way; each
+#: chain renders and traces clean — v2-thor-experiment).
+GENERATORS = {
+    "room_livingroom_rand": "room_livingroom_rand",
+    "storage_cabinet_with_door_rand": "storage_cabinet_with_door_rand",
+    "storage_cell_shelf_rand": "storage_cell_shelf_rand",
+    "wood_scratched_rand": "wood_scratched_rand material_cube",
+}
+
+CORE_ACTOR = Actor(kind="core", id="night-v3", via="word")
+SCHEDULER_ACTOR = Actor(kind="core", id="night-v3", via="word")
+
+WORLD_SEED = 42
+
+# ----------------------------------------------------------------- helpers --
+
+
+def log(msg: str) -> None:
+    print(f"[night] {datetime.now().strftime('%H:%M:%S')} {msg}", flush=True)
+
+
+def load_secrets() -> None:
+    """GROQ_API_KEY and TYPESAFE_API_KEY into the environment, never printed."""
+    secrets = Path.home() / ".config" / "last-mile" / "secrets.env"
+    if not secrets.exists():
+        return
+    for line in secrets.read_text().splitlines():
+        m = re.match(r"^(?:export )?([A-Z_]+)=['\"]?([^'\"]+)['\"]?", line)
+        if m and m.group(1) in ("GROQ_API_KEY", "TYPESAFE_API_KEY"):
+            os.environ.setdefault(m.group(1), m.group(2))
+
+
+def box_state() -> dict:
+    state: dict[str, Any] = {
+        "ts": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "load1": round(os.getloadavg()[0], 2),
+    }
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith(("MemTotal", "MemAvailable")):
+                key, val = line.split(":")
+                state[key] = round(int(val.strip().split()[0]) / 1048576, 1)
+    except OSError:
+        pass
+    try:
+        micro = int(
+            Path("/sys/class/hwmon/hwmon4/power1_input").read_text().strip()
+        )
+        state["vin_w"] = round(micro / 1e6, 1)
+    except (OSError, ValueError):
+        pass
+    return state
+
+
+def ram_free_gb() -> float:
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        if line.startswith("MemAvailable"):
+            return int(line.split()[1]) / 1048576.0
+    return 0.0
+
+
+
+def daemon_status(timeout: float = 5.0) -> dict | None:
+    """The admission daemon's own status, as JSON, or ``None``.
+
+    The night asks the daemon what it is holding before it asks for a
+    lease: the daemon's lease numbers and how long it has been up are
+    what tell a live lock file from a leftover one.
+    """
+    import socket
+
+    path = os.environ.get("THOR_ADMIT_SOCKET")
+    if not path:
+        runtime = os.environ.get("XDG_RUNTIME_DIR")
+        path = (str(Path(runtime) / "thor-admit.sock") if runtime
+                else f"/tmp/thor-admit-{os.getuid()}.sock")
+    line = b""
+    connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    connection.settimeout(timeout)
+    try:
+        try:
+            connection.connect(path)
+            stream = connection.makefile("rwb")
+            stream.write(b'{"op":"status"}\n')
+            stream.flush()
+            line = stream.readline()
+        except OSError:
+            return None
+    finally:
+        connection.close()
+    if not line:
+        return None
+    try:
+        event = json.loads(line.decode("utf-8"))
+    except ValueError:
+        return None
+    if event.get("event") != "status":
+        return None
+    return event
+
+
+def _flock_holder(path: Path) -> int | None:
+    """The pid holding ``path``'s flock, by the kernel's own record.
+
+    ``/proc/locks`` names the pid that called ``flock(2)`` for every
+    locked file on the box, with the file's device and inode.
+    """
+    try:
+        info = path.stat()
+    except OSError:
+        return None
+    try:
+        lines = Path("/proc/locks").read_text().splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        fields = line.split()
+        if len(fields) < 6 or fields[1] != "FLOCK":
+            continue
+        parts = fields[5].split(":")
+        if len(parts) != 3:
+            continue
+        try:
+            major = int(parts[0], 16)
+            minor = int(parts[1], 16)
+            inode = int(parts[2])
+        except ValueError:
+            continue
+        if inode != info.st_ino or os.makedev(major, minor) != info.st_dev:
+            continue
+        try:
+            return int(fields[4])
+        except ValueError:
+            return None
+    return None
+
+
+def _pid_cmdline(pid: int | None) -> str | None:
+    """What a pid is running, for the night's diagnosis."""
+    if not pid:
+        return None
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return None
+    parts = [part.decode("utf-8", "replace") for part in raw.split(b"\0") if part]
+    return " ".join(parts[:6]) or None
+
+
+def held_lease_locks() -> list[dict]:
+    """The numbered lease lock files that somebody holds, and who holds them.
+
+    The file may be gone from the directory — the daemon removes it when
+    it releases a lease — while the client that holds it is still alive,
+    so the held files are found in the processes' own descriptors too.
+    """
+    rows: list[dict] = []
+    seen: set[str] = set()
+    try:
+        files = sorted(THOR_ADMIT_LEASES.glob("*.lock"))
+    except OSError:
+        files = []
+    for path in files:
+        pid = _flock_holder(path)
+        if pid is None:
+            continue
+        seen.add(path.name)
+        rows.append({"file": path.name, "pid": pid, "cmd": _pid_cmdline(pid)})
+    for proc in sorted(Path("/proc").glob("[0-9]*")):
+        try:
+            descriptors = os.listdir(proc / "fd")
+        except OSError:
+            continue
+        for descriptor in descriptors:
+            try:
+                link = os.readlink(proc / "fd" / descriptor)
+            except OSError:
+                continue
+            if "thor-admit/leases/" not in link:
+                continue
+            name = link.rsplit("/", 1)[-1].split(" ")[0]
+            if name in seen:
+                continue
+            seen.add(name)
+            rows.append({"file": name, "pid": int(proc.name),
+                         "cmd": _pid_cmdline(int(proc.name)),
+                         "unlinked": link.endswith("(deleted)")})
+    return rows
+
+
+def sweep_stale_lease_locks(reason: str) -> dict:
+    """Clear the lease lock files that a client left behind.
+
+    **Why the night does this.** The daemon names a lease's lock file
+    after the lease's number, and the numbers start again at 1 when the
+    daemon is restarted. A client that is still alive from before the
+    restart still holds the old file, so the night's own lease — which
+    gets the same number — blocks forever in the shim's ``flock``, and the
+    daemon gives the night up after its 30 s grace ("the client never
+    took the lock"). That is what happened on 2026-11-01 at 16:33: the
+    ``agent-world`` seat's d1-2B server still held ``leases/1.lock`` from
+    a daemon that no longer existed, the new daemon handed the night
+    lease 1, and the night died without a traceback.
+
+    **What the sweep does.** It asks the daemon which leases it holds
+    and how long it has been up, and unlinks every numbered lock file
+    that cannot belong to a live lease of the daemon that is running now:
+    a number the daemon does not have, a file that is older than the
+    daemon itself, and a holder that is not one of the daemon's clients.
+    Unlinking is enough — the kernel keeps the old lock on the unlinked
+    inode, and the next client that asks for that number creates a new
+    file, a new inode, with nothing holding it.
+
+    The live leases' files are never touched, and the daemon's presence
+    locks (``presence-*.lock``) are not numbered, so they are not seen.
+
+    **What it does not do.** It does not touch the tool: the daemon's
+    numbering is the daemon's own business, and the fix that belongs
+    there — naming the lock file after the daemon's incarnation and not
+    after the lease's number — is another seat's crate to change.
+    """
+    row: dict[str, Any] = {"reason": reason, "checked": 0, "unlinked": [],
+                           "daemon_uptime_s": None, "live_leases": [],
+                           "ok": True, "error": None}
+    report = daemon_status()
+    if report is None:
+        row["ok"] = False
+        row["error"] = "the daemon did not answer the status request"
+        log(f"lease sweep: {row['error']} ({reason})")
+        return row
+    uptime = float(report.get("uptime_s") or 0.0)
+    row["daemon_uptime_s"] = round(uptime, 1)
+    live = {int(lease["lease"]) for lease in (report.get("leases") or [])
+            if "lease" in lease}
+    row["live_leases"] = sorted(live)
+    started = time.time() - uptime
+    try:
+        files = sorted(THOR_ADMIT_LEASES.glob("*.lock"))
+    except OSError as exc:
+        row["ok"] = False
+        row["error"] = f"{exc.__class__.__name__}: {exc}"
+        return row
+    for path in files:
+        stem = path.name[:-len(".lock")]
+        if not stem.isdigit():
+            continue
+        row["checked"] += 1
+        number = int(stem)
+        if number in live:
+            continue
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime >= started:
+            # Newer than the daemon: the daemon may have granted this
+            # number since the status was read, so leave it alone.
+            continue
+        holder = _flock_holder(path)
+        row["unlinked"].append({"file": path.name, "lease": number,
+                                 "held_by": holder,
+                                 "held_by_cmd": _pid_cmdline(holder)})
+        try:
+            path.unlink()
+        except OSError as exc:
+            row["ok"] = False
+            row["error"] = f"{exc.__class__.__name__}: {exc}"
+    if row["unlinked"]:
+        log(f"lease sweep: cleared {row['unlinked']} ({reason})")
+    else:
+        log(f"lease sweep: {row['checked']} numbered lock files, none stale "
+            f"({reason})")
+    return row
+
+
+def _take_the_lease(admit_cm, label: str) -> Any:
+    """Take the lease, and say what is holding it if the lock does not come.
+
+    The shim's ``flock`` waits with no timeout, so a lock file that
+    somebody else holds stops the night where it stands. The daemon gives
+    a granted lease 30 s to be taken and then stops the client, so the
+    night has to speak first: this waits 20 s and then names the file and
+    its holder.
+    """
+    import threading
+
+    result: dict[str, Any] = {}
+
+    def take() -> None:
+        try:
+            result["lease"] = admit_cm.__enter__()
+        except BaseException as exc:  # noqa: BLE001 - reported below
+            result["error"] = exc
+
+    worker = threading.Thread(target=take, name="night-lease", daemon=True)
+    worker.start()
+    worker.join(LEASE_LOCK_TIMEOUT_S)
+    if worker.is_alive():
+        raise TimeoutError(
+            f"the lease {label} was granted but its lock was not taken in "
+            f"{LEASE_LOCK_TIMEOUT_S:.0f} s; the lock files that are held: "
+            f"{held_lease_locks()}")
+    if "error" in result:
+        raise result["error"]
+    return result["lease"]
+
+
+class Heavy:
+    """The house lease, admission first (MEMORY-RULE): the box's daemon
+    holds the phase to its declared peak before the work allocates; the
+    25 GB bar is still checked after every load. The flock on the heavy
+    lock is the stopgap, for when the shim or the daemon is gone — and the
+    row says which one held. Reentrant: the heavy phase holds one lease
+    once, and the steps inside it do not queue behind themselves."""
+
+    #: The daemon's label for the phase the hold belongs to.
+    label = f"{NIGHT_ID}.heavy"
+
+    def __init__(self, ledger: SQLiteLedger | None = None, *,
+                 enabled: bool = True) -> None:
+        self._ledger = ledger
+        self.enabled = enabled
+        self.waits = 0
+        self._depth = 0
+        self._admit = None
+        self._lease = None
+        self.kind = "flock"
+        try:
+            sys.path.insert(0, str(THOR_ADMIT_PKG))
+            import thor_admit  # noqa: PLC0415
+
+            self._admit = thor_admit
+            self.kind = "thor-admit"
+        except Exception as exc:
+            log(f"thor_admit unavailable ({exc.__class__.__name__}: {exc}); "
+                f"the night falls back to the heavy lock")
+
+    @contextmanager
+    def hold(self, reason: str, *, check_ram: bool = False,
+             label: str | None = None, peak: str | None = None):
+        if not self.enabled:
+            log(f"(dry run: the heavy lease is a no-op — {reason})")
+            yield
+            return
+        if self._depth > 0:
+            # already inside the night's one lease: a heavy step within the
+            # heavy phase re-enters rather than queueing behind itself
+            yield
+            return
+        effective = peak or HEAVY_PEAK
+        with self._acquire(reason, label or self.label, effective) as acquired:
+            waited, kind, sweep = acquired
+            self._depth = 1
+            log(f"got the {kind} lease after {waited:.0f} s ({reason})")
+            if self._ledger is not None:
+                self._ledger.append(
+                    type="night.heavy_lease",
+                    actor=CORE_ACTOR,
+                    subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+                    payload={"reason": reason, "kind": kind,
+                             "label": label or self.label,
+                             "peak": effective,
+                             "waited_s": round(waited, 1),
+                             "free_gb": round(ram_free_gb(), 1),
+                             "sweep": sweep},
+                )
+            try:
+                yield
+                if check_ram:
+                    free = ram_free_gb()
+                    if free < MIN_FREE_GB:
+                        raise RuntimeError(
+                            f"only {free:.1f} GB free after {reason} "
+                            f"(the bar is {MIN_FREE_GB}); refusing"
+                        )
+                    log(f"free after {reason}: {free:.1f} GB")
+            finally:
+                self._depth = 0
+
+    def shrink(self, peak: str, reason: str) -> dict:
+        """The heavy phase ended: give the memory back (round 11's phase).
+
+        The daemon's ``phase`` op lowers a running lease's declared peak, so
+        the night stops reserving the heavy phase's 40 GB while it finishes
+        the light work. The row carries the old peak, the new one and the
+        reason; a refusal is recorded too, and the night goes on with the
+        lease it holds.
+        """
+        if not self.enabled or self._admit is None or self._lease is None:
+            row = {"ok": False, "skipped": "no lease to phase", "peak": peak,
+                   "reason": reason}
+            log(f"phase: {row}")
+            return row
+        started = time.monotonic()
+        try:
+            self._admit.phase(self._lease, peak)
+            ok, error = True, None
+        except Exception as exc:
+            ok, error = False, f"{exc.__class__.__name__}: {exc}"
+        row = {"ok": ok, "peak": peak, "reason": reason, "error": error,
+               "wall_s": round(time.monotonic() - started, 2),
+               "free_gb": round(ram_free_gb(), 1)}
+        log(f"the lease is phased to {peak}: {row}")
+        if self._ledger is not None:
+            self._ledger.append(
+                type="night.heavy_phase",
+                actor=CORE_ACTOR,
+                subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+                payload={"from_peak": HEAVY_PEAK, **row},
+            )
+        return row
+
+    @contextmanager
+    def _acquire(self, reason: str, label: str, peak: str = HEAVY_PEAK):
+        """The lease itself: the daemon's first; the flock only when the
+        daemon is gone or refuses, with the fallback named where it happens."""
+        started = time.monotonic()
+        admit_cm = None
+        sweep = sweep_stale_lease_locks(reason)
+        if self._admit is not None:
+            log(f"queueing for a thor-admit lease ({label}, peak {peak}: "
+                f"{reason})")
+            try:
+                admit_cm = self._admit.lease(peak, label, tier="live")
+                self._lease = _take_the_lease(admit_cm, label)
+            except Exception as exc:
+                log(f"thor-admit did not grant the lease ({exc.__class__.__name__}: "
+                    f"{exc}); falling back to the heavy lock")
+                admit_cm = None
+        if admit_cm is not None:
+            try:
+                yield (time.monotonic() - started, "thor-admit", sweep)
+            finally:
+                admit_cm.__exit__(None, None, None)
+                self._lease = None
+            return
+        log(f"queueing for the heavy lock ({reason})")
+        fh = open(HEAVY_LOCK, "a+")
+        try:
+            try:
+                fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError:
+                self.waits += 1
+                log("the lock is held (another seat's heavy step); waiting")
+                fcntl.flock(fh, fcntl.LOCK_EX)
+            yield (time.monotonic() - started, "flock", sweep)
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+            fh.close()
+
+
+def run_cmd(argv: Sequence[str], *, cwd: Path | None = None,
+            env: dict | None = None, timeout: float = 3600.0) -> subprocess.CompletedProcess:
+    """Run a command and hand back its result.
+
+    A command that runs out of time is a **result**, not a crash. Before
+    this, the live view's export timeout took the whole night down with it:
+    at 23:44:15 on 2026-11-01 the export hit its 3600 s bound, the
+    ``TimeoutExpired`` went unhandled, the night died on the traceback and
+    wrote no morning, no report and no letter — 78 minutes of job wall and
+    a full ledger with nothing folded out of them. A stage that cannot
+    finish must leave a gap the night records and carries on past.
+    """
+    log("$ " + " ".join(str(a) for a in argv[:8]) + (" ..." if len(argv) > 8 else ""))
+    try:
+        return subprocess.run(
+            [str(a) for a in argv], cwd=cwd, env=env, timeout=timeout,
+            check=False, capture_output=True, text=True,
+        )
+    except subprocess.TimeoutExpired as expired:
+        def _text(value: object) -> str:
+            if isinstance(value, bytes):
+                return value.decode("utf-8", "replace")
+            return "" if value is None else str(value)
+        out = _text(expired.stdout)
+        err = _text(expired.stderr)
+        log(f"the command timed out after {timeout} s; the stage records it "
+            f"and the night carries on")
+        return subprocess.CompletedProcess(
+            [str(a) for a in argv], 124, out,
+            (err + f"\n[the command timed out after {timeout} s]").strip())
+
+
+# --------------------------------------------------------------- the tiles ---
+
+FAKE_AUTHOR = TileAuthor(
+    model="scripted/night-v3-tiles-v1", provider="local",
+    prompt_hash="sha256:" + "0" * 64, cost_cents=0,
+)
+
+#: What each tile implies beyond its word: the note the builder wrote and
+#: the placement it means on the live wire (a move of a matching instance).
+#: The wire's vocabulary is transforms-only today; the bridge is recorded,
+#: never hidden.
+TILES_META: dict[str, dict] = {}
+
+
+def author_tiles(library: TileLibrary) -> list:
+    """The cloud author's six tiles for the courtyard, in the M1 words."""
+    specs = [
+        ("crates.weathered.corner", "props.harbor.crates",
+         {"count": 3, "style": "weathered", "from_library": 0}, 4021,
+         "the crate corner reads weathered; the crates move toward the wall",
+         {"match": r"table|crate|box|shelf|cabinet", "move": (0.8, 0.0, 0.3)}),
+        ("crates.stained.stack", "props.harbor.crates",
+         {"count": 5, "style": "stained", "from_library": 0}, 4022,
+         "a stained stack of crates; the stack moves to open a path",
+         {"match": r"table|crate|box|shelf|cabinet", "move": (-0.6, 0.0, 0.5)}),
+        ("weathering.gray.worn", "material.wood.weathering",
+         {"wear": 4, "tone": "gray"}, 4023,
+         "the wood wears gray; a chair shifts to catch the light",
+         {"match": r"chair|stool|seat|bench", "move": (0.4, 0.0, -0.4)}),
+        ("weathering.pale.faded", "material.wood.weathering",
+         {"wear": 2, "tone": "pale"}, 4024,
+         "faded pale wood; a small table drifts to the courtyard's edge",
+         {"match": r"table|desk|stand", "move": (-0.4, 0.0, -0.6)}),
+        ("racks.tool.wall", "props.harbor.racks",
+         {"count": 2, "length_m": 1.5}, 4025,
+         "tool racks on the wall; the rack line moves off the walking path",
+         {"match": r"shelf|rack|cabinet|unit", "move": (0.5, 0.0, 0.6)}),
+        ("weathering.dark.lived", "material.wood.weathering",
+         {"wear": 5, "tone": "dark"}, 4026,
+         "dark, much-handled wood; the lamp table moves near the door",
+         {"match": r"table|lamp|stand", "move": (0.2, 0.0, 0.7)}),
+    ]
+    tiles = []
+    for title, word, params, seed, note, placement in specs:
+        TILES_META[title] = {"note": note, "placement": placement,
+                             "engine_seed": seed}
+        # only the crates word's schema carries a seed; the other words'
+        # variation lands on the recipe entry's seed, which the driver's
+        # side table holds — the door validates every word's params.
+        step_params = dict(params)
+        if word == "props.harbor.crates":
+            step_params["seed"] = seed
+        tiles.append(build_tile(
+            family=f"courtyard.{word}",
+            kind="recipe_edit",
+            title=title,
+            steps=(TileStep(word=word, path=word, params=step_params),),
+            author=FAKE_AUTHOR,
+        ))
+    for tile in tiles:
+        library.add(tile)
+    return tiles
+
+
+#: The marker the night's decision state names its options with. The
+#: ordering policy (core/judge/ordering.py) splits a state into its
+#: preamble and its condition sentences on a marker, and sorts the
+#: conditions by the names they carry.
+CONDITION_MARKER = "The change is "
+
+
+def option_sentences(tiles: list) -> list[str]:
+    """The options as named conditions, one sentence each."""
+    return [f"{CONDITION_MARKER}{tile.id}: {tile_text(tile)}" for tile in tiles]
+
+
+def option_order(tiles: list) -> dict:
+    """The order the options are presented in, and whether it is neutral.
+
+    The wire sorts a question's criteria by their key
+    (core/judge/models.Question.to_wire), so the order the model sees is
+    the options' identity order. The neutral order the policy computes is
+    the same thing: every option names itself, and a name says what a
+    change *is* and never whether it is the right one. The check says
+    whether the two agree, so the row carries a fact and not an
+    assumption.
+    """
+    ordered = canonical_order(option_sentences(tiles), CONDITION_MARKER)
+    canonical_ids = [condition_name(sentence, CONDITION_MARKER)
+                     for sentence in ordered]
+    wire_ids = sorted(tile.id for tile in tiles)
+    return {"mode": "canonical", "order": canonical_ids,
+            "wire_order": wire_ids, "neutral": canonical_ids == wire_ids}
+
+
+def tile_state(context: dict, tiles: list) -> str:
+    """What the judge sees: the courtyard, the round, what lived-in means.
+
+    The options are named in the **neutral order** — the canonical one
+    (core/judge/ordering.py): each option is a named condition, and the
+    conditions are sorted by their names. So the order the options are
+    presented in carries no information about the answer.
+    """
+    preamble = (
+        f"A small courtyard is being built at night. The owner asked for a "
+        f"weathered crate, a brass lantern and an iron anvil, and for the "
+        f"place to feel lived-in. Round {context['round']} of the edits. So "
+        f"far the courtyard has: {context.get('history', 'nothing yet')}. "
+        f"Which single change would make it feel most lived-in next?"
+    )
+    ordered = canonical_order(option_sentences(tiles), CONDITION_MARKER)
+    return preamble + " " + " ".join(ordered)
+
+
+def tile_text(tile) -> str:
+    step = tile.steps[0]
+    meta = TILES_META.get(tile.title, {})
+    note = meta.get("note", "")
+    return f"{tile.title}: sets {step.word} with {step.params}. {note}"
+
+
+# ---------------------------------------------------------- the world seat ---
+
+class WorldState:
+    """The engine seam's state for one night: the recipe, its versions, the
+    renders each variant produced, and the splice's measurements."""
+
+    def __init__(self, engine, out: Path) -> None:
+        self.engine = engine
+        self.out = out
+        self.pin = engine.describe().pin
+        self.renders: dict[tuple[str, str], dict] = {}
+        self.splice: list[dict] = []
+        self.versions: dict[str, Recipe] = {}
+        self.cpu_generation_s = 0.0  # the procfunc/trace wall the seam reported
+
+    def base_recipe(self) -> Recipe:
+        commit = self.pin.commit[:7]
+        entries = {
+            "courtyard.room": RecipeEntry(
+                path="courtyard.room", kind="structure",
+                generator=GeneratorRef(
+                    module="infinigen2.scenes.room",
+                    func="room_livingroom_rand", variant=None, rev=commit),
+                seed=WORLD_SEED,
+            ),
+            "courtyard.crates": RecipeEntry(
+                path="courtyard.crates", kind="prop_set",
+                generator=GeneratorRef(
+                    module="infinigen2.objects",
+                    func="storage_cabinet_with_door_rand", variant=None,
+                    rev=commit),
+                params={"count": 3, "style": "weathered"}, seed=4021,
+            ),
+            "courtyard.weathering": RecipeEntry(
+                path="courtyard.weathering", kind="material",
+                generator=GeneratorRef(
+                    module="infinigen2.shaders",
+                    func="wood_scratched_rand", variant=None, rev=commit),
+                params={"wear": 1, "tone": "pale"}, seed=4023,
+            ),
+        }
+        return Recipe(id="courtyard", name="the courtyard",
+                      engine_pin=self.pin, seeds={"global": WORLD_SEED},
+                      entries=entries)
+
+    def apply_tile(self, base: Recipe, tile_step_word: str, params: dict,
+                   seed: int) -> tuple[Recipe, list[str]]:
+        """One tile's word as a recipe edit; returns (head recipe, notes)."""
+        head = base.model_copy(deep=True)
+        notes: list[str] = []
+        if tile_step_word == "props.harbor.crates":
+            entry = head.entries["courtyard.crates"]
+            head.entries["courtyard.crates"] = entry.model_copy(
+                update={"params": {**entry.params,
+                                   "count": params.get("count", 3),
+                                   "style": params.get("style", "weathered")},
+                        "seed": seed})
+            notes.append("crates.params <- the tile's word")
+        elif tile_step_word == "material.wood.weathering":
+            entry = head.entries["courtyard.weathering"]
+            head.entries["courtyard.weathering"] = entry.model_copy(
+                update={"params": {**entry.params,
+                                   "wear": params.get("wear", 1),
+                                   "tone": params.get("tone", "pale")},
+                        "seed": seed})
+            notes.append("weathering.params <- the tile's word")
+        elif tile_step_word == "props.harbor.racks":
+            entry = head.entries["courtyard.crates"]
+            head.entries["courtyard.crates"] = entry.model_copy(
+                update={"seed": seed})
+            notes.append("racks word has no entry on this box (no racks "
+                         "generator resolution was measured); the crates "
+                         "entry's seed moved instead — recorded, not hidden")
+        return head, notes
+
+    @staticmethod
+    def _vh(recipe: Recipe) -> str:
+        """The version hash: the recipe's canonical form, hashed."""
+        return content_hash(recipe.model_dump(mode="json"))
+
+    def render(self, recipe: Recipe, subject: str, variant_id: str,
+               heavy: Heavy) -> dict:
+        started = time.monotonic()
+        with heavy.hold(f"engine render {subject} ({variant_id})"):
+            result = self.engine.render_preview(PreviewRequest(
+                recipe=recipe,
+                version_hash=self._vh(recipe),
+                subject=subject,
+                rung=2,
+                seed=recipe.seeds.get("global", WORLD_SEED),
+            ))
+        png = self.out / "world" / f"{variant_id}_{subject.replace('.', '_')}.png"
+        png.parent.mkdir(parents=True, exist_ok=True)
+        png.write_bytes(result.data)
+        record = {
+            "variant_id": variant_id, "subject": subject,
+            "bytes": len(result.data), "sha256": result.artifact["sha256"],
+            "wall_ms": result.wall_ms,
+            "wall_s": round(time.monotonic() - started, 2),
+            "resolution": result.resolution, "rung": result.rung,
+            "path": str(png),
+        }
+        self.renders[(variant_id, subject)] = record
+        return record
+
+    def splice_measure(self, base: Recipe, head: Recipe, dirty: list[str],
+                       label: str, heavy: Heavy) -> dict:
+        """The splice, measured at the seam: reexecute (the venv boundary
+        refuses it, and the refusal is the record), then the scoped stage
+        (the dirty entries only) against the full stage.
+
+        The full stage is asked for whole first; when the engine refuses to
+        trace the structure entry — this engine's procfunc raises
+        ``Proxy does not support __iter__`` inside the room's wall splitter
+        under tracing, the crash run D attempt 2 died on — the splice
+        measures the traceable entries and records the exclusion, rather
+        than pretending the room re-ran.
+        """
+        row: dict[str, Any] = {"label": label, "dirty": dirty}
+        full_started = time.monotonic()
+        with heavy.hold(f"full stage trace ({label})"):
+            try:
+                full = self.engine.generate_stage(StageRequest(
+                    recipe=head, version_hash=self._vh(head), stage="objects"))
+                row["full_stage_entries"] = "all"
+            except EngineFailed as exc:
+                if "Proxy does not support __iter__" not in str(exc):
+                    raise
+                row["scene_trace_refused"] = str(exc)[-300:]
+                scene = next((p for p, e in base.entries.items()
+                              if e.kind == "structure"), None)
+                traceable = sorted(p for p in base.entries if p != scene)
+                row["full_stage_entries"] = traceable
+                log(f"the engine refuses to trace {scene} (procfunc "
+                    f"proxy iteration under trace); the splice measures "
+                    f"{traceable} and records the exclusion")
+                full = self.engine.generate_stage(StageRequest(
+                    recipe=head, version_hash=self._vh(head), stage="objects",
+                    entries=traceable))
+        full_s = time.monotonic() - full_started
+        row["full_stage_s"] = round(full_s, 2)
+        row["full_stage_bytes"] = len(full.data)
+
+        scoped_started = time.monotonic()
+        with heavy.hold(f"scoped stage trace ({label})"):
+            scoped = self.engine.generate_stage(StageRequest(
+                recipe=head, version_hash=self._vh(head), stage="objects",
+                entries=dirty))
+        scoped_s = time.monotonic() - scoped_started
+        row["scoped_stage_s"] = round(scoped_s, 2)
+        row["scoped_stage_bytes"] = len(scoped.data)
+        row["ratio"] = round(full_s / max(scoped_s, 1e-6), 2)
+        self.splice.append(row)
+        return row
+
+
+class WorldCritic:
+    """The calibrated scripted checks, on the night's own renders: the same
+    analytic image checks the reference set measures (black frame, fireflies,
+    flat patch, dark holes, patch seams), plus the render-level facts a
+    preview owes — it decoded, it is not black or blown out, it carries
+    contrast, and the tile's edit actually changed the bytes. No model, no
+    VLM (B2); the verdict row says which critic made it."""
+
+    def __init__(self, world: WorldState, ledger: SQLiteLedger) -> None:
+        self.world = world
+        self.ledger = ledger
+
+    def score(self, task: Task, variant):
+        import io
+
+        import numpy as np
+        from PIL import Image
+        from core.critic.checks import run_image_checks
+
+        from core.night.iterate import CriticScore
+
+        edits = variant.edit or {}
+        subject = edits.get("subject", "courtyard.room")
+        record = self.world.renders.get((variant.id, subject))
+        if record is None:
+            return CriticScore(score=0.0, reason="no render was produced",
+                               degraded=True)
+        png = Path(record["path"]).read_bytes()
+        score, checks = 1.0, []
+        try:
+            arr = np.asarray(Image.open(io.BytesIO(png)).convert("RGB"))
+        except Exception as exc:
+            self._row(task, variant, record, 0.0,
+                      [[f"decode failed: {exc}"[:80]]])
+            return CriticScore(score=0.0, reason=f"decode failed: {exc}"[:80],
+                               degraded=True)
+        checks.append(["decodes", "ok", 0.0])
+        lum = arr.mean()
+        contrast = arr.std()
+        checks.append(["luminance", f"{lum:.1f}", 0.0 if 12 <= lum <= 242 else -0.3])
+        checks.append(["contrast", f"{contrast:.1f}", 0.0 if contrast >= 6 else -0.2])
+        for outcome in run_image_checks(arr):
+            if not outcome.applicable:
+                continue
+            penalty = -0.15 if outcome.fired else 0.0
+            checks.append([outcome.check,
+                           "FIRED" if outcome.fired else "clean", penalty])
+            score += penalty
+        score += checks[1][2] + checks[2][2]
+        # the tile's prediction: an edit that changes the seed must change
+        # the bytes — a hash identical to the parent's render of the same
+        # subject means the edit did nothing the picture can see
+        parent_key = (variant.parent_id, subject)
+        parent_sha = (self.world.renders.get(parent_key) or {}).get("sha256")
+        if parent_sha is not None:
+            changed = parent_sha != record["sha256"]
+            checks.append(["edit_changed_bytes",
+                           "yes" if changed else "NO", 0.0 if changed else -0.3])
+            score += 0.0 if changed else -0.3
+        score = max(0.0, min(1.0, score))
+        reason = "; ".join(f"{n}={v}{f" ({p:+.2f})" if p else ""}"
+                           for n, v, p in checks)
+        self._row(task, variant, record, score, checks)
+        return CriticScore(score=score, reason=reason)
+
+    def _row(self, task, variant, record, score, checks) -> None:
+        self.ledger.append(
+            type="judge.verdict",
+            actor=Actor(kind="critic", id="scripted", via="night"),
+            subject={"entity_kind": "variant", "entity_id": variant.id},
+            payload={"critic": "scripted", "task": task.id, "score": score,
+                     "checks": checks, "subject": record["subject"],
+                     "render_sha": record["sha256"],
+                     "render_bytes": record["bytes"]},
+        )
+
+
+# --------------------------------------------------------- the night seat ----
+
+def gpu_largest_free_gb(timeout_s: float = 6.0) -> float | None:
+    """The GPU allocation pool's largest free contiguous block, in GB.
+
+    The number is tegrastats' ``lfb``, read the way the daemon's own
+    gpu.rs reads it (``(lfb <count>x<size>MB)`` → count × size), so the
+    night's bar and the daemon's samples speak about the same thing.
+    ``None`` when tegrastats cannot be read: a bar that cannot see must
+    not stop the night, and the row says it was unreadable.
+    """
+    try:
+        proc = subprocess.Popen(
+            ["tegrastats", "--interval", "500"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+    except (OSError, ValueError):
+        return None
+    value: float | None = None
+    deadline = time.monotonic() + timeout_s
+    try:
+        while time.monotonic() < deadline:
+            line = proc.stdout.readline() if proc.stdout else ""
+            if not line:
+                break
+            m = re.search(r"\(lfb (\d+)x(\d+)MB\)", line)
+            if m:
+                value = int(m.group(1)) * int(m.group(2)) / 1024.0
+                break
+    except OSError:
+        value = None
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+    return value
+
+
+def gpu_box_used_gb(timeout_s: float = 6.0) -> float | None:
+    """The box's GPU bytes, the way the daemon counts them.
+
+    The per-process sum of ``nvidia-smi --query-compute-apps`` — the same
+    primary source the daemon's ``gpu_box_used_bytes`` reads — so the
+    night's bar and the daemon's samples speak about the same number.
+    ``None`` when the query cannot be run: a bar that cannot see must not
+    stop the night, and the row says it was unreadable.
+    """
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-compute-apps=pid,used_memory",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=timeout_s).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    total = 0.0
+    for line in out.strip().splitlines():
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) == 2 and parts[1].isdigit():
+            total += int(parts[1])
+    return total / 1024.0
+
+
+def wait_for_gpu_pool(reason: str) -> dict:
+    """Wait until the box's used GPU leaves room for a mesh prompt.
+
+    The bar is on **used** bytes (wall minus the bake's need — both
+    measured on run F's wedge); tegrastats' ``lfb`` is sampled into the
+    row as a signal, but on this box it sits near zero whether or not
+    there is room, so it does not gate. Bounded by
+    :data:`GPU_POOL_WAIT_S`: past the bound the night goes anyway and the
+    row says it gave up, because a night that waits forever is as dead as
+    one that wedges. Only a real wait (>= 20 s) is logged and rowed; a
+    pass at first sight is the box being healthy and needs no row of its
+    own.
+    """
+    started = time.monotonic()
+    first = gpu_box_used_gb()
+    current = first
+    lfb = gpu_largest_free_gb()
+    gave_up = False
+    if first is not None:
+        while current is not None and current > GPU_POOL_BAR_USED_GB:
+            if time.monotonic() - started >= GPU_POOL_WAIT_S:
+                gave_up = True
+                break
+            log(f"the box's GPU holds {current:.1f} GiB and a mesh prompt "
+                f"needs room below {GPU_POOL_BAR_USED_GB:.0f} GiB; "
+                f"waiting — {reason}")
+            time.sleep(20.0)
+            current = gpu_box_used_gb()
+            lfb = gpu_largest_free_gb()
+    row = {
+        "reason": reason,
+        "bar_used_gb": GPU_POOL_BAR_USED_GB,
+        "used_first_gb": round(first, 2) if first is not None else None,
+        "used_gb": round(current, 2) if current is not None else None,
+        "lfb_signal_gb": round(lfb, 3) if lfb is not None else None,
+        "wall_gb": GPU_POOL_TOTAL_GB,
+        "need_gb": GPU_POOL_NEED_GB,
+        "waited_s": round(time.monotonic() - started, 1),
+        "gave_up": gave_up,
+        "unreadable": first is None,
+    }
+    if row["waited_s"] >= 20.0:
+        log(f"the GPU-pool bar: {json.dumps(row)}")
+    return row
+
+
+class CompositeExecutor:
+    """One executor, two workshops: the engine seam (world) and the
+    generative batch (props). The runner sees one seam."""
+
+    def __init__(self, world: WorldState, prop_exec: PropExecutor,
+                 heavy: Heavy, ledger: SQLiteLedger, judge_seat: "JudgeSeat",
+                 wires: list[dict], comfy: dict | None = None,
+                 out: Path | None = None) -> None:
+        self.world = world
+        self.props = prop_exec
+        self.heavy = heavy
+        self.ledger = ledger
+        self.judge = judge_seat
+        self.wires = wires  # live-view rows: what each applied tile did
+        #: The render server the night owns (empty in a dry run). The dict
+        #: is the one main() holds, so a restart updates it in place and
+        #: main's stop still stops the server that is running then.
+        self.comfy = comfy if comfy is not None else {}
+        self.out = out
+        #: How many wedges have been restarted. Bounded: a night that
+        #: restarts forever is masking something else.
+        self.restarts = 0
+
+    #: The restart bound. Two wedges survived is evidence the bar works;
+    #: a third is a different problem and the night says so by dying.
+    MAX_COMFY_RESTARTS = 2
+
+    def _is_prop(self, task_id: str) -> bool:
+        return task_id.startswith(("img:", "prop:"))
+
+    def plan(self, task: Task, variant=None):
+        if self._is_prop(task.id):
+            return self.props.plan(task, variant)
+        from core.genbatch.executor import ExecutionPlan
+
+        if task.id == "world.base":
+            return ExecutionPlan(gpu_minutes=0.4, wall_minutes=6.0)
+        return ExecutionPlan(gpu_minutes=0.4, wall_minutes=6.0)
+
+    def run(self, task: Task, variant=None):
+        from core.genbatch.executor import ExecutionPlan
+
+        if self._is_prop(task.id):
+            return self._run_prop(task, variant)
+
+        started = time.monotonic()
+        edits = (variant.edit if variant is not None else None) or {}
+        if task.id == "world.base":
+            recipe = self.world.base_recipe()
+            self.world.versions["v1"] = recipe
+            rows = []
+            for subject in ("courtyard.room", "courtyard.crates",
+                            "courtyard.weathering"):
+                rows.append(self.world.render(recipe, subject, "v1", self.heavy))
+            wall = time.monotonic() - started
+            return ExecutionPlan(
+                outcome="kept", reason="the courtyard's baseline: room, "
+                "crates and weathering, rendered at rung 2",
+                artifact=rows[0]["path"],
+                gpu_minutes=0.0, wall_minutes=wall / 60.0,
+            )
+
+        # world.edit: the chosen tile becomes a recipe edit, then a render.
+        round_no = variant.round if variant is not None else 1
+        base = self.world.versions.get(
+            "v1", self.world.base_recipe())
+        word = edits.get("word", "")
+        params = edits.get("params", {})
+        seed = int(edits.get("seed", 4000 + round_no))
+        head, notes = self.world.apply_tile(base, word, params, seed)
+        head_key = f"v{round_no + 1}"
+        self.world.versions[head_key] = head
+
+        subject = {
+            "props.harbor.crates": "courtyard.crates",
+            "material.wood.weathering": "courtyard.weathering",
+            "props.harbor.racks": "courtyard.crates",
+        }.get(word, "courtyard.room")
+        render = self.world.render(head, subject, variant.id, self.heavy)
+
+        # the splice, measured where an edit actually lands
+        self.world.splice_measure(
+            base, head, [subject.split(".")[-1]], f"round-{round_no} {word}",
+            self.heavy)
+
+        # the live wire: the tile's placement as the wire's transform edit
+        self.wires.append({
+            "round": round_no, "tile": edits.get("tile_id"),
+            "word": word, "placement": edits.get("placement"),
+            "note": edits.get("note", ""), "head": head_key,
+        })
+
+        wall = time.monotonic() - started
+        return ExecutionPlan(
+            outcome="kept",
+            reason=f"round {round_no}: applied {edits.get('tile_id')} "
+                   f"({word}); " + "; ".join(notes),
+            artifact=render["path"],
+            gpu_minutes=0.0, wall_minutes=wall / 60.0,
+        )
+
+    def _run_prop(self, task: Task, variant=None):
+        """One prop task, with the two things the mesh stage now needs.
+
+        The GPU-pool bar runs before every mesh prompt: night-v4's run F
+        died when the bake allocated into a pool already holding
+        60.5 GiB, and a wait for room is a night's own medicine —
+        bounded, and a row. And a ComfyError that says the
+        server refused the connection is the wedge that killed runs E and
+        F: the poll already rode out 120 s of refusals, so the server is
+        not busy but gone, and the night restarts it and re-runs the one
+        prompt, once. The prompt is re-run with the same seeds — it is
+        the same mesh asked for again, and both attempts are in the
+        ledger, which is the honest cost of surviving.
+        """
+        from core.genbatch.comfy import ComfyError
+
+        if task.id.startswith("prop:") and self.comfy.get("owned"):
+            bar_row = wait_for_gpu_pool(f"the mesh stage: {task.id}")
+            if bar_row["waited_s"] >= 20.0 and self.ledger is not None:
+                self.ledger.append(
+                    type="night.gpu_pool_bar", actor=CORE_ACTOR,
+                    subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+                    payload=bar_row)
+        for attempt in (1, 2):
+            try:
+                return self.props.run(task, variant)
+            except ComfyError as exc:
+                wedged = "refused the connection" in str(exc)
+                if (attempt == 2 or not wedged
+                        or self.restarts >= self.MAX_COMFY_RESTARTS
+                        or not self.comfy.get("owned")):
+                    raise
+                self.restarts += 1
+                row = self._restart_comfy(str(exc), task.id)
+                if self.ledger is not None:
+                    self.ledger.append(
+                        type="night.comfy_restart", actor=CORE_ACTOR,
+                        subject={"entity_kind": "night",
+                                 "entity_id": NIGHT_ID},
+                        payload=row)
+                if not row.get("restarted"):
+                    raise
+                # the box that wedged the server may still be crowded: the
+                # bar runs again before the prompt is asked again
+                wait_for_gpu_pool(
+                    f"the mesh stage, after the restart: {task.id}")
+        raise RuntimeError("unreachable")
+
+    def _restart_comfy(self, cause: str, task_id: str) -> dict:
+        """A wedged render server: stop it, keep its log, start it again.
+
+        The old log is the evidence of the wedge, so it is copied beside
+        the run before the new server truncates it. The handle main()
+        holds is updated in place, so its stop still stops the server
+        that is running then.
+        """
+        row: dict[str, Any] = {"cause": cause[:200], "task_id": task_id}
+        try:
+            if self.out is not None and TRELLIS_LOG.exists():
+                keep = self.out / (
+                    f"comfy-wedge-{datetime.now().strftime('%H%M%S')}.log")
+                keep.write_bytes(TRELLIS_LOG.read_bytes())
+                row["kept_log"] = keep.name
+            stop_comfy(self.comfy)
+            fresh = serve_comfy(self.heavy)
+            self.comfy.clear()
+            self.comfy.update(fresh)
+            row["restarted"] = bool(fresh.get("started"))
+            row["pid"] = fresh.get("pid")
+        except Exception as exc:  # noqa: BLE001 - the row records the failure
+            row["restarted"] = False
+            row["error"] = f"{exc.__class__.__name__}: {exc}"
+        log(f"ComfyUI restarted after a wedge: "
+            f"{json.dumps(row, default=str)}")
+        return row
+
+
+class CompositeVariants:
+    """Where variants come from: seeds for props; the judge's chosen tile
+    for the world's edit rounds."""
+
+    def __init__(self, plan: NightPlan, judge_seat: "JudgeSeat",
+                 ledger: SQLiteLedger) -> None:
+        self.plan = plan
+        self.judge = judge_seat
+        self.ledger = ledger
+        #: the chorus rounds seed past everything wave 1 used
+        self.seed_offset = 0
+
+    def variants(self, task: Task, *, round: int, parent, count: int):
+        from core.night.iterate import Variant
+
+        if task.id == "world.base":
+            if round > 1:
+                return []
+            return [Variant(id=f"{task.id}_r{round}_v1", label="baseline",
+                            round=round, seed=WORLD_SEED)]
+        if task.id == "world.edit":
+            if round > 2:
+                return []
+            choice = self.judge.choose_tile(round, parent)
+            return [Variant(
+                id=f"{task.id}_r{round}_v1",
+                label=choice["tile"].title,
+                seed=int(choice["edit"]["seed"]),
+                round=round,
+                parent_id=parent.id if parent is not None else None,
+                edit=choice["edit"],
+            )]
+        request = self.plan.request(task.id)
+        if request is None:
+            return []
+        base = getattr(request, "base_seed", 0) or 0
+        return [
+            Variant(
+                id=f"{task.id}_r{round}_v{index + 1}",
+                label=f"seed {base + self.seed_offset + 1000 * (round - 1) + index + 1}",
+                seed=base + self.seed_offset + 1000 * (round - 1) + index + 1,
+                round=round,
+            )
+            for index in range(count)
+        ]
+
+
+class NightPropCritic:
+    """The prop critic of night-v4: the scripted checks, the occupancy-based
+    plausibility prior, and the d1-2B delegate.
+
+    Three halves, and each answers for itself:
+
+    * the **scripted** checks (core.genbatch.critic.PropCritic) — the mesh
+      half, unchanged from run D, and still the half that decides the prop;
+    * the **occupancy-based plausibility prior** (critic-shells): the prop's
+      features against the reference set, with the volume the prop
+      **occupies** rather than the material in it, and the repair's
+      fidelity as the consistency side;
+    * the **d1-2B delegate** (critic-delegate): the fixed class questions,
+      asked of the prop's own picture, with the shipped wording.
+
+    The delegate is asked about a picture, so it needs the projector; the
+    prior needs the occupied volume, so the mesh layer has to measure it
+    (the executor measures the convex hull).
+
+    **What the two new halves may do.** The prior's ghost gate rejects a
+    prop less ordinary than :data:`GHOST_THRESHOLD` of its group. The
+    delegate's fired class lowers the picture's score by the model's own
+    confidence in it, so it decides which sibling wins the image round.
+    Neither voids a prop on its own: the delegate's questions were
+    measured on scene renders and the night's pictures are product
+    pictures, so the night records what the delegate says rather than
+    letting a domain mismatch empty the courtyard.
+    """
+
+    def __init__(self, requests, store, plan=None, *, prior=None,
+                 delegate_endpoint: str | None = None,
+                 ledger: SQLiteLedger | None = None) -> None:
+        self._scripted = PropCritic(requests=requests, store=store, plan=plan)
+        self._requests = dict(requests)
+        self._store = store
+        self._plan = plan
+        self._prior = prior
+        self._delegate = delegate_endpoint
+        self._ledger = ledger
+        self.signals: list[dict] = []
+
+    def score(self, task: Task, variant) -> CriticScore:
+        scripted = self._scripted.score(task, variant)
+        request = self._requests.get(task.id)
+        if request is None:
+            return scripted
+        if (self._plan is not None
+                and self._plan.stage_kind(task.id) == StageKind.IMAGE):
+            return self._score_picture(task, variant, request, scripted)
+        return self._score_mesh(task, variant, scripted)
+
+    # -- the picture half: the delegate ------------------------------------
+
+    def _score_picture(self, task: Task, variant, request,
+                       scripted: CriticScore) -> CriticScore:
+        """The delegate answers the fixed class questions about the picture.
+
+        The scripted half can only say that the picture was made and is the
+        size it was asked for. The delegate is the picture critic: it looks
+        at the picture and answers the same six class questions the bake-off
+        asked (core/critic/candidates/questions.py), with the shipped
+        wording, unchanged.
+        """
+        seed = variant.seed if variant.seed is not None else 0
+        image = self._store.image(request.id, seed)
+        if image is None or not self._delegate:
+            return scripted
+        # The store records the name ComfyUI gave the picture; ComfyUI
+        # keeps it in its own input directory. The delegate has to be
+        # given a path it can open — this is where all eighteen of
+        # tonight's delegate calls failed, with the picture's name and no
+        # directory.
+        picture = Path(image.path)
+        if not picture.is_absolute():
+            picture = TRELLIS_INPUT / picture
+        try:
+            probabilities, wall_s, usage = ask_d1(
+                self._delegate, picture,
+                {name: CLASS_QUESTIONS[name] for name in IMAGE_CLASSES},
+            )
+        except Exception as exc:
+            note = {"stage": "image", "task_id": task.id,
+                    "variant_id": variant.id,
+                    "error": f"{exc.__class__.__name__}: {exc}"[:200]}
+            self.signals.append(note)
+            self._record_signal("night.prop_delegate", note)
+            return scripted.model_copy(update={
+                "degraded": True,
+                "reason": f"{scripted.reason} · delegate unavailable: {exc}"[:400],
+            })
+        fired = {name: value for name, value in probabilities.items()
+                 if value >= DELEGATE_GATE}
+        peak = max(fired.values()) if fired else 0.0
+        score = round(scripted.score * (1.0 - peak), 4)
+        note = {
+            "stage": "image", "task_id": task.id, "variant_id": variant.id,
+            "picture": str(picture), "probabilities": probabilities,
+            "fired": sorted(fired), "peak_fired": peak, "gate": DELEGATE_GATE,
+            "wall_s": round(wall_s, 3), "scripted_score": scripted.score,
+            "score": score,
+        }
+        self.signals.append(note)
+        self._record_signal("night.prop_delegate", note)
+        reason = (f"{scripted.reason} · delegate: "
+                  + (", ".join(f"{name} {value:.2f}"
+                              for name, value in sorted(fired.items()))
+                     if fired else "no class fired"))
+        return CriticScore(score=score, reason=reason,
+                           degraded=scripted.degraded or bool(fired))
+
+    # -- the mesh half: the prior ------------------------------------------
+
+    def _score_mesh(self, task: Task, variant,
+                    scripted: CriticScore) -> CriticScore:
+        """The prior reads the prop: the occupied volume against the set."""
+        report = self._store.mesh(task.id, variant.id)
+        if report is None or self._prior is None:
+            return scripted
+        repair = self._store.repair(task.id, variant.id)
+        consistency = float(repair.fidelity) if repair is not None else 0.0
+        features = features_from_report(report)
+        verdict = plausibility_judge(
+            features=features, consistency=consistency, prior=self._prior)
+        ghost = verdict.plausibility < GHOST_THRESHOLD
+        note = {
+            "stage": "mesh", "task_id": task.id, "variant_id": variant.id,
+            "consistency": consistency, "plausibility": verdict.plausibility,
+            "combined": verdict.combined, "ambiguous": verdict.ambiguous,
+            "escalate": verdict.escalate, "ghost": ghost,
+            "occupied_volume": report.occupied_volume,
+            "occupied_method": report.occupied_method,
+            "signed_volume": report.volume,
+            "scripted_score": scripted.score,
+        }
+        self.signals.append(note)
+        self._record_signal("night.prop_plausibility", note)
+        reason = f"{scripted.reason} · {verdict.line()}" + (" · GHOST" if ghost else "")
+        return CriticScore(score=0.0 if ghost else scripted.score, reason=reason,
+                           degraded=scripted.degraded or ghost or verdict.escalate)
+
+    def _record_signal(self, kind: str, note: dict) -> None:
+        if self._ledger is None:
+            return
+        self._ledger.append(
+            type=kind, actor=CORE_ACTOR,
+            subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+            payload=note)
+
+
+class CompositeCritic:
+    """The scripted critics, dispatched: the prop critic (the scripted
+    checks, the plausibility prior and the delegate), the render checks for
+    the world. No 30B VLM anywhere (B2)."""
+
+    def __init__(self, prop_critic: PropCritic, world_critic: WorldCritic,
+                 plan: NightPlan) -> None:
+        self.props = prop_critic
+        self.world = world_critic
+        self.plan = plan
+
+    def score(self, task: Task, variant):
+        if task.id.startswith(("img:", "prop:")):
+            return self.props.score(task, variant)
+        return self.world.score(task, variant)
+
+
+class JudgeSeat:
+    """The decision seam: d1-2B first, Jev below tau, standing gate,
+    never-wait. Every judgment is a ledger row (the judge's own writes);
+    this seat adds the night's decisions and the flow state."""
+
+    def __init__(self, ledger: SQLiteLedger, tiles: list, library: TileLibrary,
+                 d1_port: int, *, fake: bool = False) -> None:
+        from core.judge.backends import FakeBackend
+
+        self.ledger = ledger
+        self.tiles = tiles
+        self.library = library
+        self.fake = fake
+        self.judge = Judge(
+            backend=(FakeBackend() if fake
+                     else D1Backend(port=d1_port, model=D1_MODEL_NAME)),
+            ladder=None if fake else EscalationLadder([("jev", JevBackend())]),
+            policy=ConfidencePolicy(),
+            standing=StandingGate(),
+            ledger=ledger,
+        )
+        self.tick = 0
+        self.decisions: list[dict] = []
+        self.mediator_calls: list[dict] = []
+        self.last_confidence: float | None = None
+        self.last_word: str | None = None
+        self.words: list[str | None] = []
+        self.critic_slope = 0.0
+
+    # -- flow ------------------------------------------------------------------
+
+    def in_flow(self) -> bool:
+        """The knower's sign, as the night can measure it: the decision
+        models confident, the standing steady, the critic's quality not
+        falling. Low prediction error itself is V-JEPA's job (not wired on
+        this branch — the honest gap is recorded, not hidden)."""
+        steady = (
+            self.last_confidence is not None
+            and self.last_confidence >= 0.5
+            and len(set(self.words[-3:])) <= 1
+        )
+        return bool(steady and self.critic_slope >= 0.0)
+
+    def mediator(self, why: str, context: str) -> dict:
+        """The mediator, consulted only outside flow. One Groq call; its
+        cost rides the row."""
+        flow = self.in_flow()
+        call: dict[str, Any] = {"why": why, "in_flow": flow, "at": now_utc()}
+        if self.fake:
+            call.update({"ok": False, "skipped": "dry run", "wall_s": 0.0})
+            self.mediator_calls.append(call)
+            return call
+        started = time.monotonic()
+        try:
+            sys.path.insert(0, str(GQ.parent))
+            import gq  # noqa: PLC0415
+
+            answer, usage = gq.ask(
+                "20b",
+                "One short paragraph, plain words, no praise:",
+                f"{why}\n\n{context}",
+            )
+            call["answer"] = answer[:800]
+            call["ok"] = True
+            call["usage"] = usage
+        except Exception as exc:  # the mediator is never load-bearing
+            call["ok"] = False
+            call["error"] = str(exc)[:200]
+        call["wall_s"] = round(time.monotonic() - started, 2)
+        self.mediator_calls.append(call)
+        self.ledger.append(
+            type="night.mediator_call",
+            actor=CORE_ACTOR,
+            subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+            payload=call,
+        )
+        return call
+
+    # -- the decisions ---------------------------------------------------------
+
+    def _record(self, kind: str, answer, extra: dict) -> dict:
+        self.tick += 1
+        judgment = answer.judgment("tile") if kind == "tile" else answer.judgments[0]
+        row = {
+            "decision": kind,
+            "tick": self.tick,
+            "confidence": judgment.confidence,
+            "tau": judgment.tau,
+            "gate": judgment.gate,
+            "author": judgment.author,
+            "backend_model": f"{judgment.backend}:{judgment.model}",
+            "latency_s": answer.latency_seconds,
+            "surfaced": answer.surfaced,
+            "attempts": answer.attempts,
+            "cost": answer.cost.model_dump(),
+            "standing": answer.standing_words,
+            **extra,
+        }
+        self.decisions.append(row)
+        self.last_confidence = judgment.confidence
+        self.last_word = (answer.standing_words or {}).get("tile") or judgment.gate
+        self.words.append(self.last_word)
+        return row
+
+    def choose_tile(self, round_no: int, parent) -> dict:
+        """The builder's decision: which tile lands next. Through the judge,
+        under the standing gate, bounded by never-wait."""
+        history = "; ".join(
+            f"r{d['decision_round']}: {d['chosen']}" for d in self.decisions
+            if d["decision"] == "tile"
+        ) or "nothing yet"
+        context = {"round": round_no, "history": history}
+        question = Question(
+            qid="tile",
+            kind="choice",
+            instructions=(
+                "Which single change would make this courtyard feel most "
+                "lived-in next? Answer with one option id."
+            ),
+            criteria={tile.id: tile_text(tile) for tile in self.tiles},
+        )
+        order = option_order(self.tiles)
+        answer = self.judge.judge(
+            "courtyard.tile.v1",
+            tile_state(context, self.tiles),
+            (question,),
+            now=float(self.tick + 1),
+            deadline_seconds=NEVER_WAIT_SECONDS,
+        )
+        judgment = answer.judgment("tile")
+        distribution = judgment.distribution or {}
+        pick = max(distribution, key=lambda k: distribution[k]) if distribution \
+            else self.tiles[0].id
+        tile = next(t for t in self.tiles if t.id == pick)
+        row = self._record("tile", answer, {
+            "decision_round": round_no,
+            "chosen": tile.title,
+            "distribution": distribution,
+            "order_mode": order["mode"],
+            "option_order": order["order"],
+            "option_order_neutral": order["neutral"],
+            "model": D1_MODEL_NAME,
+        })
+        if answer.surfaced:
+            self.mediator(
+                "A courtyard edit decision was surfaced below tau after the "
+                "whole ladder; the night needs a note on what to do with it.",
+                tile_state(context, self.tiles) +
+                f"\n\nThe surfaced pick was {tile.title}.")
+        step = tile.steps[0]
+        meta = TILES_META.get(tile.title, {})
+        return {
+            "tile": tile, "step": step,
+            "edit": {
+                "tile_id": tile.id, "word": step.word, "params": step.params,
+                "seed": meta.get("engine_seed", 4000),
+                "note": meta.get("note", ""),
+                "placement": meta.get("placement"),
+                "subject": {
+                    "props.harbor.crates": "courtyard.crates",
+                    "material.wood.weathering": "courtyard.weathering",
+                    "props.harbor.racks": "courtyard.crates",
+                }.get(step.word, "courtyard.room"),
+                "predict": {"note": f"the tile's own prediction: "
+                            f"{meta.get('note', '')}"},
+            },
+            "row": row,
+        }
+
+    def verify_concept(self, request_id: str, prompt: str) -> dict:
+        """Is this prop's concept on-brief? A verify judgment per prop, over
+        the prompt text (the d1 server runs text-only tonight; the row says
+        so)."""
+        question = Question(
+            qid="on_brief",
+            kind="verify",
+            claim=(
+                f'The concept prompt "{prompt}" serves the owner goal "a '
+                f'small courtyard ... make it feel lived-in" for the '
+                f'{request_id} prop.'
+            ),
+            evidence=(
+                "the owner goal's three props are a weathered crate, a "
+                "brass lantern and an iron anvil"
+            ),
+            instructions="Answer whether the claim holds.",
+        )
+        answer = self.judge.judge(
+            "courtyard.prop.brief.v1",
+            f"The courtyard night judges its prop concept for {request_id}.",
+            (question,),
+            now=float(self.tick + 1),
+            deadline_seconds=NEVER_WAIT_SECONDS,
+        )
+        judgment = answer.judgments[0]
+        row = self._record("prop_brief", answer, {
+            "request_id": request_id,
+            "distribution": judgment.distribution,
+            "text_only": True,
+        })
+        return row
+
+
+def decoy_cell_probe(ledger: SQLiteLedger, out: Path, *, port: int,
+                     steps: int = 0) -> dict:
+    """The routed cell, asked on this box, tonight.
+
+    The night routes its decoy cell to the d1-3B with the neutral order
+    (exp-judge-calibration.md §8.3 and §9.4). This asks that cell the way
+    the published route run asked it — the fixed recorder's states, the
+    sea-state task, the calibrated τ for the 3B — so the night has its own
+    numbers and not only the citation.
+
+    The ladder here is one rung (the local model), so no cloud rung answers
+    and a below-τ judgment reads ``surfaced``, as in the published run.
+    """
+    recorder_dir = REPO / "docs/lab/judge-recorder-fix-scripts"
+    sys.path.insert(0, str(recorder_dir))
+    try:
+        import recorder  # noqa: PLC0415
+    except Exception as exc:
+        return {"skipped": f"the fixed recorder is not importable: {exc}"}
+    trials = recorder.build_trials()
+    all_steps = [row for trial in trials for row in trial]
+    if steps:
+        all_steps = all_steps[:steps]
+    question = Question(
+        qid="sea",
+        kind="choice",
+        instructions=recorder.QUESTIONS["instructions"],
+        criteria=dict(recorder.QUESTIONS["criteria"]),
+    )
+    judge = Judge(
+        backend=D1Backend(port=port, model=D1_MODEL_NAME),
+        ledger=ledger,
+    )
+    rows: list[dict[str, Any]] = []
+    for step in all_steps:
+        truth_key = recorder.KEYS[step["truth"]]
+        shown_key = recorder.KEYS[step["shown"]]
+        answer = judge.judge(SEA_STATE_TASK, step["state"], (question,))
+        judgment = answer.judgment("sea")
+        distribution = {k: float(v) for k, v in judgment.distribution.items()}
+        argmax = (max(sorted(distribution), key=lambda k: distribution[k])
+                  if distribution else "")
+        rows.append({
+            "t": step["t"], "truth": truth_key, "shown": shown_key,
+            "argmax": argmax, "right": argmax == truth_key,
+            "decoy_first": shown_key != truth_key,
+            "confidence": judgment.confidence, "tau": judgment.tau,
+            "gate": judgment.gate, "surfaced": answer.surfaced,
+            "latency_s": answer.latency_seconds,
+        })
+    right = sum(1 for row in rows if row["right"])
+    decoys = [row for row in rows if row["decoy_first"]]
+    truths = [row for row in rows if not row["decoy_first"]]
+    latencies = [row["latency_s"] for row in rows if row.get("latency_s")]
+    summary = {
+        "model": D1_MODEL_NAME, "port": port, "steps": len(rows),
+        "tau_source": judge.policy.source_for("d1", D1_MODEL_NAME,
+                                              SEA_STATE_TASK),
+        "accuracy": round(right / len(rows), 4) if rows else None,
+        "decoy_first_steps": len(decoys),
+        "decoy_first_accuracy": (round(sum(1 for r in decoys if r["right"])
+                                        / len(decoys), 4) if decoys else None),
+        "truth_first_accuracy": (round(sum(1 for r in truths if r["right"])
+                                        / len(truths), 4) if truths else None),
+        "gate_words": {word: sum(1 for row in rows if row["gate"] == word)
+                       for word in ("act", "escalate", "surfaced")},
+        "latency_p50_s": (round(statistics.median(latencies), 3)
+                          if latencies else None),
+        "note": "the fixed recorder's states, asked on this box tonight",
+    }
+    (out / "decoy-cell.json").write_text(
+        json.dumps({"summary": summary, "rows": rows}, indent=2))
+    ledger.append(
+        type="night.decoy_cell", actor=CORE_ACTOR,
+        subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+        payload=summary)
+    return summary
+
+
+# ---------------------------------------------------------------- services ---
+
+
+def serve_model(heavy: Heavy, out: Path, *, name: str, model: Path, port: int,
+                alias: str, mmproj: Path | None = None,
+                label: str | None = None) -> dict:
+    """One llama-server, under the heavy lease, free-RAM bar checked.
+
+    The server is the caller's to start and stop; this is the one place
+    that starts one, so the port, the model and the alias are written
+    down once and the row carries them.
+    """
+    import urllib.request
+
+    health = f"http://127.0.0.1:{port}/health"
+    try:
+        with urllib.request.urlopen(health, timeout=1):
+            log(f"{name} already answers on :{port}")
+            return {"started": False, "port": port, "model": str(model),
+                    "alias": alias,
+                    "mmproj": str(mmproj) if mmproj else None}
+    except Exception:
+        pass
+    logpath = out / f"{name}-server.log"
+    # --ctx-size 4096 -ub 1024, not the 8192/4096 of night-v4: measured on
+    # this box under the night's own request shapes, the smaller flags hold
+    # the same class of GPU (3.09 vs 3.33 GiB for the 3B, 2.39 vs 2.63 GiB
+    # for the 2B with its projector) and answer the delegate's picture
+    # questions 1.8x faster (2.00 s vs 3.56 s) — measure_llama_gpu_under_load.py.
+    argv = [str(LLAMA_SERVER), "-m", str(model),
+            "--host", "127.0.0.1", "--port", str(port),
+            "-ngl", "99", "--flash-attn", "on", "--ctx-size", "4096",
+            "-ub", "1024", "--alias", alias]
+    if mmproj is not None:
+        argv += ["--mmproj", str(mmproj)]
+    with heavy.hold(f"start {name} llama-server", check_ram=True,
+                    label=label or f"{NIGHT_ID}.{name}", peak=SERVER_PEAK):
+        proc = subprocess.Popen(
+            argv,
+            stdout=open(logpath, "w"), stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        for _ in range(360):
+            try:
+                with urllib.request.urlopen(health, timeout=1):
+                    break
+            except Exception:
+                if proc.poll() is not None:
+                    raise RuntimeError(
+                        f"llama-server died during load; see {logpath}")
+                time.sleep(1)
+        else:
+            raise RuntimeError("llama-server did not become healthy")
+    rss_kb = int(Path(f"/proc/{proc.pid}/status").read_text()
+                 .split("VmHWM:")[1].split("kB")[0].strip())
+    log(f"{name} serving on :{port} (pid {proc.pid}, peak RSS {rss_kb/1024:.0f} MB)")
+    return {"started": True, "port": port, "pid": proc.pid,
+            "model": str(model), "alias": alias,
+            "mmproj": str(mmproj) if mmproj else None,
+            "peak_rss_mb": round(rss_kb / 1024)}
+
+
+def serve_d1(heavy: Heavy, out: Path) -> dict:
+    """The night's decision model: the d1-3B.
+
+    The decoy cell is routed to the 3B (exp-judge-calibration.md §8.3,
+    §9.4): on a cell whose prompt names a decoy the 2B reads the
+    presentation and the 3B does not. The server is text-only tonight.
+    """
+    return serve_model(heavy, out, name="d1-3B", model=D1_MODEL,
+                       port=PORT_D1, alias=D1_ALIAS,
+                       label=f"{NIGHT_ID}.d1")
+
+
+def serve_delegate(heavy: Heavy, out: Path) -> dict:
+    """The critic's delegate: the d1-2B with its projector.
+
+    The delegate has to see the prop's picture, so this server carries
+    the multimodal projector (core/critic/candidates/d1.py).
+    """
+    return serve_model(heavy, out, name="d1-2B", model=D1_2B_MODEL,
+                       port=PORT_DELEGATE, alias="d1-2B-Q8",
+                       mmproj=D1_2B_MMPROJ,
+                       label=f"{NIGHT_ID}.delegate")
+
+
+def stop_d1(handle: dict) -> None:
+    if not handle.get("started"):
+        return
+    import signal
+
+    try:
+        os.kill(handle["pid"], signal.SIGTERM)
+        log(f"{handle.get('alias', 'd1')} server stopped")
+    except ProcessLookupError:
+        pass
+    handle["started"] = False
+
+
+def serve_comfy(heavy: Heavy) -> dict:
+    """The TRELLIS.2 environment's ComfyUI, under the heavy lease.
+
+    The night starts the server **itself**, as its own child, and not
+    through ``serve.sh``. That is not a preference: a lease owns the
+    processes of its target and that target's *direct* children
+    (``procscan::usage_for``, ``Target::Process``), and the daemon's guard
+    stops the biggest process that no lease owns when the box loses
+    memory that the leases cannot explain. A server started by a shell
+    script is re-parented to init the moment the script exits, so it
+    belongs to nobody — and on 2026-11-01 at 16:28:28 the guard
+    terminated ComfyUI as a "runaway" (10.5 GB: 2.87 GB resident and
+    7.6 GB on the GPU) in the middle of SDXL sampling, because the
+    night's lease could not say where the memory had gone
+    (``lease_growth_bytes: 0``). Started by the runner, ComfyUI is the
+    runner's child, the lease owns it, and the memory is the lease's.
+    """
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"{COMFY_URL}/system_stats", timeout=2):
+            log("ComfyUI already answers on :8188 — the night does not own "
+                "it, so the lease cannot account for its memory")
+            return {"started": False, "pid": None, "owned": False}
+    except Exception:
+        pass
+    for directory in (TRELLIS_ROOT / "logs", TRELLIS_ROOT / "out",
+                      TRELLIS_ROOT / "input"):
+        directory.mkdir(parents=True, exist_ok=True)
+    with heavy.hold("start ComfyUI (TRELLIS.2)", check_ram=True):
+        proc = subprocess.Popen(
+            [str(TRELLIS_VENV_PYTHON), str(TRELLIS_COMFY_MAIN),
+             "--listen", "127.0.0.1", "--port", "8188",
+             "--disable-auto-launch",
+             "--extra-model-paths-config", str(TRELLIS_EXTRA_PATHS),
+             "--use-pytorch-cross-attention",
+             "--output-directory", str(TRELLIS_ROOT / "out"),
+             "--input-directory", str(TRELLIS_ROOT / "input"),
+             "--cache-none"],
+            stdout=open(TRELLIS_LOG, "w"), stderr=subprocess.STDOUT,
+        )
+        TRELLIS_PIDFILE.write_text(f"{proc.pid}\n")
+        log(f"ComfyUI started by the night: pid {proc.pid} (log {TRELLIS_LOG})")
+        for _ in range(240):
+            try:
+                with urllib.request.urlopen(f"{COMFY_URL}/system_stats",
+                                            timeout=2):
+                    log("ComfyUI ready")
+                    return {"started": True, "pid": proc.pid, "owned": True}
+            except Exception:
+                if proc.poll() is not None:
+                    raise RuntimeError(
+                        f"ComfyUI died during the load; see {TRELLIS_LOG}")
+                time.sleep(2)
+    raise RuntimeError("ComfyUI did not become ready")
+
+
+def stop_comfy(handle: dict) -> None:
+    """Stop the ComfyUI the night started, and only that one.
+
+    The night does not stop the box's shared server by name: it stops the
+    pid it started.
+    """
+    if not handle or not handle.get("started"):
+        return
+    pid = handle.get("pid")
+    if not pid:
+        return
+    import signal
+
+    try:
+        os.kill(pid, signal.SIGTERM)
+        log(f"ComfyUI stopped (pid {pid})")
+    except ProcessLookupError:
+        pass
+    for _ in range(30):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(1)
+    else:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    try:
+        if (TRELLIS_PIDFILE.exists()
+                and TRELLIS_PIDFILE.read_text().strip() == str(pid)):
+            TRELLIS_PIDFILE.unlink()
+    except OSError:
+        pass
+    handle["started"] = False
+
+
+# --------------------------------------------------------------- live view ---
+
+
+def world_stream(wires: list[dict], heavy: Heavy, out: Path) -> dict:
+    """The night's recipe changes compile to world-stream deltas.
+
+    The source scene is a real Infinigen 2.0 generation, exported to glTF by
+    the world-stream team's tool; the recipe is compiled, then each applied
+    tile's placement lands as the wire's transform edit. Delta sizes are the
+    record. Props do not ride this wire today: instance.add with new
+    geometry is the fragment-GLB delta, designed but not implemented.
+    """
+    rows: dict[str, Any] = {"export": {}, "compile": [], "deltas": [],
+                            "screenshot": {}}
+    export_dir = out / "worldstream" / "export"
+    compiler = SCRATCH / "compiler"
+
+    with heavy.hold("Infinigen 2.0 scene export (CPU generation + glTF)"):
+        started = time.monotonic()
+        result = run_cmd(
+            [V2_HOME / ".venv" / "bin" / "python",
+             SCRATCH / "export_scene.py",
+             "--generator", "room_livingroom_rand", "--seed", str(WORLD_SEED),
+             "--outdir", export_dir],
+            cwd=SCRATCH, timeout=SCENE_EXPORT_TIMEOUT_S)
+    if result.returncode != 0 or not (export_dir / "source.glb").exists():
+        rows["export"]["error"] = (result.stderr or result.stdout)[-800:]
+        log(f"scene export failed; the live view carries what compiled: "
+            f"{rows['export']['error'][:200]}")
+        return rows
+    rows["export"] = {
+        "wall_s": round(time.monotonic() - started, 1),
+        # the exporter writes export_stats.json (the seam's draft named it
+        # source.export_stats.json); a missing stats file is a recorded gap,
+        # not a crash after the heavy work is spent
+        "stats": (json.loads((export_dir / "export_stats.json").read_text())
+                  if (export_dir / "export_stats.json").exists()
+                  else {"missing": "export_stats.json"}),
+    }
+
+    build = out / "worldstream" / "build"
+    v1 = out / "worldstream" / "v1.json"
+
+    def node(*argv: str) -> subprocess.CompletedProcess:
+        return run_cmd(["node", "worldc.mjs", *argv], cwd=compiler,
+                       timeout=1800)
+
+    result = node("recipe", "--source", export_dir / "source.glb",
+                  "--world", "courtyard", "--branch", "main", "--version", "1",
+                  "--meta", "generator=room_livingroom_rand",
+                  "--meta", f"seed={WORLD_SEED}",
+                  "--meta", "engine=infinigen@2.0.0a3+bpy4.2",
+                  "--out", v1)
+    if result.returncode != 0:
+        rows["compile"].append({"step": "recipe", "error": result.stderr[-500:]})
+        return rows
+    result = node("build", "--recipe", v1, "--source", export_dir / "source.glb",
+                  "--out", build, "--jobs", "14")
+    if result.returncode != 0:
+        rows["compile"].append({"step": "build", "error": result.stderr[-500:]})
+        return rows
+    rows["compile"].append({
+        "step": "v1", "glb_bytes": (build / "world@1.glb").stat().st_size,
+    })
+
+    # each applied tile's placement, as the wire's transform edit
+    prev = v1
+    version = 1
+    recipe = json.loads(v1.read_text())
+    for wire in wires:
+        placement = wire.get("placement")
+        if not placement:
+            rows["deltas"].append({
+                "round": wire["round"], "tile": wire["tile"], "word": wire["word"],
+                "delta_bytes": 0,
+                "note": "the wire's vocabulary is transforms-only today; the "
+                        "word's params ride the engine recipe, not the wire",
+            })
+            continue
+        ids = sorted(e["id"] for e in recipe["entries"])
+        pick = next((i for i in ids
+                     if re.search(placement["match"], i.lower())), None)
+        if pick is None:
+            rows["deltas"].append({
+                "round": wire["round"], "tile": wire["tile"],
+                "error": f"no instance matches {placement['match']!r}",
+            })
+            continue
+        move = placement["move"]
+        version += 1
+        new_recipe = out / "worldstream" / f"v{version}.json"
+        result = node("edit", "--in", prev, "--id", pick,
+                      "--move", ",".join(str(m) for m in move),
+                      "--author", "Architect",
+                      "--note", (wire.get("note") or "night-v3 edit")[:80],
+                      "--out", new_recipe)
+        if result.returncode != 0:
+            rows["deltas"].append({"round": wire["round"],
+                                   "error": result.stderr[-400:]})
+            continue
+        result = node("delta", "--old", prev, "--new", new_recipe,
+                      "--out", build)
+        delta_file = build / f"world@{version}.since{version - 1}.json"
+        row = {
+            "round": wire["round"], "tile": wire["tile"], "word": wire["word"],
+            "instance": pick, "move": move,
+            "delta_bytes": delta_file.stat().st_size if delta_file.exists() else None,
+        }
+        rows["deltas"].append(row)
+        recipe = json.loads(new_recipe.read_text())
+        prev = new_recipe
+
+    rows["head_version"] = version
+    return rows
+
+
+def shoot(build: Path, out: Path) -> dict:
+    """The viewer at the night's end state, screenshotted by Playwright."""
+    import socket
+
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    env = dict(os.environ, DEMO_DELAY_MS="0")
+    server = subprocess.Popen(
+        ["node", "server.mjs", str(build), "--port", str(port)],
+        cwd=VIEWER, env=env, stdout=open(out / "viewer.log", "w"),
+        stderr=subprocess.STDOUT, start_new_session=True)
+    time.sleep(2)
+    try:
+        result = run_cmd(["node", str(SHOT), f"http://127.0.0.1:{port}/",
+                          str(out / "night-end-state.png")], timeout=120)
+        body = result.stdout.strip()
+        try:
+            return json.loads(body.splitlines()[-1])
+        except Exception:
+            return {"raw": body[-400:], "returncode": result.returncode}
+    finally:
+        server.terminate()
+
+
+# --------------------------------------------------------------- the band ----
+
+
+def fold_attempts(ledger: SQLiteLedger) -> dict[str, list[dict]]:
+    """Per-task attempts with their scores, in round order."""
+    by_task: dict[str, list[dict]] = {}
+    for event in ledger.events():
+        if event.type != "task.attempt":
+            continue
+        payload = event.payload
+        by_task.setdefault(payload.get("task_id", ""), []).append(payload)
+    return by_task
+
+
+def round_scores(attempts: list[dict]) -> dict[int, float]:
+    best: dict[int, float] = {}
+    for attempt in attempts:
+        rnd = attempt.get("round", 1)
+        best[rnd] = max(best.get(rnd, 0.0), attempt.get("score", 0.0))
+    return best
+
+
+def the_band(ledger: SQLiteLedger, slopes: dict[str, float],
+             rails_left: Rail) -> dict:
+    """The chorus: the loop rising fastest is granted another round, taken
+    from the loop gone flat. Each cue, its grant and its funding are rows."""
+    if not slopes:
+        return {"cues": []}
+    rising = max(slopes, key=slopes.get)
+    flat = min(slopes, key=slopes.get)
+    cue = {
+        "rising": rising, "rising_slope": round(slopes[rising], 4),
+        "flat": flat, "flat_slope": round(slopes[flat], 4),
+    }
+    if rising == flat or slopes[rising] <= 0.001:
+        cue["granted"] = False
+        cue["why"] = "no loop is rising fast enough to take a chorus from"
+        ledger.append(
+            type="band.cue", actor=SCHEDULER_ACTOR,
+            subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+            payload=cue)
+        return {"cues": [cue]}
+    cue["granted"] = True
+    cue["grant"] = f"one more round for {rising} (the chorus)"
+    cue["funded_by"] = (
+        f"{flat}'s unspent rail: {rails_left.gpu_minutes:.2f} GPU-min, "
+        f"{rails_left.wall_minutes:.1f} wall-min"
+    )
+    ledger.append(
+        type="band.cue", actor=SCHEDULER_ACTOR,
+        subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+        payload=cue)
+    log(f"the band: {rising} is rising ({slopes[rising]:.4f}); it takes "
+        f"another chorus from {flat} ({slopes[flat]:.4f})")
+    return {"cues": [cue], "rising": rising, "flat": flat}
+
+
+# --------------------------------------------------------------- the night ---
+
+
+def admission_rows(check) -> dict:
+    """The admission half of a payload — fits, and the cut and parked lines
+    as plain JSON. The models are dumped *here*, before the ledger or the
+    morning sees them: a ``CutLine`` is a pydantic model, and canonical JSON
+    refuses it — which is exactly how run B died, three and a half hours
+    into its wait, in its preflight row. One builder, both call sites, so
+    the test drives the code the night really runs."""
+    return {
+        "fits": check.fits,
+        "cut": [c.model_dump() for c in check.cut],
+        "parked": [c.model_dump() for c in check.parked],
+    }
+
+
+def load_approved_library(
+        path: Path | None = None) -> list[dict[str, Any]]:
+    """The library's approved members, in the shape the prior wants.
+
+    The file is built by ``build_library.py`` (same directory) from
+    measured meshes, and carries each member's kind, name and features.
+    The runner only reads it: a file that is missing or short of ten is
+    a fact the prior row states, not a reason to stop the night.
+    """
+    from core.genbatch.plausibility import PropFeatures
+
+    target = path or Path(__file__).with_name("approved-crate-library.json")
+    if not target.exists():
+        return []
+    document = json.loads(target.read_text())
+    source_rows = (document.get("members") or document.get("members_detail")
+                   or [])
+    members: list[dict[str, Any]] = []
+    for row in source_rows:
+        members.append({
+            "name": row.get("name"),
+            "kind": row.get("kind"),
+            "features": PropFeatures(**row["features"]),
+            "source": document.get("built_by"),
+        })
+    return members
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="run_night.py")
+    parser.add_argument("--out", type=Path, default=REPO / "artifacts" / NIGHT_ID)
+    parser.add_argument("--dry-run", action="store_true",
+                        help="the whole wiring on the fake engine and the "
+                             "fake judge: no services, no props, no live view")
+    args = parser.parse_args(argv)
+    # Absolute before any child sees it: the engine CLI, the world-stream
+    # exporter and the compiler all run with another cwd, and a relative
+    # --out would be resolved against each of them (the run C lesson: the
+    # render was fine, and written where the seam never looked).
+    out = args.out.resolve()
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "world").mkdir(exist_ok=True)
+    load_secrets()
+
+    t0 = time.monotonic()
+    state_before = box_state()
+    log(f"the night begins; box: {state_before}")
+
+    ledger = SQLiteLedger(out / "ledger.db")
+    heavy = Heavy(ledger, enabled=not args.dry_run)
+    ledger.append(
+        type="night.box_state", actor=CORE_ACTOR,
+        subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+        payload={"phase": "before", **state_before})
+
+    d1_handle: dict = {}
+    delegate_handle: dict = {}
+    comfy_handle: dict = {}
+    big_lease = None
+    try:
+        # -- services ---------------------------------------------------------
+        if not args.dry_run:
+            d1_handle = serve_d1(heavy, out)
+            delegate_handle = serve_delegate(heavy, out)
+            # One lease for the whole heavy phase (the seat precedent:
+            # run_coldstart.sh "the whole run takes ~/lm-wt/heavy.lock").
+            # The night queues once and then runs straight through, instead
+            # of racing the box's other seats for a fresh lock at every
+            # heavy step. Every load inside still checks the 25 GB bar.
+            big_lease = heavy.hold(
+                "the night's heavy phase: ComfyUI, the world's renders, "
+                "the props")
+            big_lease.__enter__()
+            comfy_handle = serve_comfy(heavy)
+            free = ram_free_gb()
+            if free < MIN_FREE_GB:
+                raise RuntimeError(
+                    f"only {free:.1f} GB free after the loads "
+                    f"(the bar is {MIN_FREE_GB})")
+            log(f"free after the loads: {free:.1f} GB")
+
+        # -- the pieces -------------------------------------------------------
+        if args.dry_run:
+            requests, plan = [], None
+        else:
+            requests = [
+                PropRequest.model_validate(row) for row in json.loads(
+                    (Path(__file__).parent / "courtyard_requests.json").read_text())
+            ]
+            plan = NightPlan(list(requests))
+        store = PropStore()
+        registry = VocabularyRegistry(default_entries())
+        library = TileLibrary(registry=registry, ledger=ledger)
+        tiles = author_tiles(library)
+
+        if args.dry_run:
+            engine = open_engine({"flavour": "fake"})
+        else:
+            engine_spec = {
+                "flavour": "infinigen-2-procfunc", "runtime": "venv",
+                "python": str(V2_HOME / ".venv" / "bin" / "python"),
+                "repo": str(V2_HOME / "src" / "infinigen-upstream"),
+                "repo_name": "princeton-vl/infinigen",
+                "generators": dict(GENERATORS),
+                "output_dir": str(out / "world" / "engine"),
+            }
+            engine = open_engine(engine_spec)
+        world = WorldState(engine, out)
+
+        if args.dry_run:
+            templates = client = prop_exec = None
+        else:
+            templates = Templates(
+                image=load_template(TRELLIS_ROOT / "workflows" / "text2image.api.json"),
+                trellis=load_template(TRELLIS_ROOT / "workflows" / "trellis2_512.api.json"),
+            )
+            client = ComfyClient(COMFY_URL, output_root=TRELLIS_ROOT / "out")
+            prop_exec = PropExecutor(client=client, plan=plan, store=store,
+                                     templates=templates)
+
+        judge_seat = JudgeSeat(ledger, tiles, library, PORT_D1,
+                               fake=args.dry_run)
+
+        # -- the routed cell, asked on this box tonight --------------------
+        route_probe: dict[str, Any] = {"skipped": "dry run"}
+        if not args.dry_run:
+            log(f"asking the routed decoy cell on this box's "
+                f"{D1_MODEL_NAME}")
+            route_probe = decoy_cell_probe(ledger, out, port=PORT_D1)
+            log(f"the routed cell: {json.dumps(route_probe, default=str)[:400]}")
+
+        # -- the plan, priced and admitted ------------------------------------
+        prop_jobs: list[PlannedJob] = []
+        priced_rows = []
+        if plan is not None:
+            prop_jobs = [
+                PlannedJob(id=task.id, intention=task.intention,
+                           ask=task.cost_estimate,
+                           model=plan.model_for(task.id))
+                for task in plan.tasks
+            ]
+        world_jobs = []
+        for task_id, intention in (
+            ("world.base", "the courtyard's baseline: room, crates and "
+                          "weathering through the engine seam, rung 2"),
+            ("world.edit", "two edit rounds: the judge's chosen tile applied "
+                           "to the recipe, rendered, and the splice measured"),
+        ):
+            priced = price_job("rung.2")
+            world_jobs.append(PlannedJob(
+                id=task_id, intention=intention, ask=priced.ask, kind="rung.2"))
+            priced_rows.append({
+                "task_id": task_id, "kind": "rung.2", "basis": priced.basis,
+                "source": priced.source, "ask": priced.ask.model_dump(),
+                "rail": priced.rail.model_dump(), "intention": intention})
+
+        # the prop concepts, verified on-brief through the judge
+        for request in requests:
+            judge_seat.verify_concept(request.id, request.prompt)
+
+        rails = Rail(gpu_minutes=60.0, wall_minutes=240.0, hosted_cents=100)
+        jobs = world_jobs + prop_jobs
+        check = admission_check(jobs, rails)
+        estimate = owner_estimate(jobs, rails, check=check)
+        pricing = {
+            "two_lines": estimate.lines(), "fits": estimate.fits,
+            "cut": estimate.cut, "parked": estimate.parked,
+            "joules": estimate.joules,
+            "ask": estimate.ask.model_dump(), "rails": rails.model_dump(),
+            "owner_goal": "a small courtyard with three props: a weathered "
+                          "crate, a brass lantern, an iron anvil; make it "
+                          "feel lived-in",
+            "world_tasks": priced_rows,
+            "prop_tasks": [
+                {"task_id": t.id, "kind": t.kind, "basis": t.ask_basis,
+                 "ask": t.cost_estimate.model_dump()} for t in (plan.tasks if plan else [])
+            ],
+        }
+        (out / "pricing.json").write_text(json.dumps(pricing, indent=2))
+        ledger.append(
+            type="night.preflight", actor=CORE_ACTOR,
+            subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+            payload={
+                "box": state_before,
+                "services": {"d1": d1_handle.get("port"),
+                             "comfy_started": bool(
+                                 comfy_handle.get("started"))},
+                "two_lines": estimate.lines(),
+                "admission": admission_rows(check),
+                "pricing_file": "pricing.json",
+            })
+        log("the owner's two lines:")
+        for line in estimate.lines():
+            log(f"  {line}")
+
+        # -- the critics and sources ------------------------------------------
+        by_task = {task.id: plan.request(task.id) for task in plan.tasks} \
+            if plan is not None else {}
+        the_prior = None
+        prior_row: dict[str, Any] = {"fitted": False}
+        library_row: dict[str, Any] = {"approved": 0}
+        if not args.dry_run:
+            approved = load_approved_library()
+            kinds = [member["kind"] for member in approved]
+            features = [member["features"] for member in approved]
+            # With labels the groups are the kinds — the fit the shells
+            # measurement used (a group of n cannot score below
+            # 0.5/(n+1), and the ghost gate at 0.05 needs ten) — and the
+            # approved members are one kind of their own. Without an
+            # approved set the fit is the k-means one night-v4 used and
+            # the gate is inert; the row says which fit answered.
+            the_prior = (union_prior(features, kinds) if approved
+                         else union_prior([]))
+            group_sizes = list(getattr(the_prior, "_group_sizes", []) or [])
+            largest = max(group_sizes) if group_sizes else None
+            prior_row = {
+                "fitted": True,
+                "approved_members": len(approved),
+                "approved_kinds": sorted(set(kinds)),
+                "reference_members": len(getattr(the_prior, "reference", ()) or ()),
+                "groups": len(group_sizes),
+                "smallest_group": min(group_sizes) if group_sizes else None,
+                "largest_group": largest,
+                "ghost_threshold": GHOST_THRESHOLD,
+                "gate_live": bool(largest is not None and largest >= 10),
+                "note": ("the library approved ten objects of one kind "
+                         "(Casey, 2026-11-01, answering night-v4's letter), "
+                         "so that kind's group can express a score below "
+                         "0.5/11 = 0.0455 and the ghost gate (0.05) can "
+                         "fire on it"
+                         if approved else
+                         "no approved members: the prior is fitted on the "
+                         "measured real objects alone (k-means), and a "
+                         "group of n cannot score below 0.5/(n+1), so the "
+                         "ghost gate cannot fire on this fit"),
+            }
+            library_row = {
+                "policy": "the library may approve ten objects of one kind "
+                          "(Casey, 2026-11-01, answering night-v4's letter)",
+                "approved": len(approved),
+                "kind": kinds[0] if kinds else None,
+                "members": [member["name"] for member in approved],
+                "source": approved[0]["source"] if approved else None,
+                "gate_live": prior_row["gate_live"],
+            }
+            ledger.append(
+                type="night.library", actor=CORE_ACTOR,
+                subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+                payload=library_row)
+            log(f"the library: {json.dumps(library_row, default=str)}")
+            log(f"the plausibility prior: {json.dumps(prior_row)}")
+        delegate_endpoint = (f"http://127.0.0.1:{PORT_DELEGATE}"
+                             if not args.dry_run else None)
+        prop_critic = NightPropCritic(
+            requests=by_task, store=store, plan=plan, prior=the_prior,
+            delegate_endpoint=delegate_endpoint, ledger=ledger)
+        world_critic = WorldCritic(world, ledger)
+        critic = CompositeCritic(prop_critic, world_critic, plan)
+        sources = CompositeVariants(plan, judge_seat, ledger)
+        wires: list[dict] = []
+        executor = CompositeExecutor(world, prop_exec, heavy, ledger,
+                                     judge_seat, wires,
+                                     comfy=comfy_handle, out=out)
+
+        # -- wave 1: the whole plan through the one runner ---------------------
+        iteration = IterationPolicy(variants_per_round=3, max_rounds=2,
+                                    min_gain=0.02)
+        runner = NightRunner(
+            ledger, executor, night_id=NIGHT_ID, rails=rails,
+            clock=MeasuredClock(), load_budget={"sd_xl_base_1.0": 1,
+                                                "trellis2": 1},
+            variant_source=sources, critic=critic, iteration=iteration,
+        )
+        tasks = [
+            Task(id="world.base", night=NIGHT_ID, author="casey",
+                 intention=world_jobs[0].intention,
+                 cost_estimate=world_jobs[0].ask, kind="rung.2",
+                 ask_source="model", ask_basis="measured"),
+            Task(id="world.edit", night=NIGHT_ID, author="casey",
+                 intention=world_jobs[1].intention,
+                 cost_estimate=world_jobs[1].ask, kind="rung.2",
+                 ask_source="model", ask_basis="measured"),
+        ] + (list(plan.tasks) if plan is not None else [])
+        runner.start(tasks)
+        runner.run()
+        runner.stop()
+        log(f"wave 1 done: {runner.status.first_line if runner.status else '?'}")
+
+        # -- the band: the chorus ----------------------------------------------
+        attempts = fold_attempts(ledger)
+        slopes: dict[str, float] = {}
+        for task_id, rows in attempts.items():
+            scores = round_scores(rows)
+            rounds = sorted(scores)
+            if len(rounds) >= 2:
+                slopes[task_id] = scores[rounds[-1]] - scores[rounds[-2]]
+        left = runner.budget.remaining
+        band = the_band(ledger, slopes, left)
+
+        chorus_effect: dict[str, Any] = {"cues": band.get("cues", [])}
+        if band.get("granted"):
+            rising = band["rising"]
+            scores_before = round_scores(attempts[rising])
+            prev_best = max(scores_before.values()) if scores_before else 0.0
+            jobs_done_before = sum(
+                1 for e in ledger.events() if e.type == "job.done")
+            sources.seed_offset = 2000
+            chorus_runner = NightRunner(
+                ledger, executor, night_id=f"{NIGHT_ID}-chorus", rails=left,
+                clock=MeasuredClock(),
+                load_budget={"sd_xl_base_1.0": 1, "trellis2": 1},
+                variant_source=sources, critic=critic,
+                iteration=IterationPolicy(variants_per_round=3, max_rounds=1,
+                                          min_gain=0.0),
+            )
+            chorus_task = next(t for t in tasks if t.id == rising)
+            chorus_task = chorus_task.model_copy(update={
+                "night": f"{NIGHT_ID}-chorus",
+                "state": "slated",
+            })
+            chorus_runner.start([chorus_task])
+            chorus_runner.run()
+            chorus_runner.stop()
+            fresh = [
+                e.payload for e in ledger.events()[jobs_done_before:]
+                if e.type == "job.done" and e.payload.get("task_id") == rising
+            ]
+            after = round_scores(fresh)
+            new_best = max(after.values()) if after else 0.0
+            chorus_effect[rising] = {
+                "best_before": round(prev_best, 4),
+                "best_after": round(new_best, 4),
+                "improved": new_best > prev_best,
+                "fresh_round_scores": {str(k): round(v, 4)
+                                       for k, v in after.items()},
+            }
+            ledger.append(
+                type="band.effect", actor=SCHEDULER_ACTOR,
+                subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+                payload={"loop": rising, **{
+                    k: v for k, v in chorus_effect[rising].items()
+                    if k != "fresh_round_scores"}})
+
+        # -- the heavy phase ends: give the memory back ------------------------
+        phase_row: dict[str, Any] = {"skipped": "dry run"}
+        if not args.dry_run:
+            log("the heavy phase is over: stopping the heavy services")
+            stop_comfy(comfy_handle)
+            comfy_handle = {}
+            stop_d1(d1_handle)
+            stop_d1(delegate_handle)
+            phase_row = heavy.shrink(
+                HEAVY_PEAK_PHASE,
+                "the heavy phase ended (ComfyUI and the decision models "
+                "stopped); the night finishes the light work under a "
+                "smaller promise")
+            log(f"the lease is phased: {json.dumps(phase_row, default=str)}")
+
+        # -- the live view ------------------------------------------------------
+        ws: dict[str, Any] = {"skipped": "dry run"}
+        if not args.dry_run:
+            log("compiling the night's recipe changes to world-stream deltas")
+            ws = world_stream(wires, heavy, out)
+            if ws.get("head_version"):
+                ws["screenshot"] = shoot(out / "worldstream" / "build", out)
+            (out / "live-view.json").write_text(json.dumps(ws, indent=2))
+            ledger.append(
+                type="night.live_view", actor=CORE_ACTOR,
+                subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+                payload={
+                    "export_wall_s": ws.get("export", {}).get("wall_s"),
+                    "head_version": ws.get("head_version"),
+                    "deltas": [
+                        {k: d.get(k) for k in
+                         ("round", "tile", "word", "instance", "delta_bytes",
+                          "error", "note")}
+                        for d in ws.get("deltas", [])
+                    ],
+                    "screenshot_hud": (ws.get("screenshot") or {}).get("hud", "")[:200],
+                    "full_file": "live-view.json",
+                })
+
+        # -- the critic's slope, for the flow ledger ---------------------------
+        tile_rows = [d for d in judge_seat.decisions if d["decision"] == "tile"]
+        if tile_rows:
+            judge_seat.critic_slope = slopes.get("world.edit", 0.0)
+
+        # -- the morning --------------------------------------------------------
+        attempts_all = fold_attempts(ledger)
+        core_report = build_report(ledger.events())
+        status = core_report.status if hasattr(core_report, "status") else None
+        winners = _winners(plan, store, core_report) if plan is not None else []
+        rejected: list[dict] = []
+        for tid, rows in attempts_all.items():
+            if not tid.startswith(("img:", "prop:")):
+                continue
+            for row in rows:
+                rejected.append({
+                    "task_id": tid,
+                    "variant_id": row.get("variant_id"),
+                    "round": row.get("round"),
+                    "score": row.get("score"),
+                    "outcome": row.get("outcome"),
+                    "reason": row.get("critic_reason") or row.get("reason"),
+                    "gpu_minutes": row.get("gpu_minutes"),
+                })
+        props_summary = {
+            "generated": sum(len(rows) for tid, rows in attempts_all.items()
+                             if tid.startswith("img:")),
+            "meshes": sum(len(rows) for tid, rows in attempts_all.items()
+                          if tid.startswith("prop:")),
+            "kept": len(winners),
+            "attempts": rejected,
+            "winners": [
+                {"request": w.request_id, "variant": w.variant_id,
+                 "score": w.score, "watertight": w.watertight,
+                 "triangles": w.triangles, "beat": w.beaten}
+                for w in winners
+            ],
+        }
+        decisions_summary = summarise_decisions(judge_seat)
+        state_after = box_state()
+
+        morning = {
+            "night_id": NIGHT_ID,
+            "generated_at": now_utc(),
+            "owner_goal": "a small courtyard with three props: a weathered "
+                          "crate, a brass lantern, an iron anvil; make it "
+                          "feel lived-in",
+            "status": (status.model_dump() if status is not None and
+                       hasattr(status, "model_dump") else str(status)),
+            "box_before": state_before,
+            "box_after": state_after,
+            "two_lines": estimate.lines(),
+            "admission": admission_rows(check),
+            "props": props_summary,
+            "decisions": decisions_summary,
+            "band": chorus_effect,
+            "splice": world.splice,
+            "live_view": ws,
+            "judge": {
+                "model": D1_MODEL_NAME,
+                "server": d1_handle,
+                "order_mode": "canonical",
+                "option_order": next((d.get("option_order")
+                                      for d in judge_seat.decisions
+                                      if d["decision"] == "tile"), []),
+                "option_order_neutral": next((d.get("option_order_neutral")
+                                              for d in judge_seat.decisions
+                                              if d["decision"] == "tile"),
+                                             None),
+                "route_probe": route_probe,
+            },
+            "critic": {
+                "prior": prior_row,
+                "library": library_row,
+                "delegate_endpoint": delegate_endpoint,
+                "delegate_gate": DELEGATE_GATE,
+                "signals": prop_critic.signals,
+            },
+            "memory": {
+                "heavy_peak": HEAVY_PEAK,
+                "server_peak": SERVER_PEAK,
+                "phase_peak": HEAVY_PEAK_PHASE,
+                "phase": phase_row,
+                "leases": [e.payload for e in ledger.events()
+                           if e.type == "night.heavy_lease"],
+                "gpu_pool_bars": [e.payload for e in ledger.events()
+                                  if e.type == "night.gpu_pool_bar"],
+                "comfy_restarts": [e.payload for e in ledger.events()
+                                   if e.type == "night.comfy_restart"],
+                "flock_waits": heavy.waits,
+            },
+            "wall_minutes": round((time.monotonic() - t0) / 60.0, 2),
+        }
+        (out / "morning.json").write_text(json.dumps(morning, indent=2))
+        (out / "report.json").write_text(core_report.model_dump_json(indent=2))
+        (out / "report.txt").write_text(render_text(core_report) + "\n")
+        (out / "report.html").write_text(render_html(core_report))
+        (out / "morning.txt").write_text(render_morning_text(morning))
+        spoken = what_happened(morning, judge_seat)
+        (out / "what-happened.txt").write_text(spoken + "\n")
+        ledger.append(
+            type="line.spoken", actor=CORE_ACTOR,
+            subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+            payload={"line": spoken})
+        log(f"the night's morning is in {out}")
+        log(spoken)
+        return 0
+    finally:
+        stop_comfy(comfy_handle)
+        stop_d1(d1_handle)
+        stop_d1(delegate_handle)
+        if big_lease is not None:
+            big_lease.__exit__(None, None, None)
+        ledger.append(
+            type="night.box_state", actor=CORE_ACTOR,
+            subject={"entity_kind": "night", "entity_id": NIGHT_ID},
+            payload={"phase": "after", **box_state()})
+        ledger.close()
+
+
+def summarise_decisions(seat: JudgeSeat) -> dict:
+    rows = seat.decisions
+    latencies = [d["latency_s"] for d in rows if d.get("latency_s")]
+    local = [d for d in rows if d["author"].startswith("judge@d1")]
+    escalated = [d for d in rows if "jev" in d["author"] or "clef" in d["author"]]
+    flickers = sum(
+        1 for a, b in zip(seat.words, seat.words[1:]) if a != b)
+    return {
+        "count": len(rows),
+        "local": len(local),
+        "escalated": len(escalated),
+        "surfaced": sum(1 for d in rows if d.get("surfaced")),
+        "latency_p50_s": round(statistics.median(latencies), 3) if latencies else None,
+        "latency_p95_s": (round(sorted(latencies)[int(0.95 * (len(latencies) - 1))], 3)
+                          if len(latencies) >= 2 else None),
+        "standing_flickers": flickers,
+        "never_wait_seconds": NEVER_WAIT_SECONDS,
+        "rows": rows,
+        "mediator_calls": seat.mediator_calls,
+        "mediator_in_flow": sum(1 for c in seat.mediator_calls if c["in_flow"]),
+        "mediator_out_flow": sum(1 for c in seat.mediator_calls if not c["in_flow"]),
+    }
+
+
+def render_morning_text(m: dict) -> str:
+    lines = [f"=== {m['night_id']} — the morning", ""]
+    lines.append(f"the owner's goal: {m['owner_goal']}")
+    lines.append("")
+    lines.append("the two lines, from before the night ran:")
+    for line in m["two_lines"]:
+        lines.append(f"  {line}")
+    lines.append("")
+    st = m.get("status")
+    lines.append(f"status: {st}")
+    lines.append(f"wall: {m['wall_minutes']} min")
+    lines.append("")
+    lines.append("the props:")
+    p = m["props"]
+    lines.append(f"  {p['generated']} concepts, {p['meshes']} meshes, "
+                 f"{p['kept']} kept")
+    for w in p["winners"]:
+        lines.append(f"  · {w['request']}: {w['variant']} scored {w['score']:.3f} "
+                     f"({'watertight' if w['watertight'] else 'NOT watertight'}, "
+                     f"{w['triangles']:,} tris) beat {', '.join(w['beat'])}")
+    lines.append("")
+    d = m["decisions"]
+    lines.append("the decisions:")
+    lines.append(f"  {d['count']} judgments — {d['local']} local (d1), "
+                 f"{d['escalated']} escalated, {d['surfaced']} surfaced; "
+                 f"p50 {d['latency_p50_s']} s, standing flickers "
+                 f"{d['standing_flickers']}")
+    lines.append(f"  the mediator: {d['mediator_in_flow']} calls in flow, "
+                 f"{d['mediator_out_flow']} out")
+    lines.append("")
+    lines.append("the band:")
+    for cue in m["band"].get("cues", []):
+        lines.append(f"  · rising {cue.get('rising')} ({cue.get('rising_slope')}), "
+                     f"flat {cue.get('flat')} ({cue.get('flat_slope')}), "
+                     f"granted: {cue.get('granted')}")
+    for key, effect in m["band"].items():
+        if key == "cues":
+            continue
+        lines.append(f"  · the chorus's effect on {key}: {effect}")
+    lines.append("")
+    lines.append("the splice (scoped vs full stage, at the seam):")
+    for row in m["splice"]:
+        lines.append(f"  · {row['label']}: full {row['full_stage_s']} s, "
+                     f"scoped {row['scoped_stage_s']} s "
+                     f"({row['ratio']}x)")
+    lines.append("")
+    lines.append("the live view:")
+    ws = m["live_view"]
+    if ws.get("export", {}).get("wall_s"):
+        stats = ws["export"].get("stats", {})
+        lines.append(f"  · the scene exported in {ws['export']['wall_s']} s "
+                     f"({stats.get('objects', '?')} objects, "
+                     f"{stats.get('triangles_approx', 0):,} triangles)")
+    for delta in ws.get("deltas", []):
+        if "error" in delta:
+            lines.append(f"  · round {delta.get('round')}: {delta['error']}")
+        else:
+            lines.append(f"  · round {delta.get('round')}: {delta.get('word')} "
+                         f"→ {delta.get('instance')} moved "
+                         f"{delta.get('move')}; delta {delta.get('delta_bytes')} B")
+    if ws.get("screenshot"):
+        lines.append(f"  · the end state: {ws['screenshot']}")
+    return "\n".join(lines)
+
+
+def what_happened(m: dict, seat: JudgeSeat) -> str:
+    """The short answer to "what happened last night?", composed from the
+    ledger — the first mile on the ProArt can speak this later."""
+    p = m["props"]
+    d = m["decisions"]
+    parts = [f"Last night the crew built the courtyard: "
+             f"{p['kept']} of {p['meshes']} props kept"]
+    winners = ", ".join(f"the {w['request']} at {w['score']:.2f}"
+                        for w in p["winners"])
+    if winners:
+        parts.append(f"({winners})")
+    if m["band"].get("cues"):
+        cue = m["band"]["cues"][0]
+        if cue.get("granted"):
+            parts.append(f"the band gave the {cue['rising']} loop another "
+                         f"chorus because it was rising fastest")
+    parts.append(f"{d['count']} decisions were made, {d['local']} answered "
+                 f"locally in about {d['latency_p50_s']} s")
+    ws = m["live_view"]
+    deltas = [x for x in ws.get("deltas", []) if "delta_bytes" in x]
+    if deltas:
+        total = sum(x["delta_bytes"] for x in deltas)
+        parts.append(f"{len(deltas)} changes went out to the live view as "
+                     f"{total:,} bytes of deltas")
+    if ws.get("screenshot", {}).get("hud"):
+        parts.append("the end state is on screen")
+    return ". ".join(parts) + "."
+
+
+if __name__ == "__main__":
+    sys.exit(main())

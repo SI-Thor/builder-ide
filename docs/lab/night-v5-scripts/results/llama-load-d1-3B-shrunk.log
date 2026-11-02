@@ -1,0 +1,20 @@
+thor-admit: "night-v5.llama-load.d1-3B-shrunk" admitted after 0.000s (peak 20.0G, floor 25.0G)
+0.00.023.301 I srv  llama_server: initializing ...
+0.00.023.320 I cmn  common_param: common_params_print_info: verbosity = 3 (adjust with the `-lv N` CLI arg)
+0.00.023.761 W srv  server_setup: security: no API key is set and CORS allows all origins (see https://github.com/ggml-org/llama.cpp/pull/25655)
+0.00.025.833 I srv    load_model: loading model '/home/caseydigennaro/models/d1-3B/d1-3B-Q8_0.gguf'
+0.01.647.808 I cmn          init: llama threadpool init, n_threads = 14
+0.01.743.142 I srv          init: decision model type: lfm2-d1
+0.01.807.238 I srv    load_model: initializing, n_slots = 4, n_ctx_slot = 4096, kv_unified = 'true'
+0.01.807.343 I srv    load_model: decision model: prompt cache disabled by default, use `--cache-ram N` to enable it
+0.01.811.558 W srv          init: chat template supports preserving reasoning, it is enabled by default (may use more tokens, disable via --no-reasoning-preserve)
+0.01.811.640 I srv  server_run_i: model loaded
+0.01.811.648 I srv  server_on_li: listening on http://127.0.0.1:8297
+0.01.973.757 I slot get_availabl: id  0 | task -1 | selected slot by LRU, n_tokens = 0, t_last = -1
+0.01.973.784 I slot launch_slot_: id  0 | task 0 | processing task, is_child = 0
+0.02.079.603 I slot      release: id  0 | task 0 | stop processing: n_tokens = 197, truncated = 0
+0.02.120.406 I slot get_availabl: id  0 | task -1 | selected slot by LCP similarity, f_sim_best = 1.000 (> 0.100 thold), f_keep = 1.000
+0.02.120.419 I slot launch_slot_: id  0 | task 2 | processing task, is_child = 0
+0.02.234.835 I slot      release: id  0 | task 2 | stop processing: n_tokens = 197, truncated = 0
+0.02.257.691 I srv    operator(): operator(): cleaning up before exit...
+thor-admit: "night-v5.llama-load.d1-3B-shrunk" finished with code 0 (peak RSS 730.7M)

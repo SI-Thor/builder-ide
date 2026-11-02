@@ -3596,3 +3596,326 @@ seam is defined, tested against fixtures, not fed); latency was measured
 at 2 precedents / 22 rules and `match()` sorts its matches, so a large
 ledger is a question, not a measurement; timings are one machine, one
 process, no CPU pinning.
+## 2026-11-01 18:05 — round 13, item 0: the guard sees the GPU, and the numbers the director ran become the defaults
+
+Three changes, committed as `cc97802`:
+
+1. **The guard now sees GPU bytes.** The candidate ranking is
+   `rss_bytes + gpu_bytes`, from the merged per-process view
+   (`src/gpu.rs`). The new integration test
+   `the_guard_sees_a_process_by_its_gpu_bytes` is the one the brief asked
+   for: a 6 GiB CUDA allocation (`tests/cuda_probe.cu`, compiled with
+   `/usr/local/cuda/bin/nvcc -O2`) held by a process with a 68 MiB resident
+   set and no lease, against a scripted floor. The daemon stops it by its
+   GPU bytes, and the kernel's OOM killer fires 0 times.
+2. **The director's numbers become the defaults**: `--emergency-floor`
+   8 GiB → 16 GiB, `--guard-drop` 8 GiB/10 s → 12 GiB/120 s. Both hangs on
+   2026-11-01 ran the 8 GiB floor; 16 GiB is early enough that the watchdog
+   still has living processes to stop. 12 GiB in 120 s is still far smaller
+   than the incident (94.5 GiB in 20 s) and far larger than ordinary
+   churn — the afternoon log carries seven `guard.unexplained_drop` lines
+   in 80 s (02:08:30Z–02:09:50Z) at 8 GiB/10 s, on a box that was merely
+   working.
+3. **The driver's view says when it goes quiet.** A query to the driver is
+   bounded by `timeout -s KILL 5` (the 16:10 hang showed a hung driver
+   never answers), the per-process view carries its own timestamp, and a
+   view older than 10 s is re-asked once; a stale ranking is kept rather
+   than dropped, and `daemon.gpu_stale` is logged at most once a minute.
+
+Suite state after these: 167 unit tests, 48 integration tests, on a box at
+load 18.
+
+## 2026-11-01 18:30 — what the suite hit on the shared box, and the list the floor path was reading
+
+`three_thirty_gigabyte_hogs_are_serialised` failed four runs in a row
+(02:07–02:19Z, 15:07–15:19 local) while the box was shared. Two separate
+causes, both visible in the logs:
+
+**The live daemon's guard was stopping the suite's hogs.** The suite
+leases its hogs to its own test daemon; to the live daemon they are
+unleased work, and a 30 GiB fault-in in under a second is the runaway
+shape. The live log carries 26 `guard.terminated` lines between 01:28:28Z
+and 02:55:14Z, of them 25 `thor-admit-hog` (all `trigger: runaway`, with
+60–100 GiB free on the box — the guard did not need the box to be short).
+The fix is the operator's mechanism, not code: `thor-admit-hog` was added
+to `~/.local/state/thor-admit/protected.txt` with the reason in a comment,
+and the running daemon picked it up without a restart at 02:58:24Z
+(`guard.protection` with the three patterns). After that line the live log
+has no hog stops.
+
+**The box was through a real crisis, 03:00–03:25Z.** The `serve.glide`
+lease (peak 62 277 025 792 B = 58.1 GiB) started and died `137` three
+times: 03:07:15Z at 17.4 GiB resident, 03:09:31Z at 22.8 GiB, 03:17:51Z
+at 26.6 GiB — each restart re-faulting while the box was already busy. The
+live guard stopped two `llama-server`s in the window (03:08:59Z and
+03:09:33Z; the second escalated to `guard.killed`, SIGKILL, after
+3 996 ms). Co-tenant movement in the same window: up to 34.4 GiB lost in a
+119.5 s window (03:07:18Z). That morning the previous daemon instance had
+seen the box at **32.8 MiB available** (01:16:41Z, 34 430 976 B). The
+hogs of the 3-hog test ran in and after that window; with the storm over
+(03:45Z) the same test passed, with its margin raised from 4 GiB to
+16 GiB (`HOG_MARGIN_GIB`) so ordinary churn is not misread as the second
+hog.
+
+**One daemon defect, found in this and fixed here: the floor path was
+deciding with a stale protection list.** The list is re-read on the
+guard's clock (every 2 s); the floor check runs every sample (250 ms).
+On 2026-11-02 the first floor breach of the day stopped the Qwen3-Coder
+`llama-server` (pid 7813) — the process the operator had put on the list
+minutes before, *because its lease had been lost in a daemon restart*.
+`watchdog_floor` now calls `read_protected` before it chooses (one
+metadata call until the file changes). The regression test,
+`the_floor_breach_reads_the_protection_list_before_it_charges`, scripts a
+box that is below the emergency floor from the first sample, protects
+everything on the box but one 2 GiB unleased hog, and asserts the hog is
+the only thing stopped. It runs in 0.32 s. It was not verified against
+the pre-fix binary, on purpose: the pre-fix failure mode is "the test
+daemon stops a real co-tenant", which is what the daemon exists to
+prevent doing.
+
+## 2026-11-01 18:55 — the suite green, and what a live deployment would need
+
+    test result: ok. 167 passed; 0 failed   (unit)
+    test result: ok. 50 passed; 0 failed; finished in 242.40s   (integration)
+
+on the box with the other seats' work running (Paper, two d1 servers,
+ComfyUI, `run_student.py`, the lm-soak build).
+
+**What a live deployment would need (not done from here):** the live
+daemon is `~/lm-tools/thor-admit`, built 2026-11-01 13:51, i.e. before
+`cc97802`, run with the director's explicit flags (`--emergency-floor
+16G --guard-drop 12G --guard-window-secs 120`). A restart of that daemon
+on the rebuilt binary is what makes the new defaults, the bounded driver
+query, the `daemon.gpu_stale` line, and the floor-path list re-read live.
+The call is the director's.
+
+**Not solved, recorded:** between 03:04 and 03:25Z, hog processes were
+sent SIGTERM by something that is not any `thor-admit` daemon (no event in
+either daemon's log at the moments of death) and not the kernel's OOM
+killer (dmesg and journal clean, tens of GiB free). The deaths cluster in
+the `serve.glide` crash-loop window. After the loop stopped, every hog
+run finished — including the suite's own three 30 GiB hogs in the green
+run of 03:45Z. A memory watcher or a seat script on this box is the
+standing suspect. The box runs auditd with logs under `/var/log/audit/`,
+but it has no rules (checked 03:48Z: `auditctl -l` is empty), so there is
+no standing way on the box to attribute a userspace `kill`; adding one is
+the standing recommendation, left to the operator.
+
+## 2026-11-01 20:15-20:30 — the v5 runner is built
+
+**What I built.** run_night.py (from v4) with the four changes: the
+GPU-pool bar (lfb >= 4 GB before every mesh prompt, 45-min bound, a row
+per real wait), the wedge restart (stop, keep the log, start again,
+re-run the one prompt, max two), honest peaks (6G server-start leases,
+the 40G heavy lease the only one above 30 GB, held alone) and the
+library (ten measured crates as one labeled kind). build_library.py
+reconstructs the ten from run F crate picture crate_s102_00004_.png at
+seeds 9000-9009, repaired and measured exactly as the executor does.
+The dry run passes (20:27, one second).
+
+**What happened with the probes.** The fixed under-load probe: night
+flags 3.33/2.63 GiB GPU, shrunk 3.09/2.39 GiB; the delegate answers in
+2.00 s shrunk vs 3.56 s — the shrunk flags are adopted. /completion is
+501 on this llama-server build (it is a System One decision server), so
+the night request shapes are the only shapes.
+
+**What I decided next.** Build the library first (25-40 min), then the
+night. The box is busy tonight (load1 14 at 20:27, other seats leases
+up), so the bar may hold the meshes — that is the design working, not
+failing; the rows will say.
+
+## 2026-11-01 20:30-20:47 — the bar, recalibrated onto used bytes
+
+**What I tried.** The first bar (lfb >= 4 GB) held the library build
+prompt 1 from 20:27 with lfb reading 0.02-0.17 GB — and the box read
+44 MB lfb with 86 GB RAM free and 9.6 GiB GPU used at 20:31. Near-zero
+lfb is the boxs normal state; run Fs successful bakes ran at lfb
+0.02-1.5 too. The bar would have stalled every mesh forever.
+
+**What happened.** The discriminating number in run Fs samples is the
+boxs used GPU: successes at <= 56.5 GiB, the wedge at 60.49 and 61.06
+with lfb 0.00 (the wall), the bakes own jump 47.6 -> 60.5 in 10 s (the
+need). The bar now waits while used > 48 GiB (61.5 - 13.5), reads the
+per-process nvidia-smi sum the same way the daemon counts it, and keeps
+lfb in the row as a signal. First launch killed (ComfyUI orphan stopped
+by pid); relaunch at 20:33.
+
+**What the build is doing.** Three of ten crates measured by 20:45
+(seeds 9000-9002, ~699k tris each, watertight, ~4 min a mesh including
+repair and measurement), 12.5 GiB GPU used, no bar waits.
+
+## 2026-11-01 21:15 — the seat resumes: the library finished on its own
+
+The WSL crash on the ProArt killed the seat at ~20:47; the library
+build it launched detached at 20:33 ran on and **finished at 21:12**:
+ten crates from run F's crate picture at seeds 9000-9009, all
+watertight (~699k tris each), repair fidelity >= 0.9998, wall 39.1 min
+(prompt seconds 109.7-382.6). `approved-crate-library.json` was the
+untracked file git status showed; committed now.
+
+Box at pickup: 100.8 GB free of 122.8 GB, queue empty, heavy.lock free;
+per-process GPU sum ~11.0 GiB (6 procs) — below the 48 GiB bar, so the
+night will not open on a wait. pgrep clean of night-v5 work (a
+refit-drift seat job, 2 GB practice lease, and agent-world's reflex
+server are other seats' work, left alone).
+
+Fixed before launch: `finish_night.sh` cd'd into `~/lm-wt/night-v4`,
+where `night-v5-scripts` does not exist — it would have died the moment
+the night ended. It now cd's into `~/lm-wt/night-v5` (the `--against`
+line still points at night-v4's artifacts, as it should).
+
+Decided next: launch the night (one command, all four seams) and the
+finisher beside it, both detached.
+
+## 2026-11-01 21:18-21:24 — the first launch dies in one second: the library row had no type
+
+The night (launched 21:18:12) died immediately: run_night.py appends a
+`night.library` row and the ledger's closed set (core/night/events.py,
+mirrored in core/records.py and core/recipe/events.py) has never heard
+of it — `ValueError: unknown audit event type: 'night.library'`. The
+crashed seat's 20:27 dry run passed because the library path is
+`if not args.dry_run`: the dry run never appends the row. Exactly the
+three v5 types were missing (night.gpu_pool_bar, night.comfy_restart,
+night.library); every other type the runner writes was already
+registered — v4's runner wrote them all in run F.
+
+Fixed by registering NIGHT_V5_EVENT_TYPES in all three copies (the
+asserts pin them equal; core/recipe's pin is what caught the second
+copy). tests/night/test_ledger.py + tests/test_recipe_ledger.py:
+17 passed. The dry run passes (21:22). The failed launch's artifacts
+kept at artifacts/night-v5-crashed-2118, not deleted.
+
+Also: the finisher's own first launch (21:18) never started — its
+output redirect ran before the cd took effect (shell & precedence);
+the relaunch call fixes that.
+
+## 2026-11-01 23:13-23:25 — the seat picks the night up: the export was going to be cut
+
+**What I found.** The previous seat's night was still running (launched
+21:23:21), at the live view's scene export, started 22:44:04. `pgrep -af`
+showed it (`run_night.py --out artifacts/night-v5`, pid 2543483), the
+finisher beside it (`finish_night.sh`, pid 2543713) and the export itself
+(`export_scene.py`, pid 2666675). Box at 23:14: load1 20.9, 93 GB available
+of 122, swap 0.
+
+**What the ledger already holds.** All four seams answered on this run: the
+routed decoy cell on the box's d1-3B (accuracy 0.5208, decoy-first 0.561,
+act 59 / escalate 0 / surfaced 181, latency p50 0.063 s, 21:23:49), the
+library's ten measured crates into the plausibility prior as one labeled
+kind (21:23:50, gate live), 18 `night.prop_delegate` rows (the v4 picture-path
+fix working), and the neutral option order. Wave 1 ended 22:43:34 with
+`night.stopped` status "ran short": 0.1 lane-h cut at the 80 % bar, one
+prop re-queued, 33 min lost to a reboot. The heavy phase ended and the lease
+phased 40G -> 8G.
+
+**What the export was going to cost.** The runner bounds the scene export at
+3600 s. The export is Blender's glTF exporter walking the scene's
+**11,254,482** subdivided triangles (200,606 base) in Python, on the CPU,
+with the modifiers applied. The same scene measured **115 min** on this box
+(2026-10-31, world-stream-scratch/export2: 11:56:36 -> 13:52) and **136 min**
+(export1: 11:34 -> 13:51). The generation itself is cheap: 20.5 s
+(tonight's `worldstream/export/gen/metadata.json`). So the bound was shorter
+than the work it was given: tonight's export was going to be killed at
+**23:44:04**, about half done, with `scene.blend` (145,717,009 B) written
+and no `source.glb`. The live-view seam could never succeed, and the reason
+was a number in the runner, not the box.
+
+**What I changed.** One constant, `SCENE_EXPORT_TIMEOUT_S = 4 * 3600`, at the
+export's call site, with the two measurements in the comment beside it. The
+export is the same export; only the bound moved (about twice the worst
+measurement, and inside the night's own 4 h wall bar).
+
+**What I decided next.** Let this run end — its live view will record the
+gap, which is evidence — and keep its artifacts as
+`artifacts/night-v5-cut-2344`. Then run the night again from the one command
+with the bound fixed, so the live view is a seam that runs rather than a gap
+that is written down.
+
+## 2026-11-01 23:44-23:50 — the export bound was not the only bug: a timeout killed the night
+
+**What happened.** The attempt launched at 21:23:21 reached the live view's
+export at 22:44:04 and died at **23:44:15** with an unhandled
+`subprocess.TimeoutExpired`: the export hit its 3600 s bound, the exception
+went up through `run_cmd` and out of `main`, and the night wrote **no
+`morning.json`, no report and no letter**. Its ledger is whole — 459 rows,
+251 `judge.verdict`, 18 `night.prop_delegate`, 24 jobs, 78.0 min of job
+wall, 56.66 GPU-minutes, three `thor-admit` leases — and `measure.py` folded
+what it could out of it, but the morning, which is what the letter is
+written from, never happened. The finisher said so plainly:
+`no such file: .../artifacts/night-v5/morning.json`.
+
+**Why.** `run_cmd` called `subprocess.run(..., timeout=...)` and let the
+exception through. A stage that cannot finish took the whole night with it
+instead of leaving a gap the night records and carries on past. My earlier
+reading of this code — that the export failure would be recorded and the
+night would go on to its morning — was wrong, and the night proved it.
+
+**What I changed.**
+
+1. `run_cmd` catches `subprocess.TimeoutExpired` and returns a result with
+   returncode **124** and the note in stderr, so the stage records the gap.
+   Proved on the box at 23:47:30: `run_cmd(['sleep', '30'], timeout=3)`
+   returns 124 after 3.0 s, and the normal path is unchanged.
+2. `launch_night.sh` (new) — a committed launcher that detaches the night
+   and the finisher with the redirections **inside** the script (the
+   finisher's first launch on 2026-11-01 died because the redirect was set
+   up before the cd took effect), refuses to start a second copy of the
+   night, and exports `XLA_PYTHON_CLIENT_PREALLOCATE=false`.
+3. `finish_night.sh` takes `NIGHT` from the environment, default
+   `artifacts/night-v5`.
+
+**What I decided next.** The dead run's artifacts are kept as
+`artifacts/night-v5-cut-2344` — a night with a whole ledger and no morning
+is evidence too — and the night runs again from the one command, with the
+export bound at 4 h and a timeout that is a recorded gap rather than a dead
+night.
+
+## 2026-11-02 00:35 — the third seat picks the run up
+
+**What I found.** The relaunched night (23:48:44, pid 2764483) is running
+with the finisher beside it (pid 2764547). By 00:32 it had 37 of wave 1's
+38 jobs done (550 ledger rows, 251 judge.verdict), the box at load1 23.8
+(other seats working too), 83.9 GB MemAvailable, 19.1 GiB GPU used — below
+the 48 GiB bar, so no mesh waits. The prior fit for tonight: 48 reference
+members, 2 groups (smallest 10 = the library's crates, largest 38), gate
+live — the ghost gate can fire for the first time.
+
+**What the desk holds.** The previous seat left the lab doc drafted on the
+ProArt (`night-v5-desk/work/`: sections 1-4 written from tonight's start,
+the stage table with placeholders for the re-run's numbers, an assembler,
+and a status script — pushed to the Thor's /tmp for the checks).
+
+**What I decided next.** Monitor at 10-minute cadence with one blocking
+sleep per check; when the morning lands, fill the stage table from the
+ledger and measurements, verify the letter (<=150 words, one question),
+assemble docs/lab/night-v5.md, and commit. Nothing else runs on the box
+from this seat.
+
+## 2026-11-02 04:50 — the night finished; the doc and the letter
+
+**What happened.** The night (23:48:39 → 04:37:13, 288.57 min) ended
+**"ran as planned — nothing failed"**, the first integrated night to
+finish since run D. 39 jobs in 46.0 job-min; 14.66 GPU-min of the
+60-min rail; three leases at honest peaks (6G/6G/40G — only the heavy
+above 30 GB), waits 0.0/0.1/0.1 s; the heavy lease phased 40G → 8G at
+00:37:13 (0.02 s, 90.7 GB free); 251 decisions (245 on the local d1-3B,
+mean 0.0481 s); 3 props kept (crate_r1_v3 1.00, lantern_r2_v1 0.94,
+anvil_r1_v1 0.94), 15 rejected. **The ghost gate fired for the first
+time**: lantern_r2_v3 at plausibility 0.0385 — a solid block (occupied
+volume 1.004) the scripted critic had scored 0.939. The delegate
+answered 18 of 18 pictures (~1.1 s each; 10 fired `holes`). The bar and
+the wedge restart were armed and never fired (0 rows each). The export
+ran to its 4 h bound and was killed still mid-walk (scene.blend
+145.7 MB, no source.glb) — the gap was recorded and the night wrote its
+morning, report and letter (104 words, one question: what to do with a
+ghost). The finisher wrote measurements.txt/json unaided.
+
+**What I did.** Filled the stage table and sections 5-9 of
+docs/lab/night-v5.md from the run's own ledger and measurements,
+assembled on the ProArt, and copied it here. Committed with a full
+message.
+
+**What is left.** The export bound is still shorter than the work on a
+loaded box (240 min at 100% of one core, killed mid-walk) — the
+live-view seam has never produced a glb inside a night; the bar and the
+wedge restart have never fired in anger. All three are in the doc's §9.
