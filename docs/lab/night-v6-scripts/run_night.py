@@ -2023,7 +2023,12 @@ def serve_model(heavy: Heavy, out: Path, *, name: str, model: Path, port: int,
             stdout=open(logpath, "w"), stderr=subprocess.STDOUT,
             start_new_session=True,
         )
-        for _ in range(360):
+        # 900 s, not 360: on a box a neighbour's 40G run holds (load1
+        # 14.7, 2026-11-02 08:41) the 3.4 GB GGUF's load can out-run a
+        # six-minute window. The window is a bound, not a diagnosis — a
+        # server that is genuinely stuck is still caught, fifteen minutes
+        # later instead of six.
+        for _ in range(900):
             try:
                 with urllib.request.urlopen(health, timeout=1):
                     break
@@ -2033,6 +2038,10 @@ def serve_model(heavy: Heavy, out: Path, *, name: str, model: Path, port: int,
                         f"llama-server died during load; see {logpath}")
                 time.sleep(1)
         else:
+            # the night gives up on the server, so the server must not
+            # outlive it holding the port (the 08:41 run leaked exactly
+            # this child, still loading, for the next seat to find)
+            proc.terminate()
             raise RuntimeError("llama-server did not become healthy")
     rss_kb = int(Path(f"/proc/{proc.pid}/status").read_text()
                  .split("VmHWM:")[1].split("kB")[0].strip())
