@@ -1124,7 +1124,7 @@ the loop), not only at the end — an interrupted run leaves what it had.
 Both changes compile; the JSON for this run lands in
 `results/watching_teachers_heads.json`. (3) Re-ran only `per_skill_heads`
 × 3 seeds (the other nine runs are the verified records), 
-00:40 under the 2G lease, log `results/watching_teachers.run3.log`.
+launched detached 00:40 AKST under the 2G lease, log `results/watching_teachers.run3.log`.
 
 **The surviving table (9 runs, two agreeing attempts).** newest/old mean/
 overall: seq 0.405/0.388/0.382 vs 0.311/0.320/0.324, 0.330/0.344/0.324
