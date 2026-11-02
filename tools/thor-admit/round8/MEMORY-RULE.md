@@ -43,6 +43,37 @@ thor-admit run --tier live --peak 20G --label <what-the-work-is> -- <command...>
   Two seats must not each start the same model — that was half of the
   22:09 incident.
 
+## The box's lock: the lease first, the lock second
+
+The box's own stopgap lock, `~/lm-wt/heavy.lock`, is still in use — seats
+that have not migrated to leases still take it, and it is what keeps two of
+them apart. It has to be taken **after** the lease, never around it.
+
+```bash
+# right: the lease first, the lock only once the lease is granted
+thor-admit run --tier live --peak 20G --label <what> --lock ~/lm-wt/heavy.lock -- <command>
+
+# wrong: the lock is taken before the lease, and held for the whole wait
+flock ~/lm-wt/heavy.lock thor-admit run --tier live --peak 20G --label <what> -- <command>
+```
+
+**Why it matters.** A seat that is waiting for room holds the lock for the
+whole of its wait, and the wait can be long: on 2026-11-01 a seat waited
+3 003 s for an 8 GiB lease on a box with 77 GiB free, holding the lock for
+all of it. The lock is also what the box's *own* work waits for, so a seat
+that is not working yet still stops the box.
+
+**You do not have to change your command line to be correct.** The client
+repairs the order in place: it gives the lock back before it asks for its
+lease, and takes it again the moment the lease is granted, so the command
+runs with the lock held and the queue runs without it. It says so on stderr
+when it finds one. Writing `--lock` is still the right thing to do — it is
+the same thing without the repair, and it says in the command what the seat
+meant.
+
+`thor-admit status` names who holds the lock, and with what, so you can see
+whether a seat is holding it while it waits.
+
 ## When the work changes phase: give the memory back
 
 A lease reserves the peak it was given, and it is charged that promise
@@ -134,7 +165,6 @@ else
     exec flock "$HOME/lm-wt/heavy.lock" "$@"
 fi
 ```
-
 From Python, the same shape:
 
 ```python
@@ -158,6 +188,13 @@ except Exception:
 with lease("20G", "trellis"):
     ...the heavy work...
 ```
+
+Two things not to do with the fallback: do not wrap `thor-admit run` in the
+lock (`flock heavy.lock thor-admit run ...`), because the seat then holds the
+lock while it waits for room — use `--lock` instead; and do not take the lock
+*and* a lease at the same time in the Python fallback, because the lock is
+meant to stand in for the lease when the daemon is gone, not to be added to
+it.
 
 ## What a seat gets for following this
 

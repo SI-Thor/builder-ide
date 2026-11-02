@@ -72,6 +72,10 @@ thor-admit phase trellis --peak 8G
 # start something WITHOUT a lease — and refuse to start a framework that
 # takes the box's memory by surprise (JAX/XLA, TensorFlow)
 thor-admit exec -- python3 train_spike.py --backend mjx --nworld 256
+
+# the box's legacy lock (~/lm-wt/heavy.lock), taken AFTER the lease is
+# granted — so a seat that is waiting for room holds nothing
+thor-admit run --peak 40G --label trellis --lock ~/lm-wt/heavy.lock -- python3 my_generator.py
 ```
 
 `thor-admit run` puts the lease's id in the command's environment as
@@ -103,6 +107,47 @@ with lease("40G", "trellis") as held:
     ...the heavy work...
     phase(held, "8G")                    # the work changed phase: give
                                           # the difference back at once
+
+with lease("40G", "trellis", lock="~/lm-wt/heavy.lock"):
+    ...the heavy work, with the box's lock held...
+```
+
+## The box's lock, and the order it is taken in
+
+The box's oldest mutual-exclusion device is a file lock, `~/lm-wt/heavy.lock`.
+Seats that have not migrated to leases still take it. It has to be taken
+**after** the lease, never around it:
+
+```bash
+# right: the lease first, the lock only once the lease is granted
+thor-admit run --peak 40G --label trellis --lock ~/lm-wt/heavy.lock -- <command>
+
+# wrong: the lock is taken before the lease, and held for the whole wait
+flock ~/lm-wt/heavy.lock thor-admit run --peak 40G --label trellis -- <command>
+```
+
+**Why.** A seat waiting for room holds the lock for the whole of its wait.
+The wait can be long — on 2026-11-01 a seat waited 3 003 s for an 8 GiB
+lease on a box with 77 GiB free, holding the lock for all of it — and the
+lock is what the box's own work waits for, so a seat that is not working yet
+still stops the box.
+
+**The old line still works.** The client repairs the order in place: it
+gives every lock it inherited back before it asks for its lease, and takes
+them again the moment the lease is granted. The command runs with the lock
+held; the queue runs without it. The client says what it found on stderr:
+
+```
+thor-admit: this process already holds /home/casey/lm-wt/heavy.lock — the box's
+lock was taken before the lease.
+...
+```
+
+`thor-admit status` names the holder of the box's lock and its command
+line, so a seat that is waiting can be seen waiting:
+
+```
+box lock: /home/casey/lm-wt/heavy.lock held by pid 331342 — flock /home/casey/lm-wt/heavy.lock ...
 ```
 
 ## The presence queue: the box's own useful work
@@ -458,6 +503,12 @@ cargo test --test integration -- --nocapture \
     a_phase_shrink_frees_the_room_the_queue_is_waiting_for \
     a_phase_grow_that_does_not_fit_is_refused \
     a_lease_that_holds_far_more_than_it_uses_is_named_in_the_status
+
+# the box's lock, and the order it is taken in: a queued client holds
+# nothing, and a client that inherited the lock gives it back while it waits
+cargo test --test integration -- --nocapture \
+    the_lease_comes_before_the_lock \
+    a_client_that_inherited_the_box_lock_gives_it_back_while_it_waits
 
 # the replay: the day's real queue under each policy, and the model's own
 # error against what really happened

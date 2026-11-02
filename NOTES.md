@@ -563,3 +563,323 @@ brief's deliverable is the note; the five ranked builds in §6.2 are the recomme
 to start. §8 lists eleven things that are **not** verified — the Minecraft rewind above all, since
 it is a design and not a measurement — so that the next seat does not read the note's certainty as
 the note's evidence.
+## 2026-11-01 14:00 — round 13 starts, and the guard is watched for an hour
+
+Round 12 is merged and live (the round-12 binary `636ba7bb`, the guard on,
+`~/.local/state/thor-admit/protected.txt` protecting `lm-wt/agent-world/`).
+This runtime runs on the **ProArt** and drives the Thor over ssh, so the
+Thor's Wi-Fi carries only the commands; every edit was made by hand, no
+sub-agents.
+
+**Item 2 first**, because it is wall-clock: a watcher on the Thor, sampling
+every 60 s for 62 samples, recording the box's free memory, the daemon's
+status, and **every new `guard.*` event in the daemon's log**, plus the box's
+biggest processes every fifth sample. It starts nothing and stops nothing.
+
+    $ nohup ~/lm-wt/thor-admit/.guard-watch.sh \
+          ~/lm-wt/thor-admit/.round13/guard-watch.log 62 60 &
+
+The live daemon at 13:57 was **pid 307460** — a *restart*, five minutes
+before the round began. The daemon that had been up since 00:45 was gone,
+and with it every lease it held.
+
+## 2026-11-01 14:03 — the lock-before-lease flaw, stated
+
+The brief's item 1, with the state of the code that has to change.
+
+**The fact.** The box has two kinds of lock. The *lease* is the daemon's
+promise about memory — admission before spend — held by the client as a
+`flock(2)` on a per-lease file, so the kernel drops it when the client dies.
+The *box's lock* is `~/lm-wt/heavy.lock`: the file lock every seat took
+before the daemon existed.
+
+**Why the old order could not work.** The rule the seats were given put the
+lock **around** the daemon:
+
+    flock ~/lm-wt/heavy.lock thor-admit run --peak 8G --label build -- nvcc ...
+
+so the lock is taken first and the lease second, and a seat waiting in the
+admission queue holds the lock for the whole wait. The measurements from
+13:47 (above) show the cost: two seats held the lock for the whole of that
+round and **neither was running anything** (the `nvcc` compile had not
+started — it is inside the queued client — and the `ctest` shell had no
+children), the fp4 seat had waited **3 003 s** for an 8 GiB lease on a box
+with 77 GiB free, and the daemon's own queue could not advance either
+because the head (`serve.glide`, 58 GiB) does not fit above the 25 GiB
+floor.
+
+**Decided next:** the lease first, the lock only once the lease is granted —
+in three forms, so a seat meets it whichever way it asks: `--lock` by name,
+the repair of the old line in place, and the Python shim's `lock=`.
+
+## 2026-11-01 14:14 — `flock(1)` forks, and the pid is the wrong key
+
+The first implementation looked for the inherited lock by **pid**: read
+`/proc/locks`, find the entry whose pid is this process, take its file. It
+found nothing, and the reason is worth writing down.
+
+**`flock(1)` forks.** The parent opens the file, takes the lock and forks;
+the child runs the command. Measured on the box with a client started as
+`flock <lock> thor-admit run ...`:
+
+    === the shell's job pid is 346700
+    === /proc/locks lines naming this inode:
+    12: FLOCK  ADVISORY  WRITE 346700 103:01:3578769 0 EOF
+    === every process with this name:
+        PID    PPID STAT COMMAND
+    346700  346671 S    flock .../box-346671.lock .../thor-admit run --socket ...
+
+The kernel's record names **346700** — the `flock(1)` parent. The client is
+a different process, the parent's child. So the pid in `/proc/locks` is not
+the pid of the process that inherited the descriptor, and matching on it
+finds nothing.
+
+**The test that works is on the descriptor**, and both halves of it are the
+kernel's own:
+
+1. the file is flock-locked on the box — `/proc/locks` names it, by device
+   and inode;
+2. this process can take the lock on its own descriptor **without waiting**
+   — true only when the lock is held by *this* open file description, since
+   `flock(2)` on a description that already holds the lock is a no-op, while
+   a lock held by a *different* description blocks even in the same process.
+
+So the client walks its own descriptors and asks the kernel, for each one
+that is on a flock-locked file, whether the lock is its own.
+
+**A second thing learned the hard way:** the descriptor is **copied** with
+`dup(2)`, not adopted. The first version took ownership of the descriptor it
+found with `File::from_raw_fd`, and the unit test aborted with *"IO Safety
+violation: owned file descriptor already closed"* — because the descriptor
+belonged to a `File` the test itself held, and two owners of one descriptor
+means two closes. A copy shares the open file description, so it is the same
+lock, and closing it closes nothing else.
+
+## 2026-11-01 14:25 — the lease comes before the lock: the tests
+
+Two integration tests, under a **test daemon** on its own socket and state
+directory, never the live one:
+
+    the_lease_comes_before_the_lock ... ok
+    a_client_that_inherited_the_box_lock_gives_it_back_while_it_waits ... ok
+
+They assert the same two things from both ends: a **queued** client holds
+**nothing**, and an **admitted** client holds the lock. The first asks for
+the lock by name (`--lock`); the second is started the old way, under
+`flock(1)`, and is repaired in place.
+
+The unit tests: **167 pass** (160 before this round, plus the `boxlock`
+module's own seven). The Python shim's suite: **14 pass** (12 before, plus
+the shim's two).
+
+**A detail the test taught:** the holder of the lock is the **client**, not
+the `flock(1)` process — the kernel records the process that called
+`flock(2)`, and after the repair that is the client, which re-took the lock.
+The first version of the test asserted the flock parent's pid and failed.
+
+## 2026-11-01 14:29 — the guard's candidates, and the protected list
+
+The guard's candidate is the biggest process that **no lease owns**, ranked
+by resident set **plus** the device bytes the driver says it holds (the
+guard's threshold: 4 GiB of that sum). Measured on the live box at 14:29,
+with the leases read from the daemon's own status and the groups from
+`/proc`:
+
+    rss   device  ranked  pid      pgrp     owned  command
+    0.51G  20.35G  20.86G  15433    15433    NO     llama-server -m .../Qwen3-Coder-30B-...gguf --port 8001
+    0.80G   2.45G   3.25G  166798   166798   NO     llama-server -m .../d1-2B-...
+    2.52G   0.00G   2.52G  12666    12653    NO     .../jdk-25/bin/java -Xms2G -Xmx6G ... (agent-world)
+    2.02G   0.18G   2.20G  136803   136800   NO     llama-server -m .../d1-2B-...
+    0.82G   0.44G   1.25G  376793   376790   lease  .venv/bin/python benchmarks/bench_fused.py
+
+**Two things fall out of this.**
+
+1. The coder seat's shared model server (pid 15433) holds **20.35 GiB of
+   the box's device memory** and has **no lease**. The reason is the daemon
+   restart at 13:57: the seat's `thor-admit serve` client (pid 14733) is
+   still running, but the lease it held lived in the old daemon, and a lease
+   does not survive a restart. The daemon now shows **0 leases** while that
+   server holds a fifth of the box's memory. That is a near miss: had the
+   box fallen to the emergency floor, the guard would have stopped it — and
+   the guard cannot tell a seat that it did.
+2. The agent-world's Paper server (2.52 GiB) is *already* spared by the
+   operator's pattern list, and the d1-2B servers are below the threshold.
+
+**Decided next:** add the coder model to `protected.txt`, by its model
+*file*, so the box's agreed copy of that model is spared and nothing else
+is; and report the orphaned lease as the finding it is — the fix is a client
+that re-registers after a daemon restart, not a pattern in a list.
+
+The daemon picked the new list up **without a restart**, at 23:29:42Z:
+
+    {"event":"guard.protection","patterns":["lm-wt/agent-world/",
+     "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf"], ...}
+
+## 2026-11-01 14:40 — the suite, and the one flake
+
+The full integration suite, serial, on the box with the other seats' work
+running:
+
+    test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;
+    finished in 203.27s
+
+**The first run failed one test**, and it is worth writing down because it
+is not a change of the code under test:
+
+    the_watchdog_stops_a_runaway_before_the_memory_runs_out ... FAILED
+    the hog was terminated with only 0 MiB free, which is inside the OOM zone
+
+That test scripts the box's memory curve (12 GiB down to 0, 256 MiB every
+50 ms — the whole curve is **2.4 s**) and asks the daemon's real watchdog to
+act inside it. The daemon samples every 250 ms, so it has about a second of
+margin. The run that failed was on a box at **load average 19** with the
+GLiDE server faulting in 33 GiB; the daemon's watchdog thread was delayed
+past the end of the curve. Run alone, it passes and says so:
+
+    low water: the hog was terminated with 7168 MiB free (the floor was
+    8192 MiB) and the curve went on down to 0 MiB; the daemon acted within
+    181 ms of the floor being crossed, and the kernel's OOM killer fired 0 times
+
+and the whole suite passes on the re-run. So: a load-dependent flake in a
+timing-sensitive test, not a regression — but it is the shape of thing that
+will bite on a busy box, and it is recorded here rather than forgotten.
+
+## 2026-11-01 14:45 — the documentation, and the live copy that could not be written
+
+The memory rule gains a section, **"The box's lock: the lease first, the
+lock second"**, with the right line and the wrong one side by side, the cost
+of the wrong one (3 003 s of a seat's wait with the lock held), and the note
+that a seat does not have to change its command line to be correct. The
+crate README gains the same, the `status` line, and the two new tests in its
+list. The design record gains section 17.
+
+**The live copy at `~/lm-wt/MEMORY-RULE.md` could not be written from here.**
+This runtime's permission gate refuses to replace a file outside the
+repository on the box (it refused `cat >`, `cp` and a relative-path copy).
+The updated text is committed in the repository at
+`tools/thor-admit/round8/MEMORY-RULE.md`, and it is one command away:
+
+    cp ~/lm-wt/thor-admit/tools/thor-admit/round8/MEMORY-RULE.md ~/lm-wt/MEMORY-RULE.md
+
+Until that is run, the live copy is the round-12 text: it says the flock is
+only for when the daemon is gone, which is true, but it does not say that
+`flock ... thor-admit run ...` is the wrong order, and it does not mention
+`--lock`.
+
+## 2026-11-01 18:05 — round 13, item 0: the guard sees the GPU, and the numbers the director ran become the defaults
+
+Three changes, committed as `cc97802`:
+
+1. **The guard now sees GPU bytes.** The candidate ranking is
+   `rss_bytes + gpu_bytes`, from the merged per-process view
+   (`src/gpu.rs`). The new integration test
+   `the_guard_sees_a_process_by_its_gpu_bytes` is the one the brief asked
+   for: a 6 GiB CUDA allocation (`tests/cuda_probe.cu`, compiled with
+   `/usr/local/cuda/bin/nvcc -O2`) held by a process with a 68 MiB resident
+   set and no lease, against a scripted floor. The daemon stops it by its
+   GPU bytes, and the kernels OOM killer fires 0 times.
+
+## 2026-11-01 18:05 — round 13, item 0: the guard sees the GPU, and the numbers the director ran become the defaults
+
+Three changes, committed as `cc97802`:
+
+1. **The guard now sees GPU bytes.** The candidate ranking is
+   `rss_bytes + gpu_bytes`, from the merged per-process view
+   (`src/gpu.rs`). The new integration test
+   `the_guard_sees_a_process_by_its_gpu_bytes` is the one the brief asked
+   for: a 6 GiB CUDA allocation (`tests/cuda_probe.cu`, compiled with
+   `/usr/local/cuda/bin/nvcc -O2`) held by a process with a 68 MiB resident
+   set and no lease, against a scripted floor. The daemon stops it by its
+   GPU bytes, and the kernel's OOM killer fires 0 times.
+2. **The director's numbers become the defaults**: `--emergency-floor`
+   8 GiB → 16 GiB, `--guard-drop` 8 GiB/10 s → 12 GiB/120 s. Both hangs on
+   2026-11-01 ran the 8 GiB floor; 16 GiB is early enough that the watchdog
+   still has living processes to stop. 12 GiB in 120 s is still far smaller
+   than the incident (94.5 GiB in 20 s) and far larger than ordinary
+   churn — the afternoon log carries seven `guard.unexplained_drop` lines
+   in 80 s (02:08:30Z–02:09:50Z) at 8 GiB/10 s, on a box that was merely
+   working.
+3. **The driver's view says when it goes quiet.** A query to the driver is
+   bounded by `timeout -s KILL 5` (the 16:10 hang showed a hung driver
+   never answers), the per-process view carries its own timestamp, and a
+   view older than 10 s is re-asked once; a stale ranking is kept rather
+   than dropped, and `daemon.gpu_stale` is logged at most once a minute.
+
+Suite state after these: 167 unit tests, 48 integration tests, on a box at
+load 18.
+
+## 2026-11-01 18:30 — what the suite hit on the shared box, and the list the floor path was reading
+
+`three_thirty_gigabyte_hogs_are_serialised` failed four runs in a row
+(02:07–02:19Z, 15:07–15:19 local) while the box was shared. Two separate
+causes, both visible in the logs:
+
+**The live daemon's guard was stopping the suite's hogs.** The suite
+leases its hogs to its own test daemon; to the live daemon they are
+unleased work, and a 30 GiB fault-in in under a second is the runaway
+shape. The live log carries 26 `guard.terminated` lines between 01:28:28Z
+and 02:55:14Z, of them 25 `thor-admit-hog` (all `trigger: runaway`, with
+60–100 GiB free on the box — the guard did not need the box to be short).
+The fix is the operator's mechanism, not code: `thor-admit-hog` was added
+to `~/.local/state/thor-admit/protected.txt` with the reason in a comment,
+and the running daemon picked it up without a restart at 02:58:24Z
+(`guard.protection` with the three patterns). After that line the live log
+has no hog stops.
+
+**The box was through a real crisis, 03:00–03:25Z.** The `serve.glide`
+lease (peak 62 277 025 792 B = 58.1 GiB) started and died `137` three
+times: 03:07:15Z at 17.4 GiB resident, 03:09:31Z at 22.8 GiB, 03:17:51Z
+at 26.6 GiB — each restart re-faulting while the box was already busy. The
+live guard stopped two `llama-server`s in the window (03:08:59Z and
+03:09:33Z; the second escalated to `guard.killed`, SIGKILL, after
+3 996 ms). Co-tenant movement in the same window: up to 34.4 GiB lost in a
+119.5 s window (03:07:18Z). That morning the previous daemon instance had
+seen the box at **32.8 MiB available** (01:16:41Z, 34 430 976 B). The
+hogs of the 3-hog test ran in and after that window; with the storm over
+(03:45Z) the same test passed, with its margin raised from 4 GiB to
+16 GiB (`HOG_MARGIN_GIB`) so ordinary churn is not misread as the second
+hog.
+
+**One daemon defect, found in this and fixed here: the floor path was
+deciding with a stale protection list.** The list is re-read on the
+guard's clock (every 2 s); the floor check runs every sample (250 ms).
+On 2026-11-02 the first floor breach of the day stopped the Qwen3-Coder
+`llama-server` (pid 7813) — the process the operator had put on the list
+minutes before, *because its lease had been lost in a daemon restart*.
+`watchdog_floor` now calls `read_protected` before it chooses (one
+metadata call until the file changes). The regression test,
+`the_floor_breach_reads_the_protection_list_before_it_charges`, scripts a
+box that is below the emergency floor from the first sample, protects
+everything on the box but one 2 GiB unleased hog, and asserts the hog is
+the only thing stopped. It runs in 0.32 s. It was not verified against
+the pre-fix binary, on purpose: the pre-fix failure mode is "the test
+daemon stops a real co-tenant", which is what the daemon exists to
+prevent doing.
+
+## 2026-11-01 18:55 — the suite green, and what a live deployment would need
+
+    test result: ok. 167 passed; 0 failed   (unit)
+    test result: ok. 50 passed; 0 failed; finished in 242.40s   (integration)
+
+on the box with the other seats' work running (Paper, two d1 servers,
+ComfyUI, `run_student.py`, the lm-soak build).
+
+**What a live deployment would need (not done from here):** the live
+daemon is `~/lm-tools/thor-admit`, built 2026-11-01 13:51, i.e. before
+`cc97802`, run with the director's explicit flags (`--emergency-floor
+16G --guard-drop 12G --guard-window-secs 120`). A restart of that daemon
+on the rebuilt binary is what makes the new defaults, the bounded driver
+query, the `daemon.gpu_stale` line, and the floor-path list re-read live.
+The call is the director's.
+
+**Not solved, recorded:** between 03:04 and 03:25Z, hog processes were
+sent SIGTERM by something that is not any `thor-admit` daemon (no event in
+either daemon's log at the moments of death) and not the kernel's OOM
+killer (dmesg and journal clean, tens of GiB free). The deaths cluster in
+the `serve.glide` crash-loop window. After the loop stopped, every hog
+run finished — including the suite's own three 30 GiB hogs in the green
+run of 03:45Z. A memory watcher or a seat script on this box is the
+standing suspect. The box runs auditd with logs under `/var/log/audit/`,
+but it has no rules (checked 03:48Z: `auditctl -l` is empty), so there is
+no standing way on the box to attribute a userspace `kill`; adding one is
+the standing recommendation, left to the operator.

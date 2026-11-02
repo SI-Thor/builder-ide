@@ -23,6 +23,9 @@
 //! * [`ledger`] — where the box's time went, and why it was idle.
 //! * [`flow`] — the flow signal a publisher writes, and the daemon records.
 //! * [`history`] — the learned peaks, as JSON lines.
+//! * [`lease`] — the kernel-held lock that makes a lease real.
+//! * [`boxlock`] — the box's legacy lock (`~/lm-wt/heavy.lock`), and the
+//!   order that keeps a queued lease from holding it (round 13).
 //! * [`protocol`] — the socket protocol the CLI and the Python shim speak.
 //! * [`serve`] — the registry that loads a model once per box.
 //! * [`daemon`] — the resident daemon itself.
@@ -30,6 +33,7 @@
 
 pub mod admission;
 pub mod backfill;
+pub mod boxlock;
 pub mod client;
 pub mod clock;
 pub mod daemon;

@@ -8,11 +8,12 @@
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::os::unix::net::UnixStream;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use serde_json::json;
 
+use crate::boxlock::{self, BoxLock};
 use crate::lease::LeaseLock;
 use crate::ledger::Bucket;
 use crate::protocol::{PeakArg, PresenceReport, Request, Response, TargetSpec};
@@ -382,6 +383,13 @@ pub const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 /// environment holding its lease id: a workload that knows its own phases
 /// can give memory back mid-run (`thor-admit phase $THOR_ADMIT_LEASE
 /// --peak 4G`, round 11) without any outside help.
+///
+/// `lock` is the box's **legacy** lock (`~/lm-wt/heavy.lock`), and it is
+/// taken **after** the lease is granted, never before (round 13). The order
+/// is the whole point: a client that waits in the admission queue must hold
+/// nothing, or it blocks every other seat that takes the lock while it is
+/// not working yet. The lock is taken before the command starts, so the
+/// command never runs without it, and it is released when the command ends.
 pub fn run_under_lease(
     client: &mut Client,
     socket: &Path,
@@ -391,8 +399,35 @@ pub fn run_under_lease(
     tier: Tier,
     coalesce: Option<&str>,
     command: &[String],
+    lock: Option<&Path>,
     revive: &mut dyn FnMut(),
 ) -> std::io::Result<UnderLease> {
+    // The box's legacy lock, and the order it must be taken in (round 13).
+    //
+    // A seat that wrote `flock heavy.lock thor-admit run ...` holds the box's
+    // lock from the moment it starts — and it holds it for the whole of its
+    // wait in the queue. The client repairs that in place: the lock is given
+    // back before the lease is asked for, and taken again the moment the
+    // lease is granted. The command runs with the lock held; the queue runs
+    // without it.
+    //
+    // Every lock this process inherited is found, not only the box's
+    // well-known one: the client cannot know which file the seat meant, and
+    // the order is wrong for all of them.
+    //
+    // This happens before the fork, so the command does not inherit the
+    // descriptor: the client is what holds the lock, and the lock ends when
+    // the client ends.
+    let explicit_lock: Option<PathBuf> = lock.map(Path::to_path_buf);
+    let mut inherited: Vec<(std::fs::File, PathBuf)> = Vec::new();
+    for (file, path) in boxlock::inherited_locks() {
+        eprintln!("thor-admit: {}", boxlock::inherited_lock_advice(&path));
+        // Give the lock back now: the queue must not run behind a seat that
+        // is waiting for room.
+        boxlock::unlock(&file)?;
+        inherited.push((file, path));
+    }
+
     // A pipe the child waits on: the command starts when the lease is real.
     let mut fds = [0 as libc::c_int; 2];
     if unsafe { libc::pipe(fds.as_mut_ptr()) } != 0 {
@@ -541,6 +576,45 @@ pub fn run_under_lease(
     // process dies, whatever killed it.
     let _lock = LeaseLock::acquire(&grant.lock_path)?;
     client.held(grant.lease)?;
+
+    // The box's legacy lock, taken **now** and not before the lease was
+    // granted. A client that took it earlier — `flock heavy.lock thor-admit
+    // run ...` — held it for the whole of its wait in the queue, which is
+    // the flaw this order fixes. The lease is real now, so the lock can be
+    // taken now, and the command starts only once the lock is held.
+    let mut box_locks: Vec<BoxLock> = Vec::new();
+    if let Some(path) = &explicit_lock {
+        // A lock the operator asked for by name. If it was inherited from the
+        // shell, it is taken back on the descriptor that already has it;
+        // otherwise it is opened and waited for.
+        match inherited
+            .iter()
+            .position(|(_, held)| boxlock::same_file(held, path))
+        {
+            Some(index) => {
+                let (file, _) = inherited.remove(index);
+                box_locks.push(BoxLock::adopt(file, path)?);
+            }
+            None => {
+                eprintln!(
+                    "thor-admit: {label:?} is admitted; taking the box's lock {}",
+                    path.display()
+                );
+                box_locks.push(BoxLock::acquire(path)?);
+            }
+        }
+    }
+    // Any lock that was inherited and given back is taken again now, so the
+    // command runs with the lock held, as the seat that wrote the old line
+    // expected.
+    for (file, path) in inherited.drain(..) {
+        eprintln!(
+            "thor-admit: {label:?} is admitted; taking the box's lock {} back",
+            path.display()
+        );
+        box_locks.push(BoxLock::adopt(file, &path)?);
+    }
+    let _box_locks = box_locks;
 
     // The heartbeat, on its own connection: the main flow below waits on
     // the command and would not notice being asked whether it is alive.

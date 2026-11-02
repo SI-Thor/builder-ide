@@ -23,6 +23,37 @@ const HOG: &str = env!("CARGO_BIN_EXE_thor-admit-hog");
 /// A GiB.
 const GIB: u64 = 1024 * 1024 * 1024;
 
+/// A child of a process, found by reading the kernel's own parent links.
+///
+/// `flock(1)` forks — the parent takes the lock and the child runs the
+/// command — so a test that wants the client needs the client's pid, not
+/// the flock process's.
+fn child_of(pid: u32) -> Option<u32> {
+    for entry in std::fs::read_dir("/proc").ok()? {
+        let entry = entry.ok()?;
+        let name = entry.file_name();
+        let Some(text) = name.to_str() else { continue };
+        let Ok(number) = text.parse::<u32>() else {
+            continue;
+        };
+        if number == pid {
+            continue;
+        }
+        let Ok(stat) = std::fs::read_to_string(format!("/proc/{number}/stat")) else {
+            continue;
+        };
+        let Some(close) = stat.rfind(')') else {
+            continue;
+        };
+        let fields: Vec<&str> = stat[close + 1..].split_whitespace().collect();
+        // After the comm field: the state, then the parent.
+        if fields.get(1).and_then(|v| v.parse::<u32>().ok()) == Some(pid) {
+            return Some(number);
+        }
+    }
+    None
+}
+
 /// The box's stopgap lock: the one every seat takes for heavy work today.
 fn heavy_lock_path() -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
@@ -986,10 +1017,17 @@ fn three_thirty_gigabyte_hogs_are_serialised() {
     // relative — the box's own free memory at the start of the test — so
     // the answer does not depend on how busy the box was when the test ran.
     // A hog of its own size may be taken; the margin is everything else
-    // that was running.
+    // that is running, and it is the same figure the floor above carries,
+    // because it is the same thing: co-tenant churn. The box's own record
+    // has an eleven GiB co-tenant drop (2026-11-01, written up in the
+    // floor's comment above), and the current one: on the morning of
+    // 2026-11-02 the seat's two model servers and a ComfyUI loaded while
+    // the test's hog ran, and the box fell 7 477 MiB past one hog's worth.
+    // Ten gibibytes keeps the claim honest against that churn, and a
+    // second thirty GiB hog still shows up thirty gibibytes past it.
     let allowed = available_at_start
         .saturating_sub(hog_bytes)
-        .saturating_sub(4 * GIB);
+        .saturating_sub(10 * GIB);
     assert!(
         min_available >= allowed,
         "the box fell to {} MiB free, which is below the {} MiB it was allowed to fall to \
@@ -1164,7 +1202,9 @@ fn the_watchdog_stops_a_runaway_before_the_kernel_oom_does() {
 fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let _serial = serial_gate();
     let total = 122 * GIB;
-    // The daemon's own default emergency floor: the brief's 8 GiB.
+    // The test's own floor, stated outright: the daemon's default is sixteen
+    // gibibytes now (round 13, item 0), and this test's curve only goes to
+    // twelve, so the test says what floor it is testing at.
     let floor = 8 * GIB;
     let scratch =
         std::env::temp_dir().join(format!("thor-admit-lowwater-{}", std::process::id()));
@@ -1173,7 +1213,15 @@ fn the_watchdog_stops_a_runaway_before_the_memory_runs_out() {
     let meminfo = scratch.join("meminfo");
     write_meminfo(&meminfo, total, 100 * GIB);
 
-    let daemon = DaemonUnderTest::start_named("watchdog-on-a-scripted-curve", &["--meminfo", meminfo.to_str().unwrap()]);
+    let daemon = DaemonUnderTest::start_named(
+        "watchdog-on-a-scripted-curve",
+        &[
+            "--meminfo",
+            meminfo.to_str().unwrap(),
+            "--emergency-floor",
+            floor.to_string().as_str(),
+        ],
+    );
     let oom_before = oom_kills();
 
     // A hog big enough to be a valid victim (the watchdog will not touch a
@@ -3820,6 +3868,9 @@ fn the_guard_stops_an_unleased_hog_before_the_box_runs_out() {
         Gate::Run(file) => file,
     };
     let total = 122 * GIB;
+    // The test's own floor, stated outright: the daemon's default is sixteen
+    // gibibytes now (round 13, item 0), and this test's curve only goes to
+    // twelve, so the test says what floor it is testing at.
     let floor = 8 * GIB;
     let scratch = std::env::temp_dir().join(format!("thor-admit-guard-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&scratch);
@@ -3836,6 +3887,8 @@ fn the_guard_stops_an_unleased_hog_before_the_box_runs_out() {
         &[
             "--meminfo",
             meminfo.to_str().unwrap(),
+            "--emergency-floor",
+            floor.to_string().as_str(),
             "--guard-protected-file",
             protected.to_str().unwrap(),
             "--guard-min-rss",
@@ -4058,12 +4111,16 @@ fn the_guard_stops_a_runaway_while_the_box_is_still_above_the_floor() {
 
     // A short window and a fast clock, so the test does not take a minute:
     // the guard has to see the hog grow inside its own window, and the
-    // window is what the run away is measured over.
+    // window is what the run away is measured over. The floor is stated
+    // outright: the daemon's default is sixteen gibibytes now, and this
+    // test's box sits at twenty, so the test says what floor it is above.
     let daemon = DaemonUnderTest::start_named(
         "guard-on-a-runaway",
         &[
             "--meminfo",
             meminfo.to_str().unwrap(),
+            "--emergency-floor",
+            floor.to_string().as_str(),
             "--guard-protected-file",
             protected.to_str().unwrap(),
             "--guard-min-rss",
@@ -4187,6 +4244,305 @@ fn the_guard_stops_a_runaway_while_the_box_is_still_above_the_floor() {
     let _ = std::fs::remove_dir_all(&scratch);
 }
 
+/// What the driver says this process holds on the GPU, in bytes.
+///
+/// The daemon's own probe, run one-shot and bounded the same way the
+/// daemon runs it: the test waits on the driver's view, because the daemon
+/// reads the same view, and a hog the driver has not attributed yet is a
+/// hog the daemon does not have.
+fn nvidia_gpu_bytes_of(pid: i32) -> u64 {
+    let output = Command::new("timeout")
+        .args([
+            "-s",
+            "KILL",
+            "5",
+            "nvidia-smi",
+            "--query-compute-apps=pid,used_memory",
+            "--format=csv,noheader,nounits",
+        ])
+        .output()
+        .ok();
+    let Some(output) = output else {
+        return 0;
+    };
+    if !output.status.success() {
+        return 0;
+    }
+    let text = String::from_utf8_lossy(&output.stdout);
+    for line in text.lines() {
+        let line = line.trim();
+        let Some((pid_text, memory_text)) = line.split_once(',') else {
+            continue;
+        };
+        let Ok(row_pid) = pid_text.trim().parse::<i32>() else {
+            continue;
+        };
+        if row_pid != pid {
+            continue;
+        }
+        // The driver prints the figure in MiB with `nounits`.
+        let Some(first) = memory_text.trim().split_whitespace().next() else {
+            continue;
+        };
+        if let Ok(value) = first.parse::<f64>() {
+            return (value * 1024.0 * 1024.0).round() as u64;
+        }
+    }
+    0
+}
+
+/// Round 13, item 0: the guard sees a process by its **GPU** bytes.
+///
+/// On the Thor the GPU's memory is the system's memory, and the driver's
+/// per-process accounting is a separate column from the process's resident
+/// set: measured 2026-11-01 12:50, `llama-server` held 20 834 MiB on the
+/// GPU with 615 MiB of resident set — a ratio of 34 to 1 — and the second
+/// hang of that day began with `NVRM: … Out of memory` errors while
+/// `MemAvailable` fell to 50 MiB and the guard found nothing it may stop.
+/// This test is the proof the brief asks for: a real CUDA process, no
+/// lease, no XLA anywhere near it, holding six gibibytes the driver can
+/// see and a resident set it cannot — and the guard stops it at the floor,
+/// citing the GPU's column.
+///
+/// The memory **curve** is scripted, as in the floor test above (the real
+/// box cannot be taken to 8 GiB free for a test); the **GPU** is the real
+/// one. The test therefore takes the box's heavy lock, and it skips, saying
+/// so, on a box without the CUDA toolchain.
+#[test]
+fn the_guard_sees_a_process_by_its_gpu_bytes() {
+    let _serial = serial_gate();
+    let _lock = match Gate::take() {
+        Gate::Skip => {
+            eprintln!("skipping: another seat holds the box's heavy lock");
+            return;
+        }
+        Gate::Run(file) => file,
+    };
+    let total = 122 * GIB;
+    // The test's own floor, stated outright: the daemon's default is
+    // sixteen gibibytes now (round 13, item 0), and this test's curve only
+    // goes to twelve, so the test says what floor it is testing at.
+    let floor = 8 * GIB;
+    let scratch =
+        std::env::temp_dir().join(format!("thor-admit-guard-gpu-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&scratch);
+    std::fs::create_dir_all(&scratch).unwrap();
+
+    // The hog's program: a tiny CUDA program that takes a context and holds
+    // an allocation (tests/cuda_probe.cu). It is compiled here, and a box
+    // without the toolchain skips.
+    let probe = scratch.join("cuda_probe");
+    let source = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/cuda_probe.cu");
+    let nvcc = if std::path::Path::new("/usr/local/cuda/bin/nvcc").exists() {
+        "/usr/local/cuda/bin/nvcc".to_string()
+    } else {
+        "nvcc".to_string()
+    };
+    let built = Command::new(&nvcc)
+        .args(["-O2", "-o", probe.to_str().unwrap(), source.to_str().unwrap()])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false);
+    if !built {
+        eprintln!("skipping: no CUDA toolchain on this box ({nvcc})");
+        return;
+    }
+
+    let meminfo = scratch.join("meminfo");
+    write_meminfo(&meminfo, total, 100 * GIB);
+    let protected = scratch.join("protected.txt");
+
+    // The daemon's probe is the **real** driver here, and that is the
+    // point: the test's claim is that the daemon's view of the GPU is the
+    // driver's view, not a scripted one. `--guard-drop 512G` switches the
+    // runaway trigger off, so this is about the floor.
+    let daemon = DaemonUnderTest::start_named(
+        "guard-sees-the-gpu",
+        &[
+            "--meminfo",
+            meminfo.to_str().unwrap(),
+            "--emergency-floor",
+            floor.to_string().as_str(),
+            "--gpu-probe",
+            "nvidia",
+            "--guard-protected-file",
+            protected.to_str().unwrap(),
+            "--guard-min-rss",
+            "1G",
+            "--guard-drop",
+            "512G",
+            "--guard-interval-ms",
+            "200",
+        ],
+    );
+    let oom_before = oom_kills();
+
+    // Everything on the box is protected, and the list is kept current.
+    let mut protection = Protection::start(&protected);
+
+    // The daemon must have re-read the protection list: it starts empty,
+    // and until the first re-read the daemon is free to stop anything on
+    // the box. The first re-read adds the box's whole process table, so a
+    // guard.protection line with a nonzero count is the mark of it.
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while Instant::now() < deadline {
+        if guard_events(&daemon, "guard.protection")
+            .iter()
+            .any(|event| event["pid_count"].as_u64().unwrap_or(0) > 0)
+        {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(
+        guard_events(&daemon, "guard.protection")
+            .iter()
+            .any(|event| event["pid_count"].as_u64().unwrap_or(0) > 0),
+        "the daemon never re-read the protection list; the log was:\n{}",
+        daemon.log()
+    );
+
+    // The hog: six gibibytes on the GPU, no lease, started the way the
+    // incident's run was started — from a shell, with nothing to say so.
+    let hold_mib: u64 = 6144;
+    let mut hog = Command::new(&probe)
+        .arg("--mib")
+        .arg(hold_mib.to_string())
+        .arg("--hold")
+        .arg("180")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("the cuda hog starts");
+    let hog_pid = hog.id() as i32;
+    protection.spare(hog_pid);
+
+    // Wait until the driver itself says the process holds the allocation:
+    // the daemon reads the same view, and a hog the driver has not
+    // attributed yet is a hog the daemon does not have.
+    let deadline = Instant::now() + Duration::from_secs(60);
+    let mut driver_sees = 0u64;
+    while Instant::now() < deadline {
+        driver_sees = nvidia_gpu_bytes_of(hog_pid);
+        if driver_sees >= hold_mib * 1024 * 1024 {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(500));
+    }
+    assert!(
+        driver_sees >= hold_mib * 1024 * 1024,
+        "the driver never attributed the allocation to the hog (it saw {driver_sees} bytes)"
+    );
+    let hog_rss = rss_of(hog_pid as u32);
+    assert!(
+        hog_rss < hold_mib * 1024 * 1024 / 4,
+        "the hog's resident set ({hog_rss} bytes) is not the small column the test is about"
+    );
+
+    // And the daemon's **own** view of the hog must include the
+    // allocation. The test's one-shot query asked the driver directly;
+    // the daemon's child asks on its own cycle and prints every two
+    // seconds, so a hog the driver has just attributed is a hog the
+    // daemon's child prints on its next two or so seconds. Two cycles is
+    // the wait: the print that may have just gone out, and the next one.
+    std::thread::sleep(Duration::from_secs(4));
+
+    // The curve: the same shape as the floor test — a lot of memory gone
+    // at once, then sliding down through the floor.
+    let writer = {
+        let meminfo = meminfo.clone();
+        std::thread::spawn(move || {
+            write_meminfo(&meminfo, total, 12 * GIB);
+            let mut available = 12 * GIB;
+            while available > 0 {
+                std::thread::sleep(Duration::from_millis(50));
+                available = available.saturating_sub(256 * 1024 * 1024);
+                write_meminfo(&meminfo, total, available);
+            }
+        })
+    };
+
+    // Wait for the guard to act.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut terminated: Option<Value> = None;
+    while Instant::now() < deadline {
+        if let Some(event) = guard_events(&daemon, "guard.terminated").first() {
+            terminated = Some(event.clone());
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    let Some(event) = terminated else {
+        let _ = hog.kill();
+        let _ = hog.wait();
+        panic!(
+            "the guard did not terminate the gpu hog; the log was:\n{}",
+            daemon.log()
+        );
+    };
+
+    // It stopped the right process, at the floor, and it saw the hog the
+    // way only the driver's column can show it: the GPU bytes are the
+    // large part of what the hog holds.
+    assert_eq!(
+        event["pid"].as_i64(),
+        Some(hog_pid as i64),
+        "the guard stopped the wrong process: {event}"
+    );
+    assert_eq!(
+        event["trigger"].as_str(),
+        Some("floor"),
+        "the guard's trigger should be the floor: {event}"
+    );
+    let gpu_bytes = event["gpu_bytes"].as_u64().unwrap_or(0);
+    let rss_bytes = event["rss_bytes"].as_u64().unwrap_or(0);
+    assert!(
+        gpu_bytes >= (hold_mib - 1024) * 1024 * 1024,
+        "the guard should see the allocation in the driver's column: {event}"
+    );
+    assert!(
+        gpu_bytes > rss_bytes,
+        "the driver's column should be the larger one: {event}"
+    );
+
+    // The hog must actually die: a termination is not a stop.
+    let deadline = Instant::now() + Duration::from_secs(20);
+    let mut died = false;
+    while Instant::now() < deadline {
+        if hog.try_wait().ok().flatten().is_some() {
+            died = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(
+        died,
+        "the gpu hog was terminated but never died; the log was:\n{}",
+        daemon.log()
+    );
+    assert_eq!(
+        oom_kills(),
+        oom_before,
+        "the kernel's OOM killer fired; the guard was too late"
+    );
+
+    eprintln!(
+        "guard gpu: the unleased cuda hog ({} MiB on the GPU, {} MiB resident) was stopped by \
+         its gpu bytes at the floor and died; the kernel's OOM killer fired {} times",
+        gpu_bytes / (1024 * 1024),
+        rss_bytes / (1024 * 1024),
+        oom_kills() - oom_before,
+    );
+
+    let _ = hog.kill();
+    let _ = hog.wait();
+    protection.finish();
+    let _ = writer.join();
+    let _ = std::fs::remove_dir_all(&scratch);
+}
+
 /// The guard's allowlist: the box's furniture, and the operator's own list.
 ///
 /// Three processes, one daemon, one curve below the floor:
@@ -4212,6 +4568,9 @@ fn the_guard_leaves_the_protected_processes_alone() {
         Gate::Run(file) => file,
     };
     let total = 122 * GIB;
+    // The test's own floor, stated outright: the daemon's default is sixteen
+    // gibibytes now (round 13, item 0), and this test's curve only goes to
+    // twelve, so the test says what floor it is testing at.
     let floor = 8 * GIB;
     let scratch = std::env::temp_dir().join(format!("thor-admit-guard-list-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&scratch);
@@ -4236,6 +4595,8 @@ fn the_guard_leaves_the_protected_processes_alone() {
         &[
             "--meminfo",
             meminfo.to_str().unwrap(),
+            "--emergency-floor",
+            floor.to_string().as_str(),
             "--guard-protected-file",
             protected.to_str().unwrap(),
             "--guard-min-rss",
@@ -4514,4 +4875,344 @@ fn the_exec_refuses_a_framework_that_would_take_the_box() {
     );
 
     let _ = std::fs::remove_dir_all(&directory);
+}
+
+// ---------------------------------------------------------------------------
+// Round 13: the box's lock, and the order it is taken in.
+// ---------------------------------------------------------------------------
+
+/// The box's legacy lock, taken **after** the lease is granted.
+///
+/// A seat that writes `flock heavy.lock thor-admit run ...` holds the box's
+/// lock from the moment it starts, and it holds it for the whole of its wait
+/// in the queue. The rule is the other way round: the lease first, the lock
+/// only once the lease is granted.
+///
+/// The test drives the rule from both ends. A client that asks for the lock
+/// by name (`--lock`) and a client that inherited it from its shell must
+/// both be **holding nothing** while they wait for room, and both must be
+/// holding the lock while their command runs.
+#[test]
+fn the_lease_comes_before_the_lock() {
+    let _serial = serial_gate();
+    // The floor and the reservation are derived from a **held-still** view of
+    // the box, so the test says what it means whatever else is running.
+    let total = mem_total();
+    let available = 100 * GIB;
+    let reservation = 40 * GIB;
+    // The floor is placed so that a lease of `reservation` does not fit:
+    // 100 - 40 = 60 GiB is left, and the floor is 80 GiB.
+    let floor = available - reservation / 2;
+    let daemon = frozen_memory_daemon(
+        "lease-before-lock",
+        &["--floor", &floor.to_string(), "--emergency-floor", "1G"],
+        total,
+        available,
+    );
+    let peak = format!("{}G", reservation / GIB);
+    let lock_path = daemon.state_dir.join("box.lock");
+
+    // The client asks for the lock by name.
+    let mut child = Command::new(BIN)
+        .arg("run")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .arg("--peak")
+        .arg(&peak)
+        .arg("--label")
+        .arg("named-lock")
+        .arg("--lock")
+        .arg(&lock_path)
+        .arg("--")
+        .arg("sleep")
+        .arg("30")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the client starts");
+
+    // It is queued: the lease does not fit.
+    assert!(
+        wait_until(20, || {
+            daemon.status()["queue"]
+                .as_array()
+                .map(|queue| !queue.is_empty())
+                .unwrap_or(false)
+        }),
+        "the client never queued; the status was {}",
+        daemon.status()
+    );
+
+    // And while it waits, it holds nothing. This is the whole claim of the
+    // round: the lock is what the box's own work waits for, so a seat that is
+    // waiting for room must not hold it.
+    assert_eq!(
+        thor_admit::boxlock::holder(&lock_path).unwrap(),
+        None,
+        "a queued client must not hold the box's lock"
+    );
+
+    // Make room: the lease is granted, and the lock is taken then.
+    write_meminfo(&daemon.state_dir.join("meminfo"), total, 121 * GIB);
+    assert!(
+        wait_until(30, || {
+            thor_admit::boxlock::holder(&lock_path).unwrap() == Some(child.id() as i32)
+        }),
+        "the admitted client did not take the lock; the status was {}",
+        daemon.status()
+    );
+
+    // And it gives the lock back when the command is done.
+    let _ = child.kill();
+    let _ = child.wait();
+    assert!(
+        wait_until(10, || {
+            thor_admit::boxlock::holder(&lock_path).unwrap().is_none()
+        }),
+        "the client kept the lock after it ended"
+    );
+}
+
+/// A seat that took the lock the old way is repaired in place.
+///
+/// `flock heavy.lock thor-admit run ...` is what the seats were told to
+/// write before the rule changed, and a seat that has not migrated still
+/// writes it. The client cannot change the seat's command line, but it can
+/// change the order: the lock is given back before the lease is asked for
+/// and taken again the moment the lease is granted.
+#[test]
+fn a_client_that_inherited_the_box_lock_gives_it_back_while_it_waits() {
+    let _serial = serial_gate();
+    let total = mem_total();
+    let available = 100 * GIB;
+    let reservation = 40 * GIB;
+    let floor = available - reservation / 2;
+    let daemon = frozen_memory_daemon(
+        "inherited-box-lock",
+        &["--floor", &floor.to_string(), "--emergency-floor", "1G"],
+        total,
+        available,
+    );
+    let peak = format!("{}G", reservation / GIB);
+    let lock_path = daemon.state_dir.join("box.lock");
+
+    // `flock(1)` opens the file, takes the lock and execs the command, so the
+    // client starts with the lock already held — which is the flaw.
+    let mut child = Command::new("flock")
+        .arg(&lock_path)
+        .arg(BIN)
+        .arg("run")
+        .arg("--socket")
+        .arg(&daemon.socket)
+        .arg("--peak")
+        .arg(&peak)
+        .arg("--label")
+        .arg("inherited-lock")
+        .arg("--")
+        .arg("sleep")
+        .arg("30")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("the client starts");
+
+    assert!(
+        wait_until(20, || {
+            daemon.status()["queue"]
+                .as_array()
+                .map(|queue| !queue.is_empty())
+                .unwrap_or(false)
+        }),
+        "the client never queued; the status was {}",
+        daemon.status()
+    );
+
+    // The lock was held when the client started, and the client gave it back
+    // while it waits.
+    assert_eq!(
+        thor_admit::boxlock::holder(&lock_path).unwrap(),
+        None,
+        "a queued client must not hold the box's lock, even when it inherited it"
+    );
+
+    // And it takes it back when the lease is granted, so the command runs
+    // with the lock held, as the seat expected.
+    //
+    // The holder is the **client**, not the `flock(1)` process: `flock(1)`
+    // forks — the parent takes the lock and the child runs the command — and
+    // the client is the one that re-took the lock. The kernel records the
+    // process that called `flock(2)`.
+    let client_pid = child_of(child.id()).expect("the flock process has a child");
+    write_meminfo(&daemon.state_dir.join("meminfo"), total, 121 * GIB);
+    assert!(
+        wait_until(30, || {
+            thor_admit::boxlock::holder(&lock_path).unwrap() == Some(client_pid as i32)
+        }),
+        "the admitted client did not take the lock back; the status was {}",
+        daemon.status()
+    );
+
+    // The client says what it found, so the seat can fix its own line.
+    let _ = child.kill();
+    let _ = child.wait();
+    let mut errors = String::new();
+    if let Some(mut stderr) = child.stderr.take() {
+        let _ = stderr.read_to_string(&mut errors);
+    }
+    assert!(
+        errors.contains("already holds"),
+        "the client did not say that it inherited the lock: {errors}"
+    );
+}
+
+/// `exec --lock` hands the lock to the command it runs.
+///
+/// `exec` runs the command **in place of** the client, so the descriptor
+/// Rust opens — which carries `O_CLOEXEC` — is closed by the `exec`, and the
+/// lock would be dropped with it. The command must run **holding** the lock,
+/// which is what the option says.
+#[test]
+fn the_exec_hands_the_box_lock_to_the_command() {
+    let _serial = serial_gate();
+    let mut path = std::env::temp_dir();
+    path.push(format!("thor-admit-exec-lock-{}", std::process::id()));
+    let _ = std::fs::remove_file(&path);
+
+    // The command tries to take the lock on a *fresh* descriptor: if the
+    // lock is held (by the descriptor the command inherited), the attempt
+    // cannot succeed.
+    let script = "import fcntl, os, sys\n\
+         f = open(sys.argv[1], 'w')\n\
+         try:\n\
+         \x20   fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)\n\
+         except OSError:\n\
+         \x20   print('held')\n\
+         else:\n\
+         \x20   print('free')\n";
+    let ran = Command::new(BIN)
+        .arg("exec")
+        .arg("--lock")
+        .arg(&path)
+        .arg("--")
+        .arg("python3")
+        .arg("-c")
+        .arg(&script)
+        .arg(&path)
+        .output()
+        .expect("the exec runs");
+    assert!(
+        ran.status.success(),
+        "the command must run: {}",
+        String::from_utf8_lossy(&ran.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&ran.stdout).contains("held"),
+        "the command did not hold the lock: {}",
+        String::from_utf8_lossy(&ran.stdout)
+    );
+    let _ = std::fs::remove_file(&path);
+}
+
+// ---------------------------------------------------------------------------
+// The floor breach and the operator's protection list.
+// ---------------------------------------------------------------------------
+
+/// A floor breach must be decided with the protection list **as it is now**,
+/// not as the daemon last saw it.
+///
+/// The guard re-reads the list on its own clock; the floor check runs every
+/// sample. A breach decided with a stale list is a stop made with someone
+/// else's rules: on 2026-11-02 the first floor breach of the day stopped a
+/// `llama-server` whose client had put it on the list minutes before, and
+/// the daemon's own log shows the stop was decided before the list's next
+/// re-read. The scripted box here is below the emergency floor from the
+/// first sample, so the breach is decided before the guard's first re-read
+/// could have happened — the only reason the victim, and nothing else on
+/// the box, is the one stopped is the re-read in the floor path itself.
+#[test]
+fn the_floor_breach_reads_the_protection_list_before_it_charges() {
+    let _serial = serial_gate();
+    let total = 122 * GIB;
+    // The scripted box is already below the emergency floor: the breach
+    // exists from the first sample.
+    let scratch =
+        std::env::temp_dir().join(format!("thor-admit-floor-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&scratch);
+    std::fs::create_dir_all(&scratch).unwrap();
+    let meminfo = scratch.join("meminfo");
+    let protected = scratch.join("protected.txt");
+    write_meminfo(&meminfo, total, 4 * GIB);
+
+    // `--guard-drop 512G` switches the runaway trigger off, so the floor is
+    // the only thing that can act here.
+    let daemon = DaemonUnderTest::start_named(
+        "floor-fresh-list",
+        &[
+            "--meminfo",
+            meminfo.to_str().unwrap(),
+            "--floor",
+            "1G",
+            "--emergency-floor",
+            "8G",
+            "--guard-protected-file",
+            protected.to_str().unwrap(),
+            "--guard-min-rss",
+            "1G",
+            "--guard-drop",
+            "512G",
+        ],
+    );
+
+    // Everything on the box is protected, and the list is kept current.
+    let mut protection = Protection::start(&protected);
+
+    // The victim: an unleased hog, big enough to be a candidate, started
+    // the way an incident's run is started — from a shell, with nothing to
+    // say so. It is the only process on the box that the list does not
+    // spare.
+    let mut victim = Command::new(HOG)
+        .args(["--bytes", "2G", "--hold", "120"])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .expect("the victim starts");
+    protection.spare(victim.id() as i32);
+
+    // The breach is waiting for the victim to grow past the guard's
+    // smallest candidate. The daemon must stop the victim — and nothing
+    // else: every other process on the box is on the list.
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut victim_stopped = false;
+    while Instant::now() < deadline {
+        victim_stopped = guard_events(&daemon, "guard.terminated")
+            .iter()
+            .any(|event| {
+                event["pid"].as_i64() == Some(victim.id() as i64)
+                    && event["trigger"].as_str() == Some("floor")
+            });
+        if victim_stopped {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    assert!(
+        victim_stopped,
+        "the floor breach did not stop the victim; the log was:\n{}",
+        daemon.log()
+    );
+
+    let others = guard_events(&daemon, "guard.terminated")
+        .iter()
+        .chain(guard_events(&daemon, "watchdog.terminated").iter())
+        .filter(|event| event["pid"].as_i64() != Some(victim.id() as i64))
+        .count();
+    assert_eq!(
+        others, 0,
+        "the floor breach stopped a process the list spares; the log was:\n{}",
+        daemon.log()
+    );
+
+    protection.finish();
+    let _ = victim.wait();
+    let _ = std::fs::remove_dir_all(&scratch);
 }
