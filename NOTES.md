@@ -840,3 +840,50 @@ in the log and it is a fact about tonight, not a claim about the prior.
 test at 17:08 (`thor-admit-hog`, a 45 GB allocation) and the guard stopped
 it: `guard.gone … name "thor-admit-hog"`. The night's own processes were
 not touched.
+
+## 2026-11-01 17:13-17:23 — run E dies in the mesh stage, and the client learns to wait
+
+**Run E got further than any attempt before it.** The routed cell, the
+prior, the world's two renders, all **eighteen** prop pictures with the
+delegate answering on every one of them, and **21 of the night's 22 jobs**
+done — one job short of wave 1. Then at 17:13:32 ComfyUI stopped
+answering in the middle of TRELLIS's remesh, and the night's poll for the
+prompt's history turned that refusal into an exception:
+
+```
+File "core/genbatch/comfy.py", line 158, in history
+  body = await self.get_json(f"/history/{prompt_id}")
+aiohttp.client_exceptions.ClientConnectorError: Cannot connect to host
+127.0.0.1:8188 ssl:default [Connect call failed ('127.0.0.1', 8188)]
+```
+
+**What the box's own records say.** ComfyUI's log's last write is 17:13:32,
+in the middle of `Remesh DC: 6/31` — no error line, no traceback. The
+daemon's log shows no guard event and no watchdog event against our pid
+(61833): the guard's terminations in that window are all another seat's
+deliberate `thor-admit-hog` test (32 GB each, repeatedly, from 17:07 to
+17:18). The journal shows no OOM kill and no signal — only the other
+seat's ssh sessions. So ComfyUI did not die of anything the box can name;
+it stopped serving and kept the process, and the night treated the
+refusal as fatal.
+
+**What I changed.** `core/genbatch/comfy.py`'s `wait_for` now treats a
+refused connection as a wait: the poll already has a deadline, so the
+refusal is the shape a busy or restarting server has, and up to 120 s of
+refusals are ridden out (bounded, so a night does not sit on a dead server
+for an hour). Each refusal is counted, and the error that finally comes
+says how many there were, so a night that dies says what it was waiting
+for. The submission side (`queue_prompt`) is untouched on purpose: a lost
+answer to a POST must not become a second prompt. The 124 genbatch tests
+pass.
+
+**What the guard did not do.** The other seat's hog test drove the box to
+81 GB free at 17:13:48 while the night held its 40 GB reservation and
+ComfyUI was loading TRELLIS's geometry. The guard's own answer was to
+stop the hogs — three of them, 32 GB each — and it left the night alone.
+Our ComfyUI was **not** a candidate this time: it is the runner's child,
+so the lease owns it (that is what `ff62313` bought).
+
+**What I decided next.** Run F starts from the commit that carries the
+wait (`29152a0`). The failed attempt's artifacts are kept, not deleted
+(`artifacts/night-v4-crashed-1713`).

@@ -310,8 +310,26 @@ prior is fitted on the measured real objects alone.
 
 ## 6. The measurements, beside the box state
 
-**The night has no morning of its own**, so this section is what the
-receipts hold, and what they do not.
+**The attempt before the run** — run E, 17:07:39 → 17:13:32 — is measured
+by the same script (`docs/lab/night-v4-scripts/measure.py`; the command is
+in the scripts' README), and its receipts are kept
+(`artifacts/night-v4-crashed-1713`):
+
+| | run E (died in the mesh stage) | run D (night-v3, 06:06 → 08:39) |
+|---|---|---|
+| wall | 6.4 min of job wall (no morning: the night died before writing one) | **152.61 min** |
+| GPU-minutes | **3.06** against the 60-minute rail | **25.74** |
+| leases | **three**, all `thor-admit`, waited **0.0 s / 0.1 s / 0.0 s** (total 0.1 s), 107.3 / 110.1 / 106.1 GB free | one lease, kind `thor-admit`, peak 40G, **waited 914.9 s**, 100.6 GB free |
+| decisions by rung | **251** rows: 245 on the local **d1-3B** (mean **0.0476 s**), 4 on **Jev** (0.267 s), 2 with no author | 12 rows: 5 on the local **d1-2B** (0.106 s), 5 on **Jev** (0.220 s), 2 with no author |
+| gates | surfaced 181, act 66, escalate 2 | 2 escalate, 2 surfaced, 6 with no gate |
+| props | 0 kept, 0 rejected (the night died before the props were judged) | **3 kept**, **15 rejected** |
+| box | before: load1 3.82, MemAvailable 110.8 GB; after: load1 4.08, MemAvailable 104.6 GB | before: load1 63.75, MemAvailable 62.9 GB; after: load1 8.96, MemAvailable 84.5 GB |
+
+Each of the night's three lease rows carries the sweep that ran before it —
+three sweeps, each finding nothing to clear, and saying so.
+
+The night that follows is in the table at the end of this section, with the
+same script and the same diff.
 
 The night at its start, from the run log's head:
 
@@ -381,38 +399,55 @@ writes the letter from the real `morning.json` instead.
 
 ## 8. What it makes possible
 
-- **The next run is one command**, from the committed wiring: the four
-  changes are in, each seam was exercised on the box, and the runner is the
-  night-v3 runner plus exactly those changes.
-- **Two things a seat can act on without a run.** The prior's ghost gate is
-  inert until the library approves **ten objects of one kind** — the
-  approved set is what makes a group big enough to express a score below
-  0.05, and the measured real objects are one kind of 38. And the
-  delegate's six questions are **render wordings**: on a product picture they
-  read a crate's plank gaps as holes (0.51), so a wording for the
-  single-object domain is needed before the delegate may reject a picture.
-- **The crash has a shape to catch.** The Thor hung at 15:50 with the
-  lab-motion seat's JAX seat live on the box, the same pattern as the 10:45
-  hang today. The night was queued and idle; it did not do this. Round 12's
-  guard (leaked work outside a lease) is on the Thor but the live daemon is
-  still round 11, and the guard's answer — stop the biggest unleased
-  process — is the one that would have saved the box today.
+- **The night runs, and the seams are exercised together.** The routed
+  judge, the neutral order, the prior and the delegate are not four
+  changes that each work: they are one night, and the night's own ledger
+  carries their rows.
+- **A seat can act on two things without waiting for a run.** The prior's
+  ghost gate is inert until the library approves **ten objects of one
+  kind** — the approved set is what makes a group big enough to express a
+  score below 0.05, and the measured real objects are one kind of 38. And
+  the delegate's six questions are **render wordings**: on a product
+  picture they read a crate's plank gaps as holes (0.51), so a wording for
+  the single-object domain is needed before the delegate may reject a
+  picture.
+- **The night owns its work on the box.** Three of the night's four kills
+  were the same mistake in different clothes: work that the box could not
+  see belonging to anyone. The lease lock is swept, the render server is
+  the night's own child, and a refused connection is a wait. The night can
+  now be run by a seat that does not watch the box while it runs.
+- **The box's guard is worth its keep, and its rule is worth knowing.** The
+  guard stopped another seat's deliberate 32 GB hog while the night's
+  render was loading, and it did not touch the night — because the night
+  was inside its lease, in the daemon's own accounting, with the memory
+  named. The rule is the one the night had to learn: work that no lease
+  owns is the guard's business.
 
 ## 9. What was not verified
 
-- **The night did not run.** So there is no `morning.json`, no report, no
-  letter from a night's ledger, no 240-state routed cell (only the ten
-  states of the pre-run smoke), no prior score on any of tonight's props, no
-  delegate flag on any of tonight's eighteen pictures (only one, the crate),
-  no lease wait row, no phase-down in anger, no live view and no morning
-  numbers at all.
-- **The cause of the hang is unverified.** The journal on the box would say
-  it, and the incident's own lesson applies: use `journalctl --list-boots`
-  and select by boot ID, because `-b -1` can pick the wrong boot.
-- **The delegate is measured on one picture.** On that crate, `holes` fired
-  at 0.51 and the other five classes were below the gate (0.003 to 0.206);
-  one picture is not the domain.
+- **Why ComfyUI stopped answering at 17:13:32 is not verified.** The log's
+  last write is in the middle of `Remesh DC: 6/31`; the daemon's log has no
+  guard or watchdog event against that pid; the journal has no OOM kill and
+  no signal. The only thing the box can name is the neighbour: another
+  seat's `thor-admit-hog` test was allocating 32 GB at a time in the same
+  minutes, and the guard was stopping those hogs while the night's render
+  was loading. The night now *waits* for a server that refuses (up to 120 s
+  of refusals), which is what a busy server needs; whether the server comes
+  back on its own is the box's business and was not observed.
+- **The daemon's own numbering is not fixed.** The lock file is named after
+  the lease's number, and the numbers start again at 1 when the daemon
+  restarts, so a client left over from before a restart can hold the file
+  that the next lease of that number will want. The night now clears the
+  box before it asks; the tool-side fix — naming the file after the
+  daemon's incarnation — belongs to the daemon's crate and was not made
+  here.
+- **The delegate's questions are still render wordings.** On the prop
+  pictures they read a crate's plank gaps as holes; the delegate's vote is
+  a signal about which sibling wins the picture round, not a rejection, and
+  a wording for the single-object domain is still needed before the
+  delegate may reject a picture.
 - **The prior was fitted with an empty approved set.** With a non-empty one
   the groups and the floor change, and the gate may fire; the numbers above
   are for the fit the night would actually make.
+
 
