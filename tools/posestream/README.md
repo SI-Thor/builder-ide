@@ -251,13 +251,13 @@ frustum: M metres of extra range and M metres of extra width at the far plane).
 | margin | enters | leaves | change records | delivered states | bytes/s | emitter work p95 |
 |---:|---:|---:|---:|---:|---:|---:|
 | 0 m | 86,786 | 79,353 | 7,346,143 | 9,471,363 | 5,796 | 0.56 ms |
-| 2 m | 85,215 | 77,014 | 8,127,481 | 10,467,187 | 6,328 | 0.68 ms |
-| 8 m | 82,654 | 72,251 | 10,144,140 | 13,037,976 | 7,697 | 0.88 ms |
-| 16 m | 79,891 | 66,716 | 12,556,607 | 16,110,606 | 9,345 | 1.17 ms |
+| 2 m | 85,215 | 77,014 | 8,127,481 | 10,467,187 | 6,328 | 0.67 ms |
+| 8 m | 82,654 | 72,251 | 10,144,140 | 13,037,976 | 7,697 | 0.86 ms |
+| 16 m | 79,891 | 66,716 | 12,556,607 | 16,110,606 | 9,345 | 1.13 ms |
 
 The hysteresis does what it says: at 8 m it removes 9 % of the leaves. But it costs 33 % more
 bytes, because every object it holds outside the region still costs a change record per delivery,
-and it costs the emitter 57 % more CPU (the membership test runs twice, and the candidate box grows
+and it costs the emitter 54 % more CPU (the membership test runs twice, and the candidate box grows
 by the margin).
 
 **Not kept.** On this world the regions are small (14–30 m) against a dense world (10,000 objects
@@ -323,8 +323,13 @@ The bound, by delivery interval (the intervals the 64 subscribers actually use):
 
 The verification: the harness measures the projection against the truth at every tick, for every
 object every subscriber holds, and checks it against the bound for that object's kind and
-staleness. Over the 60 s run at 2 % loss, **24,713,234 checks and not one over the bound** — the
-worst was 87.3 m, a fast mover that turned, inside the 90.5 m its interval allows.
+staleness. Over the 60 s run at 2 % loss, **24,713,234 checks and not one over the bound**.
+
+The worst interpolation of that run was 87.3 m: a fast mover **89 ticks past its last
+correction** — the packets that should have corrected it were lost, so the staleness ran past
+the delivery interval — and the bound for an 89-tick interval is 267.1 m. The table above is
+therefore the floor of the bound, not its ceiling: a lost packet moves the staleness, and the
+staleness is what the bound is a function of.
 
 The bound is a worst case over the world; what actually happened is much tighter — over the same
 run the median drift was 0 mm for walkers and orbiters and 10 mm for fast movers, with p95s of

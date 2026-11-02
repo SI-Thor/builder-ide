@@ -83,8 +83,9 @@ because a keyframe can only be sent at a delivery.
    extrapolates with the motion channel, and how far that can be from the truth follows from the
    world's own motion parameters, per kind of object. The bound and its derivation are in the
    README; the harness checks every interpolation against it: over the 60 s run at 2 % loss,
-   24,713,234 checks and **not one over the bound** (the worst, 87.3 m, was a fast mover that
-   turned, inside the 90.5 m its interval allows).
+   24,713,234 checks and **not one over the bound**. The worst interpolation of that run was
+   87.3 m — a fast mover 89 ticks past its last correction, because the packets that should
+   have corrected it were lost — and the bound for a 89-tick interval is 267.1 m.
 
 **What this world does not give the other entry's argument.** That entry built its world with a
 hard acceleration cap (1.8 m/s² per axis), and that is what makes its drift budget tight. This

@@ -4,14 +4,14 @@ network: one-way delay uniform in [2.0, 12.0] ms +/- 1.5 ms jitter, loss 0.00% p
 receiver: back-dating on (anchors at the packet's tick)
 interest regions: exit hysteresis 16 m
 leave list: delta-coded varints
-emitter phases (total over the run): region 1161 ms, records 574 ms, encode 627 ms
-world advance:       mean 0.258 ms/tick  p95 0.560 ms/tick
-emission:            mean 1.678 ms/tick  p95 2.621 ms/tick
-emitter tick total:  p50 1.762 ms  p95 3.153 ms  mean 1.936 ms
-emitter's own work:  p50 0.6076 ms  p95 1.1712 ms  (region + records + encode)
-delivery latency (link + decode/apply): p50 7.438 ms  p95 13.324 ms  max 15.840 ms
-subscriber service (decode + apply): p50 7.438 ms  p95 13.324 ms
-packet decode:       p50 3.6 us  p95 10.0 us
+emitter phases (total over the run): region 1110 ms, records 543 ms, encode 621 ms
+world advance:       mean 0.252 ms/tick  p95 0.556 ms/tick
+emission:            mean 1.604 ms/tick  p95 2.484 ms/tick
+emitter tick total:  p50 1.652 ms  p95 3.032 ms  mean 1.856 ms
+emitter's own work:  p50 0.5126 ms  p95 1.1255 ms  (region + records + encode)
+delivery latency (link + decode/apply): p50 7.419 ms  p95 13.301 ms  max 14.822 ms
+subscriber service (decode + apply): p50 7.419 ms  p95 13.301 ms
+packet decode:       p50 3.6 us  p95 9.8 us
 link: the delay actually drawn was 0.50 - 13.50 ms (configured 0.50 - 13.50 ms), at most 1 packets in flight at once
 packets: 81714 sent, 3 lost (0.00%), 81711 delivered
 bytes: delivered 35883128 B over 60 s = 598.1 kB/s aggregate; per subscriber mean 9344.6 B/s, p95 25779.8 B/s
@@ -33,8 +33,9 @@ the drift budget, by delivery interval (the bound the world's motion parameters 
 drift by kind: walker p50 0.0 mm p95 30.0 mm max 5760.0 mm | orbiter p50 0.0 mm p95 10.0 mm max 320.0 mm | fast p50 10.0 mm p95 510.0 mm max 32000.0 mm
 drift against the budget: 41435004 checks, worst 32000.0 mm, 0 over the bound
   worst over: 
+  worst drift of the run: kind Fast id 1478, staleness 29 ticks, bound 30.349 m, speed 42.00 m/s
 motion channel in the subscriber's frame: mean apparent speed 4.757 m/s, max 51.534 m/s, 100.0% of the objects are moving (>5 cm/s)
-late join resync (service time + link): [1.250688, 1.1973960000000001, 1.19396, 1.159308, 1.15028, 1.135427, 1.114185, 1.104323, 1.0808659999999999, 1.058726, 1.0685040000000001, 1.017528, 1.001165, 0.9808950000000001, 0.9822559999999999, 0.946817, 0.946855, 0.905601, 0.935196, 0.837882, 0.856457, 0.7937200000000001, 0.786219, 0.805685, 0.775108, 0.741309, 0.724083, 0.70173, 0.704009, 0.6732, 0.674025, 0.65142, 0.6362800000000001, 0.637642, 0.616871, 0.60299, 0.61388, 0.569321, 0.558967, 0.399777, 0.38909099999999996, 0.319502, 0.31139, 0.27052499999999996, 0.6238809999999999, 0.468069, 1.144919, 0.872032, 0.661838, 0.326715, 0.265274, 0.259402, 0.951726, 0.639624, 0.374053, 0.27568200000000004, 0.561014, 0.5815440000000001, 0.5891540000000001, 0.511389, 0.16658, 0.191869, 0.215556, 0.210964] ms
+late join resync (service time + link): [1.244008, 1.1897030000000002, 1.185806, 1.151618, 1.1432390000000001, 1.127686, 1.1063100000000001, 1.096395, 1.073779, 1.051959, 1.059069, 1.0081149999999999, 0.991451, 0.9719909999999999, 0.972694, 0.938099, 0.9384509999999999, 0.897652, 0.9268689999999999, 0.814666, 0.834672, 0.772591, 0.765026, 0.781792, 0.751343, 0.7187009999999999, 0.7015180000000001, 0.68081, 0.6833279999999999, 0.6534989999999999, 0.653175, 0.633365, 0.618866, 0.6210150000000001, 0.600637, 0.5873160000000001, 0.5964160000000001, 0.554719, 0.544971, 0.396395, 0.38696200000000003, 0.316583, 0.30779, 0.26826900000000004, 0.6313449999999999, 0.482112, 1.0545140000000002, 0.793642, 0.592834, 0.32511999999999996, 0.26410300000000003, 0.25566, 0.941228, 0.658387, 0.3704, 0.27429499999999996, 0.550045, 0.572736, 0.572495, 0.5200130000000001, 0.16136199999999998, 0.192598, 0.21018699999999998, 0.207855] ms
   tick 793 sub 17: gap (held v789, offered v791) -> keyframe requested
   tick 1031 sub 24: gap (held v1029, offered v1030) -> keyframe requested
   tick 2741 sub 36: bitmap base mismatch -> keyframe requested

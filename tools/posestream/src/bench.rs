@@ -233,7 +233,9 @@ pub fn run(cfg: &Config) -> Report {
     let mut max_drift_mm: f64 = 0.0;
     let mut drift_over_budget: u64 = 0;
     let mut drift_checks: u64 = 0;
-    let mut worst_drift_mm: f64 = 0.0;
+    let mut worst_over_mm: f64 = 0.0;
+    let mut worst_over_case = String::new();
+    let mut worst_drift_m: f64 = 0.0;
     let mut worst_drift_case = String::new();
     // the motion channel expressed in the subscriber's own frame
     let mut apparent_sum = 0.0f64;
@@ -602,14 +604,26 @@ pub fn run(cfg: &Config) -> Report {
                     max_drift_mm = e * 1000.0;
                 }
                 drift_checks += 1;
+                // the worst drift of the run, and the bound that covers it
+                if e > worst_drift_m {
+                    worst_drift_m = e;
+                    worst_drift_case = format!(
+                        "kind {:?} id {}, staleness {} ticks, bound {:.3} m, speed {:.2} m/s",
+                        kind,
+                        id,
+                        s,
+                        b,
+                        norm(em.world.vel[id as usize])
+                    );
+                }
                 // an interval that contains a wall reflection has its own bound
                 let reflected = em.world.reflect_tick[id as usize] > anchor_tick
                     && em.world.reflect_tick[id as usize] <= tick;
                 if e > b && !(reflected && e <= crate::budget::drift_bound_reflect_m(s)) {
                     drift_over_budget += 1;
-                    if e * 1000.0 > worst_drift_mm {
-                        worst_drift_mm = e * 1000.0;
-                        worst_drift_case = format!(
+                    if e * 1000.0 > worst_over_mm {
+                        worst_over_mm = e * 1000.0;
+                        worst_over_case = format!(
                             "kind {:?} id {} staleness {} ticks, anchor tick {}, last reflection {}, bound {:.3} m, speed {:.2} m/s\n    anchor pos {:?} anchor vel {:?} truth {:?} predicted {:?} anchor_us {} tick {}",
                             kind,
                             id,
@@ -827,10 +841,11 @@ pub fn run(cfg: &Config) -> Report {
         drift_kind[2].q(0.50) * 1000.0, drift_kind[2].q(0.95) * 1000.0, drift_kind[2].max * 1000.0,
     ));
     log.push_str(&format!(
-        "drift against the budget: {} checks, worst {:.1} mm, {} over the bound\n  worst over: {}\n",
+        "drift against the budget: {} checks, worst {:.1} mm, {} over the bound\n  worst over: {}\n  worst drift of the run: {}\n",
         drift_checks,
         max_drift_mm,
         drift_over_budget,
+        worst_over_case,
         worst_drift_case
     ));
     log.push_str(&format!(

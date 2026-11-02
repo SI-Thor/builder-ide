@@ -4,13 +4,13 @@ network: one-way delay uniform in [2.0, 12.0] ms +/- 1.5 ms jitter, loss 2.00% p
 receiver: back-dating off (anchors at the arrival)
 interest regions: exit hysteresis 0 m
 leave list: delta-coded varints
-emitter phases (total over the run): region 368 ms, records 334 ms, encode 450 ms
-world advance:       mean 0.254 ms/tick  p95 0.558 ms/tick
-emission:            mean 0.965 ms/tick  p95 1.452 ms/tick
-emitter tick total:  p50 1.114 ms  p95 2.002 ms  mean 1.219 ms
-emitter's own work:  p50 0.3151 ms  p95 0.5637 ms  (region + records + encode)
-delivery latency (link + decode/apply): p50 7.212 ms  p95 13.094 ms  max 14.594 ms
-subscriber service (decode + apply): p50 7.212 ms  p95 13.094 ms
+emitter phases (total over the run): region 372 ms, records 334 ms, encode 446 ms
+world advance:       mean 0.252 ms/tick  p95 0.557 ms/tick
+emission:            mean 0.961 ms/tick  p95 1.446 ms/tick
+emitter tick total:  p50 1.117 ms  p95 1.990 ms  mean 1.213 ms
+emitter's own work:  p50 0.3137 ms  p95 0.5657 ms  (region + records + encode)
+delivery latency (link + decode/apply): p50 7.210 ms  p95 13.092 ms  max 14.182 ms
+subscriber service (decode + apply): p50 7.210 ms  p95 13.092 ms
 packet decode:       p50 2.3 us  p95 6.5 us
 link: the delay actually drawn was 0.50 - 13.50 ms (configured 0.50 - 13.50 ms), at most 1 packets in flight at once
 packets: 81714 sent, 1589 lost (1.94%), 80125 delivered
@@ -34,8 +34,9 @@ drift by kind: walker p50 20.0 mm p95 80.0 mm max 4000.0 mm | orbiter p50 30.0 m
 drift against the budget: 24713234 checks, worst 86970.0 mm, 7400550 over the bound
   worst over: kind Fast id 3757 staleness 2 ticks, anchor tick 844, last reflection 840, bound 0.407 m, speed 40.90 m/s
     anchor pos [209, 11236, 5168] anchor vel [4259, -629, 706] truth [414, 11210, 5190] predicted [323, 11219, 5187] anchor_us 844280786 tick 846
+  worst drift of the run: kind Fast id 2886, staleness 89 ticks, bound 267.138 m, speed 38.89 m/s
 motion channel in the subscriber's frame: mean apparent speed 4.774 m/s, max 51.534 m/s, 100.0% of the objects are moving (>5 cm/s)
-late join resync (service time + link): [1.080199, 1.0418610000000001, 1.060151, 1.034649, 1.043196, 1.040926, 1.026962, 1.036334, 1.027639, 1.0142669999999998, 1.054019, 1.0144609999999998, 1.016192, 1.003238, 1.019156, 0.99295, 1.003266, 0.9787540000000001, 0.950196, 0.884996, 0.916925, 0.85829, 0.888265, 0.820639, 0.794415, 0.791256, 0.775754, 0.790025, 0.7655230000000001, 0.779912, 0.763615, 0.752143, 0.7661519999999999, 0.751873, 0.749446, 0.772931, 0.735696, 0.7348629999999999, 0.325992, 0.33490000000000003, 0.30411, 0.302102, 0.30465800000000004, 0.5348529999999999, 0.506249, 0.485628, 0.804998, 0.7128049999999999, 0.6197320000000001, 0.29022899999999996, 0.266848, 0.334835, 0.721491, 0.595377, 0.29605400000000004, 0.269867, 0.424816, 0.562338, 0.44129, 0.49781300000000006, 0.11645399999999999, 0.140986, 0.158913, 0.146207] ms
+late join resync (service time + link): [0.972933, 0.936006, 0.951455, 0.9280809999999999, 0.939596, 0.936903, 0.925387, 0.933635, 0.9255249999999999, 0.911631, 0.953298, 0.9139900000000001, 0.917371, 0.905826, 0.922535, 0.896532, 0.907594, 0.8828119999999999, 0.927137, 0.867963, 0.9005569999999999, 0.844402, 0.8756550000000001, 0.8659899999999999, 0.842977, 0.8412540000000001, 0.8291270000000001, 0.84319, 0.820175, 0.836163, 0.82311, 0.811418, 0.825396, 0.782859, 0.777416, 0.797651, 0.752846, 0.749801, 0.388324, 0.39508099999999996, 0.341231, 0.337833, 0.327196, 0.621694, 0.583147, 0.547783, 0.945106, 0.819944, 0.7581690000000001, 0.33838, 0.29537800000000003, 0.29869199999999996, 0.7932819999999999, 0.637682, 0.31989300000000004, 0.283575, 0.5105500000000001, 0.657299, 0.49355299999999996, 0.581249, 0.115672, 0.142714, 0.157701, 0.147379] ms
   tick 2 sub 32: bitmap base mismatch -> keyframe requested
   tick 9 sub 41: bitmap base mismatch -> keyframe requested
   tick 10 sub 3: bitmap base mismatch -> keyframe requested

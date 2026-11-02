@@ -563,3 +563,23 @@ network keys, and the README and the verdict doc carry the round-2 numbers.
 Left open, and said so in the docs: the link is a model (no socket, no second machine), the
 loss is memoryless (a real link's losses come in bursts, which is worse), and the packets
 never reorder (the delay is below a tick) — the path where one does is not exercised.
+
+## 2026-11-01 16:05 — the runs are re-done, and one claim was wrong
+
+The harness now names the worst drift of the run (its kind, its staleness and the bound that
+covers it), because the claim in the first pass of the README was wrong. It said the worst
+interpolation, 87.3 m, was "inside the 90.5 m its interval allows" — but 90.5 m is the bound for
+a 30-tick interval, and the object's interval is 30 ticks at most. The truth: the worst
+interpolation was a fast mover **89 ticks past its last correction**, because the packets that
+should have corrected it were lost, and the bound for a 89-tick interval is 267.1 m. The
+staleness, not the interval, is what the bound is a function of, and a lossy link moves the
+staleness. Corrected in the README and in the verdict doc, in place.
+
+The whole matrix was re-run with the final binary (15 runs, 5m41s → 5m46s, peak RSS 336 MB),
+so every run in `runs/` comes from the same build. The byte numbers are identical to the first
+pass — they are a function of the seed — and the timings moved by a few hundredths of a
+millisecond, because the box was busier.
+
+The scored run (`bench.sh`) still reproduces round 1's digest on the Thor: `0x43e63a399fcc4897`,
+5,796.311 B/s sent, 5,796.043 delivered, p95 16,643.067 B/s, 0 reconstruction errors, 0 mirror
+mismatches, 0 interpolations over the drift budget.
