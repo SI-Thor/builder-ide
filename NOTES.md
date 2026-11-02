@@ -462,3 +462,104 @@ Checked on the real box with the staged binary:
 The staged binary also reads the **live round-11 daemon's** status without
 trouble (`guard.enabled: false`, the rest defaulted), so a new client
 against an old daemon works — which is the swap window.
+
+## 2026-11-01 15:20 — the simulated link, and the referee that ticks
+
+The brief (round 2 of mission B) asks for the winner re-measured over a network: 2–12 ms of
+one-way delay with jitter, 0.5 % and 2 % packet loss, the same seed and the same 64
+subscribers.
+
+What I built: `tools/posestream/src/net.rs` (one link per subscriber: a per-packet delay
+drawn uniformly from 2–12 ms plus ±1.5 ms of jitter, a per-packet loss, and the resync
+request travelling back over the same link) and a rewrite of `src/bench.rs` around it. The
+clock is in microticks, 1e6 to a tick, because the receiver has to know when a packet
+arrived to better than a tick.
+
+The part that needed the most care was the referee. A delayed packet is applied after the
+world has moved on, so it cannot be checked against the world as it is now; the emitter's
+state at the moment it built the packet travels with the packet (the quantised truth at
+the packet's tick, and the emitter's mirror of the subscriber's state). The reconstruction
+is then checked at **the packet's tick**, not at the tick the packet arrived.
+
+Two numbers are kept apart: the **reconstruction error** (the bar: zero, within the bound)
+and the **mirror mismatch** (the receiver's held state against the emitter's mirror: zero
+means the delay never touched the state).
+
+Box state: the Thor under `thor-admit run --tier live --peak 2G --label posestream-net.*`,
+load average 12–22, 53 G free of 122.8 G, peak RSS 340 MB for the whole matrix.
+
+## 2026-11-01 15:30 — the loopback still delivers the same bytes
+
+The regression check: the new harness, run on the loopback with no network at all, must
+produce round 1's bytes exactly. It does — the stream digest is `0x43e63a399fcc4897`, the
+same as the committed round-1 log, and bytes/s per subscriber is 5,796.311 sent / 5,796.043
+delivered, against round 1's 5,796.311.
+
+Two of the numbers moved, and both are the harness, not the stream: the delivery latency
+(0.53 ms now against round 1's 0.67 ms) because round 1 timed the referee inside the
+delivery and round 2 does not, and the whole-tick CPU (1.91 ms p95 against 1.43 ms)
+because the whole tick now carries the snapshot and the referee. The emitter's own work —
+the interest query, the deltas and the encoding — is 0.56 ms p95, reported separately as
+`emitter_work_ms_per_tick_p95`.
+
+Decided: report both, and say in the README which is which.
+
+## 2026-11-01 15:40 — what the network costs
+
+The matrix (`tools/posestream/netbench.sh`, 15 runs, 5m41s on the Thor):
+
+| run | bytes/s | on the wire | latency p95 | errors | resyncs |
+|---|---:|---:|---:|---:|---:|
+| loopback | 5,796 | 5,796 | 0.54 ms | 0 | 3 |
+| 2–12 ms, no loss | 5,796 | 5,796 | 13.09 ms | 0 | 3 |
+| 2–12 ms, 0.5 % loss | 5,911 | 5,940 | 13.09 ms | 0 | 380 |
+| 2–12 ms, 2 % loss | 6,244 | 6,374 | 13.09 ms | 0 | 1,560 |
+
+The delay costs latency and nothing else: the digest is unchanged and the reconstruction
+is exact. Loss costs bytes — 2.0 % at 0.5 %, 7.7 % at 2 % — and the cost is the keyframe:
+every lost packet is one gap, every gap is one full-region keyframe (~1 kB). The recovery
+from a gap to the keyframe's arrival: median 32 ms, p95 108 ms, worst 509 ms (the 2 Hz
+subscriber's interval — a keyframe can only go out at a delivery).
+
+Decided: the bar holds. Zero reconstruction errors at both loss rates, zero mirror
+mismatches.
+
+## 2026-11-01 15:50 — the four ideas, each on its own
+
+(a) **The back-dating: kept.** With it, 0 reconstruction errors and the receiver's state
+bit-identical to the emitter's mirror. Without it (`--backdate off`, the receiver anchors
+at the arrival): 9,169,158 reconstruction errors out of 9,471,363 delivered states, up to
+2,140 mm. Essentially every delivery is wrong. The mechanism is the anchor: a receiver
+that anchors at the arrival adds the motion between the correction's tick and the arrival
+to the correction's base, and then adds it again when it extrapolates.
+
+(b) **The exit hysteresis: measured, not kept.** 8 m removes 9 % of the leaves (79,353 →
+72,251) but costs 33 % more bytes (5,796 → 7,697) and 57 % more emitter CPU, because every
+object it holds outside the region still costs a change record per delivery. The sweep
+(0/2/4/8/16 m) is in the runs: the cost rises monotonically with the margin. On this world
+the regions are small (14–30 m) against a dense world; zcode's were 80–180 m in a 1200 m
+arena, which is where the idea pays.
+
+(c) **The 2-byte evicts: measured, not kept.** The leave list is delta-coded varints,
+already at or below 2 bytes per object; the fixed 16-bit id costs 2 B/s per subscriber
+more (5,796 → 5,798).
+
+(d) **The drift budget: kept, as a stated bound.** Derived per kind of object from the
+world's own parameters (`src/budget.rs`), not measured and not typed in. Over the 60 s run
+at 2 % loss: 24,713,234 checks of the projection against the bound, **not one over it**;
+the worst was 87.3 m, a fast mover that turned, inside the 90.5 m its interval allows.
+
+The first attempt at the bound was wrong twice, and both times the measurement said so: the
+turns can land one tick after the anchor (not on the epoch boundary), and a turn is already
+in effect for the displacement of its own tick. The walker's bound was also wrong: the
+walkers' speeds are not capped at the 2.4 m/s they start at — the speed is re-sampled every
+turn and clamped only at 42 m/s — so the bound uses the clamp.
+
+## 2026-11-01 15:55 — what is left
+
+The scored run (`bench.sh`) reproduces round 1's digest on the Thor, `RESULT.json` gains the
+network keys, and the README and the verdict doc carry the round-2 numbers.
+
+Left open, and said so in the docs: the link is a model (no socket, no second machine), the
+loss is memoryless (a real link's losses come in bursts, which is worse), and the packets
+never reorder (the delay is below a tick) — the path where one does is not exercised.
