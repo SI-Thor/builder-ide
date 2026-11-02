@@ -1,0 +1,271 @@
+{
+ "checks": [
+  {
+   "applicable": true,
+   "check": "watertight",
+   "detail": "no hollow shell among 5 props (worst inward fraction 0.494)",
+   "fired": false,
+   "measured": {
+    "open_shells": 0.0,
+    "worst_inward": 0.4940828402366864
+   }
+  },
+  {
+   "applicable": true,
+   "check": "scale_bounds",
+   "detail": "every prop within 6.0x its family's median size (5 props in 2 families)",
+   "fired": false,
+   "measured": {
+    "scale_offenders": 0.0
+   }
+  },
+  {
+   "applicable": true,
+   "check": "edge_cut",
+   "detail": "no prop cut through the middle by the picture's edge (5 props checked)",
+   "fired": false,
+   "measured": {
+    "cut_objects": 0.0
+   }
+  }
+ ],
+ "findings": [],
+ "objects": [
+  {
+   "faces": 12,
+   "inward": 0.0,
+   "name": "Terrain.floor",
+   "vertices": 8,
+   "volume": 17.47199955439567,
+   "watertight": true,
+   "x0": -0.20000000298023224,
+   "x1": 8.199999809265137,
+   "y0": -0.20000000298023224,
+   "y1": 10.199999809265137,
+   "z0": -0.20000000298023224,
+   "z1": 0.0
+  },
+  {
+   "faces": 12,
+   "inward": 0.0,
+   "name": "Terrain.wall_n_west",
+   "vertices": 8,
+   "volume": 2.1000000044703477,
+   "watertight": true,
+   "x0": -0.20000000298023224,
+   "x1": 3.299999952316284,
+   "y0": -0.20000000298023224,
+   "y1": 0.0,
+   "z0": 0.0,
+   "z1": 3.0
+  },
+  {
+   "faces": 12,
+   "inward": 0.0,
+   "name": "Terrain.wall_n_east",
+   "vertices": 8,
+   "volume": 2.1000000312924385,
+   "watertight": true,
+   "x0": 4.699999809265137,
+   "x1": 8.199999809265137,
+   "y0": -0.20000000298023224,
+   "y1": 0.0,
+   "z0": 0.0,
+   "z1": 3.0
+  },
+  {
+   "faces": 12,
+   "inward": 0.0,
+   "name": "Terrain.lintel",
+   "vertices": 8,
+   "volume": 0.25200000470876416,
+   "watertight": true,
+   "x0": 3.299999952316284,
+   "x1": 4.699999809265137,
+   "y0": -0.20000000298023224,
+   "y1": 0.0,
+   "z0": 2.0999999046325684,
+   "z1": 3.0
+  },
+  {
+   "faces": 12,
+   "inward": 0.16666666666666666,
+   "name": "Terrain.wall_s",
+   "vertices": 8,
+   "volume": 5.039995080828757,
+   "watertight": true,
+   "x0": -0.20000000298023224,
+   "x1": 8.199999809265137,
+   "y0": 10.0,
+   "y1": 10.199999809265137,
+   "z0": 0.0,
+   "z1": 3.0
+  },
+  {
+   "faces": 12,
+   "inward": 0.0,
+   "name": "Terrain.wall_w",
+   "vertices": 8,
+   "volume": 6.000000089406967,
+   "watertight": true,
+   "x0": -0.20000000298023224,
+   "x1": 0.0,
+   "y0": 0.0,
+   "y1": 10.0,
+   "z0": 0.0,
+   "z1": 3.0
+  },
+  {
+   "faces": 12,
+   "inward": 0.16666666666666666,
+   "name": "Terrain.wall_e",
+   "vertices": 8,
+   "volume": 5.999994277954102,
+   "watertight": true,
+   "x0": 8.0,
+   "x1": 8.199999809265137,
+   "y0": 0.0,
+   "y1": 10.0,
+   "z0": 0.0,
+   "z1": 3.0
+  },
+  {
+   "faces": 12,
+   "inward": 0.0,
+   "name": "crate",
+   "vertices": 8,
+   "volume": 0.7290001351833384,
+   "watertight": true,
+   "x0": 1.0499999523162842,
+   "x1": 1.9500000476837158,
+   "y0": 2.549999952316284,
+   "y1": 3.450000047683716,
+   "z0": 0.0,
+   "z1": 0.8999999761581421
+  },
+  {
+   "faces": 12,
+   "inward": 0.16666666666666666,
+   "name": "crate.001",
+   "vertices": 8,
+   "volume": 0.7290001351833382,
+   "watertight": true,
+   "x0": 1.0499999523162842,
+   "x1": 1.9500000476837158,
+   "y0": 3.75,
+   "y1": 4.650000095367432,
+   "z0": 0.0,
+   "z1": 0.8999999761581421
+  },
+  {
+   "faces": 12,
+   "inward": 0.3333333333333333,
+   "name": "crate.002",
+   "vertices": 8,
+   "volume": 0.7290001351833366,
+   "watertight": true,
+   "x0": 5.949999809265137,
+   "x1": 6.849999904632568,
+   "y0": 7.849999904632568,
+   "y1": 8.75,
+   "z0": 0.0,
+   "z1": 0.8999999761581421
+  },
+  {
+   "faces": 12,
+   "inward": 0.0,
+   "name": "crate.003",
+   "vertices": 8,
+   "volume": 0.7289997489452605,
+   "watertight": true,
+   "x0": 3.549999952316284,
+   "x1": 4.449999809265137,
+   "y0": 1.4500000476837158,
+   "y1": 2.3499999046325684,
+   "z0": 0.0,
+   "z1": 0.8999999761581421
+  },
+  {
+   "faces": 2028,
+   "inward": 0.4940828402366864,
+   "name": "table",
+   "vertices": 1016,
+   "volume": 0.12866557534599998,
+   "watertight": true,
+   "x0": 4.199999809265137,
+   "x1": 5.800000190734863,
+   "y0": 2.049999952316284,
+   "y1": 2.950000047683716,
+   "z0": 0.0,
+   "z1": 0.75
+  }
+ ],
+ "selfx": [
+  {
+   "faces": 12,
+   "name": "Terrain.floor",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "Terrain.wall_n_west",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "Terrain.wall_n_east",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "Terrain.lintel",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "Terrain.wall_s",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "Terrain.wall_w",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "Terrain.wall_e",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "crate",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "crate.001",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "crate.002",
+   "self_intersecting": false
+  },
+  {
+   "faces": 12,
+   "name": "crate.003",
+   "self_intersecting": false
+  },
+  {
+   "faces": 2028,
+   "name": "table",
+   "self_intersecting": false
+  }
+ ],
+ "timings": {
+  "checks_s": 0.0004,
+  "probe_s": 0.347,
+  "selfx_s": 0.008
+ },
+ "verdict": "pass"
+}
