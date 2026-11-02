@@ -116,12 +116,57 @@ def params_for(world: int) -> Params:
     return Params(world_w=world, world_h=world)
 
 
+def _greedy_action(round_: Round) -> int:
+    """Walk the acting agent towards the nearest beacon it does not hold.
+
+    A random walk does not cover the distance between the two spawns in the
+    time a round lasts -- the displacement of a walk is the square root of
+    its length -- so the sanity floor needs a policy that wants something.
+    """
+    world, state = round_.world, round_.state
+    index = round_.acting_index()
+    cx, cy = ref.cell_of(world, state.pos_x[index], state.pos_y[index])
+    squad = state.agent_squad[index]
+    # The enemy squad's centre: the beacon nearest it is the one the two
+    # squads contest. (Each squad walking to its *own* nearest beacon would
+    # send them to opposite corners, and they would never meet.)
+    enemy = [i for i in range(state.num_agents) if state.agent_squad[i] != squad]
+    if not enemy:
+        return 0
+    ex = sum(state.pos_x[i] for i in enemy) / len(enemy)
+    ey = sum(state.pos_y[i] for i in enemy) / len(enemy)
+    ecx, ecy = ref.cell_of(world, int(ex), int(ey))
+    target = None
+    best = None
+    for b, (bx, by) in enumerate(world.beacons):
+        if state.holders[b] == squad:
+            continue  # ours already
+        d = abs(bx - ecx) + abs(by - ecy)
+        if best is None or d < best:
+            best, target = d, (bx, by)
+    if target is None:
+        return 0
+    mask = round_.mask()
+    chosen, chosen_d = 0, None
+    for action in range(1, len(ref.DIRECTIONS)):
+        if not mask[action]:
+            continue
+        dx, dy = ref.DIRECTIONS[action]
+        d = abs(target[0] - (cx + dx)) + abs(target[1] - (cy + dy))
+        if chosen_d is None or d < chosen_d:
+            chosen, chosen_d = action, d
+    return chosen
+
+
 def test_the_worlds_agree_byte_for_byte():
     """The generator: the reference's world and the host's world are the same bytes."""
     world = 32
     params = params_for(world)
     rounds = [Round(seed, params) for seed in (1, 2, 3)]
-    batch = make_batch("beacons", num_envs=3, rows=1, device="cpu", seed=0)
+    batch = make_batch(
+        "beacons", num_envs=3, rows=1, device="cpu", seed=0,
+        params={"world_w": world, "world_h": world},
+    )
     # The batch's worlds are grown from the seeds it was given.
     batch.reset(np.array([1, 2, 3], dtype=np.uint64))
     encoded = batch.world_bytes()
@@ -241,23 +286,27 @@ def test_the_rewards_agree():
 def test_the_game_actually_plays():
     """A sanity floor: the port is not a game that stands still.
 
-    A hundred rounds of random legal play, on the CPU: the agents move, some
-    get tagged, and the beacons change hands. Without this the equality gate
+    Random legal play, on the Python reference: the agents walk, some get
+    tagged, and the beacons change hands. Without this the equality gate
     could pass on a simulator that does nothing.
+
+    The horizon is long on purpose. The motor moves `speed_upt` (136) units
+    a tick and a cell is 2048 units, so an agent crosses one cell every
+    fifteen ticks -- and a round of eight agents is eight steps a tick. The
+    squads start twenty-seven cells apart, so they need about four hundred
+    ticks, which is three thousand two hundred steps, before they can meet.
     """
     params = params_for(32)
+    steps = 4000
     moved = 0
     tagged = 0
     held = 0
-    for seed in range(1, 21):
+    rounds = 6
+    for seed in range(1, rounds + 1):
         round_ = Round(seed, params)
         start = [(x, y) for x, y in zip(round_.state.pos_x, round_.state.pos_y)]
-        rng = np.random.default_rng(seed)
-        for _ in range(200):
-            mask = round_.mask()
-            choices = [i for i, ok in enumerate(mask) if ok]
-            action = int(rng.choice(choices))
-            round_.step(action)
+        for _ in range(steps):
+            round_.step(_greedy_action(round_))
         end = [(x, y) for x, y in zip(round_.state.pos_x, round_.state.pos_y)]
         if start != end:
             moved += 1
@@ -265,6 +314,6 @@ def test_the_game_actually_plays():
             tagged += 1
         if any(h >= 0 for h in round_.state.holders):
             held += 1
-    assert moved >= 15, f"only {moved} of 20 rounds moved"
+    assert moved >= rounds - 1, f"only {moved} of {rounds} rounds moved"
     assert tagged >= 1, "no agent was ever tagged"
     assert held >= 1, "no beacon was ever held"

@@ -52,7 +52,7 @@ BS_HD inline int32_t dir_x(uint32_t action) {
 
 BS_HD inline int32_t dir_y(uint32_t action) {
     switch (action) {
-        case 1: case 2: return -1;           // north, north east
+        case 1: case 2: case 8: return -1;  // north, north east, north west
         case 4: case 5: case 6: return 1;    // south east, south, south west
         default: return 0;                   // hold, east, west
     }
@@ -602,9 +602,11 @@ struct ByteWriter {
 };
 
 BS_HD inline uint32_t state_serial_size(const BeaconParams& p) {
-    // The header, the scores, the holders and the agents.
-    return 4 + 4 + 4 + 1 + 1 + 1 + 4 + 4 * (uint32_t)p.squads +
-           (uint32_t)p.num_beacons + 26 * (uint32_t)(p.squads * p.squad_size);
+    // The header (tick, turn, num_agents, outcome, winner, last_reward: 18
+    // bytes), the scores, the holders, and 27 bytes an agent (squad, id,
+    // stunned, stunned_until, pos_x, pos_y).
+    return 18 + 4 * (uint32_t)p.squads + (uint32_t)p.num_beacons +
+           27 * (uint32_t)(p.squads * p.squad_size);
 }
 
 BS_HD inline uint32_t world_serial_size(const BeaconParams& p) {
