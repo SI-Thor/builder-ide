@@ -12,7 +12,7 @@ instead of inventing a proxy:
 | error bursts | the world | **yes** | ``judge.verdict`` rows flagged ``refused`` |
 | rule violations | per agent | **no** | nothing writes a violation to the ledger |
 | spend per productive decision | per agent | **partly** | the cost fields; thor-admit books no world label |
-| build drift | a branch | **no** | the ledger has no branch head and no constraint set |
+| build drift | a branch | **partly** | a ``BoardManifest`` (``core/precedent``) is the ratified scope; the world writes no ``drift.build_drift`` rows yet |
 
 **Two corrections to §3.4, made here because the data says so.**
 
@@ -38,8 +38,9 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Mapping, Sequence
 
+from ..precedent import BoardManifest
 from .config import DriftConfig
 from .ledger import WorldSeries
 
@@ -422,26 +423,49 @@ class BuildDriftSignal(Signal):
     """**Build drift** — a branch head that no longer satisfies its
     ratified scope.
 
-    **The world ledger cannot carry this.** Build drift is a canon-side
-    property: ``core/recipe/store.py`` holds the branch heads and
-    ``core/recipe/constraints.py`` holds the ratified scope, and the
-    world does not commit to the canon yet — the world's ledger has no
-    branch and no constraint set.
+    **The ratified scope is a ``BoardManifest``** (``core/precedent``:
+    the board's active cases and scope keys), and this signal reads it.
+    A build drifts when the scope keys it commits under are not all
+    ratified, or when the manifest it was validated against is not the
+    manifest in force — a head checked against another board's scope is
+    drift whatever its keys say. Without a manifest there is nothing to
+    read: the world ledger carries neither branch heads nor constraint
+    sets, and the signal says so instead of inventing a proxy.
 
-    The signal is here so that the six are named in one place, and so
-    that the seam is visible: the detector reads ``drift.build_drift``
-    events when the world starts writing them.
+    The events are the seam. The world writes ``drift.build_drift`` rows
+    (``core/drift/ledger.py: build_drift_events`` — payload ``branch``,
+    ``keys``, ``manifest``) and this signal scores them against the
+    manifest. Nothing writes them today, so a manifest with no events is
+    computable and silent: the honest state of the seam.
+
+    The value is a **rate**, as every signal is: the fraction of the
+    head's keys outside the ratified scope (1.0 for a stale manifest).
     """
 
     name = "build"
     title = "build drift"
     scope = "branch"
-    computable = False
-    reason = (
-        "the world ledger has no branch head and no constraint set; build "
-        "drift is a canon-side property (core/recipe) and the world does "
-        "not commit to the canon"
-    )
+
+    def __init__(
+        self,
+        manifest: BoardManifest | None = None,
+        events: Sequence[Mapping[str, object]] | None = None,
+    ) -> None:
+        #: The ratified scope this signal reads. ``None`` = the seam, as
+        #: v1 had it: named, not computable, nothing feeding it.
+        self.manifest = manifest
+        #: Rows from ``core/drift/ledger.py: build_drift_events``.
+        self.events: list[Mapping[str, object]] = list(events or [])
+        self.computable = manifest is not None
+        self.reason = (
+            ""
+            if manifest is not None
+            else (
+                "no BoardManifest supplied: build drift compares a branch "
+                "head's keys against the board's ratified scope, and the "
+                "world ledger has neither branch heads nor a scope"
+            )
+        )
 
     def compute(
         self,
@@ -449,16 +473,48 @@ class BuildDriftSignal(Signal):
         config: DriftConfig,
         reference: tuple[float, float],
     ) -> list[SignalPoint]:
-        return []
+        if self.manifest is None:
+            return []
+        ratified = self.manifest.ratified_keys()
+        current = self.manifest.fingerprint()
+        points: list[SignalPoint] = []
+        ordered = sorted(
+            self.events,
+            key=lambda e: (float(e["at"]), str(e.get("branch") or "")),
+        )
+        for event in ordered:
+            keys = [str(k) for k in (event.get("keys") or [])]
+            if not keys:
+                # A head that declares no scope: nothing to compare,
+                # and nothing to say.
+                value: float | None = None
+            elif event.get("manifest") not in (None, current):
+                value = 1.0
+            else:
+                outside = [k for k in keys if k not in ratified]
+                value = len(outside) / len(keys)
+            points.append(
+                SignalPoint(
+                    float(event["at"]), str(event.get("branch") or ""), value
+                )
+            )
+        return points
 
 
-def build_signals() -> list[Signal]:
-    """All six signals, in the order §3.4 names them."""
+def build_signals(
+    manifest: BoardManifest | None = None,
+    build_events: Sequence[Mapping[str, object]] | None = None,
+) -> list[Signal]:
+    """All six signals, in the order §3.4 names them.
+
+    ``manifest`` and ``build_events`` feed the build-drift signal only;
+    without a manifest it stays the seam it was — named, not computable.
+    """
     return [
         StallSignal(),
         SuccessSignal(),
         ErrorSignal(),
         ViolationSignal(),
         SpendSignal(),
-        BuildDriftSignal(),
+        BuildDriftSignal(manifest=manifest, events=build_events),
     ]

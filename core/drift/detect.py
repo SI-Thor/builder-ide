@@ -18,8 +18,10 @@ than useless. One occurrence escalates immediately.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
+from ..precedent import BoardManifest
 from .config import DriftConfig
 from .gate import HYBRID, LEVEL, RATE, DriftGate, GateMode, GateResult, HybridGate
 from .ledger import WorldSeries
@@ -88,10 +90,19 @@ class DriftDetector:
         config: DriftConfig | None = None,
         *,
         mode: GateMode = RATE,
+        manifest: BoardManifest | None = None,
+        build_events: Sequence[Mapping[str, object]] | None = None,
     ) -> None:
+        """With a ``manifest`` the build-drift signal becomes computable:
+        it reads the board's ratified scope (``core/precedent``) and
+        scores ``drift.build_drift`` rows (``build_events``) against it.
+        Without one, every signal here behaves exactly as it did.
+        """
         self.config = config or DriftConfig()
         self.mode = mode
-        self.signals: list[Signal] = build_signals()
+        self.signals: list[Signal] = build_signals(
+            manifest=manifest, build_events=build_events
+        )
 
     # -- the run ---------------------------------------------------------------
 

@@ -3399,3 +3399,76 @@ the env score is four 1000-frame episodes and is not deterministic; the
 students are weak by calibration, so gaps are directional; the first two
 attempts' 9-arm detail survives as summary lines (the agreement numbers
 are deterministic and agree across all three attempts).
+
+## 2026-11-02 04:31 — precedent-store round 2: the ledger a human can edit, rules as data, the board's scope in drift
+
+**What changed.** Everything the director's CONTINUE of 2026-11-02 asked
+for, on top of v1 (`dac910a`):
+
+- **markdown is the storage format** (`core/precedent/store.py`): one
+  case = one document (`- **Field:**` bullets, fenced `## Decision` /
+  `## Rationale` sections that out-fence their content), `as_markdown` /
+  `from_markdown`, `parse_precedents` (a whole file, in order),
+  `save_markdown`/`load_markdown` (one file) and `save_files`/`load_files`
+  (one `.md` per case). Prose before the first section is ignored so a
+  human can leave a note; `None` round-trips as absent; a typo'd field
+  name is an error; `Precedent.hash()` is recomputed from content, never
+  embedded (an embedded hash would turn a human's edit into a bug).
+- **rules as data** (`core/precedent/rules.py`, `seeds.py`): `Rule(key,
+  text, effect: allow|deny|ask_human, hard, source)`. 22 seeded rows —
+  9 from the permission ladder (docs/design/vibecode-in-world.md §1.4),
+  6 from agent-world's no-grief promises (humanity.js,
+  BRIEF-playable.md §2), 7 hard (ibid. §3.1) — 18 hard deny, 4 soft
+  allow. Only a deny may be hard; a hard rule is never waived, not even
+  by a precedent's `rule_override`; a soft one is. Plus 2 seeded
+  precedents (`seed-human-request` allow, `seed-kid-apply` ask).
+- **the validator** (`validator.py`): the documented order (hard-deny >
+  deny precedent > deny rule > ask precedent > ask rule > allow
+  precedent > allow rule > **ASK_HUMAN**). Nothing matching is a
+  verdict: ask a human, never silent acceptance (BRIEF-playable §2).
+- **determinism**: `Verdict.canonical()` / `digest()`; sorted lists
+  everywhere, so key order, insertion order, a markdown round-trip and
+  even a fresh interpreter reproduce the same bytes
+  (`tests/precedent/test_verdict_determinism.py`).
+- **the BoardManifest** (`manifest.py`): projects the board's active
+  case ids + ratified scope keys; `fingerprint()` hashes content, not
+  the creation time; `save`/`load` round-trip markdown a human can widen
+  by hand (the widened file is the new truth on load).
+- **core/drift**: `BuildDriftSignal(manifest, events)` is computable
+  with a manifest — scores `drift.build_drift` rows against the ratified
+  scope (1.0 for a head validated against another board's manifest);
+  `build_drift_events()` reads those rows (none exist yet: the seam is
+  defined and tested, not fed). Without a manifest it is exactly the v1
+  seam (named, not computable, reason why).
+- **docs**: `docs/lab/exp-precedent-store.md` (with the numbers) and
+  `docs/lab/precedent-store-scripts/measure_verdict.py` + README.
+
+**The numbers.** 22 rule rows, 2 precedents; the 13 seed scenarios
+decide as the design note says. A verdict costs **4.2 us at p50**
+(p90 4.7, p99 5.0; max 428.8 incl. first-call warmup) over 20,000 mixed
+verdicts in one process (thor-admit `precedent-store.latency`, peak RSS
+17.6M). Two fresh interpreters reproduce the same digests.
+
+**Tests.** 145 pass in `tests/precedent tests/drift` (75 are v1's,
+untouched — the interface it promises `community-loop` is unchanged).
+Full tree under `thor-admit` (`precedent-store.round2`, peak RSS
+303.8M): 1973 pass, 26 fail, 7 collect errors — **all 26 failures and
+the 7 errors pre-existing**: verified identical (26 fail) at pristine
+HEAD in a temp worktree for `tests/genbatch`, and the errors are missing
+`mujoco`/`pxr` plus two basename collisions that exist before this
+round. One collision was mine to fix: renamed to `test_board_manifest.py`
+and `test_verdict_determinism.py` so this round adds no new ones.
+
+**A dead end, recorded so the next seat walks around it:** piping a
+heredoc into `ssh -n "cat > file"` writes an **empty file** (`-n` sets
+stdin to /dev/null — no error). Every file below was rewritten and its
+byte count checked; the suite is what proves they are whole. Also:
+`thor-admit` lives at `~/lm-tools/thor-admit` (not on the ssh PATH), and
+it takes `--label`, not bare `label`.
+
+**What is left.** Nothing the brief asked for. Standing caveats: nothing
+writes `drift.build_drift` rows or persists a `BoardManifest` yet (the
+seam is defined, tested against fixtures, not fed); latency was measured
+at 2 precedents / 22 rules and `match()` sorts its matches, so a large
+ledger is a question, not a measurement; timings are one machine, one
+process, no CPU pinning.
