@@ -1,0 +1,5034 @@
+{
+ "params": {
+  "out_age_s": 2700,
+  "mem_low_gb": 25.0,
+  "disk_low_gb": 30.0,
+  "mem_rate_gb_min": 3.0,
+  "mem_rate_window_s": 600,
+  "disk_rate_gb_h": 10.0,
+  "disk_rate_window_s": 900,
+  "api_burst_n": 2,
+  "api_burst_window_s": 300,
+  "client_lost_n": 2,
+  "client_lost_window_s": 300,
+  "wifi_aborts_5min": 20,
+  "wifi_window_s": 300,
+  "queue_growth": 3,
+  "queue_window_s": 600,
+  "queue_headroom_gb": 50.0,
+  "telemetry_dark_s": 120,
+  "hold_s": 30
+ },
+ "window": {
+  "start": "2026-11-01 00:00:00",
+  "end": "2026-11-01 16:05:00"
+ },
+ "gates": {
+  "a": {
+   "label": "level",
+   "events": [
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "ears",
+     "value": 3458.9,
+     "alive": false,
+     "say": "seat ears has produced no output for 3459 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "voice",
+     "value": 3423.1,
+     "alive": false,
+     "say": "seat voice has produced no output for 3423 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "realizer",
+     "value": 3361.2,
+     "alive": false,
+     "say": "seat realizer has produced no output for 3361 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "voxeval",
+     "value": 3360.6,
+     "alive": false,
+     "say": "seat voxeval has produced no output for 3361 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "voxcore",
+     "value": 3345.4,
+     "alive": false,
+     "say": "seat voxcore has produced no output for 3345 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "esctune",
+     "value": 3337.7,
+     "alive": false,
+     "say": "seat esctune has produced no output for 3338 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "voxe4b",
+     "value": 3326.1,
+     "alive": false,
+     "say": "seat voxe4b has produced no output for 3326 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "models",
+     "value": 3321.6,
+     "alive": false,
+     "say": "seat models has produced no output for 3322 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "nuggets",
+     "value": 3295.3,
+     "alive": false,
+     "say": "seat nuggets has produced no output for 3295 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "licences",
+     "value": 3291.6,
+     "alive": false,
+     "say": "seat licences has produced no output for 3292 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "glimmer-dl",
+     "value": 3275.0,
+     "alive": false,
+     "say": "seat glimmer-dl has produced no output for 3275 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "nuggetsz",
+     "value": 3272.8,
+     "alive": false,
+     "say": "seat nuggetsz has produced no output for 3273 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "urgent",
+     "value": 3242.9,
+     "alive": false,
+     "say": "seat urgent has produced no output for 3243 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "licglimmer",
+     "value": 3223.0,
+     "alive": false,
+     "say": "seat licglimmer has produced no output for 3223 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "marks",
+     "value": 3204.9,
+     "alive": false,
+     "say": "seat marks has produced no output for 3205 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "npcwords",
+     "value": 3196.0,
+     "alive": false,
+     "say": "seat npcwords has produced no output for 3196 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "doclinks",
+     "value": 3138.8,
+     "alive": false,
+     "say": "seat doclinks has produced no output for 3139 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "surprise",
+     "value": 3130.0,
+     "alive": false,
+     "say": "seat surprise has produced no output for 3130 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "batched",
+     "value": 3094.4,
+     "alive": false,
+     "say": "seat batched has produced no output for 3094 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "refusals",
+     "value": 3055.0,
+     "alive": false,
+     "say": "seat refusals has produced no output for 3055 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "engage",
+     "value": 3047.1,
+     "alive": false,
+     "say": "seat engage has produced no output for 3047 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "soak",
+     "value": 3036.2,
+     "alive": false,
+     "say": "seat soak has produced no output for 3036 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "voxsmooth",
+     "value": 2984.4,
+     "alive": false,
+     "say": "seat voxsmooth has produced no output for 2984 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "seedfarm",
+     "value": 2964.0,
+     "alive": false,
+     "say": "seat seedfarm has produced no output for 2964 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "res-mig",
+     "value": 2951.9,
+     "alive": false,
+     "say": "seat res-mig has produced no output for 2952 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "resdec",
+     "value": 2842.7,
+     "alive": false,
+     "say": "seat resdec has produced no output for 2843 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "res-prior",
+     "value": 2839.3,
+     "alive": false,
+     "say": "seat res-prior has produced no output for 2839 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "resde",
+     "value": 2710.1,
+     "alive": false,
+     "say": "seat resde has produced no output for 2710 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "reslucineer",
+     "value": 2708.9,
+     "alive": false,
+     "say": "seat reslucineer has produced no output for 2709 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "persona",
+     "value": 2706.5,
+     "alive": true,
+     "say": "seat persona has produced no output for 2706 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "qcache",
+     "value": 2706.5,
+     "alive": true,
+     "say": "seat qcache has produced no output for 2706 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "res-eden",
+     "value": 2677.8,
+     "alive": false,
+     "say": "seat res-eden has produced no output for 2678 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "paint",
+     "value": 2363.5,
+     "alive": false,
+     "say": "seat paint has produced no output for 2363 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "sharedtarget",
+     "value": 2340.1,
+     "alive": false,
+     "say": "seat sharedtarget has produced no output for 2340 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "conform",
+     "value": 2287.8,
+     "alive": false,
+     "say": "seat conform has produced no output for 2288 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "decomp",
+     "value": 2234.2,
+     "alive": false,
+     "say": "seat decomp has produced no output for 2234 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "painteff",
+     "value": 2229.2,
+     "alive": false,
+     "say": "seat painteff has produced no output for 2229 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "rlspike",
+     "value": 2202.1,
+     "alive": false,
+     "say": "seat rlspike has produced no output for 2202 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "hotzone",
+     "value": 2154.2,
+     "alive": false,
+     "say": "seat hotzone has produced no output for 2154 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "conform2",
+     "value": 2118.1,
+     "alive": false,
+     "say": "seat conform2 has produced no output for 2118 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "decomp2",
+     "value": 1991.8,
+     "alive": false,
+     "say": "seat decomp2 has produced no output for 1992 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "docsync",
+     "value": 1917.1,
+     "alive": false,
+     "say": "seat docsync has produced no output for 1917 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "vibe",
+     "value": 1910.0,
+     "alive": false,
+     "say": "seat vibe has produced no output for 1910 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "paintpres",
+     "value": 1902.5,
+     "alive": false,
+     "say": "seat paintpres has produced no output for 1902 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "qcache2",
+     "value": 1899.6,
+     "alive": false,
+     "say": "seat qcache2 has produced no output for 1900 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "hotzone2",
+     "value": 1874.4,
+     "alive": false,
+     "say": "seat hotzone2 has produced no output for 1874 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "kidwords",
+     "value": 1864.8,
+     "alive": false,
+     "say": "seat kidwords has produced no output for 1865 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "paintpres2",
+     "value": 1850.6,
+     "alive": false,
+     "say": "seat paintpres2 has produced no output for 1851 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "vibe2",
+     "value": 1820.8,
+     "alive": false,
+     "say": "seat vibe2 has produced no output for 1821 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "kidwords2",
+     "value": 1797.9,
+     "alive": false,
+     "say": "seat kidwords2 has produced no output for 1798 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "persona2",
+     "value": 1795.2,
+     "alive": false,
+     "say": "seat persona2 has produced no output for 1795 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "look",
+     "value": 1788.6,
+     "alive": false,
+     "say": "seat look has produced no output for 1789 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "tagscore",
+     "value": 1754.1,
+     "alive": false,
+     "say": "seat tagscore has produced no output for 1754 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "vibe3",
+     "value": 1741.6,
+     "alive": false,
+     "say": "seat vibe3 has produced no output for 1742 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "hotzone3",
+     "value": 1715.5,
+     "alive": false,
+     "say": "seat hotzone3 has produced no output for 1715 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "escjudge",
+     "value": 1712.4,
+     "alive": false,
+     "say": "seat escjudge has produced no output for 1712 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "look2",
+     "value": 1692.1,
+     "alive": true,
+     "say": "seat look2 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lockstep",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat lockstep has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "vibe4",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat vibe4 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "integrate",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat integrate has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "tagscore2",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat tagscore2 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "qcache3",
+     "value": 1691.7,
+     "alive": true,
+     "say": "seat qcache3 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "skald-prod",
+     "value": 1648.0,
+     "alive": false,
+     "say": "seat skald-prod has produced no output for 1648 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "ux-day",
+     "value": 1551.5,
+     "alive": false,
+     "say": "seat ux-day has produced no output for 1551 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "res-cad",
+     "value": 1543.0,
+     "alive": false,
+     "say": "seat res-cad has produced no output for 1543 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "ux-trust",
+     "value": 1540.7,
+     "alive": false,
+     "say": "seat ux-trust has produced no output for 1541 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "res-3d",
+     "value": 1538.4,
+     "alive": false,
+     "say": "seat res-3d has produced no output for 1538 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "split",
+     "value": 1529.8,
+     "alive": false,
+     "say": "seat split has produced no output for 1530 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "rev-ux",
+     "value": 1528.9,
+     "alive": false,
+     "say": "seat rev-ux has produced no output for 1529 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "spec-core",
+     "value": 1528.3,
+     "alive": false,
+     "say": "seat spec-core has produced no output for 1528 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "rev-tech",
+     "value": 1526.3,
+     "alive": false,
+     "say": "seat rev-tech has produced no output for 1526 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "bakeoff",
+     "value": 1521.0,
+     "alive": false,
+     "say": "seat bakeoff has produced no output for 1521 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "gaps",
+     "value": 1519.4,
+     "alive": false,
+     "say": "seat gaps has produced no output for 1519 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "rev-spec",
+     "value": 1518.7,
+     "alive": false,
+     "say": "seat rev-spec has produced no output for 1519 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "synth-p",
+     "value": 1509.1,
+     "alive": false,
+     "say": "seat synth-p has produced no output for 1509 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "landscape",
+     "value": 1507.0,
+     "alive": false,
+     "say": "seat landscape has produced no output for 1507 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "spec-v2",
+     "value": 1505.8,
+     "alive": false,
+     "say": "seat spec-v2 has produced no output for 1506 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "synth-u",
+     "value": 1501.5,
+     "alive": false,
+     "say": "seat synth-u has produced no output for 1502 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "cogeco",
+     "value": 1498.8,
+     "alive": false,
+     "say": "seat cogeco has produced no output for 1499 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "core-recipe",
+     "value": 1488.6,
+     "alive": false,
+     "say": "seat core-recipe has produced no output for 1489 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab1",
+     "value": 1486.9,
+     "alive": false,
+     "say": "seat lab1 has produced no output for 1487 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "vocab",
+     "value": 1481.2,
+     "alive": false,
+     "say": "seat vocab has produced no output for 1481 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "why-kernel",
+     "value": 1479.3,
+     "alive": false,
+     "say": "seat why-kernel has produced no output for 1479 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "cold-start",
+     "value": 1446.2,
+     "alive": false,
+     "say": "seat cold-start has produced no output for 1446 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "usd-backbone",
+     "value": 1441.5,
+     "alive": false,
+     "say": "seat usd-backbone has produced no output for 1442 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "forks",
+     "value": 1435.0,
+     "alive": false,
+     "say": "seat forks has produced no output for 1435 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "night-runner",
+     "value": 1432.7,
+     "alive": false,
+     "say": "seat night-runner has produced no output for 1433 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab2",
+     "value": 1425.4,
+     "alive": false,
+     "say": "seat lab2 has produced no output for 1425 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "core-api",
+     "value": 1422.0,
+     "alive": false,
+     "say": "seat core-api has produced no output for 1422 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "maquette",
+     "value": 1391.3,
+     "alive": false,
+     "say": "seat maquette has produced no output for 1391 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "m1-acceptance",
+     "value": 1387.7,
+     "alive": false,
+     "say": "seat m1-acceptance has produced no output for 1388 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "melt-week",
+     "value": 1344.8,
+     "alive": false,
+     "say": "seat melt-week has produced no output for 1345 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "integrate-core",
+     "value": 1301.7,
+     "alive": false,
+     "say": "seat integrate-core has produced no output for 1302 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "ig2",
+     "value": 1293.0,
+     "alive": false,
+     "say": "seat ig2 has produced no output for 1293 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "plan-v2",
+     "value": 1271.1,
+     "alive": false,
+     "say": "seat plan-v2 has produced no output for 1271 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "m1-real",
+     "value": 1250.8,
+     "alive": false,
+     "say": "seat m1-real has produced no output for 1251 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "v2-thor",
+     "value": 1237.5,
+     "alive": false,
+     "say": "seat v2-thor has produced no output for 1238 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "trellis",
+     "value": 1223.6,
+     "alive": false,
+     "say": "seat trellis has produced no output for 1224 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab3",
+     "value": 1219.0,
+     "alive": false,
+     "say": "seat lab3 has produced no output for 1219 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "harvest",
+     "value": 1217.0,
+     "alive": false,
+     "say": "seat harvest has produced no output for 1217 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "engine-adapter",
+     "value": 1204.7,
+     "alive": false,
+     "say": "seat engine-adapter has produced no output for 1205 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "warm-scene",
+     "value": 1202.6,
+     "alive": false,
+     "say": "seat warm-scene has produced no output for 1203 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "ig-spike",
+     "value": 1147.2,
+     "alive": false,
+     "say": "seat ig-spike has produced no output for 1147 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "render-rung",
+     "value": 1137.1,
+     "alive": false,
+     "say": "seat render-rung has produced no output for 1137 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "scene-server",
+     "value": 1088.9,
+     "alive": false,
+     "say": "seat scene-server has produced no output for 1089 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "propmaker-batch",
+     "value": 1030.1,
+     "alive": false,
+     "say": "seat propmaker-batch has produced no output for 1030 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "v2-next",
+     "value": 1013.6,
+     "alive": false,
+     "say": "seat v2-next has produced no output for 1014 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "night-budget",
+     "value": 963.4,
+     "alive": false,
+     "say": "seat night-budget has produced no output for 963 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab4",
+     "value": 960.8,
+     "alive": false,
+     "say": "seat lab4 has produced no output for 961 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "stage-cache",
+     "value": 958.0,
+     "alive": false,
+     "say": "seat stage-cache has produced no output for 958 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "cost-wiring",
+     "value": 920.9,
+     "alive": false,
+     "say": "seat cost-wiring has produced no output for 921 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "mesh-repair",
+     "value": 920.4,
+     "alive": false,
+     "say": "seat mesh-repair has produced no output for 920 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "honest-week",
+     "value": 916.5,
+     "alive": false,
+     "say": "seat honest-week has produced no output for 917 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "daytime-world",
+     "value": 915.8,
+     "alive": false,
+     "say": "seat daytime-world has produced no output for 916 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "mini-night2",
+     "value": 826.3,
+     "alive": false,
+     "say": "seat mini-night2 has produced no output for 826 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "critic-calib",
+     "value": 797.4,
+     "alive": false,
+     "say": "seat critic-calib has produced no output for 797 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "engine-r3",
+     "value": 737.4,
+     "alive": false,
+     "say": "seat engine-r3 has produced no output for 737 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab5",
+     "value": 682.0,
+     "alive": false,
+     "say": "seat lab5 has produced no output for 682 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "tiles",
+     "value": 675.4,
+     "alive": false,
+     "say": "seat tiles has produced no output for 675 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab-motion",
+     "value": 666.5,
+     "alive": true,
+     "say": "seat lab-motion has produced no output for 667 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "core-doors",
+     "value": 622.2,
+     "alive": false,
+     "say": "seat core-doors has produced no output for 622 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "world-mcp",
+     "value": 583.4,
+     "alive": false,
+     "say": "seat world-mcp has produced no output for 583 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "liquid-study",
+     "value": 577.5,
+     "alive": false,
+     "say": "seat liquid-study has produced no output for 578 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "pi-viewer-test",
+     "value": 526.2,
+     "alive": false,
+     "say": "seat pi-viewer-test has produced no output for 526 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "core-judge",
+     "value": 499.5,
+     "alive": false,
+     "say": "seat core-judge has produced no output for 499 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "fp8-real",
+     "value": 475.4,
+     "alive": false,
+     "say": "seat fp8-real has produced no output for 475 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "hysteresis-d1",
+     "value": 463.0,
+     "alive": false,
+     "say": "seat hysteresis-d1 has produced no output for 463 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab-fp4",
+     "value": 457.7,
+     "alive": false,
+     "say": "seat lab-fp4 has produced no output for 458 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "seedbank",
+     "value": 445.2,
+     "alive": false,
+     "say": "seat seedbank has produced no output for 445 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "clef-cascade",
+     "value": 412.4,
+     "alive": false,
+     "say": "seat clef-cascade has produced no output for 412 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "critic-select",
+     "value": 403.7,
+     "alive": false,
+     "say": "seat critic-select has produced no output for 404 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "pi-never-wait",
+     "value": 403.4,
+     "alive": false,
+     "say": "seat pi-never-wait has produced no output for 403 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "tiles-retrieval",
+     "value": 392.1,
+     "alive": false,
+     "say": "seat tiles-retrieval has produced no output for 392 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab-cascade",
+     "value": 391.5,
+     "alive": false,
+     "say": "seat lab-cascade has produced no output for 392 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "ct-thor",
+     "value": 375.7,
+     "alive": false,
+     "say": "seat ct-thor has produced no output for 376 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "judge-fixes",
+     "value": 310.9,
+     "alive": false,
+     "say": "seat judge-fixes has produced no output for 311 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "world-stream",
+     "value": 198.9,
+     "alive": false,
+     "say": "seat world-stream has produced no output for 199 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "missionB-mcode",
+     "value": 103.0,
+     "alive": false,
+     "say": "seat missionB-mcode has produced no output for 103 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520452.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "thor-fp4",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat thor-fp4 has produced no output for 46 min",
+     "time": "2026-11-01 00:07:32"
+    },
+    {
+     "t": 1793531255.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "judge-calibration",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat judge-calibration has produced no output for 46 min",
+     "time": "2026-11-01 02:07:35"
+    },
+    {
+     "t": 1793532185.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "critic-delegate",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat critic-delegate has produced no output for 46 min",
+     "time": "2026-11-01 02:23:05"
+    },
+    {
+     "t": 1793534083.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "simready-survey",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat simready-survey has produced no output for 46 min",
+     "time": "2026-11-01 02:54:43"
+    },
+    {
+     "t": 1793535146.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "seed-oss-fp4",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat seed-oss-fp4 has produced no output for 46 min",
+     "time": "2026-11-01 03:12:26"
+    },
+    {
+     "t": 1793536449.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "ecology-device",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat ecology-device has produced no output for 46 min",
+     "time": "2026-11-01 03:34:09"
+    },
+    {
+     "t": 1793544128.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "missionB-zcode",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat missionB-zcode has produced no output for 46 min",
+     "time": "2026-11-01 05:42:08"
+    },
+    {
+     "t": 1793544267.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "first-mile",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat first-mile has produced no output for 46 min",
+     "time": "2026-11-01 05:44:27"
+    },
+    {
+     "t": 1793553217.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "critic-shells",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat critic-shells has produced no output for 46 min",
+     "time": "2026-11-01 08:13:37"
+    },
+    {
+     "t": 1793553966.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "judge-reversed-replay",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat judge-reversed-replay has produced no output for 46 min",
+     "time": "2026-11-01 08:26:06"
+    },
+    {
+     "t": 1793555567.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "xp-batch",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat xp-batch has produced no output for 46 min",
+     "time": "2026-11-01 08:52:47"
+    },
+    {
+     "t": 1793555987.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "missionA-mcode",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat missionA-mcode has produced no output for 46 min",
+     "time": "2026-11-01 08:59:47"
+    },
+    {
+     "t": 1793556165.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "agent-world",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat agent-world has produced no output for 46 min",
+     "time": "2026-11-01 09:02:45"
+    },
+    {
+     "t": 1793557010.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "cad-bakeoff",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat cad-bakeoff has produced no output for 46 min",
+     "time": "2026-11-01 09:16:50"
+    },
+    {
+     "t": 1793557229.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "judge-prompt-fix",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat judge-prompt-fix has produced no output for 46 min",
+     "time": "2026-11-01 09:20:29"
+    },
+    {
+     "t": 1793558734.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "night-v3",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat night-v3 has produced no output for 46 min",
+     "time": "2026-11-01 09:45:34"
+    },
+    {
+     "t": 1793559395.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "night-v3-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat night-v3-desk has produced no output for 46 min",
+     "time": "2026-11-01 09:56:35"
+    },
+    {
+     "t": 1793559479.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "missionA-zcode-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat missionA-zcode-desk has produced no output for 46 min",
+     "time": "2026-11-01 09:57:59"
+    },
+    {
+     "t": 1793559893.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "syzygy-keyframes-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat syzygy-keyframes-desk has produced no output for 46 min",
+     "time": "2026-11-01 10:04:53"
+    },
+    {
+     "t": 1793560249.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "cad-bakeoff-desk",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat cad-bakeoff-desk has produced no output for 46 min",
+     "time": "2026-11-01 10:10:49"
+    },
+    {
+     "t": 1793560582.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "missionA-zcode",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat missionA-zcode has produced no output for 46 min",
+     "time": "2026-11-01 10:16:22"
+    },
+    {
+     "t": 1793561813.0,
+     "gate": "a",
+     "cond": "box_memory_low",
+     "seat": null,
+     "value": 0.43,
+     "say": "the Thor has 0.4 GB of memory free (under the 25 GB floor)",
+     "time": "2026-11-01 10:36:53"
+    },
+    {
+     "t": 1793562561.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "judge-prompt-fix-desk",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat judge-prompt-fix-desk has produced no output for 46 min",
+     "time": "2026-11-01 10:49:21"
+    },
+    {
+     "t": 1793563377.0,
+     "gate": "a",
+     "cond": "box_memory_low",
+     "seat": null,
+     "value": 16.95,
+     "say": "the Thor has 17.0 GB of memory free (under the 25 GB floor)",
+     "time": "2026-11-01 11:02:57"
+    },
+    {
+     "t": 1793566374.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab-motion-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat lab-motion-desk has produced no output for 46 min",
+     "time": "2026-11-01 11:52:54"
+    },
+    {
+     "t": 1793567233.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "judge-recorder-fix-desk",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat judge-recorder-fix-desk has produced no output for 46 min",
+     "time": "2026-11-01 12:07:13"
+    },
+    {
+     "t": 1793568361.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "googl1-digest",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat googl1-digest has produced no output for 46 min",
+     "time": "2026-11-01 12:26:01"
+    },
+    {
+     "t": 1793570686.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab-cascade-desk",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat lab-cascade-desk has produced no output for 46 min",
+     "time": "2026-11-01 13:04:46"
+    },
+    {
+     "t": 1793571825.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "syzygy-keyframes",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat syzygy-keyframes has produced no output for 46 min",
+     "time": "2026-11-01 13:23:45"
+    },
+    {
+     "t": 1793573637.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "physag-lite",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat physag-lite has produced no output for 46 min",
+     "time": "2026-11-01 13:53:57"
+    },
+    {
+     "t": 1793573653.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "warp-infinigen",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat warp-infinigen has produced no output for 46 min",
+     "time": "2026-11-01 13:54:13"
+    },
+    {
+     "t": 1793573707.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "warp-infinigen-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat warp-infinigen-desk has produced no output for 46 min",
+     "time": "2026-11-01 13:55:07"
+    },
+    {
+     "t": 1793573738.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "thor-admit",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat thor-admit has produced no output for 46 min",
+     "time": "2026-11-01 13:55:38"
+    },
+    {
+     "t": 1793574050.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "coldshelf-bakeoff",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat coldshelf-bakeoff has produced no output for 46 min",
+     "time": "2026-11-01 14:00:50"
+    },
+    {
+     "t": 1793574050.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "scenebloom-eval",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat scenebloom-eval has produced no output for 46 min",
+     "time": "2026-11-01 14:00:50"
+    },
+    {
+     "t": 1793574195.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "physag-lite-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat physag-lite-desk has produced no output for 46 min",
+     "time": "2026-11-01 14:03:15"
+    },
+    {
+     "t": 1793576464.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "d1dec-native",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat d1dec-native has produced no output for 46 min",
+     "time": "2026-11-01 14:41:04"
+    },
+    {
+     "t": 1793576535.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "agent-world-reward-desk",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat agent-world-reward-desk has produced no output for 46 min",
+     "time": "2026-11-01 14:42:15"
+    },
+    {
+     "t": 1793577877.0,
+     "gate": "a",
+     "cond": "box_disk_low",
+     "seat": null,
+     "value": 29.0,
+     "say": "the Thor's disk has 29 GB free (under the 30 GB floor)",
+     "time": "2026-11-01 15:04:37"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "coldshelf-bakeoff-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat coldshelf-bakeoff-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "scenebloom-eval-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat scenebloom-eval-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "thor-admit-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat thor-admit-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793580572.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "thor-fp4-desk",
+     "value": 45.5,
+     "alive": false,
+     "say": "seat thor-fp4-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:49:32"
+    },
+    {
+     "t": 1793580643.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "night-v4-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat night-v4-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:50:43"
+    },
+    {
+     "t": 1793580703.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "posestream-net-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat posestream-net-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:51:43"
+    },
+    {
+     "t": 1793580827.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "crafter-lab-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat crafter-lab-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:53:47"
+    }
+   ]
+  },
+  "b": {
+   "label": "rate",
+   "events": [
+    {
+     "t": 1793528593.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 01:23:13"
+    },
+    {
+     "t": 1793528891.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 86 GB of memory stayed free",
+     "time": "2026-11-01 01:28:11"
+    },
+    {
+     "t": 1793529197.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 88 GB of memory stayed free",
+     "time": "2026-11-01 01:33:17"
+    },
+    {
+     "t": 1793529570.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 7 while 73 GB of memory stayed free",
+     "time": "2026-11-01 01:39:30"
+    },
+    {
+     "t": 1793530031.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 7 while 76 GB of memory stayed free",
+     "time": "2026-11-01 01:47:11"
+    },
+    {
+     "t": 1793530423.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 8 while 80 GB of memory stayed free",
+     "time": "2026-11-01 01:53:43"
+    },
+    {
+     "t": 1793532687.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 16 while 87 GB of memory stayed free",
+     "time": "2026-11-01 02:31:27"
+    },
+    {
+     "t": 1793536110.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 03:28:30"
+    },
+    {
+     "t": 1793539710.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 04:28:30"
+    },
+    {
+     "t": 1793544232.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 77 GB of memory stayed free",
+     "time": "2026-11-01 05:43:52"
+    },
+    {
+     "t": 1793544569.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 5 while 74 GB of memory stayed free",
+     "time": "2026-11-01 05:49:29"
+    },
+    {
+     "t": 1793544878.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 6 while 73 GB of memory stayed free",
+     "time": "2026-11-01 05:54:38"
+    },
+    {
+     "t": 1793546532.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 06:22:12"
+    },
+    {
+     "t": 1793546970.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:29:30"
+    },
+    {
+     "t": 1793547110.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 5 while 87 GB of memory stayed free",
+     "time": "2026-11-01 06:31:50"
+    },
+    {
+     "t": 1793547210.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:33:30"
+    },
+    {
+     "t": 1793547330.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:35:30"
+    },
+    {
+     "t": 1793547460.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.47,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 06:37:40"
+    },
+    {
+     "t": 1793547550.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 9,
+     "say": "the admission queue grew by 9 to 13 while 72 GB of memory stayed free",
+     "time": "2026-11-01 06:39:10"
+    },
+    {
+     "t": 1793548386.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 20 while 76 GB of memory stayed free",
+     "time": "2026-11-01 06:53:06"
+    },
+    {
+     "t": 1793549266.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 23 while 69 GB of memory stayed free",
+     "time": "2026-11-01 07:07:46"
+    },
+    {
+     "t": 1793549344.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 22 while 76 GB of memory stayed free",
+     "time": "2026-11-01 07:09:04"
+    },
+    {
+     "t": 1793551179.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 07:39:39"
+    },
+    {
+     "t": 1793554254.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 5 while 71 GB of memory stayed free",
+     "time": "2026-11-01 08:30:54"
+    },
+    {
+     "t": 1793554815.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 3,
+     "say": "3 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 08:40:15"
+    },
+    {
+     "t": 1793555787.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 08:56:27"
+    },
+    {
+     "t": 1793557798.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 97 GB of memory stayed free",
+     "time": "2026-11-01 09:29:58"
+    },
+    {
+     "t": 1793558055.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 98 GB of memory stayed free",
+     "time": "2026-11-01 09:34:15"
+    },
+    {
+     "t": 1793559462.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.14,
+     "say": "the Thor's free memory is falling at -3.1 GB/min (over 10 min)",
+     "time": "2026-11-01 09:57:42"
+    },
+    {
+     "t": 1793559539.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.47,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 09:58:59"
+    },
+    {
+     "t": 1793559551.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 4 while 66 GB of memory stayed free",
+     "time": "2026-11-01 09:59:11"
+    },
+    {
+     "t": 1793559890.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.44,
+     "say": "the Thor's free memory is falling at -3.4 GB/min (over 10 min)",
+     "time": "2026-11-01 10:04:50"
+    },
+    {
+     "t": 1793561242.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 8 while 75 GB of memory stayed free",
+     "time": "2026-11-01 10:27:22"
+    },
+    {
+     "t": 1793561632.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.28,
+     "say": "the Thor's free memory is falling at -3.3 GB/min (over 10 min)",
+     "time": "2026-11-01 10:33:52"
+    },
+    {
+     "t": 1793561813.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -7.51,
+     "say": "the Thor's free memory is falling at -7.5 GB/min (over 10 min)",
+     "time": "2026-11-01 10:36:53"
+    },
+    {
+     "t": 1793563377.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -69.72,
+     "say": "the Thor's free memory is falling at -69.7 GB/min (over 10 min)",
+     "time": "2026-11-01 11:02:57"
+    },
+    {
+     "t": 1793563706.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -5.1,
+     "say": "the Thor's free memory is falling at -5.1 GB/min (over 10 min)",
+     "time": "2026-11-01 11:08:26"
+    },
+    {
+     "t": 1793563929.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.01,
+     "say": "the Thor's free memory is falling at -3.0 GB/min (over 10 min)",
+     "time": "2026-11-01 11:12:09"
+    },
+    {
+     "t": 1793564057.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.12,
+     "say": "the Thor's free memory is falling at -3.1 GB/min (over 10 min)",
+     "time": "2026-11-01 11:14:17"
+    },
+    {
+     "t": 1793564493.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 11:21:33"
+    },
+    {
+     "t": 1793565719.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 11:41:59"
+    },
+    {
+     "t": 1793566291.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 4 while 77 GB of memory stayed free",
+     "time": "2026-11-01 11:51:31"
+    },
+    {
+     "t": 1793566350.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 11:52:30"
+    },
+    {
+     "t": 1793566471.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 5 while 77 GB of memory stayed free",
+     "time": "2026-11-01 11:54:31"
+    },
+    {
+     "t": 1793566890.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 12:01:30"
+    },
+    {
+     "t": 1793567234.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 10 while 79 GB of memory stayed free",
+     "time": "2026-11-01 12:07:14"
+    },
+    {
+     "t": 1793567298.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 11 while 79 GB of memory stayed free",
+     "time": "2026-11-01 12:08:18"
+    },
+    {
+     "t": 1793568031.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:20:31"
+    },
+    {
+     "t": 1793568273.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:24:33"
+    },
+    {
+     "t": 1793569123.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:38:43"
+    },
+    {
+     "t": 1793569678.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -4.11,
+     "say": "the Thor's free memory is falling at -4.1 GB/min (over 10 min)",
+     "time": "2026-11-01 12:47:58"
+    },
+    {
+     "t": 1793570070.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 21,
+     "say": "21 network driver aborts in the last 5 min",
+     "time": "2026-11-01 12:54:30"
+    },
+    {
+     "t": 1793570250.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 82 GB of memory stayed free",
+     "time": "2026-11-01 12:57:30"
+    },
+    {
+     "t": 1793570808.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:06:48"
+    },
+    {
+     "t": 1793571510.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 13:18:30"
+    },
+    {
+     "t": 1793571799.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 3,
+     "say": "3 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:23:19"
+    },
+    {
+     "t": 1793572387.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:33:07"
+    },
+    {
+     "t": 1793574389.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.26,
+     "say": "the Thor's free memory is falling at -3.3 GB/min (over 10 min)",
+     "time": "2026-11-01 14:06:29"
+    },
+    {
+     "t": 1793574759.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.48,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 14:12:39"
+    },
+    {
+     "t": 1793575290.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:21:30"
+    },
+    {
+     "t": 1793575363.0,
+     "gate": "b",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 14:22:43"
+    },
+    {
+     "t": 1793575650.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:27:30"
+    },
+    {
+     "t": 1793576010.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:33:30"
+    },
+    {
+     "t": 1793577815.0,
+     "gate": "b",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -29.0,
+     "say": "the Thor's free disk is falling at -29 GB/h",
+     "time": "2026-11-01 15:03:35"
+    },
+    {
+     "t": 1793579446.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 62 GB of memory stayed free",
+     "time": "2026-11-01 15:30:46"
+    },
+    {
+     "t": 1793579850.0,
+     "gate": "b",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -20.9,
+     "say": "the Thor's free disk is falling at -21 GB/h",
+     "time": "2026-11-01 15:37:30"
+    },
+    {
+     "t": 1793580030.0,
+     "gate": "b",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 15:40:30"
+    },
+    {
+     "t": 1793580300.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 85 GB of memory stayed free",
+     "time": "2026-11-01 15:45:00"
+    },
+    {
+     "t": 1793580705.0,
+     "gate": "b",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 64 GB of memory stayed free",
+     "time": "2026-11-01 15:51:45"
+    },
+    {
+     "t": 1793580809.0,
+     "gate": "b",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -4.45,
+     "say": "the Thor's free memory is falling at -4.5 GB/min (over 10 min)",
+     "time": "2026-11-01 15:53:29"
+    },
+    {
+     "t": 1793581319.0,
+     "gate": "b",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -53.2,
+     "say": "the Thor's free disk is falling at -53 GB/h",
+     "time": "2026-11-01 16:01:59"
+    }
+   ]
+  },
+  "ab": {
+   "label": "level+rate",
+   "events": [
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "persona",
+     "value": 2706.5,
+     "alive": true,
+     "say": "seat persona has produced no output for 2706 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "qcache",
+     "value": 2706.5,
+     "alive": true,
+     "say": "seat qcache has produced no output for 2706 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "look2",
+     "value": 1692.1,
+     "alive": true,
+     "say": "seat look2 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "lockstep",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat lockstep has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "vibe4",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat vibe4 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "integrate",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat integrate has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "tagscore2",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat tagscore2 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "qcache3",
+     "value": 1691.7,
+     "alive": true,
+     "say": "seat qcache3 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "lab-motion",
+     "value": 666.5,
+     "alive": true,
+     "say": "seat lab-motion has produced no output for 667 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793528593.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 01:23:13"
+    },
+    {
+     "t": 1793528891.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 86 GB of memory stayed free",
+     "time": "2026-11-01 01:28:11"
+    },
+    {
+     "t": 1793529197.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 88 GB of memory stayed free",
+     "time": "2026-11-01 01:33:17"
+    },
+    {
+     "t": 1793529570.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 7 while 73 GB of memory stayed free",
+     "time": "2026-11-01 01:39:30"
+    },
+    {
+     "t": 1793530031.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 7 while 76 GB of memory stayed free",
+     "time": "2026-11-01 01:47:11"
+    },
+    {
+     "t": 1793530423.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 8 while 80 GB of memory stayed free",
+     "time": "2026-11-01 01:53:43"
+    },
+    {
+     "t": 1793532687.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 16 while 87 GB of memory stayed free",
+     "time": "2026-11-01 02:31:27"
+    },
+    {
+     "t": 1793536110.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 03:28:30"
+    },
+    {
+     "t": 1793539710.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 04:28:30"
+    },
+    {
+     "t": 1793544232.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 77 GB of memory stayed free",
+     "time": "2026-11-01 05:43:52"
+    },
+    {
+     "t": 1793544569.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 5 while 74 GB of memory stayed free",
+     "time": "2026-11-01 05:49:29"
+    },
+    {
+     "t": 1793544878.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 6 while 73 GB of memory stayed free",
+     "time": "2026-11-01 05:54:38"
+    },
+    {
+     "t": 1793546532.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 06:22:12"
+    },
+    {
+     "t": 1793546970.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:29:30"
+    },
+    {
+     "t": 1793547110.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 5 while 87 GB of memory stayed free",
+     "time": "2026-11-01 06:31:50"
+    },
+    {
+     "t": 1793547210.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:33:30"
+    },
+    {
+     "t": 1793547330.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:35:30"
+    },
+    {
+     "t": 1793547460.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.47,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 06:37:40"
+    },
+    {
+     "t": 1793547550.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 9,
+     "say": "the admission queue grew by 9 to 13 while 72 GB of memory stayed free",
+     "time": "2026-11-01 06:39:10"
+    },
+    {
+     "t": 1793548386.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 20 while 76 GB of memory stayed free",
+     "time": "2026-11-01 06:53:06"
+    },
+    {
+     "t": 1793549266.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 23 while 69 GB of memory stayed free",
+     "time": "2026-11-01 07:07:46"
+    },
+    {
+     "t": 1793549344.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 22 while 76 GB of memory stayed free",
+     "time": "2026-11-01 07:09:04"
+    },
+    {
+     "t": 1793551179.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 07:39:39"
+    },
+    {
+     "t": 1793554254.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 5 while 71 GB of memory stayed free",
+     "time": "2026-11-01 08:30:54"
+    },
+    {
+     "t": 1793554815.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 3,
+     "say": "3 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 08:40:15"
+    },
+    {
+     "t": 1793555787.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 08:56:27"
+    },
+    {
+     "t": 1793557798.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 97 GB of memory stayed free",
+     "time": "2026-11-01 09:29:58"
+    },
+    {
+     "t": 1793558055.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 98 GB of memory stayed free",
+     "time": "2026-11-01 09:34:15"
+    },
+    {
+     "t": 1793559395.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "night-v3-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat night-v3-desk has produced no output for 46 min",
+     "time": "2026-11-01 09:56:35"
+    },
+    {
+     "t": 1793559462.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.14,
+     "say": "the Thor's free memory is falling at -3.1 GB/min (over 10 min)",
+     "time": "2026-11-01 09:57:42"
+    },
+    {
+     "t": 1793559479.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "missionA-zcode-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat missionA-zcode-desk has produced no output for 46 min",
+     "time": "2026-11-01 09:57:59"
+    },
+    {
+     "t": 1793559539.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.47,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 09:58:59"
+    },
+    {
+     "t": 1793559551.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 4 while 66 GB of memory stayed free",
+     "time": "2026-11-01 09:59:11"
+    },
+    {
+     "t": 1793559890.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.44,
+     "say": "the Thor's free memory is falling at -3.4 GB/min (over 10 min)",
+     "time": "2026-11-01 10:04:50"
+    },
+    {
+     "t": 1793559893.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "syzygy-keyframes-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat syzygy-keyframes-desk has produced no output for 46 min",
+     "time": "2026-11-01 10:04:53"
+    },
+    {
+     "t": 1793561242.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 8 while 75 GB of memory stayed free",
+     "time": "2026-11-01 10:27:22"
+    },
+    {
+     "t": 1793561632.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.28,
+     "say": "the Thor's free memory is falling at -3.3 GB/min (over 10 min)",
+     "time": "2026-11-01 10:33:52"
+    },
+    {
+     "t": 1793561813.0,
+     "gate": "ab",
+     "cond": "box_memory_low",
+     "seat": null,
+     "value": 0.43,
+     "say": "the Thor has 0.4 GB of memory free (under the 25 GB floor)",
+     "time": "2026-11-01 10:36:53"
+    },
+    {
+     "t": 1793561813.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -7.51,
+     "say": "the Thor's free memory is falling at -7.5 GB/min (over 10 min)",
+     "time": "2026-11-01 10:36:53"
+    },
+    {
+     "t": 1793563377.0,
+     "gate": "ab",
+     "cond": "box_memory_low",
+     "seat": null,
+     "value": 16.95,
+     "say": "the Thor has 17.0 GB of memory free (under the 25 GB floor)",
+     "time": "2026-11-01 11:02:57"
+    },
+    {
+     "t": 1793563377.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -69.72,
+     "say": "the Thor's free memory is falling at -69.7 GB/min (over 10 min)",
+     "time": "2026-11-01 11:02:57"
+    },
+    {
+     "t": 1793563706.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -5.1,
+     "say": "the Thor's free memory is falling at -5.1 GB/min (over 10 min)",
+     "time": "2026-11-01 11:08:26"
+    },
+    {
+     "t": 1793563929.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.01,
+     "say": "the Thor's free memory is falling at -3.0 GB/min (over 10 min)",
+     "time": "2026-11-01 11:12:09"
+    },
+    {
+     "t": 1793564057.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.12,
+     "say": "the Thor's free memory is falling at -3.1 GB/min (over 10 min)",
+     "time": "2026-11-01 11:14:17"
+    },
+    {
+     "t": 1793564493.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 11:21:33"
+    },
+    {
+     "t": 1793565719.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 11:41:59"
+    },
+    {
+     "t": 1793566291.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 4 while 77 GB of memory stayed free",
+     "time": "2026-11-01 11:51:31"
+    },
+    {
+     "t": 1793566350.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 11:52:30"
+    },
+    {
+     "t": 1793566374.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "lab-motion-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat lab-motion-desk has produced no output for 46 min",
+     "time": "2026-11-01 11:52:54"
+    },
+    {
+     "t": 1793566471.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 5 while 77 GB of memory stayed free",
+     "time": "2026-11-01 11:54:31"
+    },
+    {
+     "t": 1793566890.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 12:01:30"
+    },
+    {
+     "t": 1793567234.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 10 while 79 GB of memory stayed free",
+     "time": "2026-11-01 12:07:14"
+    },
+    {
+     "t": 1793567298.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 11 while 79 GB of memory stayed free",
+     "time": "2026-11-01 12:08:18"
+    },
+    {
+     "t": 1793568031.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:20:31"
+    },
+    {
+     "t": 1793568273.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:24:33"
+    },
+    {
+     "t": 1793569123.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:38:43"
+    },
+    {
+     "t": 1793569678.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -4.11,
+     "say": "the Thor's free memory is falling at -4.1 GB/min (over 10 min)",
+     "time": "2026-11-01 12:47:58"
+    },
+    {
+     "t": 1793570070.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 21,
+     "say": "21 network driver aborts in the last 5 min",
+     "time": "2026-11-01 12:54:30"
+    },
+    {
+     "t": 1793570250.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 82 GB of memory stayed free",
+     "time": "2026-11-01 12:57:30"
+    },
+    {
+     "t": 1793570808.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:06:48"
+    },
+    {
+     "t": 1793571510.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 13:18:30"
+    },
+    {
+     "t": 1793571799.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 3,
+     "say": "3 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:23:19"
+    },
+    {
+     "t": 1793572387.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:33:07"
+    },
+    {
+     "t": 1793573707.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "warp-infinigen-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat warp-infinigen-desk has produced no output for 46 min",
+     "time": "2026-11-01 13:55:07"
+    },
+    {
+     "t": 1793574195.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "physag-lite-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat physag-lite-desk has produced no output for 46 min",
+     "time": "2026-11-01 14:03:15"
+    },
+    {
+     "t": 1793574389.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.26,
+     "say": "the Thor's free memory is falling at -3.3 GB/min (over 10 min)",
+     "time": "2026-11-01 14:06:29"
+    },
+    {
+     "t": 1793574759.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.48,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 14:12:39"
+    },
+    {
+     "t": 1793575290.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:21:30"
+    },
+    {
+     "t": 1793575363.0,
+     "gate": "ab",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 14:22:43"
+    },
+    {
+     "t": 1793575650.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:27:30"
+    },
+    {
+     "t": 1793576010.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:33:30"
+    },
+    {
+     "t": 1793577815.0,
+     "gate": "ab",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -29.0,
+     "say": "the Thor's free disk is falling at -29 GB/h",
+     "time": "2026-11-01 15:03:35"
+    },
+    {
+     "t": 1793577877.0,
+     "gate": "ab",
+     "cond": "box_disk_low",
+     "seat": null,
+     "value": 29.0,
+     "say": "the Thor's disk has 29 GB free (under the 30 GB floor)",
+     "time": "2026-11-01 15:04:37"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "coldshelf-bakeoff-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat coldshelf-bakeoff-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "scenebloom-eval-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat scenebloom-eval-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "thor-admit-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat thor-admit-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793579446.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 62 GB of memory stayed free",
+     "time": "2026-11-01 15:30:46"
+    },
+    {
+     "t": 1793579850.0,
+     "gate": "ab",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -20.9,
+     "say": "the Thor's free disk is falling at -21 GB/h",
+     "time": "2026-11-01 15:37:30"
+    },
+    {
+     "t": 1793580030.0,
+     "gate": "ab",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 15:40:30"
+    },
+    {
+     "t": 1793580300.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 85 GB of memory stayed free",
+     "time": "2026-11-01 15:45:00"
+    },
+    {
+     "t": 1793580643.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "night-v4-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat night-v4-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:50:43"
+    },
+    {
+     "t": 1793580703.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "posestream-net-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat posestream-net-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:51:43"
+    },
+    {
+     "t": 1793580705.0,
+     "gate": "ab",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 64 GB of memory stayed free",
+     "time": "2026-11-01 15:51:45"
+    },
+    {
+     "t": 1793580809.0,
+     "gate": "ab",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -4.45,
+     "say": "the Thor's free memory is falling at -4.5 GB/min (over 10 min)",
+     "time": "2026-11-01 15:53:29"
+    },
+    {
+     "t": 1793580827.0,
+     "gate": "ab",
+     "cond": "seat_output_stale",
+     "seat": "crafter-lab-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat crafter-lab-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:53:47"
+    },
+    {
+     "t": 1793581319.0,
+     "gate": "ab",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -53.2,
+     "say": "the Thor's free disk is falling at -53 GB/h",
+     "time": "2026-11-01 16:01:59"
+    }
+   ]
+  },
+  "bplus": {
+   "label": "rate + telemetry-dark",
+   "events": [
+    {
+     "t": 1793520030.0,
+     "gate": "bplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 5683,
+     "say": "the Thor has not reported for 94.0 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793528593.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 01:23:13"
+    },
+    {
+     "t": 1793528891.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 86 GB of memory stayed free",
+     "time": "2026-11-01 01:28:11"
+    },
+    {
+     "t": 1793529197.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 88 GB of memory stayed free",
+     "time": "2026-11-01 01:33:17"
+    },
+    {
+     "t": 1793529570.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 7 while 73 GB of memory stayed free",
+     "time": "2026-11-01 01:39:30"
+    },
+    {
+     "t": 1793530031.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 7 while 76 GB of memory stayed free",
+     "time": "2026-11-01 01:47:11"
+    },
+    {
+     "t": 1793530423.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 8 while 80 GB of memory stayed free",
+     "time": "2026-11-01 01:53:43"
+    },
+    {
+     "t": 1793532687.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 16 while 87 GB of memory stayed free",
+     "time": "2026-11-01 02:31:27"
+    },
+    {
+     "t": 1793536110.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 03:28:30"
+    },
+    {
+     "t": 1793539710.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 04:28:30"
+    },
+    {
+     "t": 1793544232.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 77 GB of memory stayed free",
+     "time": "2026-11-01 05:43:52"
+    },
+    {
+     "t": 1793544569.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 5 while 74 GB of memory stayed free",
+     "time": "2026-11-01 05:49:29"
+    },
+    {
+     "t": 1793544878.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 6 while 73 GB of memory stayed free",
+     "time": "2026-11-01 05:54:38"
+    },
+    {
+     "t": 1793546532.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 06:22:12"
+    },
+    {
+     "t": 1793546970.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:29:30"
+    },
+    {
+     "t": 1793547110.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 5 while 87 GB of memory stayed free",
+     "time": "2026-11-01 06:31:50"
+    },
+    {
+     "t": 1793547210.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:33:30"
+    },
+    {
+     "t": 1793547330.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:35:30"
+    },
+    {
+     "t": 1793547460.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.47,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 06:37:40"
+    },
+    {
+     "t": 1793547550.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 9,
+     "say": "the admission queue grew by 9 to 13 while 72 GB of memory stayed free",
+     "time": "2026-11-01 06:39:10"
+    },
+    {
+     "t": 1793548386.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 20 while 76 GB of memory stayed free",
+     "time": "2026-11-01 06:53:06"
+    },
+    {
+     "t": 1793549266.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 23 while 69 GB of memory stayed free",
+     "time": "2026-11-01 07:07:46"
+    },
+    {
+     "t": 1793549344.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 22 while 76 GB of memory stayed free",
+     "time": "2026-11-01 07:09:04"
+    },
+    {
+     "t": 1793551179.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 07:39:39"
+    },
+    {
+     "t": 1793554254.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 5 while 71 GB of memory stayed free",
+     "time": "2026-11-01 08:30:54"
+    },
+    {
+     "t": 1793554815.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 3,
+     "say": "3 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 08:40:15"
+    },
+    {
+     "t": 1793555787.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 08:56:27"
+    },
+    {
+     "t": 1793557798.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 97 GB of memory stayed free",
+     "time": "2026-11-01 09:29:58"
+    },
+    {
+     "t": 1793558055.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 98 GB of memory stayed free",
+     "time": "2026-11-01 09:34:15"
+    },
+    {
+     "t": 1793559462.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.14,
+     "say": "the Thor's free memory is falling at -3.1 GB/min (over 10 min)",
+     "time": "2026-11-01 09:57:42"
+    },
+    {
+     "t": 1793559539.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.47,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 09:58:59"
+    },
+    {
+     "t": 1793559551.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 4 while 66 GB of memory stayed free",
+     "time": "2026-11-01 09:59:11"
+    },
+    {
+     "t": 1793559890.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.44,
+     "say": "the Thor's free memory is falling at -3.4 GB/min (over 10 min)",
+     "time": "2026-11-01 10:04:50"
+    },
+    {
+     "t": 1793561242.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 8 while 75 GB of memory stayed free",
+     "time": "2026-11-01 10:27:22"
+    },
+    {
+     "t": 1793561632.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.28,
+     "say": "the Thor's free memory is falling at -3.3 GB/min (over 10 min)",
+     "time": "2026-11-01 10:33:52"
+    },
+    {
+     "t": 1793561813.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -7.51,
+     "say": "the Thor's free memory is falling at -7.5 GB/min (over 10 min)",
+     "time": "2026-11-01 10:36:53"
+    },
+    {
+     "t": 1793561997.0,
+     "gate": "bplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 10:39:57"
+    },
+    {
+     "t": 1793562200.0,
+     "gate": "bplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 10:43:20"
+    },
+    {
+     "t": 1793562711.0,
+     "gate": "bplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 10:51:51"
+    },
+    {
+     "t": 1793563097.0,
+     "gate": "bplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 10:58:17"
+    },
+    {
+     "t": 1793563377.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -69.72,
+     "say": "the Thor's free memory is falling at -69.7 GB/min (over 10 min)",
+     "time": "2026-11-01 11:02:57"
+    },
+    {
+     "t": 1793563706.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -5.1,
+     "say": "the Thor's free memory is falling at -5.1 GB/min (over 10 min)",
+     "time": "2026-11-01 11:08:26"
+    },
+    {
+     "t": 1793563929.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.01,
+     "say": "the Thor's free memory is falling at -3.0 GB/min (over 10 min)",
+     "time": "2026-11-01 11:12:09"
+    },
+    {
+     "t": 1793564057.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.12,
+     "say": "the Thor's free memory is falling at -3.1 GB/min (over 10 min)",
+     "time": "2026-11-01 11:14:17"
+    },
+    {
+     "t": 1793564493.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 11:21:33"
+    },
+    {
+     "t": 1793565719.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 11:41:59"
+    },
+    {
+     "t": 1793566291.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 4 while 77 GB of memory stayed free",
+     "time": "2026-11-01 11:51:31"
+    },
+    {
+     "t": 1793566350.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 11:52:30"
+    },
+    {
+     "t": 1793566471.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 5 while 77 GB of memory stayed free",
+     "time": "2026-11-01 11:54:31"
+    },
+    {
+     "t": 1793566890.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 12:01:30"
+    },
+    {
+     "t": 1793567234.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 10 while 79 GB of memory stayed free",
+     "time": "2026-11-01 12:07:14"
+    },
+    {
+     "t": 1793567298.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 11 while 79 GB of memory stayed free",
+     "time": "2026-11-01 12:08:18"
+    },
+    {
+     "t": 1793568031.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:20:31"
+    },
+    {
+     "t": 1793568273.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:24:33"
+    },
+    {
+     "t": 1793569123.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:38:43"
+    },
+    {
+     "t": 1793569678.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -4.11,
+     "say": "the Thor's free memory is falling at -4.1 GB/min (over 10 min)",
+     "time": "2026-11-01 12:47:58"
+    },
+    {
+     "t": 1793570070.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 21,
+     "say": "21 network driver aborts in the last 5 min",
+     "time": "2026-11-01 12:54:30"
+    },
+    {
+     "t": 1793570250.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 82 GB of memory stayed free",
+     "time": "2026-11-01 12:57:30"
+    },
+    {
+     "t": 1793570808.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:06:48"
+    },
+    {
+     "t": 1793571510.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 13:18:30"
+    },
+    {
+     "t": 1793571799.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 3,
+     "say": "3 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:23:19"
+    },
+    {
+     "t": 1793572387.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:33:07"
+    },
+    {
+     "t": 1793574389.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.26,
+     "say": "the Thor's free memory is falling at -3.3 GB/min (over 10 min)",
+     "time": "2026-11-01 14:06:29"
+    },
+    {
+     "t": 1793574759.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.48,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 14:12:39"
+    },
+    {
+     "t": 1793575290.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:21:30"
+    },
+    {
+     "t": 1793575363.0,
+     "gate": "bplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 14:22:43"
+    },
+    {
+     "t": 1793575650.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:27:30"
+    },
+    {
+     "t": 1793576010.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:33:30"
+    },
+    {
+     "t": 1793577815.0,
+     "gate": "bplus",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -29.0,
+     "say": "the Thor's free disk is falling at -29 GB/h",
+     "time": "2026-11-01 15:03:35"
+    },
+    {
+     "t": 1793579446.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 62 GB of memory stayed free",
+     "time": "2026-11-01 15:30:46"
+    },
+    {
+     "t": 1793579850.0,
+     "gate": "bplus",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -20.9,
+     "say": "the Thor's free disk is falling at -21 GB/h",
+     "time": "2026-11-01 15:37:30"
+    },
+    {
+     "t": 1793580030.0,
+     "gate": "bplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 15:40:30"
+    },
+    {
+     "t": 1793580300.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 85 GB of memory stayed free",
+     "time": "2026-11-01 15:45:00"
+    },
+    {
+     "t": 1793580638.0,
+     "gate": "bplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 15:50:38"
+    },
+    {
+     "t": 1793580705.0,
+     "gate": "bplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 64 GB of memory stayed free",
+     "time": "2026-11-01 15:51:45"
+    },
+    {
+     "t": 1793580809.0,
+     "gate": "bplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -4.45,
+     "say": "the Thor's free memory is falling at -4.5 GB/min (over 10 min)",
+     "time": "2026-11-01 15:53:29"
+    },
+    {
+     "t": 1793581319.0,
+     "gate": "bplus",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -53.2,
+     "say": "the Thor's free disk is falling at -53 GB/h",
+     "time": "2026-11-01 16:01:59"
+    }
+   ]
+  },
+  "abplus": {
+   "label": "level + rate + telemetry-dark",
+   "events": [
+    {
+     "t": 1793520030.0,
+     "gate": "abplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 5683,
+     "say": "the Thor has not reported for 94.0 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793528593.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 01:23:13"
+    },
+    {
+     "t": 1793528891.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 86 GB of memory stayed free",
+     "time": "2026-11-01 01:28:11"
+    },
+    {
+     "t": 1793529197.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 88 GB of memory stayed free",
+     "time": "2026-11-01 01:33:17"
+    },
+    {
+     "t": 1793529570.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 7 while 73 GB of memory stayed free",
+     "time": "2026-11-01 01:39:30"
+    },
+    {
+     "t": 1793530031.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 7 while 76 GB of memory stayed free",
+     "time": "2026-11-01 01:47:11"
+    },
+    {
+     "t": 1793530423.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 8 while 80 GB of memory stayed free",
+     "time": "2026-11-01 01:53:43"
+    },
+    {
+     "t": 1793532687.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 16 while 87 GB of memory stayed free",
+     "time": "2026-11-01 02:31:27"
+    },
+    {
+     "t": 1793536110.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 03:28:30"
+    },
+    {
+     "t": 1793539710.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 04:28:30"
+    },
+    {
+     "t": 1793544232.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 77 GB of memory stayed free",
+     "time": "2026-11-01 05:43:52"
+    },
+    {
+     "t": 1793544569.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 5 while 74 GB of memory stayed free",
+     "time": "2026-11-01 05:49:29"
+    },
+    {
+     "t": 1793544878.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 6 while 73 GB of memory stayed free",
+     "time": "2026-11-01 05:54:38"
+    },
+    {
+     "t": 1793546532.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 06:22:12"
+    },
+    {
+     "t": 1793546970.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:29:30"
+    },
+    {
+     "t": 1793547110.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 5 while 87 GB of memory stayed free",
+     "time": "2026-11-01 06:31:50"
+    },
+    {
+     "t": 1793547210.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:33:30"
+    },
+    {
+     "t": 1793547330.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 06:35:30"
+    },
+    {
+     "t": 1793547460.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.47,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 06:37:40"
+    },
+    {
+     "t": 1793547550.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 9,
+     "say": "the admission queue grew by 9 to 13 while 72 GB of memory stayed free",
+     "time": "2026-11-01 06:39:10"
+    },
+    {
+     "t": 1793548386.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 20 while 76 GB of memory stayed free",
+     "time": "2026-11-01 06:53:06"
+    },
+    {
+     "t": 1793549266.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 23 while 69 GB of memory stayed free",
+     "time": "2026-11-01 07:07:46"
+    },
+    {
+     "t": 1793549344.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 22 while 76 GB of memory stayed free",
+     "time": "2026-11-01 07:09:04"
+    },
+    {
+     "t": 1793551179.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 07:39:39"
+    },
+    {
+     "t": 1793554254.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 5 while 71 GB of memory stayed free",
+     "time": "2026-11-01 08:30:54"
+    },
+    {
+     "t": 1793554815.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 3,
+     "say": "3 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 08:40:15"
+    },
+    {
+     "t": 1793555787.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 08:56:27"
+    },
+    {
+     "t": 1793557798.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 97 GB of memory stayed free",
+     "time": "2026-11-01 09:29:58"
+    },
+    {
+     "t": 1793558055.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 98 GB of memory stayed free",
+     "time": "2026-11-01 09:34:15"
+    },
+    {
+     "t": 1793559462.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.14,
+     "say": "the Thor's free memory is falling at -3.1 GB/min (over 10 min)",
+     "time": "2026-11-01 09:57:42"
+    },
+    {
+     "t": 1793559539.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.47,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 09:58:59"
+    },
+    {
+     "t": 1793559551.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 4 while 66 GB of memory stayed free",
+     "time": "2026-11-01 09:59:11"
+    },
+    {
+     "t": 1793559890.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.44,
+     "say": "the Thor's free memory is falling at -3.4 GB/min (over 10 min)",
+     "time": "2026-11-01 10:04:50"
+    },
+    {
+     "t": 1793561242.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 8 while 75 GB of memory stayed free",
+     "time": "2026-11-01 10:27:22"
+    },
+    {
+     "t": 1793561632.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.28,
+     "say": "the Thor's free memory is falling at -3.3 GB/min (over 10 min)",
+     "time": "2026-11-01 10:33:52"
+    },
+    {
+     "t": 1793561813.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -7.51,
+     "say": "the Thor's free memory is falling at -7.5 GB/min (over 10 min)",
+     "time": "2026-11-01 10:36:53"
+    },
+    {
+     "t": 1793561997.0,
+     "gate": "abplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 10:39:57"
+    },
+    {
+     "t": 1793562200.0,
+     "gate": "abplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 10:43:20"
+    },
+    {
+     "t": 1793562711.0,
+     "gate": "abplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 10:51:51"
+    },
+    {
+     "t": 1793563097.0,
+     "gate": "abplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 10:58:17"
+    },
+    {
+     "t": 1793563377.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -69.72,
+     "say": "the Thor's free memory is falling at -69.7 GB/min (over 10 min)",
+     "time": "2026-11-01 11:02:57"
+    },
+    {
+     "t": 1793563706.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -5.1,
+     "say": "the Thor's free memory is falling at -5.1 GB/min (over 10 min)",
+     "time": "2026-11-01 11:08:26"
+    },
+    {
+     "t": 1793563929.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.01,
+     "say": "the Thor's free memory is falling at -3.0 GB/min (over 10 min)",
+     "time": "2026-11-01 11:12:09"
+    },
+    {
+     "t": 1793564057.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.12,
+     "say": "the Thor's free memory is falling at -3.1 GB/min (over 10 min)",
+     "time": "2026-11-01 11:14:17"
+    },
+    {
+     "t": 1793564493.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 11:21:33"
+    },
+    {
+     "t": 1793565719.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 11:41:59"
+    },
+    {
+     "t": 1793566291.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 4,
+     "say": "the admission queue grew by 4 to 4 while 77 GB of memory stayed free",
+     "time": "2026-11-01 11:51:31"
+    },
+    {
+     "t": 1793566350.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 11:52:30"
+    },
+    {
+     "t": 1793566471.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 5,
+     "say": "the admission queue grew by 5 to 5 while 77 GB of memory stayed free",
+     "time": "2026-11-01 11:54:31"
+    },
+    {
+     "t": 1793566890.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 12:01:30"
+    },
+    {
+     "t": 1793567234.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 10 while 79 GB of memory stayed free",
+     "time": "2026-11-01 12:07:14"
+    },
+    {
+     "t": 1793567298.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 11 while 79 GB of memory stayed free",
+     "time": "2026-11-01 12:08:18"
+    },
+    {
+     "t": 1793568031.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:20:31"
+    },
+    {
+     "t": 1793568273.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:24:33"
+    },
+    {
+     "t": 1793569123.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 12:38:43"
+    },
+    {
+     "t": 1793569678.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -4.11,
+     "say": "the Thor's free memory is falling at -4.1 GB/min (over 10 min)",
+     "time": "2026-11-01 12:47:58"
+    },
+    {
+     "t": 1793570070.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 21,
+     "say": "21 network driver aborts in the last 5 min",
+     "time": "2026-11-01 12:54:30"
+    },
+    {
+     "t": 1793570250.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 82 GB of memory stayed free",
+     "time": "2026-11-01 12:57:30"
+    },
+    {
+     "t": 1793570808.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:06:48"
+    },
+    {
+     "t": 1793571510.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 13:18:30"
+    },
+    {
+     "t": 1793571799.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 3,
+     "say": "3 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:23:19"
+    },
+    {
+     "t": 1793572387.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 13:33:07"
+    },
+    {
+     "t": 1793574389.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.26,
+     "say": "the Thor's free memory is falling at -3.3 GB/min (over 10 min)",
+     "time": "2026-11-01 14:06:29"
+    },
+    {
+     "t": 1793574759.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -3.48,
+     "say": "the Thor's free memory is falling at -3.5 GB/min (over 10 min)",
+     "time": "2026-11-01 14:12:39"
+    },
+    {
+     "t": 1793575290.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:21:30"
+    },
+    {
+     "t": 1793575363.0,
+     "gate": "abplus",
+     "cond": "client_lost_burst",
+     "seat": null,
+     "value": 2,
+     "say": "2 API clients vanished from the admission daemon in the last 5 min",
+     "time": "2026-11-01 14:22:43"
+    },
+    {
+     "t": 1793575650.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 20,
+     "say": "20 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:27:30"
+    },
+    {
+     "t": 1793576010.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 14:33:30"
+    },
+    {
+     "t": 1793577815.0,
+     "gate": "abplus",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -29.0,
+     "say": "the Thor's free disk is falling at -29 GB/h",
+     "time": "2026-11-01 15:03:35"
+    },
+    {
+     "t": 1793579446.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 62 GB of memory stayed free",
+     "time": "2026-11-01 15:30:46"
+    },
+    {
+     "t": 1793579850.0,
+     "gate": "abplus",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -20.9,
+     "say": "the Thor's free disk is falling at -21 GB/h",
+     "time": "2026-11-01 15:37:30"
+    },
+    {
+     "t": 1793580030.0,
+     "gate": "abplus",
+     "cond": "network_error_burst",
+     "seat": null,
+     "value": 22,
+     "say": "22 network driver aborts in the last 5 min",
+     "time": "2026-11-01 15:40:30"
+    },
+    {
+     "t": 1793580300.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 3 while 85 GB of memory stayed free",
+     "time": "2026-11-01 15:45:00"
+    },
+    {
+     "t": 1793580638.0,
+     "gate": "abplus",
+     "cond": "telemetry_dark",
+     "seat": null,
+     "value": 151,
+     "say": "the Thor has not reported for 2.0 min",
+     "time": "2026-11-01 15:50:38"
+    },
+    {
+     "t": 1793580705.0,
+     "gate": "abplus",
+     "cond": "queue_growing_headroom",
+     "seat": null,
+     "value": 3,
+     "say": "the admission queue grew by 3 to 4 while 64 GB of memory stayed free",
+     "time": "2026-11-01 15:51:45"
+    },
+    {
+     "t": 1793580809.0,
+     "gate": "abplus",
+     "cond": "memory_falling_fast",
+     "seat": null,
+     "value": -4.45,
+     "say": "the Thor's free memory is falling at -4.5 GB/min (over 10 min)",
+     "time": "2026-11-01 15:53:29"
+    },
+    {
+     "t": 1793581319.0,
+     "gate": "abplus",
+     "cond": "disk_falling_fast",
+     "seat": null,
+     "value": -53.2,
+     "say": "the Thor's free disk is falling at -53 GB/h",
+     "time": "2026-11-01 16:01:59"
+    }
+   ]
+  },
+  "a_live": {
+   "label": "level (seats alive only)",
+   "note": "identical to gate a except the seat clause is applied only to seats that have not reported an exit; without this the gate alarms on every finished seat",
+   "events": [
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "persona",
+     "value": 2706.5,
+     "alive": true,
+     "say": "seat persona has produced no output for 2706 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "qcache",
+     "value": 2706.5,
+     "alive": true,
+     "say": "seat qcache has produced no output for 2706 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "look2",
+     "value": 1692.1,
+     "alive": true,
+     "say": "seat look2 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lockstep",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat lockstep has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "vibe4",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat vibe4 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "integrate",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat integrate has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "tagscore2",
+     "value": 1691.8,
+     "alive": true,
+     "say": "seat tagscore2 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "qcache3",
+     "value": 1691.7,
+     "alive": true,
+     "say": "seat qcache3 has produced no output for 1692 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793520030.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab-motion",
+     "value": 666.5,
+     "alive": true,
+     "say": "seat lab-motion has produced no output for 667 min",
+     "time": "2026-11-01 00:00:30"
+    },
+    {
+     "t": 1793559395.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "night-v3-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat night-v3-desk has produced no output for 46 min",
+     "time": "2026-11-01 09:56:35"
+    },
+    {
+     "t": 1793559479.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "missionA-zcode-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat missionA-zcode-desk has produced no output for 46 min",
+     "time": "2026-11-01 09:57:59"
+    },
+    {
+     "t": 1793559893.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "syzygy-keyframes-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat syzygy-keyframes-desk has produced no output for 46 min",
+     "time": "2026-11-01 10:04:53"
+    },
+    {
+     "t": 1793561813.0,
+     "gate": "a",
+     "cond": "box_memory_low",
+     "seat": null,
+     "value": 0.43,
+     "say": "the Thor has 0.4 GB of memory free (under the 25 GB floor)",
+     "time": "2026-11-01 10:36:53"
+    },
+    {
+     "t": 1793563377.0,
+     "gate": "a",
+     "cond": "box_memory_low",
+     "seat": null,
+     "value": 16.95,
+     "say": "the Thor has 17.0 GB of memory free (under the 25 GB floor)",
+     "time": "2026-11-01 11:02:57"
+    },
+    {
+     "t": 1793566374.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "lab-motion-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat lab-motion-desk has produced no output for 46 min",
+     "time": "2026-11-01 11:52:54"
+    },
+    {
+     "t": 1793573707.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "warp-infinigen-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat warp-infinigen-desk has produced no output for 46 min",
+     "time": "2026-11-01 13:55:07"
+    },
+    {
+     "t": 1793574195.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "physag-lite-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat physag-lite-desk has produced no output for 46 min",
+     "time": "2026-11-01 14:03:15"
+    },
+    {
+     "t": 1793577877.0,
+     "gate": "a",
+     "cond": "box_disk_low",
+     "seat": null,
+     "value": 29.0,
+     "say": "the Thor's disk has 29 GB free (under the 30 GB floor)",
+     "time": "2026-11-01 15:04:37"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "coldshelf-bakeoff-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat coldshelf-bakeoff-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "scenebloom-eval-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat scenebloom-eval-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793579054.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "thor-admit-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat thor-admit-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:24:14"
+    },
+    {
+     "t": 1793580643.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "night-v4-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat night-v4-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:50:43"
+    },
+    {
+     "t": 1793580703.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "posestream-net-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat posestream-net-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:51:43"
+    },
+    {
+     "t": 1793580827.0,
+     "gate": "a",
+     "cond": "seat_output_stale",
+     "seat": "crafter-lab-desk",
+     "value": 45.5,
+     "alive": true,
+     "say": "seat crafter-lab-desk has produced no output for 46 min",
+     "time": "2026-11-01 15:53:47"
+    }
+   ]
+  }
+ }
+}

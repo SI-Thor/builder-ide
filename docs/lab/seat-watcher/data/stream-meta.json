@@ -1,0 +1,156 @@
+{
+  "channels": {
+    "api_errors": {
+      "classes": [
+        "quota",
+        "timeout"
+      ],
+      "records": 2,
+      "source": "provider failures inside seat transcripts; the file's last write is the minute the failure was reported"
+    },
+    "box_memory_queue": {
+      "from": "2026-10-31 21:19:20",
+      "median_interval_s": 9,
+      "records": 6299,
+      "source": "thor-admit daemon.sample (UTC in the log, converted to local)",
+      "to": "2026-11-01 15:48:07"
+    },
+    "client_lost": {
+      "note": "a proxy for 'the provider call died': quota exhaustion and network timeouts look the same from the box's side, and so does a seat that simply finished, so it is noisy",
+      "records": 73,
+      "source": "thor-admit lease.client_gone / lease.waiter_client_gone: an API client disappeared while holding (or waiting for) a lease"
+    },
+    "disk_free": {
+      "from": "2026-11-01 14:58:57",
+      "gap": "no disk sample exists before the board loop started at 14:58:57 and none after 15:40:15; there is no other disk sampler on either box",
+      "median_interval_s": 62.0,
+      "records": 52,
+      "source": "board-history 'Thor disk: NG free' (board.sh runs df -h /)",
+      "to": "2026-11-01 16:04:30"
+    },
+    "seat_commit": {
+      "records": 3670,
+      "seats_with_history": 18,
+      "source": "git log in each seat's worktree; commit times are exact",
+      "unmapped_repos": [
+        "ecology-device/ecology-thor",
+        "first-mile/vendor-audio8",
+        "first-mile/vendor-quilt-pincher",
+        "googl1-digest/superinstance-papers",
+        "thor-world-repo"
+      ]
+    },
+    "seat_output": {
+      "assumption": "a seat is taken to be producing output until its last write; silence before that write is not recoverable from the artefacts",
+      "records": 185,
+      "source": "seat .out mtime (the board's out age is exactly now - mtime; validated)"
+    },
+    "wifi_aborts": {
+      "carriers_lost": [
+        "2026-11-01 09:21:32",
+        "2026-11-01 09:23:44",
+        "2026-11-01 10:39:33",
+        "2026-11-01 10:46:47",
+        "2026-11-01 11:01:51",
+        "2026-11-01 11:02:05",
+        "2026-11-01 11:50:49",
+        "2026-11-01 13:26:56",
+        "2026-11-01 13:28:57",
+        "2026-11-01 13:38:07",
+        "2026-11-01 15:37:29",
+        "2026-11-01 15:43:08",
+        "2026-11-01 15:45:43",
+        "2026-11-01 15:46:07"
+      ],
+      "records": 440,
+      "source": "Thor journal _cmd_abort_notify abort=1, bucketed per minute",
+      "total": 1209
+    }
+  },
+  "gaps": [],
+  "notes": [
+    "The board's own 'out age (min)' column equals (snapshot time - .out mtime) for every seat in every snapshot; the reconstruction reproduces it."
+  ],
+  "stream_records": 10721,
+  "validation_vs_board": {
+    "comparisons": 676,
+    "mismatches": 0,
+    "still_writing": 89,
+    "worst": [
+      [
+        1793578033.0,
+        "roundup-2026-11-01",
+        2,
+        -17.1,
+        "still writing"
+      ],
+      [
+        1793578094.0,
+        "roundup-2026-11-01",
+        4,
+        -16.1,
+        "still writing"
+      ],
+      [
+        1793578114.0,
+        "roundup-2026-11-01",
+        4,
+        -15.7,
+        "still writing"
+      ],
+      [
+        1793578156.0,
+        "roundup-2026-11-01",
+        5,
+        -15.0,
+        "still writing"
+      ],
+      [
+        1793578217.0,
+        "roundup-2026-11-01",
+        6,
+        -14.0,
+        "still writing"
+      ],
+      [
+        1793578279.0,
+        "roundup-2026-11-01",
+        7,
+        -13.0,
+        "still writing"
+      ],
+      [
+        1793578341.0,
+        "roundup-2026-11-01",
+        8,
+        -11.9,
+        "still writing"
+      ],
+      [
+        1793578402.0,
+        "roundup-2026-11-01",
+        9,
+        -10.9,
+        "still writing"
+      ],
+      [
+        1793578465.0,
+        "roundup-2026-11-01",
+        10,
+        -9.9,
+        "still writing"
+      ],
+      [
+        1793578526.0,
+        "roundup-2026-11-01",
+        11,
+        -8.8,
+        "still writing"
+      ]
+    ]
+  },
+  "window": {
+    "end": "2026-11-01 16:05:00",
+    "start": "2026-11-01 00:00:00"
+  }
+}
