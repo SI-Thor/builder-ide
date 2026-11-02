@@ -281,7 +281,15 @@ def build_mjcf(
             )
         parent_joint[joint.child] = joint
 
-    roots = [p.name for p in spec.parts if p.name not in parent_joint]
+    # A root is a part nothing else carries: either it has no joint at
+    # all, or its joint hangs it from the world. A hanging prop's handle
+    # is the root, and the ball joint to the world is what hangs it —
+    # counting only the jointless parts would see no tree at all.
+    roots = [
+        p.name
+        for p in spec.parts
+        if p.name not in parent_joint or parent_joint[p.name].parent == WORLD_ANCHOR
+    ]
     if len(roots) != 1:
         raise BuildError(
             f"{spec.prop}: the parts form {len(roots)} trees; exactly one is needed"
@@ -307,6 +315,13 @@ def build_mjcf(
         if decomp is None:
             raise BuildError(f"{spec.prop}: part {part.name!r} was never decomposed")
         part_volume = sum(c.volume for c in decomp.colliders)
+        if part_volume <= 1e-12:
+            raise BuildError(
+                f"{spec.prop}: part {part.name!r} has no volume to make a "
+                "collider from — the split gave it no material, and a joint "
+                "that carries nothing would let the action complete and "
+                "mean nothing by it"
+            )
         part_mass = total_mass * (part_volume / total_collider_volume)
         density = part_mass / part_volume if part_volume > 0.0 else 0.0
         for index, piece in enumerate(decomp.colliders):

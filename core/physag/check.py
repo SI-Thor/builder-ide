@@ -552,7 +552,7 @@ def check_prop(
     # The render: what the planner sees when it is asked to repair.
     if render_path is not None:
         try:
-            _render(model, data, render_path, segmentation)
+            _render(built.xml, data, render_path, segmentation)
         except Exception as exc:  # pragma: no cover - the render is optional
             notes.append(f"the render failed: {exc}")
 
@@ -743,7 +743,7 @@ def _displacement(
 
 
 def _render(
-    model: mujoco.MjModel,
+    xml: str,
     data: mujoco.MjData,
     path: str | Path,
     segmentation: Segmentation,
@@ -776,7 +776,7 @@ def _render(
         work = Path(workdir)
         model_path = work / "model.xml"
         state_path = work / "state.npz"
-        model_path.write_text(model.xml)
+        model_path.write_text(xml)
         np.savez(
             state_path,
             qpos=np.asarray(data.qpos).copy(),

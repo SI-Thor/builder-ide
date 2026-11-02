@@ -261,17 +261,30 @@ def _part_region(
         else:  # a box cut
             lo = np.asarray(cut.min) * size
             hi = np.asarray(cut.max) * size
-            for index in range(3):
-                normal = np.zeros(3)
-                normal[index] = 1.0
-                if owner:
-                    # Inside the box: x >= lo and x <= hi.
+            if owner:
+                # Inside the box: the six face half-spaces intersect to
+                # the box, so clipping through all six faces keeps
+                # exactly the material inside it.
+                for index in range(3):
+                    normal = np.zeros(3)
+                    normal[index] = 1.0
                     current = clip_mesh_at_plane(current, -normal, lo[index])
                     current = clip_mesh_at_plane(current, normal, -hi[index])
-                else:
-                    # Outside the box: x <= lo and x >= hi.
-                    current = clip_mesh_at_plane(current, normal, -lo[index])
-                    current = clip_mesh_at_plane(current, -normal, hi[index])
+            else:
+                # Outside the box is the *union* of the six outside
+                # half-spaces, and no chain of clips can say "or" — a
+                # chain only says "and", and "x <= lo and x >= hi" is
+                # nowhere. The triangles are therefore assigned by their
+                # centroid: the owner's clips keep what is inside the
+                # box, and this part keeps the triangles whose centre
+                # sits outside it. A triangle that straddles a face
+                # keeps its whole shape on the side its centre sits on;
+                # the millimetre it can poke across is inside the gap
+                # the inset opens at the face, so the collider never
+                # overlaps its neighbour.
+                centres = current.triangle_centroids()
+                out_of_range = (centres < lo) | (centres > hi)
+                current = current.subset(np.any(out_of_range, axis=1))
     return current
 
 
@@ -299,17 +312,26 @@ def segment(
     for part in spec.parts:
         raw[part.name] = _part_region(mesh, part, list(spec.parts), size)
 
-    # Two parts claiming the same material is a contradiction. It shows up
-    # as two parts whose boxes overlap deeply.
+    # Two parts claiming the same material is a contradiction. The claim
+    # is the cut, not the piece: each cut is a box in the mesh's own
+    # normalised coordinates (a plane cut is a box with one axis pinned
+    # to a side, a box cut is the box, and a rest is the whole box), and
+    # two parts contradict each other when the intersection of their two
+    # claimed boxes is not empty. The bbox of the *pieces* is the wrong
+    # measure: a rest base owns the complement of every other cut, so its
+    # bbox always swallows a box part's bbox, and the overlap the checker
+    # would see is the shape of the cut, not a contradiction. The rest
+    # part is the complement of the others by construction, so it is
+    # disjoint from every part and never contradicts one.
     for i, first in enumerate(spec.parts):
+        if first.cut.kind == "rest":
+            continue
         for second in spec.parts[i + 1 :]:
-            a = raw[first.name]
-            b = raw[second.name]
-            if a.is_empty or b.is_empty:
+            if second.cut.kind == "rest":
                 continue
-            lo = np.maximum(a.bbox_min, b.bbox_min)
-            hi = np.minimum(a.bbox_max, b.bbox_max)
-            if np.all(hi > lo):
+            a = _claim_intervals(first.cut)
+            b = _claim_intervals(second.cut)
+            if all(lo_a < hi_b and lo_b < hi_a for (lo_a, hi_a), (lo_b, hi_b) in zip(a, b)):
                 reasons.append(
                     f"parts {first.name!r} and {second.name!r} claim overlapping "
                     "material"
@@ -338,8 +360,31 @@ def segment(
         mesh_area=mesh_area,
         parts_area=parts_area,
         reasons=tuple(reasons),
-        from_known_parts=True,
+        # The pieces are the planner's cuts, not known parts: the
+        # builder clips every part's colliders to the region its cut
+        # claims, so a convex hull that pokes into a neighbour's part
+        # is trimmed at the cut instead of colliding with it.
+        from_known_parts=False,
     )
+
+
+def _claim_intervals(cut: Cut) -> list[tuple[float, float]]:
+    """A cut's claimed box, as one interval per axis in normalised coords.
+
+    A plane cut keeps one side of a fraction of the mesh's own extent, so
+    it is a box with a single axis pinned to that side. A box cut is the
+    box itself. The rest never appears here: the caller skips it, because
+    the rest claims the complement of the other cuts, not a box.
+    """
+    if cut.kind == "box":
+        return [(float(lo), float(hi)) for lo, hi in zip(cut.min, cut.max)]
+    intervals = [(0.0, 1.0)] * 3
+    index = {"x": 0, "y": 1, "z": 2}[cut.axis]
+    if cut.keep == "above":
+        intervals[index] = (float(cut.at), 1.0)
+    else:
+        intervals[index] = (0.0, float(cut.at))
+    return intervals
 
 
 def _piece_record(

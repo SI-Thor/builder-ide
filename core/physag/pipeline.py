@@ -208,50 +208,83 @@ def _clip_to_part(
 
     clipped = []
     for piece in decomp.colliders:
-        current = piece
+        pieces_now = [piece]
         for other in spec.parts:
             cut = other.cut
             if cut.kind == "rest":
                 continue
             axis = {"x": 0, "y": 1, "z": 2}[cut.axis]
             at = cut.at * size[axis]
-            if cut.kind == "plane":
-                if other.name == part.name:
-                    # The part keeps the side its own cut claims.
-                    if cut.keep == "above":
-                        normal = np.zeros(3)
-                        normal[axis] = -1.0
-                        current = clip_convex(current, normal, at)
+            pieces_next: list = []
+            for current in pieces_now:
+                if cut.kind == "plane":
+                    if other.name == part.name:
+                        # The part keeps the side its own cut claims.
+                        if cut.keep == "above":
+                            normal = np.zeros(3)
+                            normal[axis] = -1.0
+                            pieces_next.append(clip_convex(current, normal, at))
+                        else:
+                            normal = np.zeros(3)
+                            normal[axis] = 1.0
+                            pieces_next.append(clip_convex(current, normal, -at))
                     else:
-                        normal = np.zeros(3)
-                        normal[axis] = 1.0
-                        current = clip_convex(current, normal, -at)
-                else:
-                    # Everything else keeps the other side.
-                    if cut.keep == "above":
-                        normal = np.zeros(3)
-                        normal[axis] = 1.0
-                        current = clip_convex(current, normal, -at)
+                        # Everything else keeps the other side.
+                        if cut.keep == "above":
+                            normal = np.zeros(3)
+                            normal[axis] = 1.0
+                            pieces_next.append(clip_convex(current, normal, -at))
+                        else:
+                            normal = np.zeros(3)
+                            normal[axis] = -1.0
+                            pieces_next.append(clip_convex(current, normal, at))
+                else:  # a box cut
+                    lo = np.asarray(cut.min) * size
+                    hi = np.asarray(cut.max) * size
+                    if other.name == part.name:
+                        # Inside the box: the six face half-spaces
+                        # intersect to the box.
+                        for index in range(3):
+                            normal = np.zeros(3)
+                            normal[index] = 1.0
+                            current = clip_convex(current, -normal, lo[index])
+                            current = clip_convex(current, normal, -hi[index])
+                        pieces_next.append(current)
                     else:
-                        normal = np.zeros(3)
-                        normal[axis] = -1.0
-                        current = clip_convex(current, normal, at)
-            else:  # a box cut
-                lo = np.asarray(cut.min) * size
-                hi = np.asarray(cut.max) * size
-                owner = other.name == part.name
-                for index in range(3):
-                    normal = np.zeros(3)
-                    normal[index] = -1.0
-                    if owner:
-                        # Inside the box: x >= lo and x <= hi.
-                        current = clip_convex(current, normal, lo[index])
-                        current = clip_convex(current, -normal, -hi[index])
-                    else:
-                        # Outside the box: x <= lo and x >= hi.
-                        current = clip_convex(current, -normal, -lo[index])
-                        current = clip_convex(current, normal, hi[index])
-        clipped.append(current)
+                        # Outside the box is the *union* of the six
+                        # outside half-spaces, and a union cannot be
+                        # written as a chain of clips — the chain says
+                        # "and", and "x <= lo and x >= hi" is nowhere.
+                        # The faces are therefore peeled off one at a
+                        # time, a BSP split: each face takes the part of
+                        # the piece outside that one face, out of what
+                        # the previous faces left behind. The six slabs
+                        # together are exactly the piece minus the box,
+                        # and they do not overlap, because each slab was
+                        # trimmed by every face in front of it. A piece
+                        # that lies wholly inside the box comes out with
+                        # nothing, and is dropped.
+                        pending = current
+                        for index in range(3):
+                            for sign in (1.0, -1.0):
+                                normal = np.zeros(3)
+                                normal[index] = sign
+                                if sign > 0.0:
+                                    # the slab x <= lo
+                                    slab = clip_convex(pending, normal, -lo[index])
+                                    pending = clip_convex(pending, -normal, lo[index])
+                                else:
+                                    # the slab x >= hi
+                                    slab = clip_convex(pending, normal, hi[index])
+                                    pending = clip_convex(pending, -normal, -hi[index])
+                                if not slab.is_empty:
+                                    pieces_next.append(slab)
+                        if pending.is_empty:
+                            break
+            pieces_now = [p for p in pieces_next if not p.is_empty]
+            if not pieces_now:
+                break
+        clipped.extend(pieces_now)
 
     kept = [c for c in clipped if not c.is_empty]
     if not kept:
@@ -405,6 +438,7 @@ def run_prop(
         )
         repaired = planner.repair(spec, feedback)
         timings["repair_s"] = time.perf_counter() - started
+        mapping_verified_before = segmentation.verified
 
         if repaired is None:
             repair_record = {"used": False, "reason": "the planner returned no revision"}
@@ -477,10 +511,11 @@ def run_prop(
             # and only if the repair kept the action and the limits frozen.
             if allowed and segmentation.verified:
                 counted = True
-                notes.append(
-                    "the repair found the part the first split did not, and the "
-                    "mapping is verified now"
-                )
+                if not mapping_verified_before:
+                    notes.append(
+                        "the repair found the part the first split did not, and the "
+                        "mapping is verified now"
+                    )
             elif not segmentation.verified:
                 counted = False
 

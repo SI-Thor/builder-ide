@@ -334,12 +334,13 @@ def main() -> int:
 
         delivery = delivery_for(run, arm="seed")
         delivery.timings["wall_s"] = round(wall, 3)
-        delivery.notes = tuple(run.notes) + (
+        seed_note = (
             f"priors from SimReady ({comparison['category']}, {comparison['confidence']}); "
             + "; ".join(seed_notes)
             if seed_notes
-            else f"priors from SimReady ({comparison['category']}, {comparison['confidence']})",
+            else f"priors from SimReady ({comparison['category']}, {comparison['confidence']})"
         )
+        delivery = replace(delivery, notes=tuple(run.notes) + (seed_note,))
         delivery.save(prop_dir / "delivery.json")
         (prop_dir / "priors_comparison.json").write_text(json.dumps(comparison, indent=2) + "\n")
 

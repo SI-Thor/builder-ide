@@ -220,3 +220,77 @@ def test_the_segmentation_is_deterministic(crate):
     first = segment(crate, crate_spec())
     second = segment(crate, crate_spec())
     assert first.to_dict() == second.to_dict()
+
+
+def test_a_box_cut_leaves_the_base_part_with_material(tmp_path):
+    # A slab cut straight out of the middle of the mesh, the door's frame
+    # without the stone: the box part owns the slab, the rest part owns
+    # everything outside it. "Outside a box" is a union of six slabs and
+    # no chain of clips can say "or", so the base part used to come out
+    # empty and the whole split was voided with it. Both parts come out
+    # with material now, and the split is not voided by a false
+    # "overlapping material" claim: a rest part owns the complement of
+    # the box, not a region of its own, so it cannot contradict the box.
+    #
+    # A slab cut through the middle of a box genuinely does split the
+    # frame into two pieces, and the checker says so rather than hiding
+    # it — that is the note, not a bug.
+    vertices, triangles = box_mesh((0.4, 0.4, 0.4))
+    path = write_glb(tmp_path / "frame.glb", vertices, triangles)
+    mesh = load_mesh(path)
+
+    segmentation = segment(mesh, box_cut_spec((0.3, 0.0, 0.0), (0.7, 1.0, 1.0)))
+    body = segmentation.piece("body")
+    lid = segmentation.piece("lid")
+    assert lid.triangles > 0
+    assert body.triangles > 0
+    assert not any("overlapping" in r for r in segmentation.reasons)
+    assert not any("empty" in r for r in segmentation.reasons)
+    assert lid.verified
+    assert any("pieces" in note for note in body.notes)
+
+
+def test_two_box_cuts_that_do_intersect_are_reported(tmp_path):
+    # The contradiction the overlap check is for: two moving parts whose
+    # boxes share material. The rest part never appears, because it owns
+    # the complement of the cuts, not a region of its own.
+    vertices, triangles = box_mesh((0.4, 0.4, 0.4))
+    path = write_glb(tmp_path / "frame.glb", vertices, triangles)
+    mesh = load_mesh(path)
+
+    spec = InteractionSpec(
+        prop="crate",
+        kind="crate",
+        image_prompt="a weathered wooden crate",
+        parts=(
+            Part(name="body", role="base", cut=Cut(kind="rest")),
+            Part(
+                name="first",
+                role="moving",
+                cut=Cut(kind="box", min=(0.2, 0.2, 0.2), max=(0.6, 0.9, 0.9)),
+            ),
+            Part(
+                name="second",
+                role="moving",
+                cut=Cut(kind="box", min=(0.5, 0.2, 0.2), max=(0.9, 0.9, 0.9)),
+            ),
+        ),
+        joints=(
+            Joint(
+                name="first_hinge",
+                type="hinge",
+                parent="body",
+                child="first",
+                axis=(1.0, 0.0, 0.0),
+                anchor=(0.5, 0.0, 0.5),
+                low=0.0,
+                high=math.radians(90.0),
+            ),
+        ),
+        action=Action(kind="joint", joint="first_hinge", target=math.radians(90.0)),
+        priors=Priors(mass_kg=12.0),
+        basis=dict(BASIS),
+    )
+    segmentation = segment(mesh, spec)
+    assert any("overlapping" in r for r in segmentation.reasons)
+    assert not segmentation.verified

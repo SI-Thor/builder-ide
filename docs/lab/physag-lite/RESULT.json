@@ -1,0 +1,632 @@
+{
+  "experiment": "physag-lite",
+  "date": "2026-11-01",
+  "doc": "docs/lab/exp-physag-lite.md",
+  "question": "can our own loop \u2014 plan in the cloud, generate on the Thor, segment, build MJCF, check in MuJoCo on CPU, repair once, record \u2014 deliver props whose action runs, and what does each stage cost?",
+  "baseline": {
+    "source": "PhysAg3D",
+    "completion_rate_in_the_wild": 0.913,
+    "note": "PhysAg3D's reported action-completion rate on in-the-wild objects; the arms below are measured on the same question"
+  },
+  "arms": {
+    "trellis": {
+      "props": 10,
+      "counted": 7,
+      "completed": 2,
+      "completion_rate": 0.2857,
+      "stable": 0,
+      "stable_of_counted": 0.0,
+      "wall_s_total": 1275.27,
+      "per_prop": {
+        "barrel": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": 0.174549,
+          "target": 0.2,
+          "repair_used": true,
+          "wall_s": 238.907,
+          "gpu_busy_s": 0.0
+        },
+        "cart": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": -0.000744,
+          "target": 0.5,
+          "repair_used": false,
+          "wall_s": 83.133,
+          "gpu_busy_s": 0.0
+        },
+        "chest": {
+          "interaction_status": "completed",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": true,
+          "reached": 1.571124,
+          "target": 1.570796,
+          "repair_used": true,
+          "wall_s": 246.926,
+          "gpu_busy_s": 0.0
+        },
+        "crate": {
+          "interaction_status": "completed",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": true,
+          "reached": 1.571116,
+          "target": 1.570796,
+          "repair_used": null,
+          "wall_s": 112.006,
+          "gpu_busy_s": 0.0
+        },
+        "door": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": 1.494867,
+          "target": 1.570796,
+          "repair_used": false,
+          "wall_s": 112.505,
+          "gpu_busy_s": 0.0
+        },
+        "drawer_unit": {
+          "error": "BuildError: drawer_unit: part 'drawer' has no volume to make a collider from \u2014 the split gave it no material, and a joint that carries nothing would let the action complete and mean nothing by it"
+        },
+        "gate": {
+          "error": "BuildError: gate: part 'leaf' has no volume to make a collider from \u2014 the split gave it no material, and a joint that carries nothing would let the action complete and mean nothing by it"
+        },
+        "ladder": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": -0.000202,
+          "target": 0.698132,
+          "repair_used": true,
+          "wall_s": 170.43,
+          "gpu_busy_s": 0.0
+        },
+        "lantern": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": false,
+          "completed": false,
+          "reached": 0.18124,
+          "target": 0.0,
+          "repair_used": false,
+          "wall_s": 118.232,
+          "gpu_busy_s": 0.0
+        },
+        "summary.json": {
+          "error": null
+        },
+        "table": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": 0.552549,
+          "target": 0.785398,
+          "repair_used": true,
+          "wall_s": 193.133,
+          "gpu_busy_s": 0.0
+        }
+      },
+      "repairs_used": 4,
+      "repaired_props": [
+        "barrel",
+        "chest",
+        "ladder",
+        "table"
+      ],
+      "not_counted": [
+        "drawer_unit",
+        "gate",
+        "lantern"
+      ],
+      "gpu_busy_s_total": 0.0,
+      "gpu_note": "the meshes are pre-generated (exp doc section 3, 955.9 s GPU-busy for the batch); the arm itself is CPU-only, so its GPU column is 0 by construction",
+      "superseded_run": "artifacts/physag-lite/run-trellis-buggyseg/ (before the box-cut fix; its four box-cut props could not build)"
+    },
+    "cad": {
+      "props": 10,
+      "counted": 7,
+      "completed": 2,
+      "completion_rate": 0.2857,
+      "stable": 2,
+      "stable_of_counted": 0.2857,
+      "wall_s_total": 43.0,
+      "per_prop": {
+        "barrel": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": 0.128226,
+          "target": 0.15,
+          "repair_used": null,
+          "wall_s": 13.836,
+          "gpu_busy_s": null
+        },
+        "build": {
+          "error": null
+        },
+        "chest": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": 0.6599,
+          "target": 1.570796,
+          "repair_used": null,
+          "wall_s": 19.272,
+          "gpu_busy_s": null
+        },
+        "crate": {
+          "interaction_status": "incomplete",
+          "physics_status": "unstable",
+          "counted": true,
+          "completed": false,
+          "reached": 0.884168,
+          "target": 1.570796,
+          "repair_used": null,
+          "wall_s": 1.081,
+          "gpu_busy_s": null
+        },
+        "door": {
+          "interaction_status": "incomplete",
+          "physics_status": "stable",
+          "counted": true,
+          "completed": false,
+          "reached": 0.00078,
+          "target": 1.570796,
+          "repair_used": null,
+          "wall_s": 0.925,
+          "gpu_busy_s": null
+        },
+        "drawer_unit": {
+          "interaction_status": "completed",
+          "physics_status": "stable",
+          "counted": true,
+          "completed": true,
+          "reached": 0.3,
+          "target": 0.3,
+          "repair_used": null,
+          "wall_s": 1.175,
+          "gpu_busy_s": null
+        },
+        "gate": {
+          "interaction_status": "completed",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": true,
+          "reached": 1.396071,
+          "target": 1.396263,
+          "repair_used": null,
+          "wall_s": 3.695,
+          "gpu_busy_s": null
+        },
+        "summary.json": {
+          "error": null
+        },
+        "table": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": 5.8e-05,
+          "target": 0.785398,
+          "repair_used": null,
+          "wall_s": 3.02,
+          "gpu_busy_s": null
+        }
+      },
+      "not_built": [
+        "cart",
+        "ladder",
+        "lantern"
+      ],
+      "not_built_reason": "the recorded SolidCraft scripts have kernel errors; the designs were not edited to make them build",
+      "gpu_busy_s_total": 0.0,
+      "reverified": "artifacts/physag-lite/run-cad-1133/ agrees field for field on the final code"
+    },
+    "seed": {
+      "props": 10,
+      "counted": 6,
+      "completed": 2,
+      "completion_rate": 0.3333,
+      "stable": 0,
+      "stable_of_counted": 0.0,
+      "wall_s_total": 981.26,
+      "per_prop": {
+        "barrel": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": 0.1932,
+          "target": 0.2,
+          "repair_used": null,
+          "wall_s": 126.626,
+          "gpu_busy_s": null
+        },
+        "cart": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": -0.514391,
+          "target": 0.5,
+          "repair_used": null,
+          "wall_s": 85.434,
+          "gpu_busy_s": null
+        },
+        "chest": {
+          "interaction_status": "completed",
+          "physics_status": "invalid",
+          "counted": false,
+          "completed": true,
+          "reached": 1.571048,
+          "target": 1.570796,
+          "repair_used": null,
+          "wall_s": 176.639,
+          "gpu_busy_s": null
+        },
+        "crate": {
+          "interaction_status": "completed",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": true,
+          "reached": 1.570889,
+          "target": 1.570796,
+          "repair_used": null,
+          "wall_s": 137.348,
+          "gpu_busy_s": null
+        },
+        "door": {
+          "interaction_status": "completed",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": true,
+          "reached": 1.546381,
+          "target": 1.570796,
+          "repair_used": null,
+          "wall_s": 120.569,
+          "gpu_busy_s": null
+        },
+        "drawer_unit": {
+          "error": "BuildError: drawer_unit: part 'drawer' has no volume to make a collider from \u2014 the split gave it no material, and a joint that carries nothing would let the action complete and mean nothing by it"
+        },
+        "gate": {
+          "error": "BuildError: gate: part 'leaf' has no volume to make a collider from \u2014 the split gave it no material, and a joint that carries nothing would let the action complete and mean nothing by it"
+        },
+        "ladder": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": -0.000503,
+          "target": 0.698132,
+          "repair_used": null,
+          "wall_s": 105.014,
+          "gpu_busy_s": null
+        },
+        "lantern": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": false,
+          "completed": false,
+          "reached": 0.181116,
+          "target": 0.0,
+          "repair_used": null,
+          "wall_s": 131.757,
+          "gpu_busy_s": null
+        },
+        "summary.json": {
+          "error": null
+        },
+        "table": {
+          "interaction_status": "incomplete",
+          "physics_status": "invalid",
+          "counted": true,
+          "completed": false,
+          "reached": 0.442779,
+          "target": 0.785398,
+          "repair_used": null,
+          "wall_s": 97.869,
+          "gpu_busy_s": null
+        }
+      },
+      "repairs_used": 0,
+      "repair_note": "no repair round by design: the arm compares whose priors ran",
+      "priors_scoring": {
+        "props": 10,
+        "props_with_a_refereeing_range": 10,
+        "refereed_props": [
+          "barrel",
+          "cart",
+          "chest",
+          "crate",
+          "door",
+          "drawer_unit",
+          "gate",
+          "ladder",
+          "lantern",
+          "table"
+        ],
+        "note": "a range referees only when it spans at most \u00b110 % around its midpoint; a single observation is tight by construction and worth one asset, and the dataset ranges span an order of magnitude and referee nothing",
+        "per_prop": {
+          "barrel": {
+            "category": "drum",
+            "confidence": "direct",
+            "fields": {
+              "mass_kg": {
+                "planner": 32.0,
+                "deviation_from_scaled_mid": 7.5583,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.5,
+                "deviation_from_mid": -0.3333,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 0.45,
+                "deviation_from_mid": -0.504,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "cart": {
+            "category": "pallet",
+            "confidence": "borrowed",
+            "fields": {
+              "mass_kg": {
+                "planner": 30.0,
+                "deviation_from_scaled_mid": 9.2206,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.8,
+                "deviation_from_mid": 0.0667,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 0.8,
+                "deviation_from_mid": -0.3379,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "chest": {
+            "category": "container",
+            "confidence": "borrowed",
+            "fields": {
+              "mass_kg": {
+                "planner": 20.0,
+                "deviation_from_scaled_mid": 2.9358,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.6,
+                "deviation_from_mid": -0.2,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 0.5,
+                "deviation_from_mid": -0.0158,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "crate": {
+            "category": "crate",
+            "confidence": "direct",
+            "fields": {
+              "mass_kg": {
+                "planner": 12.0,
+                "deviation_from_scaled_mid": 13.6465,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.6,
+                "deviation_from_mid": -0.2,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 0.4,
+                "deviation_from_mid": -0.339,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "door": {
+            "category": "cabinet",
+            "confidence": "borrowed",
+            "fields": {
+              "mass_kg": {
+                "planner": 28.0,
+                "deviation_from_scaled_mid": 2.3412,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.55,
+                "deviation_from_mid": -0.2667,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 0.9,
+                "deviation_from_mid": -0.5501,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "drawer_unit": {
+            "category": "cabinet",
+            "confidence": "borrowed",
+            "fields": {
+              "mass_kg": {
+                "planner": 18.0,
+                "deviation_from_scaled_mid": 6.2493,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.45,
+                "deviation_from_mid": -0.4,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 0.6,
+                "deviation_from_mid": -0.7,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "gate": {
+            "category": "structure",
+            "confidence": "borrowed",
+            "fields": {
+              "mass_kg": {
+                "planner": 16.0,
+                "deviation_from_scaled_mid": -0.1576,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.55,
+                "deviation_from_mid": -0.2667,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 1.2,
+                "deviation_from_mid": -0.7778,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "ladder": {
+            "category": "rack",
+            "confidence": "borrowed",
+            "fields": {
+              "mass_kg": {
+                "planner": 9.0,
+                "deviation_from_scaled_mid": -0.9572,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.6,
+                "deviation_from_mid": -0.2,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 1.8,
+                "deviation_from_mid": -0.1484,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "lantern": {
+            "category": "lighting",
+            "confidence": "borrowed",
+            "fields": {
+              "mass_kg": {
+                "planner": 1.4,
+                "deviation_from_scaled_mid": 27.4347,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.4,
+                "deviation_from_mid": -0.4667,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 0.3,
+                "deviation_from_mid": -0.9376,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          },
+          "table": {
+            "category": "pallet",
+            "confidence": "borrowed",
+            "fields": {
+              "mass_kg": {
+                "planner": 35.0,
+                "deviation_from_scaled_mid": 1.2249,
+                "refereeing": true
+              },
+              "friction": {
+                "planner": 0.55,
+                "deviation_from_mid": -0.2667,
+                "refereeing": false
+              },
+              "size_m": {
+                "planner": 1.4,
+                "deviation_from_mid": 0.1587,
+                "refereeing": true
+              }
+            },
+            "refereeing_fields": [
+              "mass_kg",
+              "size_m"
+            ]
+          }
+        }
+      },
+      "gpu_busy_s_total": 0.0
+    }
+  },
+  "generation": {
+    "doc_section": "exp-physag-lite.md section 3",
+    "mesh_step_wall_s_total": "about 24 min for the ten",
+    "gpu_busy_s_total": 955.9,
+    "gpu_util_mean_pct": 66.6,
+    "meshes": "ten TRELLIS.2 GLBs, ~700k triangles each, ~1 m across"
+  },
+  "notes": [
+    "completion rates count only props whose part-to-spec mapping verified (guard 1)",
+    "every generated-arm stability score is void, not failed: the convex colliders stray 110-635 mm from the organic material and the guard refuses to score on them (guard 2)",
+    "the only stable physics scores in the experiment are the two exact-solid CAD props (door, drawer_unit)",
+    "drawer_unit and gate do not build on the generated arm because their meshes are featureless solid blocks: 0 of ~699k triangle centres inside the plan's moving-part box",
+    "the seed arm's mass deviations (planner vs volume-scaled SimReady midpoint) run from -16% to +2743%; the single-observation ranges are tight by construction and worth exactly one asset"
+  ]
+}

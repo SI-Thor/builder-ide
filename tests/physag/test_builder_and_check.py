@@ -16,11 +16,12 @@ import pytest
 from core.physag.check import check_prop
 from core.physag.decompose import decompose_part
 from core.physag.geometry import load_mesh
-from core.physag.mjcf import build_mjcf
+from core.physag.mjcf import BuildError, build_mjcf
 from core.physag.pipeline import run_prop
 from core.physag.segment import segment
+from core.physag.spec import InteractionSpec
 
-from .fixtures import crate_mesh, write_glb
+from .fixtures import box_mesh, crate_mesh, write_glb
 from .test_spec import make_spec
 
 BASIS = {
@@ -254,3 +255,101 @@ def test_the_run_writes_the_model_and_the_record(crate_glb, tmp_path):
     assert (out / "model.xml").exists()
     assert run.result is not None
     assert run.timings["check_s"] > 0
+
+
+def lantern_spec() -> InteractionSpec:
+    """A hanging lantern: the handle hangs from the world on a ball joint
+    and the body is welded to the handle. The handle is the root of the
+    body tree, and the root is the part the world hangs, not a part that
+    stands on the floor."""
+    from core.physag.spec import (
+        Action,
+        Box,
+        Cut,
+        InteractionSpec,
+        Joint,
+        Part,
+        Priors,
+    )
+
+    return InteractionSpec(
+        prop="lantern",
+        kind="lantern",
+        image_prompt="a hanging lantern",
+        parts=(
+            Part(
+                name="handle",
+                role="moving",
+                cut=Cut(kind="plane", axis="z", at=0.78, keep="above"),
+                expect=Box(min=(0.3, 0.3, 0.78), max=(0.7, 0.7, 1.0)),
+            ),
+            Part(name="body", role="base", cut=Cut(kind="rest")),
+        ),
+        joints=(
+            Joint(
+                name="hang",
+                type="ball",
+                parent="world",
+                child="handle",
+                axis=(0.0, 0.0, 1.0),
+                anchor=(0.5, 0.5, 1.02),
+                low=0.0,
+                high=0.0,
+                damping=0.2,
+                armature=0.005,
+            ),
+            Joint(
+                name="handle_to_body",
+                type="fixed",
+                parent="handle",
+                child="body",
+                axis=(0.0, 0.0, 1.0),
+                anchor=(0.5, 0.5, 0.78),
+                low=0.0,
+                high=0.0,
+            ),
+        ),
+        action=Action(kind="hang", joint="hang", target=0.0, duration_s=2.0, dwell_steps=10),
+        priors=Priors(
+            mass_kg=1.4,
+            friction=0.4,
+            actuator_force_n=20.0,
+            actuator_torque_nm=2.0,
+        ),
+        basis=dict(BASIS),
+        planner={"model": "test"},
+    )
+
+
+def test_a_prop_hung_from_the_world_builds(crate_glb):
+    # The regression for the lantern: the handle is carried by a ball
+    # joint to the world, so no part is left without a parent, and the
+    # builder used to count zero trees and refuse the prop. The handle is
+    # the root, the ball joint hangs it, and the base is not free — it
+    # cannot tip, because it hangs.
+    spec = lantern_spec()
+    built, _, _ = _build(spec, crate_glb)
+    assert built.root_body == "body_handle"
+    assert not built.free_base
+    model = mujoco.MjModel.from_xml_string(built.xml)
+    assert model.nbody >= 4  # the world, the anchor, the handle, the body
+
+
+def test_a_part_the_split_gave_no_material_fails_to_build(tmp_path):
+    # A box that claims empty space: the part comes out of the split with
+    # no material, and a joint that carries nothing would let the action
+    # complete and mean nothing by it. The builder refuses the model
+    # rather than write a body with no mass.
+    import numpy as np
+
+    bottom_v, bottom_f = box_mesh((0.4, 0.4, 0.1), (0.0, 0.0, 0.05))
+    top_v, top_f = box_mesh((0.4, 0.4, 0.1), (0.0, 0.0, 0.35))
+    vertices = np.concatenate([bottom_v, top_v])
+    triangles = np.concatenate([bottom_f, top_f + bottom_v.shape[0]])
+    path = write_glb(tmp_path / "gapped.glb", vertices, triangles)
+
+    from .test_segment import box_cut_spec
+
+    spec = box_cut_spec((0.1, 0.1, 0.4), (0.3, 0.3, 0.6))
+    with pytest.raises(BuildError, match="no volume"):
+        _build(spec, path)
