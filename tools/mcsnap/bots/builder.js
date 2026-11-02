@@ -18,14 +18,29 @@
 //   the live world's ledger uses, written live with node:sqlite. The
 //   private world is its own world and it keeps its own story.
 //
+// Three things the live world's own bots taught this one, each of them a
+// message from the server:
+//
+// * **the blocks come from the operator.** A bot's hotbar is empty, and
+//   the operator gives it the blocks (the bot is opped for that);
+// * **the item to equip is the one in the inventory**, not the one in the
+//   registry: the registry item has no slot, and mineflayer's equip uses
+//   the slot to decide what to click;
+// * **the bot aims before it places.** mineflayer's placeBlock does a
+//   *smooth* look first, and the stream of rotation packets that comes
+//   with it is what the server refuses ("Invalid move player packet
+//   received") — the bot is dropped for it. The live bots look at the
+//   target first, with an instant look, and then place: by then the
+//   smooth look has nothing left to turn.
+//
 // Usage:
 //
 //   NODE_PATH=~/lm-wt/agent-world/bots/node_modules \
 //   node builder.js --name Builder1 --journal /tmp/journal.jsonl \
 //                   --ledger /tmp/ledger.sqlite3 --count 6 --block stone
 //
-// The operator must have opped the bot; the bot asks for creative mode
-// and the blocks itself with /gamemode and /give.
+// The operator must have opped the bot; the bot asks for its blocks with
+// /give itself.
 
 const fs = require('node:fs');
 const path = require('node:path');
@@ -116,6 +131,7 @@ const bot = mineflayer.createBot({
   username: name,
   auth: 'offline',
   version: options.version,
+  physicsEnabled: true,
 });
 
 function sleep(milliseconds) {
@@ -124,66 +140,105 @@ function sleep(milliseconds) {
 
 function solidAt(x, y, z) {
   const block = bot.blockAt(new Vec3(x, y, z));
-  return Boolean(block) && block.name !== 'air' && block.boundingBox === 'block';
+  return Boolean(block) && block.name !== 'air' && block.boundingBox !== 'empty';
 }
 
-/** The y of the first solid ground under a column. */
-function groundBelow(x, z) {
-  const feet = Math.floor(bot.entity.position.y);
-  for (let y = feet - 1; y > feet - 12; y -= 1) {
-    if (solidAt(x, y, z)) return y;
+/**
+ * A column beside the bot that has something to build on.
+ *
+ * The bot may be standing on a tree, so the ground it stands on is not
+ * always the ground next to it. The tower is built on the first
+ * neighbour column with a solid block at the bot's own level, which keeps
+ * every block of the tower within the bot's reach.
+ */
+function towerBase(feet) {
+  const ring = [
+    [1, 0], [-1, 0], [0, 1], [0, -1],
+    [1, 1], [-1, -1], [1, -1], [-1, 1],
+  ];
+  // Every bot spawns at the same place, so the offset says which
+  // neighbouring column this bot builds in — the ring is walked from a
+  // different place, not from further away: a block more than the bot's
+  // reach is a block the server will not let it place.
+  const offset = Number(options.offset || 0) % ring.length;
+  for (let step = 0; step < ring.length; step += 1) {
+    const [dx, dz] = ring[(offset + step) % ring.length];
+    const x = feet.x + dx;
+    const z = feet.z + dz;
+    if (!solidAt(x, feet.y - 1, z)) continue;
+    // The column has to be clear for the whole height of the tower. A
+    // block that is already there makes the placement a no-op, and the
+    // journal would then say the bot put a block in the world when it
+    // did not — which would make the whole measurement a lie.
+    let clear = true;
+    for (let level = 0; level < count; level += 1) {
+      if (solidAt(x, feet.y + level, z)) { clear = false; break; }
+    }
+    if (clear) return { x, y: feet.y, z };
   }
-  return feet - 1;
+  return null;
 }
 
 async function equipBlock() {
-  const item = bot.registry.itemsByName[blockName];
-  if (!item) throw new Error(`the server has no item called ${blockName}`);
-  try {
-    await bot.equip(item.id, 'hand');
-  } catch (error) {
-    // Creative mode's hotbar can be empty for a bot; ask for the block.
-    bot.chat(`/give ${name} ${blockName} ${count + 2}`);
-    await sleep(800);
-    await bot.equip(item.id, 'hand');
+  if (!bot.registry.itemsByName[blockName]) {
+    throw new Error(`the server has no item called ${blockName}`);
   }
+  const held = () => bot.inventory.items().find((entry) => entry.name === blockName);
+  if (!held()) {
+    bot.chat(`/give ${name} ${blockName} ${count + 2}`);
+    await sleep(1500);
+  }
+  const item = held();
+  if (!item) throw new Error(`no ${blockName} in the inventory`);
+  await bot.equip(item, 'hand');
 }
 
 async function build() {
   await sleep(8000);            // let the chunks arrive, and give the
-                                  // operator the moment it needs to op the bot
-  bot.chat('/gamemode creative');
-  await sleep(500);
-  const position = bot.entity.position;
-  // Each builder gets its own tower: they all spawn at the world spawn,
-  // so the offset is what keeps their work apart.
-  const offset = Number(options.offset || 0);
-  const towerX = Math.floor(position.x) + 2 + offset * 4;
-  const towerZ = Math.floor(position.z);
-  const groundY = groundBelow(towerX, towerZ);
-
+                                // operator the moment it needs to op the bot
+  const feet = bot.entity.position.floored();
+  process.stdout.write(`building from ${bot.entity.position.toString()}\n`);
+  const base = towerBase(feet);
+  if (!base) {
+    process.stdout.write('no column beside the bot to build on\n');
+    bot.quit();
+    return;
+  }
   await equipBlock();
 
   let placed = 0;
   for (let index = 0; index < count; index += 1) {
-    const y = groundY + 1 + index;
-    const reference = bot.blockAt(new Vec3(towerX, y - 1, towerZ));
-    if (!reference) {
-      process.stdout.write(`no reference block at ${towerX},${y - 1},${towerZ}\n`);
+    const y = base.y + index;
+    const reference = bot.blockAt(new Vec3(base.x, y - 1, base.z));
+    if (!reference || reference.name === 'air') {
+      process.stdout.write(`no reference block at ${base.x},${y - 1},${base.z}\n`);
       break;
     }
+    const target = new Vec3(base.x, y, base.z);
     try {
-      await bot.placeBlock(reference, 'top');
+      // The placement is made with an **instant** look. mineflayer's own
+      // placeBlock does a smooth look first, and the stream of rotation
+      // packets that comes with it is what the server refuses ("Invalid
+      // move player packet received") — the bot is dropped for it.
+      await bot._placeBlockWithOptions(reference, new Vec3(0, 1, 0), {
+        forceLook: true,
+        swingArm: 'right',
+      });
     } catch (error) {
-      process.stdout.write(`place failed at ${towerX},${y},${towerZ}: ${error.message}\n`);
+      process.stdout.write(`place failed at ${base.x},${y},${base.z}: ${error.message}\n`);
       break;
     }
     const at = new Date().toISOString();
-    const coordinates = { x: towerX, y, z: towerZ };
+    const coordinates = { x: base.x, y, z: base.z };
+    // Read the block back: the server is the only witness, and a
+    // placement the server did not take must not be written down as
+    // one that it did.
+    const readBack = bot.blockAt(target);
+    const placedBlock = readBack && readBack.name !== 'air' ? readBack.name : 'air';
     const seq = writeLedgerRow({
       skill: String(options.skill),
       outcome: {
-        detail: `placed ${blockName} at ${towerX},${y},${towerZ}`,
+        detail: `placed ${blockName} at ${base.x},${y},${base.z}`,
         measure: 'world_op',
         result: 'win',
         score: null,
@@ -195,15 +250,16 @@ async function build() {
       bot: name,
       op: 'place',
       block: blockName,
-      x: towerX,
+      x: base.x,
       y,
-      z: towerZ,
+      z: base.z,
       skill: String(options.skill),
       seq,
+      verified: placedBlock,
     });
     placed += 1;
     process.stdout.write(
-      `placed ${blockName} at ${towerX},${y},${towerZ} (ledger seq ${seq})\n`
+      `placed ${blockName} at ${base.x},${y},${base.z} (ledger seq ${seq}, read back ${placedBlock})\n`
     );
     await sleep(Number(options.intervalMs));
   }
@@ -220,5 +276,7 @@ bot.on('spawn', () => {
 });
 
 bot.on('error', (error) => process.stdout.write(`bot error: ${error.message}\n`));
-bot.on('kicked', (reason) => process.stdout.write(`kicked: ${JSON.stringify(reason)}\n`));
+bot.on('kicked', (reason) => process.stdout.write(
+  `kicked at ${bot.entity ? bot.entity.position.toString() : '?'}: ${JSON.stringify(reason)}\n`
+));
 bot.on('end', () => process.stdout.write('bot ended\n'));

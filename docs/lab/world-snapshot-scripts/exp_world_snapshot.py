@@ -94,6 +94,7 @@ def run_builders(
     count: int,
     block: str,
     offset_base: int,
+    interval_ms: int = 1500,
     wait: bool = True,
 ) -> dict[str, Any]:
     """Run the builders, and say how long they took and what they placed."""
@@ -113,6 +114,7 @@ def run_builders(
             "--count", str(count),
             "--block", block,
             "--offset", str(offset_base + index),
+            "--intervalMs", str(interval_ms),
         ]
         processes.append(
             subprocess.Popen(
@@ -155,6 +157,59 @@ def run_builders(
     }
 
 
+def journal_entries(journal: Path) -> list[dict[str, Any]]:
+    """Every placement the journal holds, in the order they happened."""
+    if not journal.is_file():
+        return []
+    entries: list[dict[str, Any]] = []
+    for line in journal.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            entries.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+    return entries
+
+
+def run_probe(
+    server: PrivateServer,
+    points: list[dict[str, Any]],
+    out_path: Path,
+) -> list[dict[str, Any]]:
+    """Ask the server what block is at each point, and write the answer out.
+
+    This is the eye of the measurement. The files say what was copied;
+    only the server can say what the world looks like afterwards. The
+    probe stands next to each point and reads the block there.
+    """
+    if not points:
+        return []
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    points_path = out_path.with_name(f"{out_path.stem}-points.json")
+    points_path.write_text(json.dumps(points), encoding="utf-8")
+    environment = dict(os.environ)
+    environment["NODE_PATH"] = str(BOT_MODULES)
+    completed = subprocess.run(
+        [
+            str(NODE),
+            str(REPO / "tools" / "mcsnap" / "bots" / "probe.js"),
+            "--name", "Prober",
+            "--host", "127.0.0.1",
+            "--port", "25610",
+            "--points", str(points_path),
+            "--out", str(out_path),
+        ],
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=600,
+    )
+    if not out_path.is_file():
+        return [{"error": (completed.stderr or completed.stdout or "the probe wrote nothing")[-500:]}]
+    return json.loads(out_path.read_text(encoding="utf-8"))
+
+
 def snapshot_now(
     server: PrivateServer, store: Path, ledger_path: Path | None, label: str
 ) -> dict[str, Any]:
@@ -174,6 +229,13 @@ def snapshot_now(
     summary["wall_seconds"] = round(seconds, 3)
     summary["directory"] = str(result.directory)
     return summary
+
+
+def _journal_lines(journal: Path) -> int:
+    """How many placements the journal holds."""
+    if not journal.is_file():
+        return 0
+    return sum(1 for line in journal.read_text(encoding="utf-8").splitlines() if line.strip())
 
 
 def region_hashes(world_dir: Path) -> dict[str, str]:
@@ -203,6 +265,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--bots", type=int, default=3)
     parser.add_argument("--blocks", type=int, default=6)
     parser.add_argument("--block", default="stone")
+    parser.add_argument(
+        "--interval-ms", type=int, default=1500,
+        help="how long a builder waits between two placements",
+    )
     args = parser.parse_args(argv)
 
     server_dir = Path(args.server_dir).resolve()
@@ -225,28 +291,56 @@ def main(argv: list[str] | None = None) -> int:
         results["server_start"] = server.start(wait_seconds=900.0).to_dict()
     results["server_version"] = server.status()["version"]
     results["server_before"] = status
+    # The bots that move themselves around the world — the replayer and
+    # the prober — need to be opped as well. The server may already have
+    # been running when the experiment starts, and then the ops file on
+    # disk is not read: the op has to be given at runtime.
+    for name in names + ["Rewinder", "Prober"]:
+        try:
+            server.command(f"op {name}")
+        except Exception as error:
+            print(f"could not op {name}: {error}")
 
     # -- 2. build A ----------------------------------------------------------
     results["build_a"] = run_builders(
         server, names, journal=journal, ledger=ledger_path,
         count=args.blocks, block=args.block, offset_base=0,
+        interval_ms=args.interval_ms,
     )
     results["box_after_build_a"] = box_state()
     save(results, Path(args.results))
 
     # -- 3. snapshot, idle ---------------------------------------------------
+    journal_before_idle = _journal_lines(journal)
     idle = snapshot_now(server, store, ledger_path, "idle")
+    journal_after_idle = _journal_lines(journal)
     results["snapshot_idle"] = idle
+    results["placements_during_the_idle_snapshot"] = journal_after_idle - journal_before_idle
     results["box_after_idle_snapshot"] = box_state()
     save(results, Path(args.results))
 
     # -- 4. build B, and the snapshot while they build -----------------------
     builders = run_builders(
         server, names, journal=journal, ledger=ledger_path,
-        count=args.blocks, block=args.block, offset_base=args.bots + 1, wait=False,
+        count=args.blocks, block=args.block, offset_base=args.bots + 1,
+        interval_ms=args.interval_ms, wait=False,
     )
-    time.sleep(3.0)          # let the builders get going
+    # The snapshot has to be taken while the bots are *building*, so the
+    # experiment waits for the placement journal to grow rather than
+    # sleeping a fixed time and hoping.
+    before = _journal_lines(journal)
+    deadline = time.time() + 120
+    while time.time() < deadline:
+        if _journal_lines(journal) > before:
+            break
+        time.sleep(0.5)
+    journal_before_building = _journal_lines(journal)
     building = snapshot_now(server, store, ledger_path, "building")
+    journal_after_building = _journal_lines(journal)
+    results["journal_lines_at_building_snapshot"] = journal_after_building
+    results["placements_during_the_building_snapshot"] = (
+        journal_after_building - journal_before_building
+    )
     results["snapshot_building"] = building
     save(results, Path(args.results))
     for process in builders["processes"]:
@@ -255,6 +349,21 @@ def main(argv: list[str] | None = None) -> int:
         except subprocess.TimeoutExpired:
             process.kill()
     results["box_after_building_snapshot"] = box_state()
+
+    # -- 4b. the eye: what does the world look like? -------------------------
+    probe_dir = Path(args.results).parent / "probes"
+    entries = journal_entries(journal)
+    points = [
+        {
+            "x": entry["x"], "y": entry["y"], "z": entry["z"],
+            "expect": entry.get("block"),
+        }
+        for entry in entries
+    ]
+    results["probe_before_restore"] = run_probe(
+        server, points, probe_dir / "probe-before-restore.json"
+    )
+    save(results, Path(args.results))
 
     # -- 5. the plan ---------------------------------------------------------
     ledger = read_world_ledger(ledger_path)
@@ -298,12 +407,27 @@ def main(argv: list[str] | None = None) -> int:
     after_state = world_state(server.world_dir)
     results["state_after_restore"] = after_state
     results["region_hashes_after_restore"] = region_hashes(server.world_dir)
+    # The eye again: the same points, read out of the restored world.
+    results["probe_after_restore"] = run_probe(
+        server, points, probe_dir / "probe-after-restore.json"
+    )
     results["box_after_restore"] = box_state()
     save(results, Path(args.results))
 
     # -- 7. the replay -------------------------------------------------------
+    # The restore restarted the server, and a server that starts reads
+    # its operators from ops.json. The operators this experiment gave
+    # at runtime are gone with the old server, so the bots that need to
+    # move themselves around the world have to be opped **again** — and
+    # a bot that is not an operator cannot /tp, so it would stand where
+    # it spawned and its placements would be out of reach.
+    for name in names + ["Rewinder", "Prober"]:
+        try:
+            server.command(f"op {name}")
+        except Exception as error:
+            print(f"could not op {name} after the restore: {error}")
     replay_plan = Path(results["snapshot_building"]["directory"]).parent / "replay-plan.json"
-    replay_plan.write_text(json.dumps(plan_one.to_dict(), indent=2), encoding="utf-8")
+    replay_plan.write_text(json.dumps(plan_all.to_dict(), indent=2), encoding="utf-8")
     environment = dict(os.environ)
     environment["NODE_PATH"] = str(BOT_MODULES)
     replay_started = time.perf_counter()
@@ -342,15 +466,83 @@ def main(argv: list[str] | None = None) -> int:
     ]
     different = [
         path for path, digest in snapshot_hashes.items()
+        if after_replay_hashes.get(path) != digest
+    ]
+    missing = [
+        path for path in snapshot_hashes
         if path not in after_replay_hashes
     ]
     results["region_comparison_after_replay"] = {
         "same_as_snapshot": sorted(same),
         "different_from_snapshot": sorted(different),
+        "missing_after_replay": sorted(missing),
         "note": (
             "a region file hashes the same only if every block in it came "
             "back exactly; the ones that differ are the chunks the replay "
             "did not restore"
+        ),
+    }
+    # The eye a third time: the same points, read out of the world the
+    # replay put back. The table below is the answer to "what differs
+    # after a restore", one block at a time.
+    results["probe_after_replay"] = run_probe(
+        server, points, probe_dir / "probe-after-replay.json"
+    )
+
+    def blocks_at(probe: list[dict[str, Any]]) -> dict[tuple[int, int, int], str]:
+        index: dict[tuple[int, int, int], str] = {}
+        for row in probe:
+            if not isinstance(row, dict) or "x" not in row:
+                continue
+            index[(int(row["x"]), int(row["y"]), int(row["z"]))] = str(row.get("block"))
+        return index
+
+    before_blocks = blocks_at(results.get("probe_before_restore", []))
+    after_blocks = blocks_at(results.get("probe_after_restore", []))
+    replay_blocks = blocks_at(results.get("probe_after_replay", []))
+    snapshot_seq = int(results["snapshot_building"].get("ledger_seq") or 0)
+    table: list[dict[str, Any]] = []
+    for entry in entries:
+        key = (int(entry["x"]), int(entry["y"]), int(entry["z"]))
+        in_snapshot = int(entry.get("seq") or 0) <= snapshot_seq
+        table.append({
+            "x": key[0], "y": key[1], "z": key[2],
+            "block": entry.get("block"),
+            "seq": entry.get("seq"),
+            "in_snapshot": in_snapshot,
+            "before_restore": before_blocks.get(key),
+            "after_restore": after_blocks.get(key),
+            "after_replay": replay_blocks.get(key),
+        })
+    results["block_table"] = table
+    results["block_table_summary"] = {
+        "placements_journalled": len(table),
+        "blocks_present_before_the_restore": sum(
+            1 for row in table if row["before_restore"] == row["block"]
+        ),
+        "blocks_removed_by_the_restore": sum(
+            1 for row in table
+            if row["before_restore"] == row["block"] and row["after_restore"] == "air"
+        ),
+        "blocks_kept_by_the_restore": sum(
+            1 for row in table
+            if row["before_restore"] == row["block"] and row["after_restore"] == row["block"]
+        ),
+        "blocks_put_back_by_the_replay": sum(
+            1 for row in table
+            if row["after_restore"] == "air" and row["after_replay"] == row["block"]
+        ),
+        "still_missing_after_the_replay": sum(
+            1 for row in table
+            if row["after_restore"] == "air" and row["after_replay"] != row["block"]
+        ),
+        "predicted_by_the_ledger": {
+            "in_the_snapshot": sum(1 for row in table if row["in_snapshot"]),
+            "after_the_snapshot": sum(1 for row in table if not row["in_snapshot"]),
+        },
+        "note": (
+            "the counts are read out of the running world with the probe "
+            "bot; the ledger's own prediction is in 'predicted_by_the_ledger'"
         ),
     }
     results["box_at_end"] = box_state()

@@ -2661,3 +2661,75 @@ private server's own lease: 3 GB reserved, 1.4 GB in use.
 
 **Decided next:** the measurement, as soon as the lease is granted; then the
 lab note, the commit, and the report.
+
+## 2026-11-02 23:55 — the measurement, measured
+
+**Tried:** ran the whole loop on the private world (127.0.0.1:25610) with
+three builders, took an idle snapshot and a snapshot while the bots built,
+restored the building snapshot, read the world back, and replayed the kept
+work on top of the restored world.
+
+**Happened (numbers):**
+
+| | |
+|---|---|
+| idle snapshot | 112 files, 12,381,679 B, ledger seq 6, tick 88,754, **0.481 s** |
+| building snapshot | 112 files, 12,381,708 B, ledger seq 7, tick 88,941, **0.126 s** |
+| restore | verified, no problems, **11.068 s** (stop 1.005, move aside 0.0006, copy 0.028, verify 0.016, **start 10.017**) |
+| blocks the restore removed / kept | **5 removed, 6 kept** |
+| the ledger's prediction | 7 in the snapshot, 5 after — **it agrees with the world** |
+| the replay | 5 placements replayed, **5 read back as the expected block** |
+
+**Box state:** the Thor, load average **13.62 / 14.32 / 16.50** at the
+start and **13.89 / 14.32 / 16.27** at the end, **99.58 GB → 99.27 GB**
+available. The private server's lease: 3 GB reserved, 1.5 GB in use.
+
+**Four bugs the measurement found, and what they were:**
+
+1. **The join picked the wrong block.** The ledger's rows are stamped with
+   second resolution and the journal with milliseconds, so a row can sit
+   up to a second *before* the placement it records — and then the
+   *nearest* journal entry is the previous block. The plan replayed y=85,
+   87, 87, 89, 89 where the journal said 86, 87, 88, 89, 90. Fixed: a
+   journal entry that carries the ledger row's own `seq` is joined
+   **exactly**, and the time-based join now prefers an entry at or after
+   the row's time. Two tests added.
+2. **The bots lost their operator across the restore.** A restore restarts
+   the server, and a server that starts reads its operators from
+   `ops.json`, so the operator given at runtime was gone with the old
+   server. The bot's `/tp` did nothing, it stood where it spawned, and
+   every placement was 11 blocks away — which the server refuses without
+   answering, so the placement timed out with *"Server did not answer the
+   placement"*. Fixed: the experiment re-ops the bots **after** the
+   restore, and the replayer reports how far it is standing from the block
+   it is about to place.
+3. **The probe called an unknown block an empty one.** A block the client
+   has not been told about reads as *unknown*, and "air" says a block is
+   missing when the client simply has not seen it yet. Fixed: the probe
+   waits for the block to become known before it reads it.
+4. **`level.dat` is gzipped NBT**, and the state reader parsed it as raw
+   NBT, so every level fact came back empty. Fixed: `read_nbt`, not
+   `parse_nbt`.
+
+**Also fixed:** the manifest's ledger `seq` is now read **between the
+flush and the copy** — the flush is the moment the world stops moving, and
+reading the head after the copy could count a row whose block is not in
+the snapshot.
+
+**What the numbers do not say (and the lab note says so too):**
+
+* "three bots building" was measured with **one** bot placing. The other
+  two stood where no neighbouring column was clear, and the builder
+  refuses to build on an occupied column (a placement there would be a
+  no-op, and the journal would lie). The clear-column rule is in
+  `tools/mcsnap/bots/builder.js`.
+* **No placement landed inside the snapshot's own 0.126 s window.** The
+  builders place every 1.5 s, so that window had about a one-in-twelve
+  chance of catching one, and it did not.
+* The restore is **11 s because the server has to start again** (10.0 s
+  of it). The world work itself is 45 ms.
+* The **time of day does not come back**: it is a server-side timeline in
+  this Paper version, never in the files.
+
+**Decided next:** commit the measurement, the fixes, the bots, the probe
+and the lab note on `world-snapshot` (no push), and report.

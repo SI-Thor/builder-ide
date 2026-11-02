@@ -159,22 +159,48 @@ def level_facts(root: dict[str, Any]) -> dict[str, Any]:
     spawn, and an old world has no ``WorldGenSettings``. The manifest
     records what was there and nothing more.
     """
-    seed = lookup(root, "WorldGenSettings", "seed")
+    # A world's level data is a root compound with a single "Data"
+    # compound inside it; the fields live one level down. The live
+    # world's own level.dat is 469 bytes and has exactly one root key.
+    level = root.get("Data") if isinstance(root.get("Data"), dict) else root
+
+    seed = lookup(level, "WorldGenSettings", "seed")
     if seed is None:
-        seed = lookup(root, "RandomSeed")
+        seed = lookup(level, "RandomSeed")
     facts: dict[str, Any] = {
         "seed": int(seed) if isinstance(seed, (int, float)) else None,
-        "tick": int(lookup(root, "Time", default=0) or 0),
-        "day_time": int(lookup(root, "DayTime", default=0) or 0),
-        "data_version": int(lookup(root, "DataVersion", default=0) or 0),
-        "last_played": int(lookup(root, "LastPlayed", default=0) or 0),
-        "level_name": str(lookup(root, "LevelName", default="") or ""),
+        "tick": int(lookup(level, "Time", default=0) or 0),
+        "day_time": int(lookup(level, "DayTime", default=0) or 0),
+        "data_version": int(lookup(level, "DataVersion", default=0) or 0),
+        "last_played": int(lookup(level, "LastPlayed", default=0) or 0),
+        "level_name": str(lookup(level, "LevelName", default="") or ""),
     }
-    spawn = {}
+    # The spawn is a compound ("pos", "dimension") in this Paper
+    # version; the old flat spawnX/spawnY/spawnZ are still read as a
+    # fallback, because an older world may still have them.
+    spawn: dict[str, Any] = {}
+    compound = level.get("spawn")
+    if isinstance(compound, dict):
+        position = compound.get("pos")
+        if isinstance(position, list) and len(position) >= 3:
+            spawn = {
+                "x": int(position[0]),
+                "y": int(position[1]),
+                "z": int(position[2]),
+            }
+        if compound.get("dimension"):
+            spawn["dimension"] = str(compound["dimension"])
     for axis in ("X", "Y", "Z"):
-        value = lookup(root, f"spawn{axis}")
-        if isinstance(value, (int, float)):
+        value = lookup(level, f"spawn{axis}")
+        if isinstance(value, (int, float)) and axis.lower() not in spawn:
             spawn[axis.lower()] = int(value)
     if spawn:
         facts["spawn"] = spawn
+
+    # The server's own version is written into the world's level data,
+    # which is a better answer than the console's version line: it is the
+    # build that wrote *this* world.
+    bukkit_version = level.get("Bukkit.Version")
+    if isinstance(bukkit_version, str) and bukkit_version:
+        facts["server_version"] = bukkit_version
     return facts

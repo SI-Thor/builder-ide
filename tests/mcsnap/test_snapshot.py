@@ -26,14 +26,17 @@ def test_the_snapshot_says_what_it_copied(fake_world: Path, tmp_path: Path) -> N
 def test_the_servers_own_console_is_used_in_the_right_order(
     fake_world: Path, tmp_path: Path
 ) -> None:
-    """save-off, then the flush, then save-on, and the version at the end."""
+    """save-off, then the flush, then save-on, and the world's own facts."""
     commands: list[str] = []
     take_snapshot(
         fake_world,
         tmp_path / "store",
         command=lambda command: commands.append(command) or "",
     )
-    assert commands == ["save-off", "save-all flush", "save-on", "version"]
+    assert commands[:3] == ["save-off", "save-all flush", "save-on"]
+    assert "version" in commands
+    assert "seed" in commands
+    assert "time query daytime" in commands
 
 
 def test_the_manifest_carries_the_ledger_row_it_sits_behind(

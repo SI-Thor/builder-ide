@@ -81,6 +81,10 @@ class Placement:
     A placement journal is a JSON Lines file: one object per line, with
     ``at`` (ISO-8601 or epoch), ``bot``, ``op`` (``place`` or ``mine``),
     ``block``, and the coordinates ``x``, ``y``, ``z``.
+
+    ``seq`` is the ledger row the bot wrote for this placement. A bot
+    that records it makes the join exact; a journal without it is joined
+    by time instead.
     """
 
     at: float
@@ -91,6 +95,7 @@ class Placement:
     y: int
     z: int
     skill: str = ""
+    seq: int | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "Placement":
@@ -101,6 +106,7 @@ class Placement:
             from .ledger import parse_at
 
             moment = parse_at(str(at))
+        seq = data.get("seq")
         return cls(
             at=moment,
             bot=str(data.get("bot", "")),
@@ -110,6 +116,7 @@ class Placement:
             y=int(data.get("y", 0)),
             z=int(data.get("z", 0)),
             skill=str(data.get("skill", "")),
+            seq=int(seq) if isinstance(seq, (int, float)) else None,
         )
 
 
@@ -252,18 +259,40 @@ def read_placements(path: str | Path | None) -> list[Placement]:
 def _match_placement(
     row: LedgerRow, placements: Sequence[Placement], window: float
 ) -> Placement | None:
-    """The journal entry that belongs to a ledger row, if there is one."""
+    """The journal entry that belongs to a ledger row, if there is one.
+
+    Two ways to join, in this order:
+
+    **By the row's own seq.** A bot that records the ledger row it wrote
+    for a placement makes the join exact, and nothing else can go wrong.
+    This is the path the private world's bots take.
+
+    **By time**, for a journal that does not carry the seq. The row's
+    time is the *decision's* time and the journal's is the *action's*,
+    and the ledger's time has second resolution while the journal's has
+    milliseconds — so a row can sit up to a second *before* the action
+    it records. An entry at or after the row's time is therefore a
+    better match than an entry before it, even one that is nearer.
+    """
+    for placement in placements:
+        if placement.seq is None or int(placement.seq) != int(row.seq):
+            continue
+        if placement.bot and row.actor and placement.bot != row.actor:
+            continue
+        return placement
+
     best: Placement | None = None
-    best_distance = float("inf")
+    best_score: tuple[int, float] | None = None
     for placement in placements:
         if placement.bot and row.actor and placement.bot != row.actor:
             continue
         distance = abs(placement.at - row.at)
         if distance > window:
             continue
-        if distance < best_distance:
+        score = (0 if placement.at >= row.at else 1, distance)
+        if best_score is None or score < best_score:
             best = placement
-            best_distance = distance
+            best_score = score
     return best
 
 

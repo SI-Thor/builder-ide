@@ -112,6 +112,40 @@ def test_the_journal_is_joined_by_the_bots_own_name() -> None:
     assert verdict == "lost"
 
 
+def test_a_journal_entry_carrying_the_rows_own_seq_is_matched_exactly() -> None:
+    """A bot that records the ledger row it wrote makes the join exact.
+
+    Without this the join is by time, and a ledger row whose time has
+    second resolution can land on the wrong entry: the row for a block
+    placed at 1002.7 is stamped 1002.0, which is nearer to a placement
+    at 1001.5 than to its own.
+    """
+    row = _row(7, "tile.played", actor="Timber", at=1002.0)
+    journal = [
+        Placement(at=1001.5, bot="Timber", op="place", block="stone", x=1, y=2, z=3),
+        Placement(at=1002.7, bot="Timber", op="place", block="stone", x=4, y=5, z=6, seq=7),
+    ]
+    verdict, _, placement = classify_event(row, journal)
+    assert verdict == "reappliable"
+    assert placement is not None
+    assert (placement.x, placement.y, placement.z) == (4, 5, 6)
+
+
+def test_the_join_prefers_an_entry_at_or_after_the_rows_time() -> None:
+    """A ledger row is stamped at the second, so it can sit before the
+    action it records. The entry at or after the row's time is the
+    action; the one before it is the previous play."""
+    row = _row(7, "tile.played", actor="Timber", at=1002.0)
+    journal = [
+        Placement(at=1001.5, bot="Timber", op="place", block="stone", x=1, y=2, z=3),
+        Placement(at=1002.7, bot="Timber", op="place", block="stone", x=4, y=5, z=6),
+    ]
+    verdict, _, placement = classify_event(row, journal)
+    assert verdict == "reappliable"
+    assert placement is not None
+    assert (placement.x, placement.y, placement.z) == (4, 5, 6)
+
+
 # -- the plan ----------------------------------------------------------------
 
 

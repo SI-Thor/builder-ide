@@ -130,3 +130,67 @@ cd ~/lm-wt/world-snapshot
 
 The environment is `uv venv` + `uv pip install -e ".[dev]"`; the package
 itself needs **only the standard library**.
+
+## What the measurement found
+
+The measurement is [`docs/lab/exp-world-snapshot.md`](../../docs/lab/exp-world-snapshot.md).
+These are the things that cost the most to find, and that the next person
+would otherwise have to find again:
+
+**Paper's RCON answers carry a packet type.** The protocol description of
+the RCON packet does not mention it, and a client that reads the payload
+from `body[4:]` gets an **empty string** for every command. The payload
+starts at `body[8:]`: length, request id, packet type, payload.
+
+**The jar is not the newest one.** The runtime holds two Paper jars, and
+the newest by mtime is *not* the one the live world was written by. The
+build is read from the live server's own `runtime/paper/version_history.json`
+(`26.1.2-74-e4e17fc` → `paper-26.1.2-74.jar`). Starting the private server
+with the wrong one crashes on the dimension migration.
+
+**`level.dat` holds its fields one level down.** The root compound has a
+single key, `Data`, and everything else is inside it. Read one level too
+high and the tick, the spawn and the data version all come back zero.
+
+**Two facts are the server's, not the world's.** In this Paper version
+`level.dat` carries no `DayTime` and no seed: the day is a **timeline**
+(`time query day` answers *"Timeline minecraft:day is at 5039 tick(s)"*)
+and the seed is asked of the server (`seed`). The manifest records both,
+and says where they came from.
+
+**The restore has to move the sibling worlds aside.** `world_nether` and
+`world_the_end` left next to the restored world make Paper try to migrate
+them into it at startup, and it dies with *"Refusing to overwrite existing
+migrated file"*. The restore reports what it moved.
+
+**A bot has to be an operator, and it has to be one *after* the restore.**
+A bot that is not an operator cannot `/tp`, so it stands where it spawned
+and its placements are out of reach — and the server refuses an
+out-of-reach placement **without answering**, so the placement times out
+after five seconds with *"Server did not answer the placement"*. A restore
+restarts the server, and a server that starts reads its operators from
+`ops.json`, so an operator given at runtime is gone with the old server.
+
+**Three rules the bots follow, each of them a message from the server:**
+
+* the item to equip is the one **in the inventory**, not the one in the
+  registry — the registry item has no slot, and mineflayer's equip uses the
+  slot to decide what to click;
+* the bot aims before it places: mineflayer's own `placeBlock` does a
+  *smooth* look first, and the rotation packets that come with it are what
+  the server refuses (*"Invalid move player packet received"*) — the bot is
+  dropped for it. `forceLook: true` is the instant look;
+* a bot that is teleported **once** falls most of the way to the ground
+  while the chunk arrives, and a block eight metres up is then out of
+  reach. It is teleported twice: once to load the chunk, once to be back at
+  the target's height.
+
+**A block the client has not been told about is not an empty block.** A
+probe that reads a block before its chunk has arrived reads *unknown*, and
+calling that "air" says a block is missing when the client has simply not
+seen it yet. The probe waits for the block to become known.
+
+**The journal carries the ledger's `seq`.** A placement journal entry that
+records the ledger row it wrote makes the join to the ledger **exact**;
+without it the join is by time, and a ledger row with second resolution
+can land on the wrong placement. See `core/rewind/snapshot.py`.

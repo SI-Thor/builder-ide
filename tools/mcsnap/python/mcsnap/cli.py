@@ -201,7 +201,8 @@ def cmd_rewind(args: argparse.Namespace) -> int:
         args.out,
         args.ledger,
         point_seq=args.point,
-        selection=args.selection,
+        selection_text=args.selection,
+        placements_path=args.placements,
     )
     payload = plan.to_dict()
     lines = [
@@ -210,7 +211,7 @@ def cmd_rewind(args: argparse.Namespace) -> int:
         f"  snapshot seq    {plan.snapshot_seq}",
         f"  kept events    {len(plan.kept)}",
         f"  re-appliable   {len(plan.reappliable)}",
-        f"  not re-applied {len(plan.not_reappliable)}",
+        f"  not re-applied {len(plan.recorded) + len(plan.lost)}",
         f"  lost           {len(plan.lost)}",
     ]
     _print(payload, args.json, lines)
@@ -260,6 +261,11 @@ def build_parser() -> argparse.ArgumentParser:
     rewind.add_argument("--ledger", required=True, help="the world ledger")
     rewind.add_argument("--point", type=int, required=True, help="the rewind point's seq")
     rewind.add_argument("--selection", default=None, help="what to keep (the selection language)")
+    rewind.add_argument(
+        "--placements",
+        default=None,
+        help="the placement journal the bots wrote (the coordinates)",
+    )
     rewind.set_defaults(func=cmd_rewind)
 
     return parser

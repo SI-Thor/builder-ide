@@ -48,6 +48,7 @@ class RestoreResult:
     timings: dict[str, float] = field(default_factory=dict)
     stopped: bool = False
     started: bool = False
+    siblings_moved: tuple[str, ...] = ()
 
     @property
     def verified(self) -> bool:
@@ -63,6 +64,7 @@ class RestoreResult:
             "problems": list(self.problems),
             "stopped": self.stopped,
             "started": self.started,
+            "siblings_moved": list(self.siblings_moved),
             "timings": self.timings,
         }
 
@@ -113,6 +115,21 @@ def restore(
         aside = server / world_aside_name(world_name)
         shutil.move(str(live_world), str(aside))
         previous = aside
+    # A server may keep **more** than one world directory beside the main
+    # one — the old flat layout puts the nether and the end in
+    # ``world_nether`` and ``world_the_end``, and a server that is
+    # upgraded migrates them into ``world/dimensions``. Left in place,
+    # the next start tries to migrate them into the world that was just
+    # restored and refuses ("Refusing to overwrite existing migrated
+    # file"), and the server crashes on start. They are moved aside with
+    # the world, and the result says which ones.
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    siblings: list[str] = []
+    for sibling in sorted(server.glob(f"{world_name}_*")):
+        if not sibling.is_dir():
+            continue
+        shutil.move(str(sibling), str(server / f"{sibling.name}.replaced-{stamp}"))
+        siblings.append(sibling.name)
     timings["move_aside"] = time.perf_counter() - started_at
 
     started_at = time.perf_counter()
@@ -138,4 +155,5 @@ def restore(
         timings=timings,
         stopped=stopped,
         started=started,
+        siblings_moved=tuple(siblings),
     )

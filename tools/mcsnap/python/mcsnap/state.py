@@ -28,7 +28,7 @@ import zlib
 from pathlib import Path
 from typing import Any
 
-from .nbt import level_facts, parse_nbt
+from .nbt import level_facts, parse_nbt, read_nbt
 
 __all__ = ["world_state", "level_state", "entity_counts", "player_states"]
 
@@ -82,7 +82,8 @@ def level_state(world_dir: str | Path) -> dict[str, Any]:
     if not level.is_file():
         return {}
     try:
-        return level_facts(parse_nbt(level.read_bytes()))
+        # level.dat is gzipped NBT: read_nbt knows that, parse_nbt does not.
+        return level_facts(read_nbt(level))
     except Exception:
         return {}
 
@@ -123,7 +124,7 @@ def player_states(world_dir: str | Path) -> dict[str, dict[str, Any]]:
         return players
     for path in sorted(root.glob("*.dat")):
         try:
-            data = parse_nbt(path.read_bytes())
+            data = read_nbt(path)
         except Exception:
             continue
         inventory = data.get("Inventory")

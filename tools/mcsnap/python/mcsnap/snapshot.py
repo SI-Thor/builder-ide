@@ -174,6 +174,18 @@ def take_snapshot(
         command("save-all flush")
     timings["save_flush"] = time.perf_counter() - started
 
+    # The ledger's head is read *here*, between the flush and the copy.
+    # The flush is the moment the world's state is fixed on disk, so the
+    # story up to this row is the story the snapshot holds. Reading it
+    # after the copy would let a row count as part of the snapshot when
+    # its block is not in it: a bot that placed a block between the
+    # flush and the copy would have a row the restore then silently
+    # drops.
+    ledger: dict[str, Any] = {"path": str(ledger_path) if ledger_path else "", "seq": None}
+    if ledger_path:
+        head = ledger_head(ledger_path)
+        ledger = {"path": head["path"], "seq": head["seq"], "at": head.get("at")}
+
     try:
         started = time.perf_counter()
         files, total = copy_tree(source, snapshot_world, plans=plans)
@@ -200,12 +212,38 @@ def take_snapshot(
         except Exception as error:
             facts = {"error": f"level.dat could not be read: {error}"}
 
-    ledger: dict[str, Any] = {"path": str(ledger_path) if ledger_path else "", "seq": None}
-    if ledger_path:
-        head = ledger_head(ledger_path)
-        ledger = {"path": head["path"], "seq": head["seq"], "at": head.get("at")}
-
     server = server_facts(command) if command is not None else {"available": False}
+
+    # The console's version line mentions the *previous* build too, and
+    # the Minecraft version it carries can be that older one. The build
+    # that wrote the world says its own version in the world's own level
+    # data ("Paper/26.1.2-74-e4e17fc (MC: 26.1.2)"), and that is the one
+    # the world was written by.
+    written = str(facts.get("server_version") or "")
+    if "(MC:" in written:
+        server["minecraft_version"] = written.split("(MC:", 1)[1].split(")", 1)[0].strip()
+
+    # Two of the world's facts are the *server's* and are not in the
+    # world's files in this Paper version: the seed (the world is grown
+    # from it, but the level data does not carry it) and the time of day
+    # (the level data carries the tick count, and the day cycle is the
+    # server's own clock). They are asked of the server while it is up.
+    if command is not None:
+        seed_answer = command("seed")
+        if "[" in seed_answer and "]" in seed_answer:
+            try:
+                facts["seed"] = int(seed_answer.split("[", 1)[1].split("]", 1)[0])
+            except ValueError:
+                pass
+        # In this Paper version the day is a *timeline*: "time query day"
+        # answers "Timeline minecraft:day is at 5039 tick(s)". The older
+        # spelling is tried too, for a server that still has it.
+        day_answer = command("time query day")
+        if "tick" not in day_answer:
+            day_answer = command("time query daytime")
+        digits = "".join(character for character in day_answer if character.isdigit())
+        if digits:
+            facts["day_time"] = int(digits)
     taken_at = datetime.now(timezone.utc)
     sections = section_totals(entries)
     manifest = Manifest(
