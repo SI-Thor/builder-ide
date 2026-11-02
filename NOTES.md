@@ -1833,3 +1833,35 @@ can see the pictures. The box is still hostile — another seat's
 `thor-admit-hog` test was allocating 32 GB at a time all evening, and the
 Wi-Fi driver aborted at 18:06:26 — so the mesh stage is where the night
 still has to survive.
+
+## 2026-11-01 19:55-20:35 — vibe-sandbox opened: the claims table (§A done, nothing built yet)
+
+Casey's SPEC.md ("End-to-End Vibecoding & Autonomous Playtesting Sandbox") was
+handed to this lane as claims to verify, then a thin slice to build on our
+stack. The CONTINUE note: the earlier seat stopped at quota before committing
+anything — git status showed only SPEC.md untracked; nothing to keep, started
+fresh.
+
+**The reality check (docs/research/vibe-sandbox.md §1).** All verified
+read-only: the ProArt PX13 has no wired adapter (Get-NetAdapter -Physical:
+one MediaTek Wi-Fi 7, up at 1.2 Gbps); the Thor's four mgbe ports have no
+link; the Thor boots graphical.target; Docker 29.9.2 active; system Blender
+4.0.2 at /usr/bin/blender; ramenvr/autopilot EXISTS (Apache-2.0, Python, 626
+stars, created 2026-10-30) but is a Windows/macOS editor plugin for
+UE5/Unity6/Godot with an Aura account — "runs on the Thor" is wrong as
+written and it is not zero-cloud. Playwright Chromium IS installed on the
+Thor's aarch64 (resolves the ingame-building survey's open item). All the
+reuse assets are present (TRELLIS, SceneBloom-eval, build123d in 13 venvs,
+core/critic, Open3D 0.20 in two venvs, physag-lite, three 0.128 in the
+agent-world viewer, posestream-net).
+
+**Decisions for the slice (§B):** generator = build123d (cheapest, CPU,
+deterministic; TRELLIS is the same seam under a lease, proven in physag-lite
+and cited rather than re-run); Blender 4.0.2 --background for decimate+GLB;
+critic = core.critic's probe + run_mesh_checks on a saved .blend (bpy venv:
+~/src/infinigen-thor/.venv) plus Open3D self-intersection; viewer = three.js
+page + Node server polling an outbox manifest; playtest = Playwright in
+headless Chromium driving a capsule walk in-page; gate = pass commits, fail
+feeds qa_report back to the generator, max 2 retries. Leases via thor-admit
+per stage with honest peaks. No Samba anywhere; inbox/outbox are Thor
+directories.
