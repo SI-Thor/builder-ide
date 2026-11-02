@@ -2217,3 +2217,67 @@ assume a quiet box" (round 8, item 4) is an ancestor of HEAD. Nothing to do.
 **What I decided next.** Wrote report to docs/research/nitrogen.md. Hands-on plan: download ng.pt to ~/models/nitrogen/, serve under thor-admit (4 GB lease), play Celeste from Windows client (needs ViGEmBus, HF token). Linux stand-in available if Windows box not ready.
 
 **Box state:** Thor idle, 122 GB unified memory, no leases held by this seat. Clone only, no GPU work.
+## 2026-11-02 00:45 — rolling-harmony: rolling-perception read, the harmony map, and the questions
+
+**What I tried.** Picked up where the crashed seat left it: the read-only clone
+`third_party/rolling-perception` already existed (gitignored, --depth 1) and the tree was
+clean on branch `rolling-harmony`, but no report had been written. Read
+`docs/READING-GUIDE.md`, `docs/RESULTS.md`, `docs/SPEC-STREAM-PLATFORM.md` (all 1,538 lines,
+§A/§B/§C) + `SPEC-AMENDMENT-1/2.md`, `DESIGN.md`, `slice3/synth/README.md`, plus their crate
+docs for the ring/lineage/viewport-gating semantics. Read our side of every seam:
+`docs/research/nitrogen.md`, `docs/design/screen-watcher.md`, `core/drift/README.md`,
+`docs/lab/exp-drift-detector.md`, `docs/lab/seat-watcher/{NOTES.md,RESULT.json}`,
+`~/lm-wt/seat-watch-live` (its own lab copy), `docs/design/vibecode-in-world.md` §2 + §4,
+`docs/lab/xp-batch/{README.md,persistent-queue.md}`, `docs/design/thor-admit.md` headings.
+Wrote `docs/research/rolling-perception.md` (what it is with their numbers cited, six harmony
+rows each with an interface proposal naming who emits what, in which format, at what rate,
+three smallest joint builds, and the ten questions as a forwardable note).
+
+**What happened (the numbers it stands on).** Nothing was run: a read-only study on the
+clone, no model, no JAX, no `thor-admit` lease. Every number in the report is quoted from
+their documents beside the citation (engine: rolling vs batched TTFO 243.5 µs vs 2,528.6 µs =
+10.39× at identical checksum; GPU first output 5.74 ms vs 21.41 ms = 3.7×; diff-gating
+312 vs 576 embeds = −54%; I-JEPA tile embed p50 173 ms / p95 200 ms; sheaf refine precision
+0.60 → 1.00 at recall 1.00; late readers 8–18× across lags 0–10 s with the reversal window of
+~2 s and snap rule v2 recovery 6.0 s → 2.0 s; presence voice loop 2,891 → 1,284 ms with a
+resident Piper; NVENC 64/64 sessions, aggregate ~580–640 fps of 1080p). Our numbers in the
+harmony rows come from our own documents (drift rate gate 6/6 holdout at 1.63 alarms/h vs
+level 4/6; seat-watcher rate gate 8/13 interventions, 71 speeches, 50.3 min lead;
+persistent-queue p50 3.01 µs / p99 5.41 µs / 314k jobs/s; ledger 82,952 events / 22.07 h
+≈ 3,760/h ≈ 5.1 MB/h; keyframes 11.7× cached-prefix read, motion channel 228 B vs 35,828 B).
+
+**The six seams, one line each** (detail in the report §2): the vibe-sandbox playtester +
+H.264 viewport as Confluence screen/game-capture cells (30 fps passthrough, 1 fps nominated
+tiles) with NitroGen as the motion reflex (one action chunk per tick, drop-and-receipt);
+screen-watcher/core-drift/seat-watch-live alarms as a sensor-text feed at ~0.8 events/h and
+their `attention/feed.jsonl` verdicts as extra `BOX` reasons, gates kept time-first; the
+five-beat return as the late-reader case — their four serve-evidence fields
+(`basis`, `extrapolation_age`, `tolerance`, `stale_threshold`) on every answer and
+keyframes-on-stops; Confluence as the browser-first UX shell where our views and outbox items
+become cells and 1.04 ledger events/s fold to verdicts, presence as the voice face of the
+return; one descriptor-ring contract (64-byte slot + one atomic word + accounted drop,
+mapped-pinned doorbell) with lane families holding `thor-admit` leases and their yield ladder
+as lease tiers; lineage mapped 1:1 onto our actor names, their {present, counts, overflowed}
+triple at +144 B/event ≈ +10 % of ledger growth.
+
+**What I decided next.** The three smallest joint builds to put in front of Casey: the ring
+contract cross-bench (CPU, ≤ 1 h), the event converter (acceptance = our 13 labelled
+episodes), and the late-reader kit for the return (acceptance = our own lag table on the 22 h
+window). The NitroGen reflex lane and the presence session are named but kept out of the
+three (checkpoint + lease + Windows client; model servers that are down and whose launch
+recipe is Casey's). The ten questions are written as a note Casey can forward
+(report §5). **Noted for the record:** the crashed seat left nothing unfinished that I could
+see (tree clean); `NOTE-FROM-DIRECTOR.md`'s thor-admit parallel-test flake is already fixed on
+this branch (`fd9d776`, serial by default — verified an ancestor of HEAD), so there is
+nothing to do there.
+
+**Not verified, in writing** (report §4): we ran no test of theirs and measured nothing of
+theirs; slice 1's precision number does not exist until the 48 h soak verdict lands
+(2026-11-03); the interfaces are proposals from their spec, not agreements; NitroGen latency
+and the H.264 viewport path are vendor claims / plan items; the post-rewind "flipped" span is
+unmeasured on our ledger and their ~2 s is their toy's.
+
+**Box state:** Thor idle-ish under other seats (load average 13.7 / 13.1 / 18.8, 36 users at
+00:44 AKST), no leases held by this seat, no GPU work, no downloads. Clone and reads only;
+`third_party/` stays gitignored and the private repo nothing was copied from but cited
+numbers.
