@@ -86,14 +86,27 @@ def server_facts(command: Callable[[str], str]) -> dict[str, Any]:
         answer = command("version")
     except Exception as error:  # the server may be down; the snapshot is not
         return {"available": False, "error": str(error)}
-    facts: dict[str, Any] = {"available": True, "version_line": answer.strip()}
-    text = answer.strip()
+    text = _strip_colours(answer).strip()
+    facts: dict[str, Any] = {"available": True, "version_line": text}
     if "Paper version" in text:
-        head, _, tail = text.partition("Paper version")
-        facts["paper_version"] = head.split()[-1] if head.strip() else ""
-        if "MC:" in tail:
-            facts["minecraft_version"] = tail.split("MC:", 1)[1].split(")")[0].strip()
+        tail = text.split("Paper version", 1)[1].strip()
+        facts["paper_version"] = tail.split()[0] if tail else ""
+    if "MC:" in text:
+        facts["minecraft_version"] = text.split("MC:", 1)[1].split(")")[0].strip()
     return facts
+
+
+def _strip_colours(text: str) -> str:
+    """The section codes a Minecraft server writes (a sign then a letter)."""
+    out: list[str] = []
+    index = 0
+    while index < len(text):
+        if text[index] == "\u00a7" and index + 1 < len(text):
+            index += 2
+            continue
+        out.append(text[index])
+        index += 1
+    return "".join(out)
 
 
 def _hash_tree(root: Path, section_of: dict[str, str]) -> list[FileEntry]:

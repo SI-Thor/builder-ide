@@ -2606,3 +2606,58 @@ and no model. The private server has not been started yet.
 **Decided next:** start the private server on 127.0.0.1:25610 under
 `thor-admit`, take a snapshot at idle, and measure.
 
+
+---
+
+## 2026-11-01 22:12 — the private server, the bots, the tests, and the box's queue
+
+**Tried:** the measurement harness: a private Paper server on 127.0.0.1:25610
+with its own world grown from the same seed, three mineflayer builders that
+put blocks into it, and a script that runs the whole loop and writes its
+numbers to JSON.
+
+**Happened:**
+
+* the private server runs **the live world's own build** — Paper
+  26.1.2-74, read from the live server's `version_history.json`, never
+  downloaded — on 127.0.0.1:25610, offline, with its own world directory
+  and its own RCON port. Geyser and Floodgate were moved out of the copy's
+  `plugins/`: the live server already owns the Bedrock port.
+* three builders (`tools/mcsnap/bots/builder.js`) place blocks and record
+  two things: the **placement journal** (the coordinates, one JSON line per
+  placement) and the **world ledger** (a row per placement in the live
+  world's own `audit` schema, written live with `node:sqlite`). A fourth
+  script (`bots/replay.js`) puts the kept placements back.
+* the measurement script
+  (`docs/lab/world-snapshot-scripts/exp_world_snapshot.py`) runs the phases
+  — build, snapshot at idle, snapshot while building, the plan, the restore,
+  the replay — and writes its numbers to JSON as it goes.
+* **69 tests** (`tests/mcsnap/`, `tests/rewind/test_world_snapshot.py`),
+  all passing; the four Bevy ones are skipped because the `lm` tool is not
+  on this box.
+
+Three things the measurement found, before it found any numbers:
+
+1. **The RCON response carries a packet-type field that the protocol's own
+   description leaves out.** A reader that believes the description reads
+   the *type* as the payload, and gets an empty string back for every
+   command. Paper's own `version` answer ("This server is running Paper
+   version ...") is what showed it.
+2. **The runtime holds two Paper jars, and the newest one by timestamp is
+   not the one the world runs.** 1.21.11 was fetched after 26.1.2, and the
+   world's own version is 26.1.2. The private server had been started on
+   the wrong jar; it now reads the live server's `version_history.json`.
+   The world the wrong build grew is kept at
+   `mc-snap/world.grown-by-1.21.11`.
+3. **The lease queue is gated by *reserved* peaks, not by actual use.**
+   Another seat holds a 40 GB reservation while touching 7 GB — the daemon
+   says so itself ("over-reserved, would fit 8.7G") — and a 3 GB lease
+   waits behind it with 65 GB free on the box. A private world of the
+   world's own size is a small ask that the box's accounting makes large.
+
+**Box state:** the Thor, 14 CPUs, load average **18.21 / 15.06 / 15.75**,
+**68,135,200 kB** (≈65.0 GiB) available, thor-admit's floor at 25 GB. The
+private server's own lease: 3 GB reserved, 1.4 GB in use.
+
+**Decided next:** the measurement, as soon as the lease is granted; then the
+lab note, the commit, and the report.

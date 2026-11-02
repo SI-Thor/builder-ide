@@ -24,6 +24,7 @@ already runs, read from ``agent-world/runtime``.
 
 from __future__ import annotations
 
+import json
 import os
 import socket
 import subprocess
@@ -40,6 +41,7 @@ __all__ = [
     "read_server_properties",
     "default_java",
     "default_jar",
+    "live_server_command",
 ]
 
 
@@ -56,6 +58,28 @@ def read_server_properties(server_dir: str | Path) -> dict[str, str]:
         key, _, value = line.partition("=")
         properties[key.strip()] = value.strip()
     return properties
+
+
+def live_world_build() -> str:
+    """The build the live world is running, from its own version history.
+
+    The runtime holds more than one Paper jar, and the newest one by
+    timestamp is not the one the world runs: 1.21.11 was fetched after
+    26.1.2, and the world's own version is 26.1.2. The live server writes
+    down which build it is (``version_history.json``), so that file is the
+    authority. A private copy of the world has to be a copy of *that*
+    server, or the world it grows is a different kind of world.
+    """
+    history = (
+        Path.home() / "lm-wt" / "agent-world" / "runtime" / "paper" / "version_history.json"
+    )
+    if not history.is_file():
+        return ""
+    try:
+        data = json.loads(history.read_text(encoding="utf-8"))
+    except ValueError:
+        return ""
+    return str(data.get("currentVersion") or "").split(" ")[0]
 
 
 def default_java() -> Path | None:
@@ -76,7 +100,13 @@ def default_jar() -> Path | None:
     dl = runtime / "dl"
     if not dl.is_dir():
         return None
-    jars = sorted(dl.glob("paper-*.jar"), key=lambda p: p.stat().st_mtime)
+    build = live_world_build()
+    jars = sorted(dl.glob("paper-*.jar"))
+    if build:
+        for jar in jars:
+            stem = jar.stem.replace("paper-", "")
+            if build == stem or build.startswith(stem):
+                return jar
     return jars[-1] if jars else None
 
 

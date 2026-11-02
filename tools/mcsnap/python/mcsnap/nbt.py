@@ -28,7 +28,7 @@ import struct
 from pathlib import Path
 from typing import Any
 
-__all__ = ["read_nbt", "level_facts", "lookup", "NbtError"]
+__all__ = ["read_nbt", "parse_nbt", "level_facts", "lookup", "NbtError"]
 
 
 class NbtError(ValueError):
@@ -120,16 +120,25 @@ def read_nbt(path: str | Path) -> dict[str, Any]:
     raw = Path(path).read_bytes()
     if raw[:2] == b"\x1f\x8b":
         raw = gzip.decompress(raw)
+    return parse_nbt(raw)
+
+
+def parse_nbt(raw: bytes) -> dict[str, Any]:
+    """Parse NBT bytes and return the root compound.
+
+    The bytes are the ones a chunk of a region file holds: a length and a
+    compression byte have already been taken off the front by the reader.
+    """
     if not raw:
-        raise NbtError(f"{path} is empty")
+        raise NbtError("the NBT is empty")
     (root_tag,) = struct.unpack_from(">b", raw, 0)
     if root_tag != TAG_COMPOUND:
-        raise NbtError(f"{path}: the root tag is {root_tag}, not a compound")
+        raise NbtError(f"the root tag is {root_tag}, not a compound")
     offset = 1
     _, offset = _read_string(raw, offset)  # the root's own name
     value, _ = _read_payload(raw, offset, TAG_COMPOUND)
     if not isinstance(value, dict):
-        raise NbtError(f"{path}: the root tag did not decode to a compound")
+        raise NbtError("the root tag did not decode to a compound")
     return value
 
 

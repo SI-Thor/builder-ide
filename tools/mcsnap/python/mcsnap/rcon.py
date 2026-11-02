@@ -120,15 +120,31 @@ class RconClient:
     # -- packets -------------------------------------------------------------
 
     def _read_packet(self) -> tuple[int, str]:
-        """Read one packet: its request id and its payload."""
+        """Read one packet: its request id and its payload.
+
+        The **response** packet carries a type field as well as the id:
+
+        ==============  ==================================================
+        length          int32, little endian
+        request id      int32, little endian
+        type            int32, little endian
+        payload         a null-terminated string
+        ==============  ==================================================
+
+        The protocol's own description leaves the type out of the
+        response, and a reader that believes it reads the *type* as the
+        payload and gets an empty string back for every command. That is
+        what this reader did at first; Paper's own ``version`` answer
+        ("This server is running Paper version ...") is what showed it.
+        """
         if self._socket is None:
             raise RconError("not connected")
         (length,) = struct.unpack("<i", _recv_exactly(self._socket, 4))
-        if length < 4 or length > 1 << 20:
+        if length < 8 or length > 1 << 20:
             raise RconError(f"the server sent a packet of {length} bytes")
         body = _recv_exactly(self._socket, length)
         (request_id,) = struct.unpack_from("<i", body, 0)
-        payload = body[4:].split(b"\x00", 1)[0]
+        payload = body[8:].split(b"\x00", 1)[0]
         return request_id, payload.decode("utf-8", errors="replace")
 
     def command(self, command: str) -> str:
