@@ -1961,3 +1961,23 @@ the night request shapes are the only shapes.
 night. The box is busy tonight (load1 14 at 20:27, other seats leases
 up), so the bar may hold the meshes — that is the design working, not
 failing; the rows will say.
+
+## 2026-11-01 20:30-20:47 — the bar, recalibrated onto used bytes
+
+**What I tried.** The first bar (lfb >= 4 GB) held the library build
+prompt 1 from 20:27 with lfb reading 0.02-0.17 GB — and the box read
+44 MB lfb with 86 GB RAM free and 9.6 GiB GPU used at 20:31. Near-zero
+lfb is the boxs normal state; run Fs successful bakes ran at lfb
+0.02-1.5 too. The bar would have stalled every mesh forever.
+
+**What happened.** The discriminating number in run Fs samples is the
+boxs used GPU: successes at <= 56.5 GiB, the wedge at 60.49 and 61.06
+with lfb 0.00 (the wall), the bakes own jump 47.6 -> 60.5 in 10 s (the
+need). The bar now waits while used > 48 GiB (61.5 - 13.5), reads the
+per-process nvidia-smi sum the same way the daemon counts it, and keeps
+lfb in the row as a signal. First launch killed (ComfyUI orphan stopped
+by pid); relaunch at 20:33.
+
+**What the build is doing.** Three of ten crates measured by 20:45
+(seeds 9000-9002, ~699k tris each, watertight, ~4 min a mesh including
+repair and measurement), 12.5 GiB GPU used, no bar waits.

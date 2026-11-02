@@ -14,9 +14,11 @@ mesh stage with 80-100 GB of RAM free, and hit 0.00 GB when the bake
 allocated — no OOM kill, no signal, the process alive, the listener gone
 (docs/lab/night-v5.md §2). This night carries three answers:
 
-  gpu bar    before every mesh prompt the night waits until lfb clears
-             4 GB (bounded: 45 minutes, then it goes anyway and says so);
-             the wait is a row, like a lease wait
+  gpu bar    before every mesh prompt the night waits until the box's
+             used GPU leaves room for the bake: the wall (61.5 GiB, where
+             run F's allocations stalled) minus the bake's measured need
+             (13.5 GiB) — bounded: 45 minutes, then it goes anyway and
+             says so; the wait is a row, like a lease wait
   restart    a server that refused 121 connections in 120 s is not busy
              but wedged: the night stops ComfyUI, keeps the log as
              evidence, starts it again and re-runs the one prompt, once,
@@ -178,16 +180,20 @@ DELEGATE_GATE = 0.5
 #: with margin, and keeps every lease but the heavy one under 30 GB, so
 #: the 40 GB heavy peak is the one lease above 30 GB — held alone.
 SERVER_PEAK = "6G"
-#: The GPU allocation pool's bar. tegrastats' ``lfb`` — the largest free
-#: *contiguous* block, the same number the daemon's samples read — is the
-#: constraint that killed night-v4's run F: the bake met a pool whose
-#: largest block was 1.1 GB, took the pool to 0.00 GB and never answered
-#: again. Before every mesh prompt the night waits for room instead of
-#: scraping zero. Round 10's note stands: lfb is a figure about
-#: contiguous blocks, not GPU headroom in general — which is exactly the
-#: shape of this failure, and why the bar is the night's and not the
-#: daemon's.
-GPU_POOL_BAR_GB = 4.0
+#: The GPU allocation pool's bar, in **used** bytes. The wall and the
+#: need are both measured, not guessed: run F's wedge samples show the
+#: pool refusing allocations at 60.49 and 61.06 GiB used with lfb 0.00
+#: (that is the wall), and the bake's own jump at the wedge was
+#: 47.6 -> 60.5 GiB in 10 s (that is the need). A mesh prompt waits
+#: while the box's used GPU (the per-process sum, the way the daemon
+#: counts it) is above the wall minus the need. tegrastats' ``lfb`` is
+#: recorded beside every wait as a signal, but it does not gate: on this
+#: box lfb sits near zero (44 MB with 86 GB of RAM free, 20:31 tonight)
+#: whether or not there is room, which round 10's note already said —
+#: lfb is a figure about contiguous blocks, not headroom.
+GPU_POOL_TOTAL_GB = 61.5
+GPU_POOL_NEED_GB = 13.5
+GPU_POOL_BAR_USED_GB = GPU_POOL_TOTAL_GB - GPU_POOL_NEED_GB
 #: The bar's bound. A night that waits forever is as dead as one that
 #: wedges, so past this the night goes anyway — and the row says so.
 GPU_POOL_WAIT_S = 45 * 60.0
@@ -1069,39 +1075,73 @@ def gpu_largest_free_gb(timeout_s: float = 6.0) -> float | None:
     return value
 
 
-def wait_for_gpu_pool(reason: str) -> dict:
-    """Wait until the pool's largest free block clears the bar.
+def gpu_box_used_gb(timeout_s: float = 6.0) -> float | None:
+    """The box's GPU bytes, the way the daemon counts them.
 
-    Bounded by :data:`GPU_POOL_WAIT_S`: past the bound the night goes
-    anyway and the row says it gave up, because a night that waits
-    forever is as dead as one that wedges. Only a real wait (>= 20 s) is
-    logged and rowed; a pass at first sight is the box being healthy and
-    needs no row of its own.
+    The per-process sum of ``nvidia-smi --query-compute-apps`` — the same
+    primary source the daemon's ``gpu_box_used_bytes`` reads — so the
+    night's bar and the daemon's samples speak about the same number.
+    ``None`` when the query cannot be run: a bar that cannot see must not
+    stop the night, and the row says it was unreadable.
+    """
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-compute-apps=pid,used_memory",
+             "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=timeout_s).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    total = 0.0
+    for line in out.strip().splitlines():
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) == 2 and parts[1].isdigit():
+            total += int(parts[1])
+    return total / 1024.0
+
+
+def wait_for_gpu_pool(reason: str) -> dict:
+    """Wait until the box's used GPU leaves room for a mesh prompt.
+
+    The bar is on **used** bytes (wall minus the bake's need — both
+    measured on run F's wedge); tegrastats' ``lfb`` is sampled into the
+    row as a signal, but on this box it sits near zero whether or not
+    there is room, so it does not gate. Bounded by
+    :data:`GPU_POOL_WAIT_S`: past the bound the night goes anyway and the
+    row says it gave up, because a night that waits forever is as dead as
+    one that wedges. Only a real wait (>= 20 s) is logged and rowed; a
+    pass at first sight is the box being healthy and needs no row of its
+    own.
     """
     started = time.monotonic()
-    first = gpu_largest_free_gb()
+    first = gpu_box_used_gb()
     current = first
+    lfb = gpu_largest_free_gb()
     gave_up = False
     if first is not None:
-        while current is not None and current < GPU_POOL_BAR_GB:
+        while current is not None and current > GPU_POOL_BAR_USED_GB:
             if time.monotonic() - started >= GPU_POOL_WAIT_S:
                 gave_up = True
                 break
-            log(f"the GPU pool's largest free block is {current:.2f} GB "
-                f"(the bar is {GPU_POOL_BAR_GB:.0f} GB); waiting — {reason}")
+            log(f"the box's GPU holds {current:.1f} GiB and a mesh prompt "
+                f"needs room below {GPU_POOL_BAR_USED_GB:.0f} GiB; "
+                f"waiting — {reason}")
             time.sleep(20.0)
-            current = gpu_largest_free_gb()
+            current = gpu_box_used_gb()
+            lfb = gpu_largest_free_gb()
     row = {
         "reason": reason,
-        "bar_gb": GPU_POOL_BAR_GB,
-        "lfb_first_gb": round(first, 2) if first is not None else None,
-        "lfb_gb": round(current, 2) if current is not None else None,
+        "bar_used_gb": GPU_POOL_BAR_USED_GB,
+        "used_first_gb": round(first, 2) if first is not None else None,
+        "used_gb": round(current, 2) if current is not None else None,
+        "lfb_signal_gb": round(lfb, 3) if lfb is not None else None,
+        "wall_gb": GPU_POOL_TOTAL_GB,
+        "need_gb": GPU_POOL_NEED_GB,
         "waited_s": round(time.monotonic() - started, 1),
         "gave_up": gave_up,
         "unreadable": first is None,
     }
     if row["waited_s"] >= 20.0:
-        log(f"the GPU pool bar: {json.dumps(row)}")
+        log(f"the GPU-pool bar: {json.dumps(row)}")
     return row
 
 
@@ -1210,9 +1250,9 @@ class CompositeExecutor:
         """One prop task, with the two things the mesh stage now needs.
 
         The GPU-pool bar runs before every mesh prompt: night-v4's run F
-        died when the bake allocated into a pool whose largest free
-        contiguous block was 1.1 GB, and a wait for room is a night's own
-        medicine — bounded, and a row. And a ComfyError that says the
+        died when the bake allocated into a pool already holding
+        60.5 GiB, and a wait for room is a night's own medicine —
+        bounded, and a row. And a ComfyError that says the
         server refused the connection is the wedge that killed runs E and
         F: the poll already rode out 120 s of refusals, so the server is
         not busy but gone, and the night restarts it and re-runs the one

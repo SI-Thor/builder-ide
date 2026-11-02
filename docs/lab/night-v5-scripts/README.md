@@ -25,10 +25,13 @@ for, and nothing else. The diff against
 `docs/lab/night-v4-scripts/run_night.py` is the change:
 
 1. **The GPU-pool bar** — before every mesh prompt the night waits until
-   tegrastats' `lfb` (the largest free *contiguous* block of the GPU
-   allocation pool, the same number the daemon's samples read) clears
-   4 GB. Bounded at 45 minutes; every real wait is a `night.gpu_pool_bar`
-   row.
+   the box's used GPU (the per-process sum, the way the daemon counts it)
+   leaves room below the measured wall: 61.5 GiB is where run F's
+   allocations stalled, 13.5 GiB is the bake's measured need, so the bar
+   is 48 GiB used. Bounded at 45 minutes; every real wait is a
+   `night.gpu_pool_bar` row (tegrastats' `lfb` is recorded in the row as
+   a signal — on this box it sits near zero whether or not there is
+   room, so it does not gate).
 2. **The wedge restart** — a `ComfyError` that says the server refused
    the connection (121 times over 120 s is the diagnosis run F left) is a
    wedged server, not a busy one: stop ComfyUI, keep its log beside the
