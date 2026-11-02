@@ -535,3 +535,42 @@ is a cell short — a unit cube read 0.046 instead of 1.0 before the clip).
 Quick pass (3 reference meshes, load 24–32): peak RSS 420 MB; hull
 agreement with scipy 0.00 % on all three; simplification 1.7–4.9 s.
 Decided next: the full 43-mesh sweep, detached.
+
+## 2026-11-01 19:25 — the sweep, the digest, and the report
+
+The full 45-mesh sweep (compare.py, detached, load 20.9-25.3 throughout,
+109-111 GB available) took ~39 min wall and peaked at 1111 MB RSS —
+CPU-only, no lease, under the brief's 4 GB line. results.json is committed
+beside the scripts. The findings the report rests on:
+
+- **Exact agreement on every shared quantity**: hull volume (scipy vs o3d)
+  max rel diff 4.4e-15 over 45/45; signed volume 1.7e-15 (where o3d
+  answers, 8/45); area 2.9e-13. The reference set reproduced bit-exact
+  (occupied and signed rel diff 0.0, 38/38 watertight flags).
+- **The reader**: o3d's GLB reader matched our whole-asset reader on all
+  43 files — triangle counts equal, max bbox gap 0.0 m — and is 8x slower
+  (4.12 s vs 0.53 s over the set).
+- **Watertight**: 33/45 agree; all 12 disagreements are closed-but-self-
+  intersecting meshes (o3d's definition adds vertex-manifold + no
+  self-intersection, verified empirically). 34/38 reference meshes
+  self-intersect; 11 of them closed — and their signed volume is inflated
+  by the overlap (shelf a01: 0.2254 vs parity 0.0576, 3.9x).
+- **is_self_intersecting cost**: median 0.16 s / max 18.5 s under 200 k
+  tris; heavy tail 801 s at 1.33 M (shelf), 596 s at 1 M (forklift). The
+  sweep's 39 min is almost entirely this.
+- **Ray parity**: median 1.1 % off the signed volume on closed meshes;
+  answers on all 45 in median 18 ms. Not an envelope (the mug reads its
+  ceramic, 0.000128 vs the 0.000452 it occupies) — kept as the
+  winding-free fallback volume.
+- **Grid visual hull**: collapses on the same sparse shapes our `visual`
+  does (11 of 43 below 0.2), disagrees with ours by median 25 % (different
+  grid semantics; o3d's isotropic-cell grid even reads 131.9 % of the box
+  on the thin board). The hull stays.
+- **Simplify**: 7.41 M -> 741 k tris in 79 s total (exactly 10 %); drift
+  median 0.4 % where measurable; opens 14 of 19 closed meshes — LOD only.
+
+Report: docs/lab/exp-open3d-critic.md — **adopt-for-X** (self-intersection
+check under a ~200 k cap, quadric simplification for diet/LOD, ray parity
+as the fallback volume; pin ==0.20.0, the only cp312 aarch64 wheel), not
+the measurement path, not the watertight flag, not the reader. The brief's
+three steps are done; nothing running was left behind.
