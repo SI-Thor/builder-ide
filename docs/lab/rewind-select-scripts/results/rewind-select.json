@@ -1,0 +1,65 @@
+{
+  "bevy": {
+    "diff": "IDENTICAL",
+    "dropped_sources": [
+      "agent:3"
+    ],
+    "fork_bytes": 5234,
+    "identical": true,
+    "keep_seconds": 0.28543691000049876,
+    "parent_bytes": 5206,
+    "reference_bytes": 5191,
+    "replay_hashes": 10,
+    "replay_ok": true,
+    "replay_seconds": 0.08961882299990975,
+    "run_seconds": 0.11413107699991087
+  },
+  "box": {
+    "cpus": 14,
+    "load_average": [
+      28.353515625,
+      22.935546875,
+      17.912109375
+    ],
+    "mem_available_kb": 92844048
+  },
+  "cherry_pick": {
+    "canon_head_moved": false,
+    "dropped": 6,
+    "events_by_type": {
+      "branch.created": 1,
+      "branch.head.moved": 1,
+      "edit.proposed": 1,
+      "edit.validated": 1,
+      "version.committed": 1
+    },
+    "events_written": 5,
+    "kept": 4,
+    "ledger_bytes_after": 362568,
+    "ledger_bytes_before": 247208,
+    "marginal_bytes": 115360,
+    "marginal_bytes_note": "the ledger file plus its WAL",
+    "merged_cleanly": true,
+    "parked": 0,
+    "payload_bytes": 772,
+    "seconds": 0.023088986999937333
+  },
+  "world": {
+    "bytes_per_hour": 5227961.55251823,
+    "first_at": 1793510438.0,
+    "hours_of_world": 24.507946111096278,
+    "kept_bytes": 300880,
+    "kept_rows": 37610,
+    "last_at": 1793598666.606,
+    "ledger": "/home/caseydigennaro/lm-wt/agent-world/runtime/world-ledger.sqlite3",
+    "ledger_bytes": 123977728,
+    "read_seconds": 1.982808026999919,
+    "read_seconds_per_hour": 0.08090469997003046,
+    "rows": 91487,
+    "rows_per_hour": 3732.9525528284935,
+    "select_seconds": 0.5775304790004157,
+    "select_seconds_per_hour": 0.023565029741065554,
+    "selection": "actor = Kite or agent = Pebble",
+    "wal_bytes": 4148872
+  }
+}
