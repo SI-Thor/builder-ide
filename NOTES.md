@@ -4096,3 +4096,31 @@ write mid-model-load. The dead run is kept as
 
 **Next.** Relaunch the one command. If ComfyUI wedges three times on the
 same load, that is the box speaking, and the night will die saying so.
+
+
+## 2026-11-02 08:55 — the second launch died at start: the box is held by a neighbour, and the night leaked a child
+
+**What happened.** Relaunched 08:37. At 08:41 the d1-3B's lease fell
+back to the heavy flock (thor-admit granted it but the lock was not
+taken in 20 s — the state dir held two 3G runs, two 10G VLM serve leases
+and a 40G run), and the llama-server it spawned did not become healthy
+inside the 360 s window — `RuntimeError: llama-server did not become
+healthy`, night dead at start, no morning. The child it spawned kept
+loading on :8295 — leaked, still 503 at 08:51 (RSS 226 MB, 0 % CPU: the
+load is stalled, not slow; the 3.4 GB GGUF normally loads in ~30 s).
+
+**The box.** `scenebloom-eval.bedroom` (another seat) holds a 40G lease
+since ~08:15, two 10G VLM servers ride beside it, load1 14.7,
+MemAvailable 49 GB. The two ComfyUI wedges of the first launch sit in
+the same window — night-v4 §9's "the only thing the box can name is the
+neighbour" is tonight's shape too.
+
+**What changed** (dc12048): the health window is 900 s (a bound, not a
+diagnosis), and the failure path terminates the child it spawned. The
+dead run is kept as artifacts/night-v6-unhealthy-0841.
+
+**Next.** The stalled orphan on :8295 is the readiness probe: when it
+turns healthy (or after it is killed and a fresh load finishes fast),
+the box can load models again and the night launches. Polling, one
+blocking sleep per check. Launching into a box this held would spend the
+night's leases to learn nothing new.
