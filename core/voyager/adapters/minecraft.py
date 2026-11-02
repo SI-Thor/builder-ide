@@ -157,18 +157,18 @@ def mc_vocabulary() -> SkillVocabulary:
         },
         "mc.move_to_block": {
             "block": _string_enum(_BLOCKS, _BLOCK_HINT),
-            "max_distance": {"type": "integer", "minimum": 1, "maximum": 48},
+            "max_distance": {"type": "integer", "minimum": 1, "maximum": 128},
             "timeout_ms": {"type": "integer", "minimum": 1000, "maximum": 600000},
         },
         "mc.mine_block": {
             "block": _string_enum(_BLOCKS, _BLOCK_HINT),
-            "max_distance": {"type": "integer", "minimum": 1, "maximum": 48},
+            "max_distance": {"type": "integer", "minimum": 1, "maximum": 64},
             "count": {"type": "integer", "minimum": 1, "maximum": 64},
         },
         "mc.collect": {
             "item": _string_enum(_ITEMS, _ITEM_HINT),
             "count": {"type": "integer", "minimum": 1, "maximum": 64},
-            "max_distance": {"type": "integer", "minimum": 1, "maximum": 48},
+            "max_distance": {"type": "integer", "minimum": 1, "maximum": 64},
         },
         "mc.craft": {
             "item": _string_enum(_ITEMS, _ITEM_HINT),
@@ -202,7 +202,13 @@ def mc_vocabulary() -> SkillVocabulary:
             "ms": {"type": "integer", "minimum": 0, "maximum": 600000},
         },
         "mc.scan": {
-            "radius": {"type": "integer", "minimum": 1, "maximum": 48},
+            "radius": {"type": "integer", "minimum": 1, "maximum": 160},
+        },
+        "mc.smelt": {
+            "item": _string_enum(_ITEMS, _ITEM_HINT),
+            "count": {"type": "integer", "minimum": 1, "maximum": 64},
+            "fuel": {"type": "string", "enum": ["coal", "charcoal", "oak_planks", "birch_planks"],
+                     "hint": "what to burn"},
         },
         "mc.scan_ore": {
             "radius": {"type": "integer", "minimum": 1, "maximum": 32},
@@ -341,7 +347,7 @@ class MinecraftAdapter:
 
     def observe(self) -> dict[str, Any]:
         """The facts, in the player's terms."""
-        raw = self._call("observe", timeout_s=self._timeout_s)
+        raw = self._call("observe", timeout_s=self.timeout_s)
         inventory = dict(raw.get("inventory") or {})
         self._items = inventory
         nearby: dict[str, Any] = {}

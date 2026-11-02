@@ -31,6 +31,7 @@ const MINECRAFT_DIR = process.env.VOYAGER_MINECRAFT_DIR ||
 const mineflayer = require(path.join(MINECRAFT_DIR, 'node_modules', 'mineflayer'))
 const { pathfinder, Movements, goals } = require(
   path.join(MINECRAFT_DIR, 'node_modules', 'mineflayer-pathfinder'))
+const Vec3 = require(path.join(MINECRAFT_DIR, 'node_modules', 'vec3'))
 
 const HOST = process.env.VOYAGER_MC_HOST || '127.0.0.1'
 const PORT = parseInt(process.env.VOYAGER_MC_PORT || '25600', 10)
@@ -114,6 +115,12 @@ function heldName () {
   return held ? held.name : ''
 }
 
+// The bot's position, floored to whole blocks.
+function flooredPosition () {
+  const here = bot.entity.position
+  return new Vec3(Math.floor(here.x), Math.floor(here.y), Math.floor(here.z))
+}
+
 function distance (a, b) {
   const dx = a.x - b.x
   const dy = a.y - b.y
@@ -121,40 +128,92 @@ function distance (a, b) {
   return Math.sqrt(dx * dx + dy * dy + dz * dz)
 }
 
-async function waitFor (fn, timeoutMs, label) {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    if (fn()) return true
-    await sleep(120)
-  }
-  throw new Error('timed out waiting for ' + label)
+function isSolidName (name) {
+  return name !== 'air' && name !== 'water' && name !== 'lava' &&
+    name !== 'cave_air' && name !== 'void_air'
+}
+
+// -- the path ------------------------------------------------------------------
+//
+// The pathfinder this bridge runs against is mineflayer-pathfinder 2.4.5,
+// and it ends a walk with one of three events:
+//
+//   'goal_reached' — the goal was met;
+//   'path_update'  — the path changed, and carries a status: 'success',
+//                    'partial', 'noPath' or 'timeout';
+//   'path_stop'    — the walk was stopped before it finished.
+//
+// It does NOT emit 'path_complete', 'path_blocked' or 'path_timeout'.
+// A listener for those names never fires, so a walk that waits for one
+// waits for its own timer and nothing else — which is exactly what the
+// first version of this bridge did: every walk ran to its timeout and
+// then reported that it had not finished.
+
+function walkTo (goal, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const cleanup = () => {
+      clearTimeout(timer)
+      bot.removeListener('goal_reached', onReached)
+      bot.removeListener('path_update', onUpdate)
+      bot.removeListener('path_stop', onStopped)
+    }
+    const settle = (why, err) => {
+      if (settled) return
+      settled = true
+      cleanup()
+      if (err) reject(err)
+      else resolve(why)
+    }
+    const onReached = () => settle('complete')
+    const onUpdate = (results) => {
+      if (!results) return
+      if (results.status === 'noPath') {
+        settle('no-path', new Error('the pathfinder found no path to the goal'))
+      } else if (results.status === 'timeout') {
+        settle('no-path', new Error('the pathfinder gave up deciding a path'))
+      }
+    }
+    const onStopped = () => settle('stopped', new Error('the walk was stopped before it finished'))
+    const timer = setTimeout(
+      () => settle('timeout', new Error('the walk did not finish in time')), timeoutMs)
+    bot.on('goal_reached', onReached)
+    bot.on('path_update', onUpdate)
+    bot.on('path_stop', onStopped)
+    bot.pathfinder.setGoal(goal)
+  })
+}
+
+// How long a walk may take. A bot walks at about four blocks a second, so
+// a second and a bit a block is a fair clock; the floor covers the short
+// walk, where the pathfinder's own thinking time dominates.
+function walkBudget (distanceBlocks) {
+  return Math.min(300000, Math.max(30000, Math.round(distanceBlocks * 1200)))
 }
 
 async function gotoPosition (position, timeoutMs) {
-  const goal = new goals.NearestBlock(position, 1)
-  bot.pathfinder.setGoal(goal)
-  await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      bot.removeListener('path_complete', onDone)
-      bot.removeListener('path_blocked', onBlocked)
-      reject(new Error('the walk did not finish in time'))
-    }, timeoutMs)
-    const onDone = () => { clearTimeout(timer); resolve() }
-    const onBlocked = () => { clearTimeout(timer); resolve() }
-    bot.once('path_complete', onDone)
-    bot.once('path_blocked', onBlocked)
-  })
-  bot.pathfinder.setGoal(null)
+  const here = bot.entity.position
+  const ms = timeoutMs || walkBudget(distance(here, position))
+  const goal = new goals.GoalNear(position.x, position.y, position.z, 1)
+  try {
+    return await walkTo(goal, ms)
+  } finally {
+    bot.pathfinder.setGoal(null)
+  }
 }
 
-async function equipTool (kind) {
-  const suffix = '_' + kind
-  const best = bot.inventory.items()
-    .filter((item) => item.name.endsWith(suffix))
-    .sort((a, b) => tier(b) - tier(a))[0]
-  if (!best) return false
-  await bot.equip(best, 'hand')
-  return true
+// Stand close enough to a block to break it: two blocks, which is inside a
+// player's reach and outside the block itself.
+async function gotoBlock (block, timeoutMs) {
+  const here = bot.entity.position
+  const ms = timeoutMs || walkBudget(distance(here, block.position))
+  const goal = new goals.GoalNear(
+    block.position.x, block.position.y, block.position.z, 2)
+  try {
+    return await walkTo(goal, ms)
+  } finally {
+    bot.pathfinder.setGoal(null)
+  }
 }
 
 // The tool tiers: wood, stone, iron, gold, diamond.
@@ -168,10 +227,56 @@ function tier (item) {
   return 0
 }
 
+async function equipTool (kind) {
+  const suffix = '_' + kind
+  const best = bot.inventory.items()
+    .filter((item) => item.name.endsWith(suffix))
+    .sort((a, b) => tier(b) - tier(a))[0]
+  if (!best) return false
+  await bot.equip(best, 'hand')
+  return true
+}
+
+// Hold the tool that breaks this block fastest.
+//
+// Without this the bot breaks stone with its bare hands, which takes
+// about four minutes a block: the tech tree would not finish inside the
+// run's budget, and the measurement would be about patience rather than
+// about planning.
+async function holdBestToolFor (block) {
+  let tool = null
+  try {
+    tool = bot.pathfinder.bestHarvestTool(block)
+  } catch (err) {
+    tool = null
+  }
+  if (!tool) return false
+  if (bot.heldItem && bot.heldItem.type === tool.type) return true
+  await bot.equip(tool, 'hand')
+  return true
+}
+
+// Break one block.
+//
+// The block object is read again at the moment of the dig: a block found
+// before a walk may no longer be the block at that place, and digging a
+// stale block either digs nothing or digs the wrong thing.
 async function mineOne (block) {
-  const reference = block.position.offset(0.5, 0.5, 0.5)
-  await bot.lookAt(reference, true)
-  await bot.dig(block)
+  const fresh = bot.blockAt(block.position)
+  if (!fresh || !isSolidName(fresh.name)) {
+    throw new Error('the block at ' + block.position + ' is no longer there')
+  }
+  await holdBestToolFor(fresh)
+  try {
+    // 'raycast' picks the face the bot can actually see, which matters
+    // when the bot is standing next to the block rather than above it.
+    await bot.dig(fresh, true, 'raycast')
+  } catch (err) {
+    // The raycast refuses a block that is not in view; the plain dig
+    // still works when the face is reachable.
+    await bot.dig(fresh, true)
+  }
+  return fresh
 }
 
 async function pickUp (itemName, timeoutMs) {
@@ -200,39 +305,27 @@ async function pickUp (itemName, timeoutMs) {
 
 const PRIMITIVES = {
   async move_to (x, y, z, timeoutMs) {
-    const ms = timeoutMs || 30000
-    await gotoPosition({ x: Math.round(x), y: Math.round(y), z: Math.round(z) }, ms)
-    return { at: bot.entity.position }
+    const ms = timeoutMs || null
+    const why = await gotoPosition({ x: Math.round(x), y: Math.round(y), z: Math.round(z) }, ms)
+    return { at: bot.entity.position, why }
   },
 
   async move_to_block (block, maxDistance, timeoutMs) {
-    const ms = timeoutMs || 30000
+    const reach = Math.min(128, maxDistance || 32)
     const found = bot.findBlock({
       matching: (b) => b && b.name === block,
-      maxDistance: maxDistance || 32
+      maxDistance: reach
     })
-    if (!found) throw new Error('no ' + block + ' within ' + (maxDistance || 32))
-    const goal = new goals.NearestBlock(found.position, 2)
-    bot.pathfinder.setGoal(goal)
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        bot.removeListener('path_complete', onDone)
-        bot.removeListener('path_blocked', onBlocked)
-        reject(new Error('the walk to ' + block + ' did not finish in time'))
-      }, ms)
-      const onDone = () => { clearTimeout(timer); resolve() }
-      const onBlocked = () => { clearTimeout(timer); resolve() }
-      bot.once('path_complete', onDone)
-      bot.once('path_blocked', onBlocked)
-    })
-    bot.pathfinder.setGoal(null)
-    return { at: bot.entity.position, block: found.position }
+    if (!found) throw new Error('no ' + block + ' within ' + reach)
+    const why = await gotoBlock(found, timeoutMs || null)
+    return { at: bot.entity.position, block: found.position, why }
   },
 
   async mine_block (block, maxDistance, count) {
     const want = Math.max(1, Math.min(64, count || 1))
-    const reach = Math.min(48, maxDistance || 24)
+    const reach = Math.min(64, maxDistance || 24)
     let mined = 0
+    let problem = ''
     for (let i = 0; i < want; i++) {
       const found = bot.findBlock({
         matching: (b) => b && b.name === block,
@@ -240,39 +333,65 @@ const PRIMITIVES = {
       })
       if (!found) break
       try {
-        await gotoPosition(found.position, 12000)
-      } catch (err) { /* walk as close as possible */ }
-      await mineOne(found)
-      mined++
+        await gotoBlock(found, null)
+      } catch (err) {
+        problem = 'walk: ' + err.message
+      }
+      try {
+        await mineOne(found)
+        mined++
+      } catch (err) {
+        problem = 'dig: ' + err.message
+        break
+      }
       await sleep(150)
     }
-    return { mined, inventory: inventoryCounts() }
+    return { mined, problem, inventory: inventoryCounts() }
   },
 
   async collect (item, count, maxDistance) {
     const want = Math.max(1, Math.min(64, count || 1))
-    const reach = Math.min(48, maxDistance || 24)
+    const reach = Math.min(64, maxDistance || 24)
     const before = inventoryCounts()[item] || 0
+    // Every block that drops this item, in the order worth trying: the
+    // block that is the item itself first, then the blocks that break
+    // into it. Stone breaks into cobblestone, so a bot under the ground
+    // finds cobblestone by mining stone.
+    const sources = Object.keys(DROPS).filter((key) => DROPS[key] === item)
+    if (!sources.length) throw new Error('the bridge does not know what drops ' + item)
     let got = 0
-    for (let i = 0; i < want; i++) {
-      const blockName = Object.keys(DROPS).find((key) => DROPS[key] === item)
-      if (!blockName) throw new Error('the bridge does not know what drops ' + item)
-      const found = bot.findBlock({
-        matching: (b) => b && b.name === blockName,
-        maxDistance: reach
-      })
-      if (!found) break
-      try {
-        await gotoPosition(found.position, 12000)
-      } catch (err) { /* walk as close as possible */ }
-      await mineOne(found)
-      const ok = await pickUp(item, 4000)
-      if (!ok) break
-      got++
-      await sleep(120)
+    let problem = ''
+    outer:
+    for (const blockName of sources) {
+      for (let i = 0; i < want; i++) {
+        const found = bot.findBlock({
+          matching: (b) => b && b.name === blockName,
+          maxDistance: reach
+        })
+        if (!found) break
+        try {
+          await gotoBlock(found, null)
+        } catch (err) {
+          problem = 'walk: ' + err.message
+        }
+        try {
+          await mineOne(found)
+        } catch (err) {
+          problem = 'dig: ' + err.message
+          break outer
+        }
+        const ok = await pickUp(item, 5000)
+        if (!ok) {
+          problem = 'the ' + item + ' did not reach the inventory'
+          break outer
+        }
+        got++
+        await sleep(120)
+      }
+      if ((inventoryCounts()[item] || 0) - before >= want) break
     }
     const after = inventoryCounts()[item] || 0
-    return { collected: after - before, have: after, inventory: inventoryCounts() }
+    return { collected: after - before, have: after, problem, inventory: inventoryCounts() }
   },
 
   async craft (item, count) {
@@ -284,13 +403,53 @@ const PRIMITIVES = {
     })
     const recipes = bot.recipesFor(id, null, want, table || null)
     if (!recipes || recipes.length === 0) {
-      if (!table) {
-        throw new Error('no recipe for ' + item + ' in the 2x2 grid; place a crafting table first')
+      // The recipe may exist and the ingredients may be missing, or the
+      // recipe may need a table the bot has not placed. The two need
+      // different answers, and the coder's next program depends on
+      // which one it is.
+      const any = bot.recipesAll(id, null, table || null)
+      if (!any || any.length === 0) {
+        throw new Error('there is no recipe for ' + item + ' at all')
       }
-      throw new Error('no recipe for ' + item)
+      const missing = missingIngredients(any[0])
+      if (missing.length) {
+        throw new Error('no ' + item + ': the inventory is short of ' + missing.join(', '))
+      }
+      throw new Error('no ' + item + ': the recipe needs a crafting table and none is within reach')
     }
     await bot.craft(recipes[0], want, table || null)
     return { crafted: want, inventory: inventoryCounts() }
+  },
+
+  async smelt (item, count, fuel) {
+    const want = Math.max(1, Math.min(64, count || 1))
+    const id = itemId(item)
+    const furnaceBlock = bot.findBlock({
+      matching: (b) => b && b.name === 'furnace',
+      maxDistance: 4
+    })
+    if (!furnaceBlock) throw new Error('no furnace within reach')
+    const furnace = await bot.openFurnace(furnaceBlock)
+    try {
+      const fuelItem = fuel || 'coal'
+      const fuelId = itemId(fuelItem)
+      if (!bot.inventory.count(fuelId)) {
+        throw new Error('no ' + fuelItem + ' to burn')
+      }
+      await furnace.putInput(id, null, want)
+      await furnace.putFuel(fuelId, null, 1)
+      // One item smelts in ten seconds; give the furnace room to finish.
+      await sleep(11000 * want)
+      const output = furnace.outputItem()
+      if (!output) throw new Error('the furnace produced nothing')
+      const name = output.name
+      const produced = output.count
+      await furnace.takeOutput()
+      await bot.closeWindow(furnace)
+      return { smelted: produced, item: name, inventory: inventoryCounts() }
+    } finally {
+      try { await bot.closeWindow(furnace) } catch (err) { /* already closed */ }
+    }
   },
 
   async place_block (block, x, y, z) {
@@ -298,10 +457,34 @@ const PRIMITIVES = {
     const item = bot.inventory.items().find((entry) => entry.name === block)
     if (!item) throw new Error('no ' + block + ' to place')
     await bot.equip(item, 'hand')
-    const reference = bot.entity.position.offset(0.5, 0.5, 0.5)
-    await bot.lookAt(reference, true)
-    await bot.placeBlock(new (require(path.join(MINECRAFT_DIR, 'node_modules', 'vec3')))(x, y, z), id)
-    return { placed: block }
+    const target = new Vec3(Math.round(x), Math.round(y), Math.round(z))
+    const existing = bot.blockAt(target)
+    if (existing && isSolidName(existing.name)) {
+      throw new Error('there is already a ' + existing.name + ' at ' + target)
+    }
+    // The placement is made against a neighbouring solid block, with the
+    // face pointing at the spot the block should go.
+    const around = [
+      { d: new Vec3(0, 1, 0), f: new Vec3(0, -1, 0) },
+      { d: new Vec3(0, -1, 0), f: new Vec3(0, 1, 0) },
+      { d: new Vec3(1, 0, 0), f: new Vec3(-1, 0, 0) },
+      { d: new Vec3(-1, 0, 0), f: new Vec3(1, 0, 0) },
+      { d: new Vec3(0, 0, 1), f: new Vec3(0, 0, -1) },
+      { d: new Vec3(0, 0, -1), f: new Vec3(0, 0, 1) }
+    ]
+    let lastError = ''
+    for (const spot of around) {
+      const reference = bot.blockAt(target.plus(spot.d))
+      if (!reference || !isSolidName(reference.name)) continue
+      try {
+        await bot.placeBlock(reference, spot.f)
+        return { placed: block, at: target }
+      } catch (err) {
+        lastError = err.message
+      }
+    }
+    throw new Error('could not place ' + block + ' at ' + target +
+      (lastError ? ': ' + lastError : ': no solid block next to it'))
   },
 
   async place_adjacent (block) {
@@ -309,25 +492,46 @@ const PRIMITIVES = {
     const item = bot.inventory.items().find((entry) => entry.name === block)
     if (!item) throw new Error('no ' + block + ' to place')
     await bot.equip(item, 'hand')
-    const feet = bot.entity.position.floored()
-    // Try the block above the bot's feet first, then the one it faces.
-    const spots = [
-      feet.offset(0, 1, 0),
-      feet.offset(0, 0, 1),
-      feet.offset(0, 0, -1),
-      feet.offset(1, 0, 0),
-      feet.offset(-1, 0, 0)
-    ]
-    for (const spot of spots) {
-      const existing = bot.blockAt(spot)
-      if (existing && existing.name !== 'air') continue
-      try {
-        await bot.lookAt(spot.offset(0.5, 0.5, 0.5), true)
-        await bot.placeBlock(spot, id)
-        return { placed: block, at: spot }
-      } catch (err) { /* try the next spot */ }
+    const feet = flooredPosition()
+    const ground = bot.blockAt(new Vec3(feet.x, feet.y - 1, feet.z))
+    if (!ground || !isSolidName(ground.name)) {
+      throw new Error('the bot is not standing on anything solid')
     }
-    throw new Error('no room to place ' + block)
+    const sides = [
+      { d: new Vec3(1, 0, 0), f: new Vec3(1, 0, 0) },
+      { d: new Vec3(-1, 0, 0), f: new Vec3(-1, 0, 0) },
+      { d: new Vec3(0, 0, 1), f: new Vec3(0, 0, 1) },
+      { d: new Vec3(0, 0, -1), f: new Vec3(0, 0, -1) }
+    ]
+    let lastError = ''
+    // First on the ground beside the bot's feet, then on top of a block
+    // that stands beside it.
+    for (const side of sides) {
+      const dest = new Vec3(feet.x + side.d.x, feet.y - 1, feet.z + side.d.z)
+      const existing = bot.blockAt(dest)
+      if (existing && isSolidName(existing.name)) continue
+      try {
+        await bot.placeBlock(ground, side.f)
+        return { placed: block, at: dest }
+      } catch (err) {
+        lastError = err.message
+      }
+    }
+    for (const side of sides) {
+      const neighbour = bot.blockAt(new Vec3(feet.x + side.d.x, feet.y - 1, feet.z + side.d.z))
+      if (!neighbour || !isSolidName(neighbour.name)) continue
+      const dest = new Vec3(feet.x + side.d.x, feet.y, feet.z + side.d.z)
+      const existing = bot.blockAt(dest)
+      if (existing && isSolidName(existing.name)) continue
+      try {
+        await bot.placeBlock(neighbour, new Vec3(0, 1, 0))
+        return { placed: block, at: dest }
+      } catch (err) {
+        lastError = err.message
+      }
+    }
+    throw new Error('no room to place ' + block +
+      (lastError ? ': ' + lastError : ''))
   },
 
   async equip (item) {
@@ -344,8 +548,10 @@ const PRIMITIVES = {
   },
 
   async look_at (x, y, z) {
-    await bot.lookAt({ x, y, z }, true)
-    return { looking: bot.entity.position && bot.entity.look ? [bot.entity.look.x, bot.entity.look.y, bot.entity.look.z] : null }
+    await bot.lookAt(new Vec3(x, y, z), true)
+    return { looking: bot.entity.look
+      ? [bot.entity.look.x, bot.entity.look.y, bot.entity.look.z]
+      : null }
   },
 
   async sleep (ms) {
@@ -354,7 +560,7 @@ const PRIMITIVES = {
   },
 
   async scan (radius) {
-    const reach = Math.min(48, radius || 16)
+    const reach = Math.min(160, radius || 16)
     const found = {}
     for (const name of INTERESTING) {
       const block = bot.findBlock({
@@ -374,18 +580,23 @@ const PRIMITIVES = {
 
   async scan_ore (radius) {
     const reach = Math.min(32, radius || 16)
-    const base = bot.entity.position.floored()
+    const here = bot.entity.position
+    const base = {
+      x: Math.floor(here.x),
+      y: Math.floor(here.y),
+      z: Math.floor(here.z)
+    }
     const found = {}
-    const half = Math.floor(reach / 16)
+    const half = Math.max(1, Math.floor(reach / 16))
     for (let dx = -half; dx <= half; dx++) {
       for (let dz = -half; dz <= half; dz++) {
         const cx = base.x + dx * 8
         const cz = base.z + dz * 8
         for (let y = -60; y <= 56; y++) {
-          const block = bot.blockAt({ x: cx, y, z: cz })
+          const block = bot.blockAt(new Vec3(cx, y, cz))
           if (!block || !ORES.includes(block.name)) continue
-          const here = { x: cx, y, z: cz }
-          const d = Math.round(distance(here, bot.entity.position) * 10) / 10
+          const from = { x: cx, y, z: cz }
+          const d = Math.round(distance(from, bot.entity.position) * 10) / 10
           const known = found[block.name]
           if (!known || d < known.distance) {
             found[block.name] = { distance: d, x: cx, y, z: cz }
@@ -399,19 +610,22 @@ const PRIMITIVES = {
   async dig_down (steps) {
     const n = Math.max(1, Math.min(48, steps || 1))
     let dug = 0
+    let problem = ''
     for (let i = 0; i < n; i++) {
-      const feet = bot.entity.position.floored()
-      const under = bot.blockAt(feet.offset(0, -1, 0))
-      if (under && under.name !== 'air' && under.name !== 'water' && under.name !== 'lava') {
+      const feet = flooredPosition()
+      const under = bot.blockAt(new Vec3(feet.x, feet.y - 1, feet.z))
+      if (under && isSolidName(under.name)) {
         try {
-          await bot.lookAt(feet.offset(0.5, -0.5, 0.5), true)
-          await bot.dig(under)
+          await mineOne(under)
           dug++
-        } catch (err) { break }
+        } catch (err) {
+          problem = err.message
+          break
+        }
       }
       // Step down and forward, so the shaft is a staircase and the bot
       // does not have to climb back.
-      const ahead = feet.offset(0, -1, 1)
+      const ahead = new Vec3(feet.x, feet.y - 1, feet.z + 1)
       const aheadBlock = bot.blockAt(ahead)
       if (aheadBlock && (aheadBlock.name === 'air' || aheadBlock.name === 'water')) {
         try {
@@ -421,7 +635,7 @@ const PRIMITIVES = {
       }
       break
     }
-    return { dug, at: bot.entity.position }
+    return { dug, problem, at: bot.entity.position }
   },
 
   async count (item) {
@@ -433,9 +647,23 @@ const PRIMITIVES = {
   }
 }
 
+// What the recipe needs and the inventory does not have.
+function missingIngredients (recipe) {
+  const missing = []
+  for (const delta of (recipe.delta || [])) {
+    if (delta.count >= 0) continue
+    const item = bot.registry.items[delta.id]
+    if (!item) continue
+    const have = bot.inventory.count(delta.id, delta.metadata)
+    const need = -delta.count
+    if (have < need) missing.push(item.name + ' x' + (need - have))
+  }
+  return missing
+}
+
 // -- the sandbox ----------------------------------------------------------------
 
-async function runInSandbox (code, timeoutMs, wantValue) {
+async function runInSandbox (code, timeoutMs) {
   if (!bot) throw new Error('the bot is not connected')
   const captured = []
   const consoleShim = {
@@ -446,14 +674,24 @@ async function runInSandbox (code, timeoutMs, wantValue) {
     mc: PRIMITIVES,
     console: consoleShim,
     sleep,
-    Math, JSON, Date, Object, Array, String, Number, Boolean, Error, isNaN, parseInt, parseFloat
+    Math, JSON, Date, Object, Array, String, Number, Boolean, Error,
+    isNaN, parseInt, parseFloat
   })
   const script = new vm.Script('(async () => {\n' + code + '\n})()')
-  const value = await Promise.race([
-    script.runInContext(context, { timeout: Math.max(1000, timeoutMs) }),
-    sleep(Math.max(1000, timeoutMs)).then(() => { throw new Error('the program ran out of time') })
-  ])
-  return { value, log: captured }
+  const limit = Math.max(1000, timeoutMs)
+  try {
+    const value = await Promise.race([
+      script.runInContext(context, { timeout: limit }),
+      sleep(limit).then(() => { throw new Error('the program ran out of time') })
+    ])
+    return { value, log: captured }
+  } catch (err) {
+    // The program may still be walking or digging: stop it, so the next
+    // program starts from a bot that is standing still.
+    try { bot.pathfinder.stop() } catch (e) { /* no path */ }
+    try { bot.stopDigging() } catch (e) { /* not digging */ }
+    throw err
+  }
 }
 
 // -- the world ------------------------------------------------------------------
@@ -490,7 +728,13 @@ function connect () {
     })
     bot.loadPlugin(pathfinder)
     bot.once('spawn', () => {
-      bot.pathfinder.setMovements(new Movements(bot))
+      const movements = new Movements(bot)
+      // The bot may dig through what is in its way, which is how it gets
+      // into a cave and out of a hill.
+      movements.canDig = true
+      movements.allow1by1towers = false
+      movements.allowParkour = false
+      bot.pathfinder.setMovements(movements)
       spawned = true
       resolve()
     })
@@ -523,11 +767,11 @@ rl.on('line', async (line) => {
       result = facts()
     } else if (cmd === 'run') {
       const started = Date.now()
-      const outcome = await runInSandbox(request.code, request.timeout_ms || 120000, false)
+      const outcome = await runInSandbox(request.code, request.timeout_ms || 120000)
       result = { ok: true, log: outcome.log, seconds: (Date.now() - started) / 1000 }
     } else if (cmd === 'evaluate') {
       const started = Date.now()
-      const outcome = await runInSandbox(request.code, request.timeout_ms || 30000, true)
+      const outcome = await runInSandbox(request.code, request.timeout_ms || 30000)
       result = {
         passed: outcome.value === true || outcome.value === 'true',
         value: outcome.value === undefined ? null : String(outcome.value),
