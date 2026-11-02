@@ -479,3 +479,154 @@ def test_the_json_reader_takes_the_first_object():
     assert parse_json_block('noise {"a": 1} tail') == {"a": 1}
     assert parse_json_block('```json\n{"a": 2}\n```') == {"a": 2}
     assert parse_json_block('{"a": {"b": 1}}') == {"a": {"b": 1}}
+
+
+# ---------------------------------------------------------------------------
+# the wire: a reply the cap cut is asked again, with room
+# ---------------------------------------------------------------------------
+
+
+def _wire(monkeypatch, replies: list[dict]) -> list[dict]:
+    """Put canned answers under urllib, and collect what was asked."""
+    import io
+    import urllib.request
+
+    asked: list[dict] = []
+
+    def fake_urlopen(request, timeout=None):
+        asked.append(json.loads(request.data))
+        return io.BytesIO(json.dumps(replies.pop(0)).encode())
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    return asked
+
+
+def _answer(content: str, finish: str, prompt: int = 100, completion: int = 50) -> dict:
+    return {
+        "choices": [{"message": {"content": content}, "finish_reason": finish}],
+        "usage": {"prompt_tokens": prompt, "completion_tokens": completion},
+    }
+
+
+def test_a_reply_the_cap_cut_is_asked_again_with_room(monkeypatch):
+    from core.voyager.llm import DeepInfraClient
+
+    asked = _wire(
+        monkeypatch,
+        [
+            _answer('{"options": [{"id": "a", "name": "w', "length", 100, 1200),
+            _answer('{"options": [], "chosen": "", "why": "done"}', "stop", 100, 60),
+        ],
+    )
+    client = DeepInfraClient("planner", "scripted-model", api_key="test-key")
+    reply = client.complete("system", "user", max_tokens=1200)
+
+    assert reply.attempts == 2
+    assert reply.finish_reason == "stop"
+    assert reply.text == '{"options": [], "chosen": "", "why": "done"}'
+    # the second ask carried twice the room
+    assert asked[0]["max_tokens"] == 1200
+    assert asked[1]["max_tokens"] == 2400
+    # the book counts every call, not the last one
+    assert reply.usage.prompt_tokens == 200
+    assert reply.usage.completion_tokens == 1260
+
+
+def test_an_empty_reply_is_asked_again(monkeypatch):
+    from core.voyager.llm import DeepInfraClient
+
+    _wire(
+        monkeypatch,
+        [
+            _answer("", "stop"),
+            _answer('{"verdict": "CONFIRMED"}', "stop"),
+        ],
+    )
+    client = DeepInfraClient("verifier", "scripted-model", api_key="test-key")
+    reply = client.complete("system", "user", max_tokens=700)
+    assert reply.attempts == 2
+    assert reply.text == '{"verdict": "CONFIRMED"}'
+
+
+def test_a_reply_that_stays_cut_is_returned_not_hidden(monkeypatch):
+    from core.voyager.llm import DeepInfraClient
+
+    _wire(monkeypatch, [_answer('{"options": [', "length")] * 3)
+    client = DeepInfraClient("planner", "scripted-model", api_key="test-key")
+    reply = client.complete("system", "user", max_tokens=1200)
+    assert reply.attempts == 3
+    assert reply.finish_reason == "length"
+    assert reply.text == '{"options": ['
+
+
+# ---------------------------------------------------------------------------
+# the unreadable reason says why the model stopped
+# ---------------------------------------------------------------------------
+
+
+def test_the_unreadable_reason_says_why_the_model_stopped(tmp_path):
+    class CutPlanner:
+        model = "scripted"
+
+        def complete(self, system, user, *, max_tokens=2000, temperature=0.3):
+            return ModelReply(
+                text="the reply is prose, not json",
+                usage=TokenUsage(role="planner", model="scripted"),
+                finish_reason="length",
+            )
+
+    milestones = [Milestone(key="wood", title="get wood", description="", items=("wood",))]
+    env = FakeEnv(milestones=milestones)
+    library = SkillLibrary(registry=vocabulary(), bodies_dir=tmp_path)
+    models = ModelRouter(
+        {
+            "planner": CutPlanner(),
+            "coder": ScriptedModel("coder", [CODE]),
+            "verifier": ScriptedModel("verifier", ["{}"]),
+        }
+    )
+    loop = VoyagerLoop(
+        env=env, models=models, curriculum=Curriculum(milestones, seed=1),
+        skills=library, config=LoopConfig(), budget=RunBudget(max_steps=1),
+        log=lambda m: None,
+    )
+    record = loop.step()
+    assert record.reason.startswith("planner_unreadable")
+    assert "finish_reason='length'" in record.reason
+
+
+# ---------------------------------------------------------------------------
+# the coder is told what a primitive returns
+# ---------------------------------------------------------------------------
+
+
+def test_the_coder_prompt_shows_what_a_primitive_returns():
+    from core.voyager.prompts import coder_prompt
+
+    prompt = coder_prompt(
+        goal="get wood",
+        goal_description="hold a log",
+        plan_description="walk to the tree",
+        facts={},
+        primitives={
+            "mc.has": {"item": {"type": "string"}},
+            "mc.move_to": {"x": {"type": "number"}},
+        },
+        returns={
+            "mc.has": "{has: true|false} -- read .has; the object itself is always truthy",
+            "mc.move_to": "{at: where the bot stands, why}",
+        },
+    )
+    assert "-> {has: true|false} -- read .has" in prompt
+    assert "-> {at: where the bot stands, why}" in prompt
+
+
+def test_the_minecraft_returns_match_the_vocabulary():
+    from core.voyager.adapters.minecraft import MC_RETURNS, mc_vocabulary
+
+    registry = mc_vocabulary()
+    for word in MC_RETURNS:
+        assert registry.has(word), word
+    for word in registry.words():
+        if word != "voyager.skill_body":
+            assert word in MC_RETURNS, word

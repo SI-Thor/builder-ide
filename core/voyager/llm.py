@@ -127,10 +127,71 @@ class DeepInfraClient:
         max_tokens: int = 2000,
         temperature: float = 0.3,
     ) -> ModelReply:
-        """Ask the model, and count what it cost."""
+        """Ask the model, and count what it cost.
+
+        A reply the cap cut short (``finish_reason`` "length") or a reply
+        with nothing in its content is asked again with the budget
+        doubled, up to ``max_retries`` times, and the answer that comes
+        back is the last one. The pilot run lost 6 of 23 steps to
+        planner replies whose completion sat at exactly the 1200-token
+        cap — a JSON object cut at its last brace is not an answer, and
+        the retry is cheaper than a lost turn. The tokens of every call
+        are summed into the one usage the caller books, so the count
+        stays what was spent.
+        """
+        budget = int(max_tokens)
+        prompt_spent = 0
+        completion_spent = 0
+        seconds_spent = 0.0
+        text = ""
+        finish = ""
+        attempts = 0
+        for attempt in range(self.max_retries + 1):
+            data, seconds = self._post(
+                system, user, budget=budget, temperature=temperature
+            )
+            attempts += 1
+            usage = data.get("usage") or {}
+            prompt_spent += int(usage.get("prompt_tokens") or 0)
+            completion_spent += int(usage.get("completion_tokens") or 0)
+            seconds_spent += seconds
+            choice = (data.get("choices") or [{}])[0]
+            message = choice.get("message") or {}
+            text = message.get("content") or ""
+            finish = str(choice.get("finish_reason") or "")
+            if text.strip() and finish != "length":
+                break
+            if attempt < self.max_retries:
+                budget *= 2
+        return ModelReply(
+            text=text,
+            usage=TokenUsage(
+                role=self.role,
+                model=self.model,
+                prompt_tokens=prompt_spent,
+                completion_tokens=completion_spent,
+                seconds=seconds_spent,
+            ),
+            finish_reason=finish,
+            attempts=attempts,
+        )
+
+    def _post(
+        self,
+        system: str,
+        user: str,
+        *,
+        budget: int,
+        temperature: float,
+    ) -> tuple[dict[str, Any], float]:
+        """One round trip, with the transport retries.
+
+        Raises :class:`CloudError` when the wire itself would not answer;
+        what the answer *said* is :meth:`complete`'s business.
+        """
         body = {
             "model": self.model,
-            "max_tokens": int(max_tokens),
+            "max_tokens": int(budget),
             "temperature": float(temperature),
             "messages": [
                 {"role": "system", "content": system},
@@ -152,7 +213,7 @@ class DeepInfraClient:
                 )
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
                     data = json.load(response)
-                break
+                return data, time.time() - started
             except urllib.error.HTTPError as exc:
                 last = CloudError(
                     f"{self.model} returned HTTP {exc.code}", status=exc.code
@@ -163,25 +224,8 @@ class DeepInfraClient:
                 last = CloudError(f"{self.model} call failed: {exc}")
             if attempt < self.max_retries:
                 time.sleep(2.0 * (attempt + 1))
-        else:
-            assert last is not None
-            raise last
-
-        try:
-            text = data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as exc:
-            raise CloudError(f"{self.model} returned no message: {exc}") from exc
-        usage = data.get("usage") or {}
-        return ModelReply(
-            text=text or "",
-            usage=TokenUsage(
-                role=self.role,
-                model=self.model,
-                prompt_tokens=int(usage.get("prompt_tokens") or 0),
-                completion_tokens=int(usage.get("completion_tokens") or 0),
-                seconds=time.time() - started,
-            ),
-        )
+        assert last is not None
+        raise last
 
 
 @dataclass

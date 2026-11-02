@@ -180,6 +180,7 @@ def coder_prompt(
     plan_description: str,
     facts: Mapping[str, Any],
     primitives: Mapping[str, Any],
+    returns: Mapping[str, str] = (),
     previous_code: str = "",
     previous_error: str = "",
     critique: str = "",
@@ -191,6 +192,11 @@ def coder_prompt(
     second contribution is exactly this — the environment's feedback and
     the execution error go back into the next prompt, so the next program
     is not a guess but a revision.
+
+    ``returns`` says what each primitive returns, as one short shape.
+    A coder that has to guess treats a primitive as a boolean, and
+    ``if (!mc.has(item))`` over the object it actually returns is a
+    check that can never fire.
     """
     lines = [
         f"GOAL: {goal}",
@@ -203,7 +209,10 @@ def coder_prompt(
         "THE PRIMITIVES YOU MAY USE (and nothing else):",
     ]
     for name, schema in sorted(primitives.items()):
-        lines.append(f"  - {name}{_schema_signature(schema)}")
+        line = f"  - {name}{_schema_signature(schema)}"
+        if name in returns:
+            line += f" -> {returns[name]}"
+        lines.append(line)
     if previous_code:
         lines += [
             "",

@@ -74,7 +74,11 @@ class LoopConfig:
 
     exec_timeout_s: float = 120.0
     verify_timeout_s: float = 30.0
-    planner_max_tokens: int = 1200
+    # 1200 cut the planner's JSON in half on 6 of the pilot's 23 steps —
+    # the completion sat at exactly the cap on every unreadable one. The
+    # client also asks a cut reply again with room (core.voyager.llm);
+    # the number here is the first ask, not the only one.
+    planner_max_tokens: int = 2400
     coder_max_tokens: int = 2400
     verifier_max_tokens: int = 700
     planner_temperature: float = 0.3
@@ -201,7 +205,11 @@ class VoyagerLoop:
             plan = parse_json_block(plan_reply.text)
         except ValueError as exc:
             return self._failed_step(
-                goal.key, facts, usages, f"planner_unreadable: {exc}", options
+                goal.key,
+                facts,
+                usages,
+                f"planner_unreadable: {exc} [finish_reason={plan_reply.finish_reason!r}]",
+                options,
             )
         options = tuple(
             str(option.get("name", "")) for option in (plan.get("options") or [])
@@ -233,6 +241,7 @@ class VoyagerLoop:
                 plan_description=chosen_description or goal.description,
                 facts=facts,
                 primitives=self._primitives(),
+                returns=self._returns(),
                 previous_code=self._last_code,
                 previous_error=self._last_error,
                 critique=self._last_critique,
@@ -302,7 +311,11 @@ class VoyagerLoop:
         try:
             judged = parse_json_block(verifier_reply.text)
         except ValueError as exc:
-            judged = {"verdict": "INCONCLUSIVE", "reason": f"unreadable: {exc}"}
+            judged = {
+                "verdict": "INCONCLUSIVE",
+                "reason": f"unreadable: {exc} "
+                f"[finish_reason={verifier_reply.finish_reason!r}]",
+            }
         verdict = str(judged.get("verdict", "INCONCLUSIVE")).upper()
         if verdict not in ("CONFIRMED", "DENIED", "INCONCLUSIVE"):
             verdict = "INCONCLUSIVE"
@@ -416,6 +429,17 @@ class VoyagerLoop:
     def _primitives(self) -> Mapping[str, Any]:
         """The world's primitives and their schemas, for the coder."""
         return getattr(self._env, "primitive_schemas", lambda: {})()
+
+    def _returns(self) -> Mapping[str, str]:
+        """What each primitive returns, for the coder.
+
+        A coder that knows what ``mc.has`` returns reads ``.has`` off it;
+        a coder that guesses wrote ``if (!mc.has(item))`` against an
+        object, a check that can never fire (the pilot's step 15 logged
+        "wooden_pickaxe already present" over an empty hand). The world
+        is asked, because the shape is the world's fact, not the loop's.
+        """
+        return getattr(self._env, "primitive_returns", lambda: {})()
 
     def _library_brief(self) -> Sequence[Mapping[str, Any]]:
         """The library, as the planner sees it."""

@@ -37,6 +37,7 @@ from .minecraft_items import BLOCK_IDS, ITEM_IDS
 __all__ = [
     "MinecraftAdapter",
     "MC_MILESTONES",
+    "MC_RETURNS",
     "mc_vocabulary",
     "BRIDGE_PATH",
 ]
@@ -134,6 +135,32 @@ MC_MILESTONES: tuple[Milestone, ...] = (
         items=("iron_pickaxe",),
     ),
 )
+
+#: What each primitive returns, read off the bridge's own ``return``
+#: statements (``minecraft_bridge.js``), not off any doc. The coder
+#: prompt carries these verbatim, so the coder never has to guess a
+#: shape it was not told: ``mc.has`` returns ``{has: true|false}``, and
+#: an ``if (!mc.has(item))`` written against the object itself is a
+#: check that can never fire.
+MC_RETURNS: Mapping[str, str] = {
+    "mc.move_to": "{at: where the bot stands, why}",
+    "mc.move_to_block": "{at, block: where the block is, why}",
+    "mc.mine_block": "{mined: how many, problem, inventory}",
+    "mc.collect": "{collected: how many, have: how many now, problem, inventory}",
+    "mc.craft": "{crafted: how many, inventory}",
+    "mc.smelt": "{smelted: how many, item, inventory}",
+    "mc.place_block": "{placed: the block's name, at: where}",
+    "mc.place_adjacent": "{placed: the block's name, at: where}",
+    "mc.equip": "{held: the item now in hand}",
+    "mc.equip_tool": "{held: the tool now in hand}",
+    "mc.look_at": "{looking: where the bot now looks}",
+    "mc.sleep": "{slept: the milliseconds}",
+    "mc.scan": "{nearby: {block name: count}}",
+    "mc.scan_ore": "{ores: {ore name: count}}",
+    "mc.dig_down": "{dug: how many, problem, at: where the bot stands}",
+    "mc.count": "{count: how many the bot holds}",
+    "mc.has": "{has: true|false} -- read .has; the object itself is always truthy",
+}
 
 
 def _string_enum(values: Sequence[str], hint: str) -> dict[str, Any]:
@@ -492,6 +519,18 @@ class MinecraftAdapter:
     def primitive_schemas(self) -> Mapping[str, Any]:
         """The primitives and their schemas, for the coder prompt."""
         return self._registry.schema_map()
+
+    def primitive_returns(self) -> Mapping[str, str]:
+        """What each primitive returns, for the coder prompt.
+
+        Every shape below is read off the bridge's own ``return``
+        statements (``minecraft_bridge.js``), not off its docs. The
+        coder prompt carries them because a coder that guesses wrote
+        ``if (!mc.has(item))`` against the ``{has: bool}`` it actually
+        returns — a check that can never fire, and sixteen lost steps
+        on the pilot before one program happened to work.
+        """
+        return MC_RETURNS
 
     def milestones(self) -> tuple[Milestone, ...]:
         return MC_MILESTONES

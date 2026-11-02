@@ -78,13 +78,28 @@ class TokenUsage:
 
 @dataclass(frozen=True)
 class ModelReply:
-    """A model's answer, and what it cost."""
+    """A model's answer, and what it cost.
+
+    ``finish_reason`` is why the model stopped writing — "stop", or
+    "length" when the token cap cut the reply — and "" when the provider
+    did not say. ``attempts`` is how many calls this one answer cost: a
+    reply the cap cut is asked again with room, and the tokens of every
+    call are summed into ``usage``, so the book the run keeps counts
+    what was spent, not what a single wire round trip happens to carry.
+    """
 
     text: str
     usage: TokenUsage
+    finish_reason: str = ""
+    attempts: int = 1
 
     def as_dict(self) -> dict[str, Any]:
-        return {"text": self.text, "usage": self.usage.as_dict()}
+        return {
+            "text": self.text,
+            "usage": self.usage.as_dict(),
+            "finish_reason": self.finish_reason,
+            "attempts": self.attempts,
+        }
 
 
 @dataclass(frozen=True)
