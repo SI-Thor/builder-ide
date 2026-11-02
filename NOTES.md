@@ -462,3 +462,104 @@ Checked on the real box with the staged binary:
 The staged binary also reads the **live round-11 daemon's** status without
 trouble (`guard.enabled: false`, the rest defaulted), so a new client
 against an old daemon works — which is the swap window.
+
+## 2026-11-01 18:23 — the brief, and the state of the tree
+
+`BRIEF.md` asks for **one** design note, `docs/design/vibecode-in-world.md`, that turns Casey's
+sentence ("agents could vibecode ingame too, under the correct supervision; a human can come and go
+and even rewind if it got off track") into an architecture **over what we already have**. Docs
+only. Commit on this branch, never push.
+
+State on the Thor before I started:
+
+- `git log --oneline` — last commit `ad29c32` (the in-game-building phase-1/1b survey); the branch
+  is a working branch with many siblings checked out.
+- `git status --short` — **clean**. Nothing was left uncommitted by an earlier seat.
+- `pgrep -af` — no leftover copy of this work; the only residents are other projects'
+  (`agent_world_reflex serve` on the Thor, the builder-ide uvicorn on :8077, crafter-lab workers).
+  Nothing of mine to collide with.
+- `docs/design/vibecode-in-world.md` did **not** exist. This is a fresh write, not a continuation.
+
+Read before writing: `docs/research/ingame-building.md` (+ `RESULT.md`), `docs/research/dsmc.md`,
+`docs/design/screen-watcher.md`, `docs/design/watching-teachers.md`, `docs/design/autoplay-stack.md`,
+`docs/research/theatre-open3d.md`, `docs/lab/exp-syzygy-keyframes.md`, the canon ledger code
+(`core/records.py`, `core/events.py`, `core/fold.py`, `core/store.py`, `core/recipe/*`,
+`core/critic/*`, `core/auth.py`), `tools/thor-admit/README.md`, and — outside this repo —
+`~/lm-wt/agent-world` (`PLAY.md`, `COACHING-IDEAS.md`, `reflex/agent_world_reflex/ledger.py`) and
+`~/last-mile` (`README.md`, `docs/design/decisions.md`).
+
+**Decision:** write the note against the two live substrates we actually have — agent-world
+(Minecraft, where the human is) and last-mile (Bevy, where replay is already bit-exact) — rather
+than inventing a third world. The note's argument is that these two carry opposite halves of the
+problem, which is also why the ordering is not a preference.
+
+## 2026-11-01 18:28 — the numbers the note is built on
+
+Box state at the time of measurement: Thor, load average **21.18 / 25.76 / 31.28**, 21 users,
+122 GB total memory with 13 GB used and 90 GB free (108 GB available), NVIDIA Thor GPU. The box
+was **not idle** — the reflex server and other work were resident. Numbers that are counts of
+what the world did are unaffected by load; the *timings* quoted from earlier labs (the critic's
+696 ms, syzygy's reader timings) were measured on this box under its own conditions and the note
+says so.
+
+**The world ledger** — `~/lm-wt/agent-world/runtime/world-ledger.sqlite3`, queried read-only
+(`mode=ro`):
+
+```
+total events: 82952
+span: 2026-11-01T05:20:38Z .. 2026-11-02T03:24:34Z      (22.07 h)
+  42567  tile.played      40061  judge.verdict
+    285  tile.authored       39  tile.retired
+actors: judge@d1:d1-2B 40061 · Kite 24375 · Sprout 8509 · Pebble 7270 · Timber 2413
+file: 112,517,120 B (+ 4,148,872 B WAL)
+```
+
+Two quotients: **3,760 events/hour** and **≈5.1 MB/hour** (≈1,356 B/event). That is the number the
+rewind section is built on, and it is why "keep everything" is an affordable policy for now.
+
+**The world state** — Paper's region files under `runtime/paper/world/dimensions/`:
+
+```
+overworld r.*.mca  3,813,916 + 3,557,857 + 3,196,472 + 4,051,079 = 14,619,324 B
+dimensions tree 20 MB      level.dat 467 B      players/ 284K
+```
+
+So a full world snapshot is **20 MB**, and eight hours of hourly snapshots is 160 MB against
+≈41 MB of ledger.
+
+**A dead end worth recording:** my first instinct was to measure the *event payload* cost per
+decision, which would have been the interesting number. The world ledger has no payload column
+worth quoting — the closed event set it writes carries the decisions' outcomes, not their
+contents — so the file-size-over-event-count is the honest figure and the payload-per-decision is
+not available without reading a payload. I left it out rather than guess it.
+
+## 2026-11-01 18:40 — the note, and the two things I corrected in it
+
+`docs/design/vibecode-in-world.md` written: 854 lines, sections 1–7 as the brief names them
+(the loop and the permission ladder; rewind; supervision while away; the return; where it runs
+first; the gaps table and the ranked five; where the phase-2 tools slot), plus a short version,
+what-is-not-verified, and a reproduction section.
+
+Two claims I checked against the sources and **corrected before committing** (DOC-RULES item 5):
+
+1. I had written that "`thor-admit exec` refuses to run a preallocating GPU framework without a
+   lease". The README's actual rule is narrower and more precise: it refuses a JAX/XLA process
+   **without a safe allocator**, and running it under a lease is *one of three* ways to be safe
+   (the others are `XLA_PYTHON_CLIENT_PREALLOCATE=false` and the platform allocator). Rewritten to
+   match, in §1.2c and in the hard rules of §3.1.
+2. I had cited `last-mile/docs/design/decisions.md` for "the Thor serves about 9 decisions/s on
+   d1-2B". That phrase is in `last-mile/README.md`; D68 says "~9/s". Both are now cited.
+
+Also verified, phrase by phrase, with `grep -F` against the sources: every file path the note
+names exists (23 in this repo, 7 in agent-world, 6 in last-mile), and every quoted sentence is
+verbatim. Five apparent misses were line-wrap artefacts in the source (the phrases are exact once
+the file is unwrapped) — `core/fold.py`'s "a stale transition fails closed",
+`core/recipe/merge.py`'s "park a question rather than auto-merging", `core/recipe/store.py`'s
+"Heads never move backwards". The critic table, the syzygy keyframe sweep, the rate-gate result
+(19.4 % → 6.9 % → 0 %) and D68/D69/D74 were read out of the files rather than from memory.
+
+**What I decided:** commit the note with the numbers and the corrections, and stop there. The
+brief's deliverable is the note; the five ranked builds in §6.2 are the recommendation, not work
+to start. §8 lists eleven things that are **not** verified — the Minecraft rewind above all, since
+it is a design and not a measurement — so that the next seat does not read the note's certainty as
+the note's evidence.
