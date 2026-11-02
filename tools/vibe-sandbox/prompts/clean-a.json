@@ -1,0 +1,13 @@
+{
+  "room_id": "clean-a",
+  "room": {"width": 8.0, "depth": 10.0, "height": 3.0,
+            "door": {"wall": "north", "offset": 3.3, "width": 1.4}},
+  "props": [
+    {"name": "crate",       "kind": "crate",  "x": 1.5, "y": 3.0, "w": 0.9, "d": 0.9, "h": 0.9},
+    {"name": "crate.001",   "kind": "crate",  "x": 1.5, "y": 4.2, "w": 0.9, "d": 0.9, "h": 0.9},
+    {"name": "crate.002",   "kind": "crate",  "x": 6.4, "y": 8.3, "w": 0.9, "d": 0.9, "h": 0.9},
+    {"name": "table",       "kind": "table",  "x": 5.0, "y": 2.5, "w": 1.6, "d": 0.9, "h": 0.75},
+    {"name": "barrel",      "kind": "barrel", "x": 2.2, "y": 7.6, "r": 0.4, "h": 1.0},
+    {"name": "barrel.001",  "kind": "barrel", "x": 3.1, "y": 7.6, "r": 0.4, "h": 1.0}
+  ]
+}

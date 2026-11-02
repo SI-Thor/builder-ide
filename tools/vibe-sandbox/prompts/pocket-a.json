@@ -1,0 +1,14 @@
+{
+  "room_id": "pocket-a",
+  "room": {"width": 8.0, "depth": 10.0, "height": 3.0,
+            "door": {"wall": "north", "offset": 3.3, "width": 1.4},
+            "interior_walls": [
+              {"x0": 6.0, "y0": 6.0, "x1": 6.0, "y1": 10.0},
+              {"x0": 6.0, "y0": 6.0, "x1": 8.0, "y1": 6.0}
+            ]},
+  "props": [
+    {"name": "crate",       "kind": "crate",  "x": 1.5, "y": 3.0, "w": 0.9, "d": 0.9, "h": 0.9},
+    {"name": "table",       "kind": "table",  "x": 4.5, "y": 2.5, "w": 1.6, "d": 0.9, "h": 0.75},
+    {"name": "barrel",      "kind": "barrel", "x": 2.2, "y": 7.6, "r": 0.4, "h": 1.0}
+  ]
+}
