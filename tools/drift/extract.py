@@ -13,8 +13,15 @@ Two things come out of here, and they are kept apart on purpose:
 
 Run it:
 
-    python3 tools/drift/extract.py --ledger ~/lm-wt/agent-world/runtime/world-ledger.sqlite3 \\
+    python3 tools/drift/extract.py --ledger ~/lm-wt/agent-world/runtime/world-ledger.sqlite3 \
         --bots ~/lm-wt/agent-world/runtime/logs/bots.jsonl --out docs/lab/drift-dataset
+
+With ``--yields-from-bots`` the dataset is additionally folded with the
+world's stand-asides reconstructed from the clients' decision log (see
+``yields_from_bots``): the historical ledger carries no ``drift.yield``
+events, and this is how the committed snapshot is re-folded as if it
+had. Going forward the ledger's own events are read by
+``build_series`` and the backfill is a stopgap.
 
 It takes a few seconds and writes two JSON files. The ledger is opened
 read-only and the world keeps running while it does.
@@ -138,7 +145,9 @@ def sha256_of(path: Path) -> str:
     return digest.hexdigest()
 
 
-def labels_from_bots(path: Path, bucket_seconds: int) -> list[Label]:
+def labels_from_bots(
+    path: Path, bucket_seconds: int, until: float | None = None
+) -> list[Label]:
     """The world's clients' own failure reports.
 
     ``bots.jsonl`` is written by the bots, not by the reflex and not by
@@ -166,6 +175,8 @@ def labels_from_bots(path: Path, bucket_seconds: int) -> list[Label]:
             if not at:
                 continue
             stamp = parse_at(at)
+            if until is not None and stamp >= until:
+                continue
             label_kind: str | None = None
             if kind == "error":
                 label_kind = "client_failure"
@@ -208,6 +219,69 @@ def labels_from_bots(path: Path, bucket_seconds: int) -> list[Label]:
     ]
 
 
+def yields_from_bots(path: Path) -> list[dict[str, object]]:
+    """The world's stand-asides, reconstructed from the clients' reports.
+
+    This is the **backfill** for the ledger gap of build #2: the
+    reflex began writing ``drift.yield`` in build #3, so the historical
+    ledger carries none, and the clients' own decision log is the
+    instrument that says the world yielded and when — the same records
+    the ``designed_yield`` labels are cut from. Two consequences, said
+    plainly:
+
+    * on the backfilled dataset the negative control measures the
+      **plumbing** — does an honoured yield stop the alarm — not an
+      independent discovery, because the input and the label share a
+      source;
+    * the independent checks are the ones whose labels come from other
+      instruments: the holdout recall and the false-alarm windows.
+
+    A ``drift pause`` stand-aside reports ``yielded:`` through the same
+    seam, so the going-forward events and this backfill agree on the
+    marker.
+    """
+    points: list[dict[str, object]] = []
+    with path.open(errors="replace") as handle:
+        for line in handle:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if record.get("kind") != "decision" or record.get("reason") != "refused":
+                continue
+            detail = str(record.get("detail") or "")
+            if not any(marker in detail for marker in YIELD_MARKERS):
+                continue
+            at = record.get("at")
+            bot = record.get("bot")
+            if not at or not bot:
+                continue
+            points.append(
+                {"at": parse_at(at), "agent": str(bot), "reason": detail}
+            )
+    return points
+
+
+def _incidents_until(until: float) -> list[Label]:
+    """The incident windows, cut to the run's end.
+
+    An incident that runs past ``until`` is clipped to it, so a label
+    never claims windows the dataset does not carry."""
+    cut: list[Label] = []
+    for label in labels_from_incidents():
+        if label.at >= until:
+            continue
+        if label.until is not None and label.until > until:
+            label = Label(
+                label.at, label.kind, label.source, label.detail, until=until
+            )
+        cut.append(label)
+    return cut
+
+
 def labels_from_incidents() -> list[Label]:
     """The incident windows, one label each, from the written records.
 
@@ -234,10 +308,23 @@ def write_dataset(
     *,
     bucket_seconds: int = 300,
     baseline_horizon_seconds: int = 24 * 3600,
+    extra_yields: list[dict[str, object]] | None = None,
+    until: float | None = None,
 ) -> dict[str, object]:
-    """Fold the ledger into windows and write the dataset."""
+    """Fold the ledger into windows and write the dataset.
+
+    ``extra_yields`` are the backfilled stand-asides; they are folded
+    exactly as the ledger's own ``drift.yield`` events are, so the
+    censored gaps and the excused idles of the committed dataset are
+    the ones the detector would have seen had the world written the
+    events at the time.
+    """
     series = build_series(
-        path, bucket_seconds=bucket_seconds, baseline_horizon_seconds=baseline_horizon_seconds
+        path,
+        bucket_seconds=bucket_seconds,
+        baseline_horizon_seconds=baseline_horizon_seconds,
+        extra_yields=extra_yields,
+        until=until,
     )
     buckets = []
     for bucket in series.buckets:
@@ -258,6 +345,11 @@ def write_dataset(
                         "hosted_cents": entry.hosted_cents,
                     }
                     for agent, entry in bucket.agents.items()
+                },
+                "yields": {
+                    agent: entry.yields
+                    for agent, entry in bucket.agents.items()
+                    if entry.yields
                 },
                 "verdicts": bucket.verdicts,
                 "refused": bucket.refused,
@@ -282,6 +374,10 @@ def write_dataset(
         "hours": round(series.hours, 4),
         "reference_start": series.reference_start,
         "reference_end": series.reference_end,
+        "yield_points": len(extra_yields or []),
+        "yield_source": (
+            "ledger+backfill:bots.jsonl" if extra_yields else "ledger"
+        ),
     }
     document = {"meta": meta, "buckets": buckets}
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -295,13 +391,29 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--bots", default=os.path.expanduser(DEFAULT_BOTS))
     parser.add_argument("--out", default="docs/lab/drift-dataset")
     parser.add_argument("--bucket-seconds", type=int, default=300)
+    parser.add_argument(
+        "--until",
+        default=None,
+        help="cut the run at this ISO time, exclusive (the ledger is live; "
+        "a before/after must be cut from the same span of world)",
+    )
+    parser.add_argument(
+        "--yields-from-bots",
+        action="store_true",
+        help="fold the dataset with the world's stand-asides backfilled "
+        "from the clients' decision log (the historical ledger carries "
+        "no drift.yield events)",
+    )
     args = parser.parse_args(argv)
 
     ledger = Path(args.ledger)
     bots = Path(args.bots)
     out = Path(args.out)
 
-    labels = labels_from_bots(bots, args.bucket_seconds) + labels_from_incidents()
+    until = parse_at(args.until) if args.until else None
+    labels = labels_from_bots(bots, args.bucket_seconds, until=until) + (
+        labels_from_incidents() if until is None else _incidents_until(until)
+    )
     labels.sort(key=lambda label: label.at)
     out.mkdir(parents=True, exist_ok=True)
     (out / "labels.json").write_text(
@@ -324,10 +436,15 @@ def main(argv: list[str] | None = None) -> int:
         )
     )
 
+    extra_yields = yields_from_bots(bots) if args.yields_from_bots else []
+    if until is not None and extra_yields:
+        extra_yields = [y for y in extra_yields if float(y["at"]) < until]
     meta = write_dataset(
         ledger,
         out / "dataset.json",
         bucket_seconds=args.bucket_seconds,
+        extra_yields=extra_yields or None,
+        until=until,
     )
     counts: dict[str, int] = {}
     for label in labels:

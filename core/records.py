@@ -144,6 +144,14 @@ EVENT_TYPES: frozenset[str] = frozenset(
         # system
         "core.boot", "core.recovered", "projection.rebuilt", "integrity.failure",
         "call.refused",
+        # drift (the drift seat, core/drift: the world's own
+        # stand-asides — one event per admission decision, the covered
+        # bots in the payload — and the two seams the detector reads,
+        # a rule violation and a build that left its ratified scope.
+        # drift.yield is written by the world since build #3
+        # (docs/lab/exp-drift-pause.md); the two seams are wired and
+        # tested, and nothing writes them yet)
+        "drift.yield", "drift.rule_violation", "drift.build_drift",
     }
 )
 

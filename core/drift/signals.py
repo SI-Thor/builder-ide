@@ -116,6 +116,16 @@ class StallSignal(Signal):
     ``stall_lookback_buckets`` windows — the largest of the per-window
     p99 gaps, and, in a window where the agent did nothing, the length
     of its idle. A window where nothing happened *is* a long gap.
+
+    **A yield is not a stall.** The folding (``ledger.build_series``)
+    censors a gap that has a ``drift.yield`` point inside it — the
+    agent tried during that gap and the world said "not now" — and
+    excuses the idle of a window the agent spent standing aside. So a
+    busy box, and a drift pause, do not reach this signal as stalls:
+    what is left is the silence nobody explained. This is the fix for
+    the negative control of
+    ``docs/lab/exp-drift-detector.md`` §5, and the numbers are in
+    ``docs/lab/exp-drift-pause.md``.
     """
 
     name = "stall"

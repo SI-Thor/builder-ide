@@ -2217,3 +2217,166 @@ assume a quiet box" (round 8, item 4) is an ancestor of HEAD. Nothing to do.
 **What I decided next.** Wrote report to docs/research/nitrogen.md. Hands-on plan: download ng.pt to ~/models/nitrogen/, serve under thor-admit (4 GB lease), play Celeste from Windows client (needs ViGEmBus, HF token). Linux stand-in available if Windows box not ready.
 
 **Box state:** Thor idle, 122 GB unified memory, no leases held by this seat. Clone only, no GPU work.
+
+## 2026-11-01 22:18 — drift-pause #3, step 1: the ledger gap closed at both ends
+
+The brief's first half: the world writes no `drift.yield` event, so the
+stall signal cannot tell "could not act" from "chose not to act" (the
+negative control of exp-drift-detector §5). What was tried — the event
+added where the world refuses work (the reflex's admission seam,
+`agent-world/reflex/.../service.py::_answer`: one `drift.yield` per
+admission decision, the covered bots in the payload; a world-level
+drift pause and a per-bot soft pause go through the same door, read
+from the pause file `runtime/drift-pause.json`), and the **closed event
+set** (`core/records.py` §1.8) opened for the drift group — build #2
+claimed the `drift.rule_violation` and `drift.build_drift` seams were
+"wired", but the closed set would have rejected both; a schema change
+was owed. The detector folds yield points by agent and censors what a
+yield explains: a gap with a yield inside it is not stall evidence, and
+a window spent standing aside has no idle.
+
+What happened — 54 tests in tests/drift (46 + 8 new) in 0.42 s; the
+world-side checks (agent-world tests/test_drift_yield.py, 13) pass
+against this branch via `AW_BUILDER_IDE=~/lm-wt/drift-pause` — note the
+running reflex imports core from `~/src/builder-ide` (main), so the
+event goes live when this branch merges and the reflex restarts; the
+world test documents that door. Three night-suite tests fail in the
+core-api venv for a missing numpy — the same three fail on the clean
+build-#2 tree (`~/lm-wt/drift-detector`), so they are the venv's, not
+this change's. A measurement before building anything: of the 5-of-12
+alarmed designed-yield windows at the shipped thresholds, **all five
+coincide with labelled drift** (4 inside episodes, 1 the onset edge of
+the judge's first absence at 06:20Z) and **none was a stall alarm** —
+the earlier note's mechanism story ("a world that stops playing is
+exactly what the stall signal is for") is not what the shipped detector
+did; the correction goes in the lab note. The fix still matters: the
+leave-one-out folds and the two-sided gate alarmed on yields, and the
+resume-gap after a busy stretch is a stall alarm waiting to happen.
+
+Decided next — backfill the yields from bots.jsonl
+(`extract.py --yields-from-bots`), re-extract a second dataset, re-run
+the negative control and the holdout, and report before/after.
+
+## 2026-11-01 22:40 — drift-pause #3, step 2: the backfill, and the before/after
+
+What was tried — `extract.py --yields-from-bots --until
+2026-11-02T04:20:00Z` (the cut matters: the ledger is live and three
+hours longer than build #2's snapshot; the before/after is cut from the
+same 22.67 h span, and `--until` was added to `build_series` and
+`extract.py` for it). 2,217 yield points backfilled from bots.jsonl —
+the same records the `designed_yield` labels are cut from, so on this
+dataset the negative control measures the plumbing, not an independent
+discovery (the holdout's labels come from other instruments and are the
+independent check). The re-run of the "before" on the committed dataset
+with the new code reproduces build #2 byte for byte where it matters:
+same chosen thresholds, same holdout (6/6, 88 alarm windows, 28
+false-alarm windows), same 5-of-12 control.
+
+What happened, on the same thresholds (the sweep chose the same ones
+again: stall 10.0, success 0.2, errors 0.8, spend 0.5) —
+
+| | before | after |
+|---|---|---|
+| negative control (designed yield) | 5 of 12 | **3 of 12** |
+| … of which pure yield windows | 1 of 6 | 1 of 6 |
+| holdout episodes detected | 6/6 | **6/6** |
+| holdout alarm windows | 88 | 86 |
+| holdout false-alarm windows | 28 | **28** |
+| stall rate gate, leave-one-out fw | 12.1 | **10.4** |
+| alarms / hour | 1.63 | 1.63 (37) |
+
+Exactly two stall alarm windows moved: 19:40Z (the hang's first window
+— its gaps span the yields the box was full enough to write) to 19:45Z
+(the silence after the box went dark carries **no** yields — the reflex
+itself was hung — so it is correctly unexplained); and 00:50Z (Kite's
+193× gap, also yield-spanned; that episode stays detected through the
+errors signal, 21 of its 24 windows). The remaining pure-yield alarm is
+06:20Z — the errors signal's onset catch of the judge's first absence,
+one window ahead of its label: a correct alarm that happens to land in
+a yield window, not a yield-caused one. So the honest claim is narrower
+than the build-#2 note's: the stall signal no longer alarms on a wait
+the world chose, and what the control still counts against it is an
+alarm it should keep.
+
+Decided next — part 2 of the brief: the pause ladder wired to action
+(the pause file the world now reads + the thor-admit presence door),
+dry-run by default, tests for both.
+
+## 2026-11-01 23:05 — drift-pause #3, step 3: the pause ladder wired to action
+
+What was tried — `core/drift/pause.py` (the ladder with a hand on it)
+and `tools/drift/enforce.py` (the operator door). Two doors, neither
+kills: the **pause file** the world reads at its admission seam (soft
+holds one bot, tier/hard stand the world aside; every refusal becomes
+a `drift.yield`), and the **thor-admit presence file** (tier demotes
+the mapped label prefixes one step live→preparation→practice→study;
+hard also disables them; `thor-admit reload` re-reads it). Dry-run is
+the default: `apply()` logs every action prefixed `dry-run:` and
+writes nothing; `--enforce` writes both files atomically. Entries
+carry `until` (default 30 min) and lapse on their own; `--clear
+<actor> --enforce` resumes. The plan comes from the detector's
+**state**, not its fires — an alarm that holds is a pause that holds —
+and the levels are §3.5's rule restated for the state.
+
+What happened — 16 new tests (70 total in tests/drift, 0.42 s): the
+file's round-trip and expiry, the three levels, dry-run writing
+nothing (no file, no edit, no reload), enforce writing both doors
+(live→preparation; hard also disables), the prefix match refusing
+`agent-worldx`, the unmapped-actor and no-matching-entry cases saying
+so instead of pretending. A live dry-run at the hang window (19:45Z)
+names the tier pause and would write the file; an enforce pass on
+throwaway copies demoted a planted `agent-world.night` live→preparation
+and `--clear` undid the pause; the real presence file's sha256 was
+unchanged after all of it. The default label map (world=agent-world)
+matches no presence entry on this box — the world runs outside the
+lease system (exp-drift-detector §2) — so the thor-admit door reports
+"nothing to demote" today and opens with no code change the day the
+world's work registers under `thor-admit presence`. One thing the demo
+made plain: 12:00Z, chosen as a "quiet" window, is in sustained alarm
+(two stall gates latched) — enforcement acts on the state as it is,
+false alarms included, which is exactly why dry-run is the default and
+the TTL short.
+
+Decided next — the lab note (exp-drift-pause.md), the README rows
+already in, then the full suite and the closing commit.
+
+## 2026-11-01 23:35 — drift-pause #3 closed: the lab note, the suites, the state of both repos
+
+What was done — the lab note is `docs/lab/exp-drift-pause.md`: the
+mechanism (the event, the schema change, the censoring, the pause's two
+doors), the before/after on the same thresholds and the same span of
+world, the two corrections of the earlier note written as corrections
+(the §5 mechanism story; the "seams wired" claim that the closed set
+would have rejected), and what is not verified (the live world has not
+written a yield event yet — the running reflex predates the change and
+its runtime imports builder-ide from main, which gets the closed-set
+change only when this branch merges; the world-side behaviour is
+pinned by agent-world/tests/test_drift_yield.py, 13 checks).
+
+The suites — tests/drift: 70 passed, 0.4 s (core-api venv). The blast
+radius of the shared-set change (night, daytime, tiles, judge, recipe
+ledger, drift): 810 passed, 25 s in a uv venv (/tmp/dp-venv, hard-linked
+installs); the 2 failures in tests/night/test_night_v3_ledger_payloads.py
+fail identically on the untouched build-#2 tree with the same venv —
+the venv's, not the change's. The full monorepo suite needs
+seat-specific envs (mujoco, pxr, dash) and was not the runner here;
+that is the same posture as build #2.
+
+Committed on drift-pause: `119d5fa` (the ledger gap closed at both
+ends), `7f68b8a` (the backfill and the before/after), `bf100d7` (the
+pause wired to action), and this note's commit. On agent-world:
+`9862541` (the reflex's two doors + its test) — only my three files;
+the other seat's uncommitted bots/ work was left untouched and is
+still moving.
+
+What is left, and the risks — the yield events and the pause file go
+live when this branch merges to main **and** the reflex restarts (a
+human's call; nothing here restarts anything); until then the negative
+control's independent version is unmeasured (the backfill shares a
+source with the labels — plumbing, not discovery). The thor-admit door
+has never fired in anger (no presence entry matches the default map);
+a first live use should be a watched `--enforce` on one labelled entry.
+The hang's one-window-later onset is one event, an anecdote and not a
+latency distribution. /tmp/dp-venv was removed after the runs; no
+process was left running by this seat (checked with pgrep before each
+measurement; nothing of ours is running now).

@@ -31,6 +31,15 @@ from .ledger import (
     read_verdicts,
     rule_violation_events,
 )
+from .pause import (
+    PauseEntry,
+    PauseFile,
+    Plan,
+    apply,
+    clear,
+    demote,
+    plan_from_state,
+)
 from .signals import (
     BuildDriftSignal,
     ErrorSignal,
@@ -46,6 +55,9 @@ from .signals import (
 __all__ = [
     "SIGNALS",
     "Alarm",
+    "PauseEntry",
+    "PauseFile",
+    "Plan",
     "AgentBucket",
     "BuildDriftSignal",
     "Detection",
@@ -70,8 +82,12 @@ __all__ = [
     "WorldBucket",
     "WorldSeries",
     "build_series",
+    "apply",
     "build_signals",
+    "clear",
+    "demote",
     "parse_at",
+    "plan_from_state",
     "read_plays",
     "read_verdicts",
     "rule_violation_events",

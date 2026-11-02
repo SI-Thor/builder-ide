@@ -15,6 +15,17 @@ The world's ledger carries four event types
 | ``judge.verdict`` | the decision model's answer, or its refusal |
 | ``tile.authored`` | a skill entering the library |
 | ``tile.retired`` | a skill leaving the eligible set |
+| ``drift.yield`` | the world stood aside: who was told to wait, and why |
+
+``drift.yield`` is the event that separates "could not act" from
+"chose not to act". The world's admission rule refuses work when the
+box is full and the drift pause refuses it when the detector says
+hold; both are the world behaving correctly, and both write this
+event. A gap between two plays that has a yield inside it is **not
+stall evidence** — the agent demonstrably tried during it, and the
+world said "not now". The folding censors those gaps and excuses the
+idle of a window the agent spent standing aside; the stall signal
+needs no change of its own.
 
 Per-actor attribution is in the payload: ``context.bot`` for a play,
 ``judgments[].qid`` for a verdict. The ``actor`` column holds a JSON
@@ -26,6 +37,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from bisect import bisect_right
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -34,11 +46,13 @@ __all__ = [
     "AgentBucket",
     "WorldBucket",
     "WorldSeries",
+    "YIELD_TYPE",
     "build_series",
+    "parse_at",
     "read_plays",
     "read_verdicts",
+    "read_yields",
     "rule_violation_events",
-    "parse_at",
     "series_from_dataset",
 ]
 
@@ -53,6 +67,15 @@ RULE_VIOLATION_TYPE = "drift.rule_violation"
 #: ratified scope. Same story: the world's ledger has no branch and no
 #: constraint set, so nothing writes it yet.
 BUILD_DRIFT_TYPE = "drift.build_drift"
+
+#: The event the world writes when it stands aside: its admission rule
+#: (``may_act`` — the box is full) or a drift pause (§3.5). One event
+#: per admission decision, every bot it covers in ``payload.bots``.
+#: Written by ``agent-world/reflex/agent_world_reflex/ledger.py``
+#: since build #3; before that the ledger recorded "the agent did not
+#: play" and not "the agent declined to play because the box was
+#: busy", so the two were the same silence.
+YIELD_TYPE = "drift.yield"
 
 
 def parse_at(value: str) -> float:
@@ -85,7 +108,15 @@ class AgentBucket:
     gap_max: float | None = None
     #: Seconds from the agent's last play to the end of the window.
     #: ``None`` when the agent has never played. This is the stall.
+    #: ``None`` as well when the agent spent the window standing
+    #: aside (a yield inside it): an excused idle is not a stall, and
+    #: the folding is where the excuse is applied.
     idle_seconds: float | None = None
+    #: How many times the agent was told to wait in this window. The
+    #: censoring uses the yield *points*, not this count; the count is
+    #: carried so a reader of a folded dataset can see which windows
+    #: were excused and why.
+    yields: int = 0
     gpu_minutes: float = 0.0
     hosted_cents: float = 0.0
 
@@ -247,13 +278,64 @@ def rule_violation_events(path: Path | str) -> list[dict[str, object]]:
         connection.close()
 
 
+def read_yields(path: Path | str) -> list[dict[str, object]]:
+    """Every ``drift.yield`` point, one per bot it covers.
+
+    An event whose payload names four bots is four points: the stall
+    signal is per agent, so the attribution is per bot. The historical
+    ledger has none of these events (the world began writing them in
+    build #3); ``build_series`` accepts ``extra_yields`` so the
+    committed snapshot can be re-folded with the yields reconstructed
+    from the clients' own refusal records
+    (``tools/drift/extract.py --yields-from-bots``).
+    """
+    connection = _connect(path)
+    try:
+        rows = connection.execute(
+            "select at, payload from audit where type = ? order by seq",
+            (YIELD_TYPE,),
+        )
+        points: list[dict[str, object]] = []
+        for at, payload in rows:
+            data = json.loads(payload)
+            reason = data.get("reason")
+            for bot in data.get("bots") or ():
+                points.append(
+                    {"at": parse_at(at), "agent": str(bot), "reason": reason}
+                )
+        return points
+    finally:
+        connection.close()
+
+
+def _any_in(times: list[float], low: float, high: float) -> bool:
+    """Is any yield point inside ``(low, high]``?
+
+    ``(low, high]`` and not ``[low, high]``: a yield at the same
+    instant as the play that ended the gap explains the gap before it,
+    and a yield exactly at the window's start belongs to the window.
+    """
+    index = bisect_right(times, low)
+    return index < len(times) and times[index] <= high
+
+
 def build_series(
     path: Path | str,
     *,
     bucket_seconds: int = 300,
     baseline_horizon_seconds: int = 24 * 3600,
+    extra_yields: list[dict[str, object]] | None = None,
+    until: float | None = None,
 ) -> WorldSeries:
     """Fold the live ledger into buckets.
+
+    ``extra_yields`` are yield points the ledger itself does not carry
+    (the backfill from the clients' refusal records). They are folded
+    exactly as the ledger's own ``drift.yield`` events are.
+
+    ``until`` cuts the run at a wall-clock time (events strictly before
+    it): the ledger is live, and a before/after comparison must be cut
+    from the same span of world.
 
     The reference period is the first ``baseline_horizon_seconds`` of
     the run. The baselines are computed over it and **frozen**: a
@@ -262,6 +344,19 @@ def build_series(
     plays = read_plays(path)
     verdicts = read_verdicts(path)
     violations = rule_violation_events(path)
+    yield_points = read_yields(path) + list(extra_yields or [])
+    if until is not None:
+        plays = [p for p in plays if float(p["at"]) < until]
+        verdicts = [v for v in verdicts if float(v["at"]) < until]
+        violations = [v for v in violations if float(v["at"]) < until]
+        yield_points = [y for y in yield_points if float(y["at"]) < until]
+    yields_by_agent: dict[str, list[float]] = {}
+    for point in yield_points:
+        agent = str(point.get("agent") or "")
+        if agent:
+            yields_by_agent.setdefault(agent, []).append(float(point["at"]))
+    for times in yields_by_agent.values():
+        times.sort()
 
     if not plays and not verdicts:
         return WorldSeries(
@@ -302,12 +397,18 @@ def build_series(
         for bucket in ordered_buckets:
             gaps: list[float] = []
             plays_in = 0
+            agent_yields = yields_by_agent.get(agent, [])
             while index < len(times_only) and times_only[index] < bucket.end:
                 at = times_only[index]
                 if at < bucket.start:
                     break
                 plays_in += 1
-                if previous is not None:
+                if previous is not None and not _any_in(
+                    agent_yields, previous, at
+                ):
+                    # A gap with a yield inside it is the agent trying
+                    # and the world saying "not now": not stall
+                    # evidence, so it is not in the gaps at all.
                     gaps.append(at - previous)
                 previous = at
                 index += 1
@@ -357,9 +458,33 @@ def build_series(
             if entry is None:
                 entry = AgentBucket(agent=agent)
                 bucket.agents[agent] = entry
-            entry.idle_seconds = (
-                bucket.end - last_before if last_before is not None else None
-            )
+            if _any_in(yields_by_agent.get(agent, []), bucket.start, bucket.end):
+                # The agent spent this window standing aside: a yield
+                # inside the window is the agent trying, so the idle is
+                # excused rather than counted.
+                entry.idle_seconds = None
+            else:
+                entry.idle_seconds = (
+                    bucket.end - last_before if last_before is not None else None
+                )
+
+    # -- yields ----------------------------------------------------------------
+    # The count is carried for the reader; the censoring above already
+    # used the points. An agent that only ever yielded still gets its
+    # (empty) buckets, so the series knows it exists — it has no
+    # baseline and no signal, which is the honest answer for an agent
+    # that has never played.
+    for agent, times in yields_by_agent.items():
+        for at in times:
+            start = int(at // bucket_seconds) * bucket_seconds
+            bucket = buckets.get(start)
+            if bucket is None:
+                continue
+            entry = bucket.agents.get(agent)
+            if entry is None:
+                entry = AgentBucket(agent=agent)
+                bucket.agents[agent] = entry
+            entry.yields += 1
 
     # -- verdicts -------------------------------------------------------------
     for verdict in verdicts:
@@ -393,7 +518,7 @@ def build_series(
 
     return WorldSeries(
         buckets=ordered_buckets,
-        agents=sorted(by_agent),
+        agents=sorted(set(by_agent) | set(yields_by_agent)),
         bucket_seconds=bucket_seconds,
         reference_start=first_bucket,
         reference_end=first_bucket + baseline_horizon_seconds,
@@ -433,6 +558,7 @@ def series_from_dataset(document: dict) -> WorldSeries:
                 gap_p99=entry.get("gap_p99"),
                 gap_max=entry.get("gap_max"),
                 idle_seconds=entry.get("idle_seconds"),
+                yields=int(entry.get("yields") or 0),
                 gpu_minutes=float(entry.get("gpu_minutes") or 0.0),
                 hosted_cents=float(entry.get("hosted_cents") or 0.0),
             )

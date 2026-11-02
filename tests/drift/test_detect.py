@@ -100,3 +100,27 @@ def test_the_hard_signal_is_never_a_rate(steady_ledger: Path) -> None:
     config = _config(violation=GateSpec(enter=1_000_000.0, exit=999_999.0))
     detection = DriftDetector(config, mode=RATE).run(series)
     assert not [a for a in detection.alarms if a.signal == "violation"]
+
+
+# -- the yields: a wait the world chose raises no pause -----------------------
+
+
+def test_the_detector_does_not_pause_a_world_that_is_politely_waiting(
+    yielding_ledger: Path,
+) -> None:
+    """§3.5's ladder must not demote work that stood aside by design.
+
+    The busy-box wait (yields every minute) must raise no stall alarm
+    in any window it covers; the unexplained silence after it must.
+    """
+    series = build_series(yielding_ledger, bucket_seconds=300)
+    detection = DriftDetector(_config()).run(series)
+    stall_windows = {
+        at
+        for at, pairs in detection.alarm_windows.items()
+        if any(signal == "stall" for signal, _ in pairs)
+    }
+    busy = {bucket.start for bucket in series.buckets[0:4]}
+    quiet = {bucket.start for bucket in series.buckets[4:6]}
+    assert not stall_windows & busy, sorted(stall_windows & busy)
+    assert stall_windows & quiet, "the unexplained silence still alarms"

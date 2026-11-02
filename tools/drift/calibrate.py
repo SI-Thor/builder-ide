@@ -647,11 +647,24 @@ def main(argv: list[str] | None = None) -> int:
         )
     report["by_class_rate_gate"] = by_class
     control = per_class.get("designed_yield", set())
+    # The control's honest split: a yield window that falls inside a
+    # labelled drift episode is not a false alarm when it alarms — the
+    # episode is why. Only the **pure** windows (a yield and nothing
+    # else wrong) count against the detector; on the committed
+    # dataset six of the twelve are pure and six sit inside episodes.
+    pure = control - positives_all
+    in_positive = control & positives_all
     report["negative_control"] = {
         "designed_yield_windows": len(control),
         "alarmed_designed_yield_windows": len(control & alarm_indices),
         "designed_yield_alarm_rate": (
             round(len(control & alarm_indices) / len(control), 4) if control else 0.0
+        ),
+        "pure_yield_windows": len(pure),
+        "alarmed_pure_yield_windows": len(pure & alarm_indices),
+        "yield_windows_inside_positive_episodes": len(in_positive),
+        "alarmed_yield_windows_inside_positive_episodes": len(
+            in_positive & alarm_indices
         ),
     }
 
@@ -723,7 +736,11 @@ def main(argv: list[str] | None = None) -> int:
     print(
         f"negative control: {control['alarmed_designed_yield_windows']} of "
         f"{control['designed_yield_windows']} designed-yield windows alarmed "
-        f"({control['designed_yield_alarm_rate']:.3f})"
+        f"({control['designed_yield_alarm_rate']:.3f}); "
+        f"{control['alarmed_pure_yield_windows']} of the "
+        f"{control['pure_yield_windows']} pure ones (the other "
+        f"{control['yield_windows_inside_positive_episodes']} sit inside "
+        f"drift episodes, where an alarm is correct)"
     )
     print()
     print(f"wrote {out}")
