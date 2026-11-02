@@ -1,8 +1,8 @@
-# night-v5-scripts
+# night-v6-scripts
 
-The runner for **night-v5**, the third integrated night
-(`docs/lab/night-v5.md`), the script that builds its library, and the
-scripts that write the morning's letter.
+The runner for **night-v6** (`docs/lab/night-v6.md`), the exporter that
+made the live view's source land inside a night, the ghost's second look,
+and the scripts that write the morning's letter.
 
 ## What is here
 
@@ -10,103 +10,69 @@ scripts that write the morning's letter.
 |---|---|
 | `run_night.py` | the night, end to end: one ledger, one runner, every layer real |
 | `launch_night.sh` | launches the night and the finisher beside it, both detached (one ssh, no open connection) |
-| `build_library.py` | the library's approved set: ten measured crates, one kind (built **once**, before the night) |
+| `build_library.py` | the library's approved set: ten measured crates, one kind (built **once**, before night-v5; reused) |
 | `approved-crate-library.json` | what `build_library.py` wrote; the runner reads it |
-| `measure_llama_gpu.sh` | one llama-server's GPU at rest, under the night's flags and smaller ones (inherited from the stopped seat; superseded by the probe below) |
-| `measure_llama_gpu_under_load.py` | the same servers under the night's own request shapes — the numbers the night's flags and lease peaks stand on |
+| `measure_llama_gpu_under_load.py` | the decision servers under the night's own request shapes — the numbers the 6 GB leases stand on |
 | `courtyard_requests.json` | the three props the owner asked for |
-| `write_letter.py` | reads `morning.json` (or the ledger), writes `letter.md` (at most 150 words) |
-| `facts_from_ledger.py` | transcribes the ledger into `letter-facts.json` |
-| `measure.py` | the night's own numbers and the diff against night-v4's run F |
+| `export_scene.py` | the live view's source, decimated first: placeholder materials, subdivision capped, collapse-decimation over 5k base polygons — **75.2 s** on night-v5's own scene.blend where the old export ran 115-240 min |
+| `render_prop_views.py` | a prop's GLB rendered from three orthographic views (Cycles CPU) — what the ghost's second look is shown |
+| `second_look.py` | the ghost's second look: the renders to one DeepInfra VLM call (fixed question, temperature 0); both verdicts on one `night.ghost_second_look` row |
+| `decision_counts.py` | the one counter of the night's decisions from the ledger — what the letter, the facts file and the measurements all speak |
+| `write_letter.py` | reads `morning.json` **and the ledger beside it**, writes `letter.md` (at most 150 words); the letter's decision numbers equal the ledger's by construction |
+| `facts_from_ledger.py` | transcribes the ledger into `letter-facts.json` (the same split) |
+| `measure.py` | the night's own numbers and the diff against night-v5 |
 | `finish_night.sh` | waits for the night to end, then measures it and writes its letter |
-| `results/` | the probe's raw outputs (server logs and stdout) |
 
-`run_night.py` is the night-v4 runner with the changes the brief asked
-for, and nothing else. The diff against
-`docs/lab/night-v4-scripts/run_night.py` is the change:
+`run_night.py` is the night-v5 runner with the three changes the brief
+asked for, and nothing else:
 
-1. **The GPU-pool bar** — before every mesh prompt the night waits until
-   the box's used GPU (the per-process sum, the way the daemon counts it)
-   leaves room below the measured wall: 61.5 GiB is where run F's
-   allocations stalled, 13.5 GiB is the bake's measured need, so the bar
-   is 48 GiB used. Bounded at 45 minutes; every real wait is a
-   `night.gpu_pool_bar` row (tegrastats' `lfb` is recorded in the row as
-   a signal — on this box it sits near zero whether or not there is
-   room, so it does not gate).
-2. **The wedge restart** — a `ComfyError` that says the server refused
-   the connection (121 times over 120 s is the diagnosis run F left) is a
-   wedged server, not a busy one: stop ComfyUI, keep its log beside the
-   run, start it again, re-run the one prompt, once — at most two
-   restarts a night, each a `night.comfy_restart` row.
-3. **Honest peaks** — the two decision servers start under 6 GB leases
-   (measured: 3.09/2.39 GiB GPU + <1.1 GB RSS), so the 40 GB heavy lease
-   is the one lease above 30 GB and it is held alone; the servers run
-   `--ctx-size 4096 -ub 1024` (same class of GPU, 1.8x faster on the
-   delegate's picture questions).
-4. **The library** — ten approved crates of one kind go into the prior
-   as a labeled group, so the ghost gate (0.05) can fire on that kind
-   (`night.library` row).
+1. **The letter speaks the ledger** (the task-1 fix): the morning folds the ledger's own decision count
+   (`decisions.ledger`, from `decision_counts.py` — one `judge.verdict`
+   row per attempt, the routed cell's 240 probes and refusals included),
+   the letter writer counts the ledger beside the morning when the block
+   is absent, and `tests/night/test_letter_ledger.py` pins the letter's
+   numbers to the ledger's.
+2. **The ghost's second look, a parameter** — `--ghost-policy
+   {second_look,drop,keep}`, default `second_look`: the prop's mesh is
+   rendered (`render_prop_views.py`) and one DeepInfra VLM call answers
+   the fixed question; the prop drops only if the cloud agrees. A second
+   look that cannot answer is not agreement. Both verdicts ride one
+   `night.ghost_second_look` row (`tests/night/test_ghost_policy.py`).
+3. **The export that lands** — the committed `export_scene.py` with the
+   measured flags (placeholder materials, subsurf 0, decimate-over 5k),
+   the bound down from 4 h to 3600 s. The py-spy stack dump that found
+   the real cost (the material node-tree search, not the triangles) is
+   the story `docs/lab/night-v6.md` tells.
 
-Two bounds in the runner are the box's own timings, not guesses:
+Everything night-v5 built is unchanged inside it: the GPU-pool bar
+(48 GiB used, `lfb` recorded not gating), the wedge restart, the honest
+peaks (6G/6G/40G→8G — the 40 GB heavy lease the only one above 30 GB,
+held alone, phased down when the heavy phase ends), the library's ten
+crates in the prior, the delegate's picture path.
 
-- **the GPU-pool bar** waits at most 45 minutes per prompt
-  (`GPU_POOL_WAIT_S`), and
-- **the live view's scene export** is bounded at 4 hours
-  (`SCENE_EXPORT_TIMEOUT_S`). The export is Blender's glTF exporter walking
-  this scene's 11,254,482 subdivided triangles in Python on the CPU: the same
-  scene measured 115 min (2026-10-31, `world-stream-scratch/export2`) and
-  136 min (`export1`). The runner's first bound was 3600 s — shorter than the
-  work — so the seam could not succeed on any run; see the commit
-  `bec8973`.
+## Running the night
 
-## How to run it
+    bash docs/lab/night-v6-scripts/launch_night.sh            # artifacts/night-v6
 
-The library first (once, about 25-40 minutes):
+One command; it detaches the night and the finisher. The finisher writes
+`measurements.txt/json` and `letter.md` when the night ends. Nothing else
+should hold a >30 GB lease while the heavy phase runs.
 
-```bash
-cd ~/lm-wt/night-v5
-PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
-    docs/lab/night-v5-scripts/build_library.py
-```
+## The probes worth re-running
 
-Then the night (about 3.5-4 hours on a quiet box — wave 1 is ~80 minutes and
-the live view's scene export is ~2 hours of it; `--dry-run` runs the whole
-wiring on the fake engine in about a second):
+    # the ghost's second look, on night-v5's own ghost
+    PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
+        docs/lab/night-v6-scripts/second_look.py \
+        --glb ~/lm-wt/trellis/out/genbatch/lantern_s1205_00008_.glb \
+        --prompt "a brass lantern" --outdir /tmp/ghost-views
 
-```bash
-cd ~/lm-wt/night-v5
-PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
-    docs/lab/night-v5-scripts/run_night.py --out artifacts/night-v5
-```
+    # the export, from night-v5's own saved scene
+    ~/lm-wt/v2-thor/.venv/bin/python docs/lab/night-v6-scripts/export_scene.py \
+        --from-blend ~/lm-wt/night-v5/artifacts/night-v5/worldstream/export/scene.blend \
+        --max-subsurf 0 --decimate-over 5000 --materials placeholder \
+        --outdir /tmp/export-check
 
-Then the letter and the measurements:
-
-```bash
-PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
-    docs/lab/night-v5-scripts/write_letter.py --out artifacts/night-v5
-```
-
-## What it needs
-
-- **The Thor.** The v2 render, ComfyUI, TRELLIS.2 and the two decision
-  servers all run here. Nothing reaches the network except the Jev rung
-  and the mediator.
-- **The models**: `~/models/d1-3B/d1-3B-Q8_0.gguf` and
-  `~/models/d1-2B/d1-2B-Q8_0.gguf` with `mmproj-d1-2B-Q8_0.gguf`.
-- **A lease.** The night takes its own: a 6 GB lease for each decision
-  server's start and one 40 GB lease for the whole heavy phase, phased
-  down to 8 GB when the heavy phase ends. The flock is the fallback only.
-- **`XLA_PYTHON_CLIENT_PREALLOCATE=false`** in the environment of
-  anything that starts a framework: on this box the GPU memory is system
-  memory.
-
-## What it writes
-
-Into `--out` (the same set as night-v4, plus the wedge logs if the
-restart ever fires): `morning.json`, `report.*`, `morning.txt`,
-`what-happened.txt`, `decoy-cell.json`, `letter.md`, `ledger.db`,
-`run.log`, `world/`, `worldstream/`, `comfy-wedge-*.log`.
-
-`artifacts/` is not in git. The lab record (`docs/lab/night-v5.md`)
-carries the numbers, and this directory carries the scripts that
-produced them.
+    # the decision count, from any night's ledger
+    PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
+        docs/lab/night-v6-scripts/decision_counts.py \
+        --ledger artifacts/night-v6/ledger.db
