@@ -37,7 +37,8 @@ $GC job new \
 say "the seats bid, each from its own track record"
 $GC bid --job J001 --sub zcode
 $GC bid --job J001 --sub mcode
-$GC bid --job J001 --sub zcode --crew-min 150 --submit   # a seat bids by hand
+$GC bid --job J001 --sub zcode --submit                  # zcode bids from its record
+$GC bid --job J001 --sub mcode --crew-min 160 --submit   # mcode bids by hand
 
 say "the general contractor awards the job"
 $GC award --job J001 --auto
@@ -46,14 +47,14 @@ say "the subcontractor reports its burn"
 $GC checkpoint --job J001 --crew-used-min 60 --note "underlay down"
 
 say "the burn passes 80% without the goal line: stop and report"
-$GC checkpoint --job J001 --crew-used-min 110 --note "seams cut, not trimmed"
+$GC checkpoint --job J001 --crew-used-min 121 --note "seams cut, not trimmed"
 
 say "the general contractor re-scopes the job"
 $GC change-order --job J001 --reason "the lobby had to be cleared first" --add-crew-min 60 --add-job-min 240
 
 say "the subcontractor finishes and closes"
-$GC checkpoint --job J001 --crew-used-min 150
-$GC close --job J001 --crew-min 150 --accepted --goal-line "cargo test --test carpet exits 0"
+$GC checkpoint --job J001 --crew-used-min 165
+$GC close --job J001 --crew-min 165 --accepted --goal-line "cargo test --test carpet exits 0"
 
 say "the contract, as the seat would have read it"
 $GC brief --job J001

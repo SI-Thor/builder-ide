@@ -42,7 +42,7 @@ pub fn brief_block(state: &State, job_id: &str) -> Result<String, String> {
     ));
     out.push_str(&format!(
         "- **Crew-time ceiling (budget):** {}.\n",
-        fmt_crew(job.budget_min)
+        fmt_crew(job.effective_budget_min())
     ));
     out.push_str(&format!(
         "- **The general contractor's estimate for this job:** {}.\n",

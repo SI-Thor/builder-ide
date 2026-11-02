@@ -170,7 +170,11 @@ pub fn import(ledger_path: &Path, file: &Path) -> Result<SeedSummary, String> {
         );
         job_body.set("class", Json::s(class.clone()));
         job_body.set("acceptance", acceptance);
-        job_body.set("deadline_min", Json::n(allowance));
+        // No job-time deadline was recorded for a historical lane, so there
+        // is none to be late against: the seat's lateness is unknown, not
+        // zero. The crew-time allowance (the plan window) is the ceiling.
+        job_body.set("deadline_min", Json::n(0.0));
+        job_body.set("deadline_known", Json::b(false));
         job_body.set("estimate_min", Json::n(allowance));
         job_body.set("budget_min", Json::n(allowance));
         job_body.set(
@@ -274,7 +278,7 @@ pub fn import(ledger_path: &Path, file: &Path) -> Result<SeedSummary, String> {
                 threshold: None,
                 note: String::new(),
             },
-            deadline_min: allowance,
+            deadline_min: 0.0,
             estimate_min: allowance,
             budget_min: allowance,
             penalty_per_day_min: lane.f64_at("penalty_per_day_min").unwrap_or(30.0),
@@ -332,6 +336,9 @@ pub fn import(ledger_path: &Path, file: &Path) -> Result<SeedSummary, String> {
             "method",
             Json::s(lane.str_at("crew_time_method").unwrap_or("wall").to_string()),
         );
+        if let Some(note) = lane.str_at("crew_time_note") {
+            close_body.set("method_note", Json::s(note.to_string()));
+        }
         if let Some(t) = lane.u64_at("tokens") {
             close_body.set("tokens", Json::n(t as f64));
         }

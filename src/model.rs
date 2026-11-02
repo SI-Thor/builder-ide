@@ -253,6 +253,12 @@ impl Job {
         base + self.change_orders.iter().map(|c| c.add_crew_min).sum::<f64>()
     }
 
+    /// The crew-time ceiling in force: the budget plus every change order.
+    /// A change order extends the job, so the allowance moves with it.
+    pub fn effective_budget_min(&self) -> f64 {
+        self.budget_min + self.change_orders.iter().map(|c| c.add_crew_min).sum::<f64>()
+    }
+
     /// The job-time allowance in force.
     pub fn effective_deadline_min(&self) -> f64 {
         self.deadline_min + self.change_orders.iter().map(|c| c.add_job_min).sum::<f64>()

@@ -203,6 +203,9 @@ pub struct Reputation {
     pub sub: String,
     pub class: String,
     pub n: usize,
+    /// How many of those jobs had a recorded deadline. Lateness can only be
+    /// known where there was one.
+    pub n_deadline: usize,
     /// Fraction of finished jobs that were not late.
     pub on_time_rate: f64,
     /// Fraction of finished jobs that crossed their goal line.
@@ -220,6 +223,7 @@ pub struct Reputation {
 /// Compute a seat's standing on a class from the closed jobs it ran.
 pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
     let mut n = 0usize;
+    let mut n_deadline = 0usize;
     let mut on_time = 0usize;
     let mut goal_line = 0usize;
     let mut in_budget = 0usize;
@@ -241,8 +245,13 @@ pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
             None => continue,
         };
         n += 1;
-        if close.late_days <= 0.0 {
-            on_time += 1;
+        // A job with no recorded deadline has no lateness to measure: the
+        // seat is neither late nor on time, it is unmeasured.
+        if job.effective_deadline_min() > 0.0 {
+            n_deadline += 1;
+            if close.late_days <= 0.0 {
+                on_time += 1;
+            }
         }
         if close.accepted {
             goal_line += 1;
@@ -260,7 +269,11 @@ pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
         (0.0, 0.0, 0.0)
     } else {
         (
-            on_time as f64 / n as f64,
+            if n_deadline == 0 {
+                0.0
+            } else {
+                on_time as f64 / n_deadline as f64
+            },
             goal_line as f64 / n as f64,
             if with_promise == 0 {
                 0.0
@@ -269,16 +282,26 @@ pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
             },
         )
     };
-    let score = if n == 0 {
+    // A component that could not be measured is dropped from the score and
+    // its weight is taken off the denominator: a seat is not punished for a
+    // deadline nobody recorded, and not credited for a promise it never
+    // made.
+    let w_ontime = if n_deadline > 0 { 0.4 } else { 0.0 };
+    let w_goal = 0.4;
+    let w_budget = if with_promise > 0 { 0.2 } else { 0.0 };
+    let weight = w_ontime + w_goal + w_budget;
+    let score = if n == 0 || weight == 0.0 {
         0.0
     } else {
-        100.0 * (0.4 * on_time_rate + 0.4 * goal_line_rate + 0.2 * budget_hit_rate)
+        100.0 * (w_ontime * on_time_rate + w_goal * goal_line_rate + w_budget * budget_hit_rate)
+            / weight
     };
 
     Reputation {
         sub: sub.to_string(),
         class: class.to_string(),
         n,
+        n_deadline,
         on_time_rate,
         goal_line_rate,
         budget_hit_rate,
@@ -292,7 +315,9 @@ pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
 /// With no history the prior is 0.5: unknown is not good.
 pub fn on_time_probability(state: &State, sub: &str, class: &str) -> f64 {
     let rep = reputation(state, sub, class);
-    if rep.n == 0 {
+    if rep.n == 0 || rep.n_deadline == 0 {
+        // Unknown is not good: with no deadline to be late against, the
+        // prior is a coin toss.
         0.5
     } else {
         rep.on_time_rate

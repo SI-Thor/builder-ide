@@ -545,9 +545,12 @@ def build_lanes():
             last_run_min = (out["mtime"] - out["birth"]).total_seconds() / 60.0
         crew_min = last_run_min if last_run_min is not None else wall_min
         if allowance is None:
-            method = "wall clock of the last run (a pi seat reports tokens, not minutes)"
+            method = "wall"
+            method_note = ("wall clock of the last run; a pi seat reports tokens, "
+                           "not minutes, so no allowance and no promise")
         else:
-            method = "wall clock of the last run: launch to exit"
+            method = "wall"
+            method_note = "wall clock of the last run: launch to exit"
 
         evidence = []
         if info["side"] == "proart":
@@ -575,8 +578,10 @@ def build_lanes():
             "actual_job_min": round(crew_min, 1),
             "lane_span_min": round(wall_min, 1),
             "crew_time_method": method,
+            "crew_time_note": method_note,
             "tokens": None,
             "late_days": 0,
+            "deadline_known": False,
             "relaunches": relaunches,
             "quota_stops": quota_stops,
             "exit_code": exit_code if exit_code is not None else -1,

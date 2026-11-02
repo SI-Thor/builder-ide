@@ -143,12 +143,17 @@ pub fn text_report(state: &State, filter: &ReportFilter) -> String {
         } else {
             "ok"
         };
+        let on_time = if rep.n_deadline == 0 {
+            "n/a".to_string()
+        } else {
+            format!("{:.0}%", rep.on_time_rate * 100.0)
+        };
         out.push_str(&format!(
-            "{:<14} {:<22} {:>3} {:>6.0}% {:>8.0}% {:>8.0}% {:>6.0} {:>10} {:>9}  {}\n",
+            "{:<14} {:<22} {:>3} {:>6} {:>8.0}% {:>8.0}% {:>6.0} {:>10} {:>9}  {}\n",
             sub,
             class,
             rep.n,
-            rep.on_time_rate * 100.0,
+            on_time,
             rep.goal_line_rate * 100.0,
             rep.budget_hit_rate * 100.0,
             rep.score,
@@ -327,6 +332,10 @@ pub fn text_report(state: &State, filter: &ReportFilter) -> String {
             }
         }
     }
+    out.push_str(
+        "\nON TIME means the job finished inside its recorded deadline. Where the history\n\
+         recorded no deadline, lateness is unknown and the column reads n/a.\n",
+    );
     out.push_str("\nHOW CREW-TIME WAS MEASURED\n");
     out.push_str(&format!(
         "  wall-clock {}   token-counted {}   estimated {}\n",
