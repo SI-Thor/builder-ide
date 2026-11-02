@@ -4057,3 +4057,42 @@ measurement run had to be killed by hand at exactly that point).
 measured flags; the bound is down from 4 h to **3600 s** (~15× the worst
 measurement — the 3600 s lesson was a bound shorter than the work; the
 work is now 75 s). 20 tests pass (letter, ghost policy, ledger).
+
+
+## 2026-11-02 08:35 — the first launch died on the second wedge; the budget the design states is now the budget the loop honors
+
+**What happened.** The night launched 08:08:49 (servers up 08:11,
+routed cell 0.5208 reproduced, library + prior loaded, gate live). At
+08:20:18 ComfyUI died mid-SDXL-load on `img:crate` (the kept log
+`comfy-wedge-082018.log` ends inside "Model Initializing") — the poll
+rode 121 refusals and the runner **restarted it: stopped, log kept, back
+up in 38 s, one `night.comfy_restart` row**. The re-run wedged again at
+~08:22 on the same load; the second `ComfyError` escaped and the night
+died at 08:23:38 (15 min in, no morning). The finisher measured the dead
+ledger and said plainly: no morning.json.
+
+**Why the second wedge escaped.** `_run_prop`'s retry loop was
+`for attempt in (1, 2)` — one re-run, one restart — while the design and
+`MAX_COMFY_RESTARTS` say **two** restarts a night. The first wedge of
+the night consumed the whole loop. Not a new failure mode: night-v5's §9
+said the workaround "has never fired in a night"; tonight it fired
+twice, and the second firing found the loop's budget one short of the
+design's.
+
+**What changed.** The loop is now `range(1, MAX_COMFY_RESTARTS + 2)` (a
+third wedge still kills the night, as the design says), and a 60 s
+quiet (`COMFY_WEDGE_BACKOFF_S`, named on the restart row) sits between
+the restart and the re-run — the restarted server died on the *same*
+SDXL load within two minutes, and whatever crowded the box gets a minute
+to pass. 12 tests still pass.
+
+**What was ruled out.** RAM was not it (MemAvailable 50.4 GB before,
+85.5 after; no OOM in any log). The GPU-pool bar recorded 0 waits — it
+gates mesh prompts, and this was the image stage's SDXL load. The wedge
+mechanism stays what night-v4's §9 recorded: unexplained, the log's last
+write mid-model-load. The dead run is kept as
+`artifacts/night-v6-wedged-0823` (its ledger holds the first
+`night.comfy_restart` ever rowed in anger, and the wedge sequence).
+
+**Next.** Relaunch the one command. If ComfyUI wedges three times on the
+same load, that is the box speaking, and the night will die saying so.

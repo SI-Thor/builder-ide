@@ -1249,6 +1249,12 @@ class CompositeExecutor:
     #: The restart bound. Two wedges survived is evidence the bar works;
     #: a third is a different problem and the night says so by dying.
     MAX_COMFY_RESTARTS = 2
+    #: The quiet between a restart and its re-run. The wedged night of
+    #: 2026-11-02 lost ComfyUI at 08:20, restarted it, and lost it again
+    #: on the same SDXL load at 08:22 — whatever crowded the box gets a
+    #: minute to pass before the same prompt is asked again. The wait is
+    #: named on the restart row.
+    COMFY_WEDGE_BACKOFF_S = 60.0
 
     def _is_prop(self, task_id: str) -> bool:
         return task_id.startswith(("img:", "prop:"))
@@ -1347,17 +1353,22 @@ class CompositeExecutor:
                     type="night.gpu_pool_bar", actor=CORE_ACTOR,
                     subject={"entity_kind": "night", "entity_id": NIGHT_ID},
                     payload=bar_row)
-        for attempt in (1, 2):
+        # One attempt per restart of the budget: the loop the wedged
+        # night of 2026-11-02 died under allowed a single re-run while
+        # the design (and MAX_COMFY_RESTARTS) says two — the second wedge
+        # of the night escaped it and killed the run at 08:23.
+        for attempt in range(1, self.MAX_COMFY_RESTARTS + 2):
             try:
                 return self.props.run(task, variant)
             except ComfyError as exc:
                 wedged = "refused the connection" in str(exc)
-                if (attempt == 2 or not wedged
+                if (attempt > self.MAX_COMFY_RESTARTS or not wedged
                         or self.restarts >= self.MAX_COMFY_RESTARTS
                         or not self.comfy.get("owned")):
                     raise
                 self.restarts += 1
                 row = self._restart_comfy(str(exc), task.id)
+                row["backoff_s"] = self.COMFY_WEDGE_BACKOFF_S
                 if self.ledger is not None:
                     self.ledger.append(
                         type="night.comfy_restart", actor=CORE_ACTOR,
@@ -1366,6 +1377,8 @@ class CompositeExecutor:
                         payload=row)
                 if not row.get("restarted"):
                     raise
+                # a minute of quiet before the same prompt is asked again
+                time.sleep(self.COMFY_WEDGE_BACKOFF_S)
                 # the box that wedged the server may still be crowded: the
                 # bar runs again before the prompt is asked again
                 wait_for_gpu_pool(
