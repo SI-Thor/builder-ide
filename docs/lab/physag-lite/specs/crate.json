@@ -1,0 +1,116 @@
+{
+  "prop": "crate",
+  "kind": "crate",
+  "image_prompt": "a weathered wooden shipping crate with iron banding, one plank lid on top, studio product photograph, neutral grey background, soft even lighting, sharp detail",
+  "parts": [
+    {
+      "name": "body",
+      "role": "base",
+      "cut": {
+        "kind": "rest",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": null,
+      "density_kg_m3": 600.0
+    },
+    {
+      "name": "lid",
+      "role": "moving",
+      "cut": {
+        "kind": "plane",
+        "axis": "z",
+        "at": 0.8,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": {
+        "min": [
+          0.0,
+          0.0,
+          0.8
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "density_kg_m3": 600.0
+    }
+  ],
+  "joints": [
+    {
+      "name": "lid_hinge",
+      "type": "hinge",
+      "parent": "body",
+      "child": "lid",
+      "axis": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "anchor": [
+        0.5,
+        0.0,
+        0.8
+      ],
+      "low": 0.0,
+      "high": 1.5707963267948966,
+      "damping": 1.5,
+      "armature": 0.02
+    }
+  ],
+  "action": {
+    "kind": "joint",
+    "joint": "lid_hinge",
+    "target": 1.5707963267948966,
+    "axis": null,
+    "duration_s": 6.0,
+    "tolerance_rel": 0.02,
+    "dwell_steps": 40,
+    "drive": null
+  },
+  "priors": {
+    "mass_kg": 12.0,
+    "friction": 0.6,
+    "actuator_force_n": 90.0,
+    "actuator_torque_nm": 18.0,
+    "base_static": false,
+    "size_m": 0.4
+  },
+  "basis": {
+    "mass_kg": "estimated",
+    "friction": "estimated",
+    "actuator_force_n": "estimated",
+    "actuator_torque_nm": "estimated",
+    "base_static": "estimated",
+    "size_m": "estimated"
+  },
+  "planner": {
+    "model": "MiniMax-M3.1-Flash",
+    "mode": "cloud-session",
+    "authored_by": "the physag-lite seat's own session; the inference ran on the provider's servers, not on the Thor",
+    "note": "the configured provider credential store is not readable from this session, so the plans were authored here and committed as data rather than fetched through a scripted API call"
+  }
+}

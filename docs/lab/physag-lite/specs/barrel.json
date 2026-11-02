@@ -1,0 +1,116 @@
+{
+  "prop": "barrel",
+  "kind": "barrel",
+  "image_prompt": "an oak barrel with iron hoops and a removable wooden head on top, studio product photograph, neutral grey background, soft even lighting, sharp detail",
+  "parts": [
+    {
+      "name": "body",
+      "role": "base",
+      "cut": {
+        "kind": "rest",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": null,
+      "density_kg_m3": 750.0
+    },
+    {
+      "name": "lid",
+      "role": "moving",
+      "cut": {
+        "kind": "plane",
+        "axis": "z",
+        "at": 0.86,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": {
+        "min": [
+          0.0,
+          0.0,
+          0.86
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "density_kg_m3": 750.0
+    }
+  ],
+  "joints": [
+    {
+      "name": "lid_lift",
+      "type": "slide",
+      "parent": "body",
+      "child": "lid",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "anchor": [
+        0.5,
+        0.5,
+        0.86
+      ],
+      "low": 0.0,
+      "high": 0.22,
+      "damping": 8.0,
+      "armature": 0.02
+    }
+  ],
+  "action": {
+    "kind": "joint",
+    "joint": "lid_lift",
+    "target": 0.2,
+    "axis": null,
+    "duration_s": 5.0,
+    "tolerance_rel": 0.02,
+    "dwell_steps": 40,
+    "drive": null
+  },
+  "priors": {
+    "mass_kg": 32.0,
+    "friction": 0.5,
+    "actuator_force_n": 140.0,
+    "actuator_torque_nm": 14.0,
+    "base_static": false,
+    "size_m": 0.45
+  },
+  "basis": {
+    "mass_kg": "estimated",
+    "friction": "estimated",
+    "actuator_force_n": "estimated",
+    "actuator_torque_nm": "estimated",
+    "base_static": "estimated",
+    "size_m": "estimated"
+  },
+  "planner": {
+    "model": "MiniMax-M3.1-Flash",
+    "mode": "cloud-session",
+    "authored_by": "the physag-lite seat's own session; the inference ran on the provider's servers, not on the Thor",
+    "note": "the configured provider credential store is not readable from this session, so the plans were authored here and committed as data rather than fetched through a scripted API call"
+  }
+}

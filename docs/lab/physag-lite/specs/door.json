@@ -1,0 +1,116 @@
+{
+  "prop": "door",
+  "kind": "door",
+  "image_prompt": "a heavy wooden door panel with iron hinges and a brass handle, standing in a rough stone doorway frame, studio product photograph, neutral grey background, soft even lighting, sharp detail",
+  "parts": [
+    {
+      "name": "frame",
+      "role": "base",
+      "cut": {
+        "kind": "rest",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "max": [
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "expect": null,
+      "density_kg_m3": 700.0
+    },
+    {
+      "name": "door",
+      "role": "moving",
+      "cut": {
+        "kind": "box",
+        "axis": "z",
+        "at": 0.0,
+        "keep": "above",
+        "min": [
+          0.16,
+          0.08,
+          0.0
+        ],
+        "max": [
+          0.92,
+          0.92,
+          1.0
+        ]
+      },
+      "expect": {
+        "min": [
+          0.16,
+          0.08,
+          0.0
+        ],
+        "max": [
+          0.92,
+          0.92,
+          1.0
+        ]
+      },
+      "density_kg_m3": 700.0
+    }
+  ],
+  "joints": [
+    {
+      "name": "door_hinge",
+      "type": "hinge",
+      "parent": "frame",
+      "child": "door",
+      "axis": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "anchor": [
+        0.16,
+        0.5,
+        0.5
+      ],
+      "low": 0.0,
+      "high": 1.5707963267948966,
+      "damping": 2.5,
+      "armature": 0.05
+    }
+  ],
+  "action": {
+    "kind": "joint",
+    "joint": "door_hinge",
+    "target": 1.5707963267948966,
+    "axis": null,
+    "duration_s": 6.0,
+    "tolerance_rel": 0.02,
+    "dwell_steps": 40,
+    "drive": null
+  },
+  "priors": {
+    "mass_kg": 28.0,
+    "friction": 0.55,
+    "actuator_force_n": 140.0,
+    "actuator_torque_nm": 32.0,
+    "base_static": false,
+    "size_m": 0.9
+  },
+  "basis": {
+    "mass_kg": "estimated",
+    "friction": "estimated",
+    "actuator_force_n": "estimated",
+    "actuator_torque_nm": "estimated",
+    "base_static": "estimated",
+    "size_m": "estimated"
+  },
+  "planner": {
+    "model": "MiniMax-M3.1-Flash",
+    "mode": "cloud-session",
+    "authored_by": "the physag-lite seat's own session; the inference ran on the provider's servers, not on the Thor",
+    "note": "the configured provider credential store is not readable from this session, so the plans were authored here and committed as data rather than fetched through a scripted API call"
+  }
+}
