@@ -23,13 +23,31 @@ teacher–student experiments use, so the numbers can be compared with
 from __future__ import annotations
 
 import builtins
+from types import SimpleNamespace
 from typing import Any, Mapping, Sequence
 
 from ..models import Milestone
 from ..ports import CheckResult, EnvironmentPort, ExecResult, ProgressSnapshot
 from ..vocab import BODY_SCHEMA, BODY_WORD, SkillVocabulary
 
-__all__ = ["CrafterAdapter", "CRAFTER_MILESTONES", "crafter_vocabulary"]
+__all__ = [
+    "CrafterAdapter",
+    "CRAFTER_MILESTONES",
+    "CRAFTER_RETURNS",
+    "crafter_vocabulary",
+]
+
+#: What each primitive returns, read off ``run_code``'s own closures.
+#: The coder prompt carries these verbatim, for the same reason the
+#: Minecraft ones travel: a coder that guesses a shape writes checks
+#: that cannot fire.
+CRAFTER_RETURNS: Mapping[str, str] = {
+    "mc.act": "the number of steps taken",
+    "mc.act_seq": "the number of actions that ran",
+    "mc.move": "the number of steps taken",
+    "mc.achievements": "the achievements dict, name -> true|false",
+    "mc.reward": "the reward so far, a number",
+}
 
 #: Crafter's seventeen actions.
 CRAFTER_ACTIONS: tuple[str, ...] = (
@@ -202,11 +220,15 @@ class CrafterAdapter:
             for name, count in (getattr(player, "inventory", {}) or {}).items()
             if int(count) > 0
         }
+        # pos is a numpy array, and `if player.pos` on one is the
+        # ambiguous-truth ValueError; ask whether it is there, not
+        # whether it is true.
+        pos = getattr(player, "pos", None)
         return {
             "world": "crafter",
             "position": {
-                "x": int(player.pos[0]) if getattr(player, "pos", None) else 0,
-                "y": int(player.pos[1]) if getattr(player, "pos", None) else 0,
+                "x": int(pos[0]) if pos is not None and len(pos) > 0 else 0,
+                "y": int(pos[1]) if pos is not None and len(pos) > 1 else 0,
             },
             "health": int(getattr(player, "health", 0)),
             "energy": int(getattr(player, "energy", 0)),
@@ -271,7 +293,13 @@ class CrafterAdapter:
             if hasattr(builtins, name)
         }
         safe_builtins["print"] = lambda *args: captured.append(" ".join(str(a) for a in args))
-        namespace = {"__builtins__": safe_builtins, "mc": primitives}
+        namespace = {
+            "__builtins__": safe_builtins,
+            # an object, not a dict: the coder writes mc.move(...), and
+            # attribute access on a dict is an AttributeError on the
+            # very first call.
+            "mc": SimpleNamespace(**primitives),
+        }
         try:
             exec(compile(code, "<skill>", "exec"), namespace)  # noqa: S102
         except Exception as exc:
@@ -289,16 +317,29 @@ class CrafterAdapter:
         )
 
     def evaluate(self, code: str, *, timeout_s: float) -> CheckResult:
-        """Run a self-verification snippet; it must end with a boolean."""
-        namespace: dict[str, Any] = {"mc": {"achievements": lambda: dict(self._achievements)}}
+        """Run a self-verification snippet; it must end with a boolean.
+
+        The coder prompt asks for *a one-line expression*, so the
+        expression's value is the verdict; a snippet that assigns
+        ``result`` is accepted too (this adapter's first draft asked
+        for that shape, and a skill written to it should not start
+        failing because the prompt moved on).
+        """
+        namespace: dict[str, Any] = {
+            "mc": SimpleNamespace(
+                achievements=lambda: dict(self._achievements)
+            )
+        }
+        text = code.strip()
         try:
-            exec(compile(code, "<verify>", "exec"), namespace)  # noqa: S102
+            try:
+                value = eval(compile(text, "<verify>", "eval"), namespace)  # noqa: S307
+            except SyntaxError:
+                exec(compile(text, "<verify>", "exec"), namespace)  # noqa: S102
+                value = namespace.get("result", namespace.get("__result__"))
+            return CheckResult(passed=bool(value), detail=str(value))
         except Exception as exc:
             return CheckResult(passed=False, detail=f"{type(exc).__name__}: {exc}"[:300])
-        value = namespace.get("result")
-        if value is None:
-            value = namespace.get("__result__")
-        return CheckResult(passed=bool(value), detail=str(value))
 
     def goal_truth(self, key: str) -> bool:
         """Crafter's own answer: is this achievement unlocked?"""
@@ -320,6 +361,15 @@ class CrafterAdapter:
 
     def primitive_schemas(self) -> Mapping[str, Any]:
         return self._registry.schema_map()
+
+    def primitive_returns(self) -> Mapping[str, str]:
+        """What each primitive returns, for the coder prompt.
+
+        Read off :meth:`run_code`'s own closures, the same rule the
+        Minecraft adapter follows: the shape is the world's fact, so the
+        world is asked.
+        """
+        return CRAFTER_RETURNS
 
     def milestones(self) -> tuple[Milestone, ...]:
         return CRAFTER_MILESTONES

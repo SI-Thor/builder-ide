@@ -2202,4 +2202,92 @@ plan needs Casey's approval and his TypeSafe + Anthropic keys.
 (thor-admit integration tests flaking in parallel) is the broadcast note that
 sits in every seat's worktree; it is already fixed on this branch —
 `fd9d776` "the integration suite is serial by default, and its waits no longer
-assume a quiet box" (round 8, item 4) is an ancestor of HEAD. Nothing to do.
+assume a quiet box" (round 8, item 4) is an ancestor of HEAD. Nothing to do.## 2026-11-01/02 — voyager-port: the loop, the bridge, the pilot, and the measured run
+
+The brief: re-engineer Voyager's loop as a system-agnostic core
+(`core/voyager/`), three model roles via DeepInfra, skills as tiles with
+one ledger event each, adapters in order (Minecraft on a private sandbox,
+Crafter, stubs for vibe-sandbox and Bevy), measured on Minecraft for N
+hours; report `docs/lab/exp-voyager-port.md`. This section covers the
+whole arc; the commits hold the detail.
+
+**20:55 `d095d90` — the core.** 5,750 lines in one commit: the
+curriculum (novelty-biased, the tech tree as its floor), the skill
+library (a tile per skill, one ledger event per admission/rejection/
+supersession, bodies content-addressed on disk), the three roles
+(planner MiMo-V2.6-Pro, coder Qwen3.8-27B, verifier Qwen3.8-Max —
+different from the coder by the brief), the budget (steps, wall clock,
+tokens, and autopilot's closing probe budget: probes free until the
+first execution), and four adapters. 19 tests, all against fakes.
+
+**21:37 `1669e7d` — the bridge, repaired.** The first bridge was
+written against mineflayer's README; the one that is installed
+(agent-world's runtime node_modules) differs in a dozen places. The
+repair is measured by its probe failures (the commit message lists
+them).
+
+**22:27 `fe1f0ff` — four things kept the world empty.** All four found
+by measuring the client, not reading code: the registry hands out
+objects where ids belong (887 recipes invisible), `findBlock`'s radius
+is an octahedron of sections (the tree "not within 96" while visible),
+a 26-name scan read the world 26 times over (63 s at radius 96 — longer
+than spigot's 60 s timeout, so the bot was kicked mid-program; the
+sandbox's own `timeout-time` is now 0), and the client holds no chunks
+at the moment of spawn (the first scan answered `{}` in 0.04 s and
+read as "empty world").
+
+**00:10-00:41 — the pilot.** 0.5 h, 23 steps, wall-clock stop, 124,865
+tokens (planner 33,103 / coder 64,430 / verifier 27,332), 5 unique
+items, milestones wood 154.1 s / planks 323.9 s / crafting_table 533.1 s
+/ wooden_pickaxe 1811.9 s, 1 skill admitted of 17 executions. Box: load
+~26 early (other seats), 100 GB available. What it exposed:
+
+- the planner's reply was cut at its 1200-token cap on 6 of 23 steps —
+  completion sat at exactly 1200 on every unreadable one
+  (`probe_planner_reply.py`);
+- the verifier went unreadable twice on steps that had worked — step 23
+  executed cleanly ("Held wooden_pickaxe.", the world's record True) and
+  was graded INCONCLUSIVE (`probe_verifier_reply.py`: 8/8 readable at
+  ~150 tokens, so the budget is not the fault; empty-content is the
+  remaining suspect, now visible via finish_reason);
+- the coder was never told what a primitive *returns*: `mc.has`
+  returns `{has: bool}` and step 15 wrote `if (!mc.has(...))` — a check
+  that cannot fire, logging "already present" over an empty hand, while
+  sixteen steps went to the one goal.
+
+**00:52 `bd8539e` and 00:57 `00bb0e5` — the harness and the three
+replies.** The seat's own uncommitted work (bridge stdout guard,
+skip-stray-lines adapter, every-balanced-object JSON reader, a failed
+step costs a turn not the run) committed with the pilot's payload as
+its validation; then the measured fixes: first planner ask 2400, the
+client asks a cut or empty reply again with the budget doubled and
+sums every call's tokens into the one usage it books, finish_reason and
+attempts travel on the ModelReply into the step records, and the coder
+prompt now carries `-> {shape}` for every primitive (MC_RETURNS, read
+off the bridge's own return statements). 25 tests.
+
+**01:00 — the measured run.** Fresh world (reset_mc_world.sh, whose
+stop loop turned out to match neither server — the java command line
+never names the sandbox; it now stops the server by its working
+directory), empty hands, `VOYAGER_HOURS=2 VOYAGER_STEPS=200`, detached.
+The pilot's payload moved to `results/pilot-0.5h/` (kept, off-repo) so
+the two ledgers do not mix.
+
+**01:02 — the crafter adapter had never run.** Its smoke run died five
+times in `observe()` before any model was asked: `player.pos` is a
+numpy array and `if player.pos` is the ambiguous-truth ValueError. Three
+more never-exercised defects followed: `mc.achievements` has an empty
+schema and the door refused parameterless words outright (vocab.py now
+takes them; every parameter handed to one is still refused), `mc` was a
+dict in the namespace so the first `mc.anything()` call raised
+AttributeError (now a SimpleNamespace), and `evaluate` wanted
+`result = x` while the shared prompt asks for a one-line expression
+(it takes the expression's value now, `result =` still accepted).
+`probe_crafter_adapter.py` walks the whole port for free; a smoke run
+(0.25 h) follows the fix. 28 tests.
+
+**Decided next:** the 2 h Minecraft run and the crafter smoke write
+`results/minecraft-run.json` and `results/crafter-run.json`; the report
+`docs/lab/exp-voyager-port.md` quotes them through `summarize_run.py`.
+The stubs for vibe-sandbox and Bevy are interfaces only, as the brief
+asks.

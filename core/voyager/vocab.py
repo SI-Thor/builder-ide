@@ -113,8 +113,16 @@ class SkillVocabulary:
     # -- the words -------------------------------------------------------------
 
     def add(self, word: str, schema: Mapping[str, Any]) -> None:
-        """Add a primitive. The schema is checked on the way in."""
-        if not isinstance(schema, Mapping) or not schema:
+        """Add a primitive. The schema is checked on the way in.
+
+        An empty schema is a **parameterless** primitive — a read that
+        takes no arguments (``mc.achievements()``) — and it is a word
+        like any other: ``validate_params`` refuses every parameter such
+        a word is handed. The Crafter adapter's vocabulary is what
+        asked for this; refusing the empty schema outright meant that
+        world could not be built at all.
+        """
+        if not isinstance(schema, Mapping):
             raise SkillRefusal("schema_not_an_object", f"{word!r} has no schema")
         for name, prop in schema.items():
             if not isinstance(prop, Mapping):

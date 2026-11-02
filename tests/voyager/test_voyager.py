@@ -630,3 +630,43 @@ def test_the_minecraft_returns_match_the_vocabulary():
     for word in registry.words():
         if word != "voyager.skill_body":
             assert word in MC_RETURNS, word
+
+
+def test_a_parameterless_primitive_is_a_word():
+    from core.voyager.vocab import SkillRefusal
+
+    registry = SkillVocabulary({"mc.reward": {}})
+    assert registry.has("mc.reward")
+    registry.validate_params("mc.reward", {})
+    try:
+        registry.validate_params("mc.reward", {"x": 1})
+    except SkillRefusal as exc:
+        assert exc.reason == "unknown_property"
+    else:
+        raise AssertionError("a parameter was accepted on a parameterless word")
+
+
+def test_the_crafter_vocabulary_builds():
+    from core.voyager.adapters.crafter import CRAFTER_RETURNS, crafter_vocabulary
+
+    registry = crafter_vocabulary()
+    for word in CRAFTER_RETURNS:
+        assert registry.has(word), word
+
+
+def test_the_crafter_adapter_round_trips():
+    pytest = __import__("pytest")
+    crafter = pytest.importorskip("crafter")
+    from core.voyager.adapters.crafter import CrafterAdapter
+
+    adapter = CrafterAdapter(log=lambda m: None)
+    adapter.open()
+    try:
+        facts = adapter.observe()
+        assert facts["world"] == "crafter"
+        result = adapter.run_code("mc.act('noop')", timeout_s=30.0)
+        assert result.ok, result.error
+        check = adapter.evaluate("mc.achievements()['collect_wood'] > 0", timeout_s=10.0)
+        assert check.detail == "False"  # a fresh world: no wood yet
+    finally:
+        adapter.close()

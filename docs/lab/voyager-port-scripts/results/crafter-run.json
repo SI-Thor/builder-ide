@@ -1,0 +1,49 @@
+{
+  "box": {
+    "free_mb": 100245,
+    "loadavg": [
+      7.4365234375,
+      10.8271484375,
+      14.37060546875
+    ]
+  },
+  "budget": {
+    "elapsed_seconds": 0.0,
+    "max_steps": 20,
+    "max_tokens": 400000,
+    "max_wall_seconds": 900.0,
+    "steps": 0,
+    "stopped_by": "none",
+    "tokens": 0
+  },
+  "cost_book": {
+    "by_role": {},
+    "calls": {},
+    "model_seconds": 0.0,
+    "total_tokens": 0
+  },
+  "cost_cents": null,
+  "failure": "",
+  "finished_at": "2026-11-02T10:02:00.374Z",
+  "items": {},
+  "milestone_seconds": {},
+  "milestone_tokens": {},
+  "milestones_reached": [],
+  "models": {
+    "coder": "Qwen/Qwen3.8-27B",
+    "planner": "XiaomiMiMo/MiMo-V2.6-Pro",
+    "verifier": "Qwen/Qwen3.8-Max"
+  },
+  "seed": 7,
+  "skills_admitted": 0,
+  "skills_rejected": 0,
+  "skills_superseded": 0,
+  "started_at": "2026-11-02T10:02:00.374Z",
+  "steps": [],
+  "tokens_by_role": {},
+  "total_tokens": 0,
+  "unique_items": 0,
+  "wall_seconds": 0.0,
+  "wall_seconds_measured": 1.1,
+  "world": "crafter"
+}

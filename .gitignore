@@ -78,3 +78,4 @@ docs/lab/voyager-port-scripts/results/*.sqlite3-wal
 docs/lab/voyager-port-scripts/results/bodies/
 docs/lab/voyager-port-scripts/results/*.crashed-run
 docs/lab/voyager-port-scripts/results/bodies.crashed-run/
+docs/lab/voyager-port-scripts/results/pilot-*/

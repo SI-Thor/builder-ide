@@ -30,9 +30,13 @@ say "stopping the sandbox server, if it is up"
 if command -v pgrep >/dev/null 2>&1; then
   for pid in $(pgrep -f "paper-.*\.jar --nogui" || true); do
     # Only the sandbox's own server: the live agent-world server runs
-    # from its own directory and must not be touched.
-    if tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "$SANDBOX"; then
-      say "stopping pid $pid"
+    # from its own directory and must not be touched. The java command
+    # line never names the sandbox - the world a Paper server serves is
+    # its working directory - so the check is on the cwd, not the
+    # cmdline (the cmdline check matched neither server, and a server
+    # left standing meant the world was moved out from under it).
+    if [ "$(readlink -f "/proc/$pid/cwd" 2>/dev/null || true)" = "$SANDBOX" ]; then
+      say "stopping pid $pid (cwd $SANDBOX)"
       kill -TERM "$pid" 2>/dev/null || true
     fi
   done
