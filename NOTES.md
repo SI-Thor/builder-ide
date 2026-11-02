@@ -3919,3 +3919,38 @@ message.
 loaded box (240 min at 100% of one core, killed mid-walk) — the
 live-view seam has never produced a glb inside a night; the bar and the
 wedge restart have never fired in anger. All three are in the doc's §9.
+
+
+## 2026-11-02 07:20 — night-v6, task 1: the letter's decision count equals the ledger's
+
+**The bug.** The night-v5 letter said "1 of 5 decisions answered locally
+(4 went to the cloud)" while the same run's ledger holds 251
+`judge.verdict` rows, 245 on the local d1-3B (measure.py's numbers). Two
+honest counts of different things: the letter read `morning.json`'s
+`decisions` block, which the runner folds from the JudgeSeat's in-memory
+list — one entry per *decision the seat finished*. The routed decoy
+cell's 240 verdicts (asked through the probe's own Judge, never the
+seat), the two refused attempts (author '?', ledger rows 287/295), and
+the local half of every escalated decision never reached it. The ledger
+counts *attempts* — one row per try, refusals included. A second bug sat
+in facts_from_ledger.py: `local = sum(author != '?')` counted the cloud's
+jev rows as local (249), and its `surfaced` count read a `gate` key the
+verdict payload does not have (the gate lives on each judgment inside
+`judgments`) — it always counted 0.
+
+**The fix.** `docs/lab/night-v6-scripts/decision_counts.py` — the one
+counter (measure.py's split factored out: local/cloud/refused by author,
+gates from `judgments[*].gate`). write_letter.py now takes its decision
+numbers from the ledger beside the morning (`--ledger`, default
+`<out>/ledger.db`; the morning's `decisions.ledger` block when the runner
+folded one in), falling back to the morning's block only for a letter
+written before a night ran. facts_from_ledger.py writes the same split.
+
+**Proof.** tests/night/test_letter_ledger.py — 6 passed: a synthetic
+ledger with the v5 shape (245 d1 + 4 jev + 2 refusals) and a morning
+still claiming "1 of 5"; the letter must say "245 of 251 judgments
+answered locally (4 went to the cloud, 2 were refusals)", must not say
+"1 of 5", and stays ≤ 150 words. A regression anchor runs the real
+night-v5 morning+ledger through the same path (the artifacts are on this
+box). CLI end-to-end on the real v5 pair: 107 words, the sentence
+corrected. The v5 artifacts themselves were not touched.
