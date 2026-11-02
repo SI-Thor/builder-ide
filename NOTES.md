@@ -4041,3 +4041,76 @@ write no JSON; it is re-run with 200 observation steps afterwards.
 **What is left.** The rest of the measurements (the GPU at 1024 and 4096, the
 CPU backend, the Python reference), the lab note's section 4, and the final
 commit.
+
+## 2026-11-02 10:40 — batched-sim: the measurements are in, and the note is written
+
+**What I tried.** The rest of the measurements, one configuration at a time,
+each under its own lease, and then the lab note.
+
+**What happened.**
+
+- **The GPU backend** (`cuda`), the game's own 128x128 world, 2000 steps, 7
+  repetitions, median:
+
+  | batch | the rules | the step and the observation |
+  |---:|---:|---:|
+  | 128 | **2,399,051 env-steps/s** (0.417 us) | 5,448 env-steps/s (183.544 us) |
+  | 1024 | **22,109,458 env-steps/s** (0.045 us) | 17,860 env-steps/s (55.992 us) |
+
+  Box before the first run: load 10.55 / 10.90 / 10.45, 101.0 GB free, the
+  GPU pool's largest free block 1648.4 MB; after the second run: load
+  11.78 / 10.88 / 9.80, 90.7 GB free, 302.0 MB.
+
+- **The CPU backend** (`cpu`, the same `rules.cuh` compiled by g++, **14
+  threads striding over the worlds**), 200 steps, 3 repetitions:
+
+  | batch | world | the rules | the step and the observation |
+  |---:|---:|---:|---:|
+  | 128 | 128 | 309,029 env/s (3.236 us) | 27,648 env/s (36.168 us) |
+  | 1024 | 128 | 2,895,973 env/s (0.345 us) | skipped: 16.8 M cells a step |
+  | 4096 | 128 | 9,644,540 env/s (0.104 us) | skipped: 67.1 M cells a step |
+  | 128 | 64 | 359,363 env/s (2.783 us) | 65,825 env/s (15.192 us) |
+  | 1024 | 64 | 3,014,118 env/s (0.332 us) | 108,152 env/s (9.246 us) |
+  | 4096 | 64 | 9,456,769 env/s (0.106 us) | skipped: 16.8 M cells a step |
+
+- **The Python reference** (`python`, one world at a time, the ground truth
+  the two are checked against): 154,397 env/s at batch 128, 142,219 at 1024,
+  133,031 at 4096 (6.477 / 7.031 / 7.517 us an env-step). It does **not**
+  scale with the batch, which is the point of having it as the baseline.
+
+**What the numbers say, in one line each.**
+
+- The rule step is what the batched simulator is for: at batch 1024 the GPU
+  does 22.1 M env-steps/s, **7.6x** the 14-thread CPU backend and **156x**
+  the Python reference. It scales with the batch (8x the worlds is 9.2x the
+  throughput) and is already saturated at batch 128.
+- **The CUDA observation kernel is currently slower than the 14-thread CPU
+  one**: 5,448 env/s against 27,648 at batch 128 on the 128x128 world. It
+  gives every cell its own Bresenham walk and writes six planes
+  uncoalesced. A DDA sweep along each row is the fix, and it is the obvious
+  next piece of work. It is left naive here on purpose, and the note says so
+  instead of quietly quoting the better number.
+
+**Two things I did not get, and why.**
+
+- **The GPU at batch 4096**, at either world size. The observation buffer is
+  always allocated, so 4096 worlds is one 402 MB allocation at a 64x64
+  world and 1.6 GB at 128x128. The pool's largest free block was 104.9 MB
+  for most of the session. A CUDA allocation that does not fit blocks in the
+  kernel rather than failing, so the benchmark script refuses it and the
+  note records it as not measured. The CPU and the Python reference are
+  measured at 4096.
+- **The `cuda` rows on the 64x64 world.** The admission daemon stopped
+  granting leases entirely: two model-server leases
+  (`serve.qwen3-vl-8b`, `serve.sensenova-si-1.3-qwen3-vl-8b`) sit **over
+  their reservations**, and a probe with a 512 MB peak was refused after
+  25 s of waiting. Both runs are still queued (`batched-sim.bench`,
+  `batched-sim.bench-small`) and will start if the daemon clears them.
+
+**What I decided next.** Stop starting new work: the brief is done, the
+measurements that the box allows are measured, and the two that are left
+are queued. The next session picks them up from the queue, or from
+`docs/lab/exp-batched-sim.md` §4, which says exactly which cells of the
+table are empty and why.
+
+**What is left.** The queued GPU runs, and the DDA observation sweep.
