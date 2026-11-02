@@ -2270,3 +2270,86 @@ by the contention. Then the three measurements the brief asks for: (a) one
 RL iteration at `--num_envs 128` timed against upstream's 10-20 s on an RTX
 A6000, (b) the pretrained model against a random policy over N games, (c)
 env steps/s at batch 128/1024/4096.
+## 2026-11-01 22:40 — stratego: the box's GPU pool, the D-state wedge, and the flaky smoke test
+
+Three things happened that are worth writing down before anything else, because
+each one cost an hour of wall clock and each one is a property of the Thor,
+not of Stratego.
+
+**1. The GPU-visible memory pool on the Thor is the system memory, and when it
+is exhausted a CUDA process blocks instead of failing.** The first attempt at
+measurement (a) - one RL iteration at `--num_envs 128` - built both models
+(14.8 M + 12.6 M parameters) and then sat for 15 minutes without producing a
+single line of output. It was not slow: it was stopped. Its voluntary and
+non-voluntary context-switch counters, and its utime/stime, did not move at
+all across an 8-second sample, and its main thread sat in
+`os_acquire_rwlock_write` with fds open on `/dev/nvidia0` and `/dev/nvmap`.
+`nvidia-smi` on the same box blocked the same way, and did so four times: two
+of the stuck processes were **thor-admit's own daemon samplers**, which is why
+the daemon's GPU view froze at 06:18:58Z and stopped updating for half an
+hour. `timeout 20 nvidia-smi` did not return in 50 s, because the process was
+in uninterruptible sleep and the signal could not be delivered.
+
+`thor-admit`'s daemon log has the history. The GPU pool's largest free block
+was 10.7 GB at 04:42Z, fell to 134 MB at 05:28Z and 25 MB at 05:34Z, and
+recovered to 3.8 GB by 06:00Z. At the time of the wedge it was 1.07 GB. The
+box has 122 GB of unified memory and 41 GB of it was committed to the GPU by
+other seats' long-lived services (ComfyUI, a llama-server, the world). The
+practical rule this gives us: **on the Thor, a new CUDA workload has to be
+sized against the GPU pool's largest free block, not against the free system
+memory**, because the two are the same bytes and the allocation blocks.
+
+**2. A 4096-game batch needs 6.26 GB of GPU memory and the box could not give
+it.** The env's own allocation table says so: `d_boards_` 2013 MB,
+`d_zero_boards_` 2013 MB, `d_illegal_chase_actions_` 881 MB, plus the
+observation tensors, **CUDA TOTAL 6256 MB** at 4096 games x 256 rows. The
+constructor returned, and the process then wedged in D state with the
+allocation held. The same run at 128 and 1024 games allocated and completed.
+So the 4096 number is a *capacity* result for this box, not a throughput
+result, and it is reported that way.
+
+**3. The smoke test's "40 pieces per side" assertion was flaky, and it was
+wrong.** The board string is 100 cells, each cell followed by a one-character
+movement flag ('.', has moved, or '@', has not) -
+`StrategoBoard::BoardString`, src/env/stratego_board.cu:62 - so it is 200
+characters and the cells are the *even* indices. The previous seat's smoke
+test counted 40 red / 40 blue *after five random steps* and reported that it
+passed. On the Thor the first run failed with 39/39 and a later run passed:
+the difference is whether a piece was captured in those five steps, because a
+captured piece leaves the board. The count is now checked where it is
+deterministic - at reset - where both sides must have exactly the classic 40
+with exactly the classic composition:
+
+    SPY 1, SCOUT 8, MINER 5, SERGEANT 4, LIEUTENANT 4, CAPTAIN 4,
+    MAJOR 3, COLONEL 2, GENERAL 1, MARSHAL 1, FLAG 1, BOMB 6   = 40
+
+    red   C=SPY D=SCOUT E=MINER F=SERGEANT G=LIEUTENANT H=CAPTAIN
+          I=MAJOR J=COLONEL K=GENERAL L=MARSHAL M=FLAG B=BOMB
+    blue  O=SPY P=SCOUT Q=MINER R=SERGEANT S=LIEUTENANT T=CAPTAIN
+          U=MAJOR V=COLONEL W=GENERAL X=MARSHAL Y=FLAG N=BOMB
+
+Measured at reset on the Thor: red {B:6, C:1, D:8, E:5, F:4, G:4, H:4, I:3,
+J:2, K:1, L:1, M:1} and blue {N:6, O:1, P:8, Q:5, R:4, S:4, T:4, U:3, V:2,
+W:1, X:1, Y:1} - the classic composition, exactly, on both sides. The port
+places pieces correctly. After the five steps one red scout had been captured
+(B:6 -> B:5 plus a visible 'b', D:8 -> D:7), which is the legal consequence of
+a capture, not a defect. The test now asserts the composition at reset and
+the *upper bound* after the steps.
+
+Also fixed: `bench_env.py` used to call `nvidia-smi` for its box state, which
+can block in uninterruptible sleep on this box - a benchmark that hangs on
+its own instrumentation is worse than one without it. It now reads
+`thor-admit status` instead, and writes its JSON after *each* batch size, so
+a run that cannot allocate the largest batch still leaves the smaller ones on
+disk.
+
+Decided next — the ctest correctness gate is still running (37 of 45) and its
+failures are now accounted for: `test_env_state` and `test_magnet_policy`
+abort in the C++ constructor on `MUSTRATEGO_FATAL("Unrecognized configuration
+key %s")` (src/pybind.cc:52), because the upstream tests at commit 92db29e
+pass `custom_inits=` and the upstream API's parameter is `initial_arrangements`
+(src/pybind.cc:42) - a stale test against the upstream's own API, in Python
+land, which none of the port's seven changes touch. `test_replay_games` and
+`test_save_games` failed on `ModuleNotFoundError: No module named 'msgpack'`;
+msgpack is in upstream's `environment.yml` but was missing from the venv, so it
+is now installed with `uv pip install --no-deps` and both are re-run.

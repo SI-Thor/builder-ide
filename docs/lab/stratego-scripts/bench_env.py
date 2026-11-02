@@ -15,6 +15,13 @@ Two variants are timed:
 The second is the number that matters for a policy: the observation planes are
 355+ per game, and they are written by nine separate kernel launches.
 
+The box state is read from `thor-admit status`, not from `nvidia-smi`: on the
+Thor `nvidia-smi` can block in an uninterruptible sleep (observed on
+2026-11-01, four processes stuck for 29+ minutes), and a benchmark that hangs
+on its own instrumentation is worse than one without it. The results are
+written after *each* batch size, so a run that cannot allocate the largest
+batch still leaves the smaller ones on disk.
+
 Usage (from the stratego checkout, with its .venv on PATH):
     python bench_env.py --num-envs 128,1024,4096 --out results/bench_env.json
 """
@@ -51,12 +58,24 @@ def box_state() -> dict:
     except OSError:
         pass
     try:
+        out["nproc"] = os.cpu_count()
+    except OSError:
+        pass
+    # thor-admit's own view: the GPU pool's largest free block, and who holds
+    # the box. `nvidia-smi` itself is not used - see the module docstring.
+    try:
         smi = subprocess.run(
-            ["nvidia-smi", "--query-gpu=name,memory.used,utilization.gpu",
-             "--format=csv,noheader,nounits"],
-            capture_output=True, text=True, timeout=20,
-        ).stdout.strip()
-        out["nvidia_smi"] = smi
+            ["~/lm-tools/thor-admit", "status"],
+            shell=True, capture_output=True, text=True, timeout=30,
+        ).stdout
+        for line in smi.splitlines():
+            line = line.strip()
+            if line.startswith("memory:"):
+                out["admit_memory"] = line
+            elif line.startswith("gpu pool:"):
+                out["admit_gpu_pool"] = line
+            elif line.startswith("leases:"):
+                out["admit_leases"] = line
     except Exception:
         pass
     out["cuda_visible_devices"] = os.environ.get("CUDA_VISIBLE_DEVICES", "")
@@ -155,11 +174,16 @@ def main() -> None:
         )
         print(f"    box: {r['box']}", flush=True)
 
+        # Write after every batch size: if the largest one cannot allocate,
+        # the smaller ones are already on disk.
+        if args.out:
+            os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+            with open(args.out, "w") as f:
+                json.dump({"results": results, "box": box_state()}, f, indent=2)
+            print(f"wrote {args.out} (partial: {len(results)} sizes)", flush=True)
+
     if args.out:
-        os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
-        with open(args.out, "w") as f:
-            json.dump({"results": results, "box": box_state()}, f, indent=2)
-        print(f"wrote {args.out}")
+        print(f"wrote {args.out} (complete: {len(results)} sizes)")
 
 
 if __name__ == "__main__":
