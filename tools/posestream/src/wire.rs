@@ -10,6 +10,9 @@ pub const MAGIC: u8 = 0xA1;
 pub const FLAG_KEYFRAME: u8 = 0x01;
 pub const FLAG_CHANGE_BITMAP: u8 = 0x02;
 pub const FLAG_VELOCITY: u8 = 0x04;
+/// The leave list travels as absolute 16-bit ids instead of delta-coded varints: the
+/// "2-byte evict" the other entry used. Measured, not assumed: see the README.
+pub const FLAG_EVICT_ABS: u8 = 0x08;
 
 /// Absolute positions are unsigned 16-bit (the arena is 200 m / 1 cm = 20000 quanta).
 pub const POS_ABS_BITS: u8 = 16;
@@ -373,11 +376,19 @@ pub fn encode(pkt: &mut Packet, out: &mut Vec<u8>, scratch: &mut EncodeScratch) 
         w.varint((e.id - prev) as u64);
         prev = e.id;
     }
-    // Leave ids (delta coded, ascending).
-    let mut prev = 0u32;
-    for id in &pkt.leave {
-        w.varint((*id - prev) as u64);
-        prev = *id;
+    // Leave ids (delta coded, ascending), or absolute 16-bit evicts.
+    if pkt.flags & FLAG_EVICT_ABS != 0 {
+        w.align();
+        for id in &pkt.leave {
+            w.buf.push((id & 0xFF) as u8);
+            w.buf.push((*id >> 8) as u8);
+        }
+    } else {
+        let mut prev = 0u32;
+        for id in &pkt.leave {
+            w.varint((*id - prev) as u64);
+            prev = *id;
+        }
     }
     // Changed set: bitmap over the previous set, or delta-coded ids.
     if pkt.flags & FLAG_CHANGE_BITMAP != 0 {
@@ -493,7 +504,7 @@ pub fn decode(buf: &[u8], prev_ids: &[u32]) -> Result<Packet, WireError> {
         return Err(WireError::BadMagic);
     }
     let flags = buf[1];
-    if flags & !(FLAG_KEYFRAME | FLAG_CHANGE_BITMAP | FLAG_VELOCITY) != 0 {
+    if flags & !(FLAG_KEYFRAME | FLAG_CHANGE_BITMAP | FLAG_VELOCITY | FLAG_EVICT_ABS) != 0 {
         return Err(WireError::BadFlags);
     }
     r.pos = 2; // skip magic + flags
@@ -521,11 +532,20 @@ pub fn decode(buf: &[u8], prev_ids: &[u32]) -> Result<Packet, WireError> {
         enter.push(EnterRec { id: prev, pos: [0; 3], vel: [0; 3] });
     }
     let mut leave = Vec::with_capacity(n_leave);
-    let mut prev = 0u32;
-    for _ in 0..n_leave {
-        let d = r.varint()? as u32;
-        prev = prev.wrapping_add(d);
-        leave.push(prev);
+    if flags & FLAG_EVICT_ABS != 0 {
+        for _ in 0..n_leave {
+            r.need(2)?;
+            let id = r.buf[r.pos] as u32 | ((r.buf[r.pos + 1] as u32) << 8);
+            r.pos += 2;
+            leave.push(id);
+        }
+    } else {
+        let mut prev = 0u32;
+        for _ in 0..n_leave {
+            let d = r.varint()? as u32;
+            prev = prev.wrapping_add(d);
+            leave.push(prev);
+        }
     }
 
     let mut bitmap = Vec::new();

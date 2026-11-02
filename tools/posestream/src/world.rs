@@ -6,6 +6,11 @@
 
 pub const TICK_HZ: u32 = 60;
 pub const DT: f64 = 1.0 / 60.0;
+/// Microticks per tick: the clock's resolution. The network model needs it, because the
+/// receiver must know when a packet arrived to better than a tick to back-date it.
+pub const TICK_US: u64 = 1_000_000;
+/// Microticks per millisecond: a tick is 1/60 s, so a millisecond is 60,000 microticks.
+pub const MICROTICKS_PER_MS: f64 = 60_000.0;
 pub const N_OBJECTS: usize = 10_000;
 pub const WORLD_MIN: [f64; 3] = [-100.0, -100.0, -60.0];
 pub const WORLD_MAX: [f64; 3] = [100.0, 100.0, 60.0];
@@ -13,6 +18,8 @@ pub const WORLD_MAX: [f64; 3] = [100.0, 100.0, 60.0];
 pub const Q: f64 = 0.01;
 /// Velocity quantum: 1/64 of a position quantum per tick.
 pub const VEL_SUB: f64 = 64.0;
+/// The same quantum, as an integer, for the exact integer arithmetic.
+pub const VEL_SUB_I: i64 = 64;
 
 // ------------------------------------------------------------------ rng
 
@@ -130,10 +137,74 @@ const FAST_EPOCH: u32 = 3;
 /// Maximum heading change per epoch (radians): gentle turns keep the motion predictable.
 const MAX_TURN: f64 = 0.22;
 
+/// The world's motion bounds, as the parameters they come from. These are what make the
+/// drift budget a bound rather than an observation.
+///
+/// * a walker holds its velocity for 6 ticks, then re-samples its heading by at most
+///   `MAX_TURN` radians and its speed by at most 6%;
+/// * a fast mover does the same every 3 ticks, at up to 42 m/s;
+/// * an orbiter turns uniformly, so its acceleration is exactly v^2 / r;
+/// * an object that reaches the arena wall has that velocity component reflected.
+pub mod bounds {
+    /// The number of ticks a walker holds its velocity.
+    pub const WALKER_EPOCH: u32 = super::WALKER_EPOCH;
+    /// The number of ticks a fast mover holds its velocity.
+    pub const FAST_EPOCH: u32 = super::FAST_EPOCH;
+    /// The largest heading change at a turn (radians).
+    pub const MAX_TURN: f64 = super::MAX_TURN;
+    /// The largest speed change at a turn (fraction).
+    pub const MAX_SPEED_JITTER: f64 = 0.06;
+    /// The fastest walker *at the start* (m/s). It is not a bound: the speed is re-sampled
+    /// every turn and clamped only at `FAST_SPEED_MAX`.
+    #[allow(dead_code)]
+    pub const WALKER_SPEED_START_MAX: f64 = 2.4;
+    /// The fastest fast mover (m/s); the world's speed clamp.
+    pub const FAST_SPEED_MAX: f64 = 42.0;
+    /// The fastest orbiter (m/s).
+    pub const ORBITER_SPEED_MAX: f64 = 4.0;
+    /// The smallest orbiter radius (m).
+    pub const ORBITER_RADIUS_MIN: f64 = 5.0;
+
+    /// The largest velocity change a walker can suffer in one turn (m/s): the heading turns
+    /// by at most `MAX_TURN` and the speed by at most `MAX_SPEED_JITTER`.
+    ///
+    /// The walker's speed is *not* bounded by the 2.4 m/s it starts at: the speed is
+    /// re-sampled every turn and clamped only at `FAST_SPEED_MAX`, so a walker that draws
+    /// well for long enough reaches the same 42 m/s cap as a fast mover. The bound uses the
+    /// cap, which is the honest one.
+    pub fn walker_dv_max() -> f64 {
+        FAST_SPEED_MAX * (2.0 * (MAX_TURN / 2.0).sin() + MAX_SPEED_JITTER)
+    }
+
+    /// The largest velocity change a fast mover can suffer in one turn (m/s).
+    pub fn fast_dv_max() -> f64 {
+        FAST_SPEED_MAX * (2.0 * (MAX_TURN / 2.0).sin() + MAX_SPEED_JITTER)
+    }
+
+    /// The largest acceleration an orbiter can have (m/s^2): v^2 / r, worst at the fastest
+    /// speed and the smallest radius.
+    pub fn orbiter_a_max() -> f64 {
+        ORBITER_SPEED_MAX * ORBITER_SPEED_MAX / ORBITER_RADIUS_MIN
+    }
+
+    /// The largest velocity change a wall reflection causes (m/s): the component flips.
+    pub fn reflect_dv_max() -> f64 {
+        2.0 * FAST_SPEED_MAX
+    }
+
+    /// The velocity quantisation error (m/s): half a velocity quantum.
+    pub fn velocity_quantum_error() -> f64 {
+        0.5 / super::VEL_SUB * super::Q / super::DT
+    }
+}
+
+
+
 impl Object {
     /// Advance one tick. Returns the new position and velocity; the world keeps them in
-    /// separate arrays so that the emitter's random lookups stay cache friendly.
-    fn advance(&mut self, tick: u32, pos: [f64; 3]) -> ([f64; 3], [f64; 3]) {
+    /// separate arrays so that the emitter's random lookups stay cache friendly. The third
+    /// value says whether the object reflected off the arena wall this tick.
+    fn advance(&mut self, tick: u32, pos: [f64; 3]) -> ([f64; 3], [f64; 3], bool) {
         match self.kind {
             Kind::Orbiter => {
                 let th = self.omega * (tick as f64) * DT + self.phase;
@@ -148,7 +219,7 @@ impl Object {
                     self.radius * self.omega * (-s * self.u[1] + c * self.w[1]),
                     self.radius * self.omega * (-s * self.u[2] + c * self.w[2]),
                 ];
-                (p, v)
+                (p, v, false)
             }
             Kind::Walker | Kind::Fast => {
                 if tick >= self.epoch_end {
@@ -165,19 +236,22 @@ impl Object {
                     self.dir[1] * self.speed,
                     self.dir[2] * self.speed,
                 ];
+                let mut reflected = false;
                 for a in 0..3 {
                     p[a] += v[a] * DT;
                     if p[a] < WORLD_MIN[a] {
                         p[a] = WORLD_MIN[a] + (WORLD_MIN[a] - p[a]);
                         v[a] = -v[a];
                         self.dir[a] = -self.dir[a];
+                        reflected = true;
                     } else if p[a] > WORLD_MAX[a] {
                         p[a] = WORLD_MAX[a] - (p[a] - WORLD_MAX[a]);
                         v[a] = -v[a];
                         self.dir[a] = -self.dir[a];
+                        reflected = true;
                     }
                 }
-                (p, v)
+                (p, v, reflected)
             }
         }
     }
@@ -191,6 +265,10 @@ pub struct World {
     pub pos: Vec<[f64; 3]>,
     pub vel: Vec<[f64; 3]>,
     pub tick: u32,
+    /// The tick at which each object last reflected off the arena wall (0: never).
+    pub reflect_tick: Vec<u32>,
+    /// How many reflections the world has had, in total.
+    pub reflections: u64,
 }
 
 impl World {
@@ -288,6 +366,8 @@ impl World {
             pos: positions,
             vel: velocities,
             tick: 0,
+            reflect_tick: vec![0; N_OBJECTS],
+            reflections: 0,
         };
         // the initial velocities follow from the objects themselves
         for i in 0..world.objs.len() {
@@ -315,12 +395,20 @@ impl World {
     pub fn step(&mut self) {
         self.tick += 1;
         let tick = self.tick;
-        let World { objs, pos, vel, .. } = self;
-        for i in 0..objs.len() {
-            let (p, v) = objs[i].advance(tick, pos[i]);
-            pos[i] = p;
-            vel[i] = v;
+        let mut reflections = 0u64;
+        {
+            let World { objs, pos, vel, reflect_tick, .. } = self;
+            for i in 0..objs.len() {
+                let (p, v, reflected) = objs[i].advance(tick, pos[i]);
+                pos[i] = p;
+                vel[i] = v;
+                if reflected {
+                    reflect_tick[i] = tick;
+                    reflections += 1;
+                }
+            }
         }
+        self.reflections += reflections;
     }
 }
 
@@ -362,15 +450,33 @@ pub fn dequantise_vel(v: [i32; 3]) -> [f64; 3] {
     [v[0] as f64 * s, v[1] as f64 * s, v[2] as f64 * s]
 }
 
-/// Displacement in quanta over `dt` ticks for a quantised velocity.
+/// Round `num / den` to the nearest integer, halves away from zero, in integer arithmetic.
 #[inline]
-pub fn vel_displacement(v: [i32; 3], dt: i64) -> [i32; 3] {
+fn div_round(num: i64, den: i64) -> i64 {
+    debug_assert!(den > 0);
+    if num >= 0 {
+        (2 * num + den) / (2 * den)
+    } else {
+        -((-2 * num + den) / (2 * den))
+    }
+}
+
+/// Displacement in quanta over `dt_us` microticks for a quantised velocity.
+///
+/// The numerator is rounded half away from zero, exactly as the float version was, so a
+/// whole-tick displacement is bit-for-bit what it always was. The sub-tick resolution is
+/// what the network model needs: a receiver that does not back-date anchors its state at
+/// the packet's arrival, and the arrival is not on a tick boundary.
+#[inline]
+pub fn vel_displacement_us(v: [i32; 3], dt_us: i64) -> [i32; 3] {
+    const DEN: i64 = VEL_SUB_I * TICK_US as i64;
     [
-        ((v[0] as i64 * dt) as f64 / VEL_SUB).round() as i32,
-        ((v[1] as i64 * dt) as f64 / VEL_SUB).round() as i32,
-        ((v[2] as i64 * dt) as f64 / VEL_SUB).round() as i32,
+        div_round(v[0] as i64 * dt_us, DEN) as i32,
+        div_round(v[1] as i64 * dt_us, DEN) as i32,
+        div_round(v[2] as i64 * dt_us, DEN) as i32,
     ]
 }
+
 
 #[cfg(test)]
 mod tests {

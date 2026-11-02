@@ -153,6 +153,42 @@ impl Region {
         }
     }
 
+    /// The relaxed membership test used for the exit hysteresis: the region grown by `hyst`
+    /// metres.
+    ///
+    /// An object that has drifted just outside the region stays in the subscriber's set
+    /// until it is `hyst` metres outside, instead of being evicted and re-entered on the
+    /// next delivery. For a sphere that is `hyst` metres of extra radius; for a frustum it
+    /// is `hyst` metres of extra range and `hyst` metres of extra width at the far plane.
+    #[inline]
+    pub fn contains_exit(&self, p: [f64; 3], hyst: f64) -> bool {
+        match self.shape {
+            Shape::Sphere => {
+                let d = p[0] - self.eye[0];
+                let d1 = p[1] - self.eye[1];
+                let d2 = p[2] - self.eye[2];
+                let r = self.radius + hyst;
+                d * d + d1 * d1 + d2 * d2 <= r * r
+            }
+            Shape::Frustum => {
+                let d = [
+                    p[0] - self.eye[0],
+                    p[1] - self.eye[1],
+                    p[2] - self.eye[2],
+                ];
+                let z = dot(d, self.fwd);
+                if z < self.near || z > self.far + hyst {
+                    return false;
+                }
+                // the cone is widened by `hyst` metres at the far plane
+                let w = hyst / self.far;
+                let x = dot(d, self.right).abs();
+                let y = dot(d, self.up).abs();
+                x <= z * (self.tan_h + w) && y <= z * (self.tan_v + w)
+            }
+        }
+    }
+
     /// Bounding box of the region (used to pick the grid cells to visit).
     pub fn aabb(&self) -> ([f64; 3], [f64; 3]) {
         match self.shape {
