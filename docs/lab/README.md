@@ -8,6 +8,17 @@ Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md
 
 ---
 
+## Round 10 — the return (2026-11-02)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-return-ux.md`](exp-return-ux.md) | the RETURN SCREEN on the world's real ledger (95.7 k rows, 25.6 h): the Biographer letter (93 words, one question), the timeline with 445 marks since last seen, per-actor lanes, "what happened to X?" pulling 4.73 % of the ledger to answer, the rewind preview (12,849 kept / 20,290 left behind at one point), and the precedent stub asked once and answered inline — served on :8131, verified in a real browser (zero console errors, phone width clean) | **useful** |
+
+Screenshots: [`return-ux-screenshots/`](return-ux-screenshots/) — the tool
+is [`tools/return_screen/`](../../tools/return_screen/).
+
+---
+
 ## Round 9 — the sleep phase (2026-11-01)
 
 | file | what it measured | verdict |

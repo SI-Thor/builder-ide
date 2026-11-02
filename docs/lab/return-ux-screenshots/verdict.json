@@ -1,0 +1,31 @@
+{
+  "base": "http://127.0.0.1:8131/",
+  "shots": [
+    "section-letter.png",
+    "section-beat-what-changed.png",
+    "section-beat-what-matters.png",
+    "section-beat-waiting.png",
+    "section-beat-undone.png",
+    "section-beat-next.png",
+    "full-desktop.png",
+    "interaction-ask.png",
+    "interaction-rewind.png",
+    "interaction-precedent.png",
+    "phone-full.png"
+  ],
+  "console_errors": [],
+  "page_errors": [],
+  "checks": {
+    "letter_words": "93 words",
+    "mark_count": 445,
+    "lane_rows": 4,
+    "counters": 7,
+    "ask_pulled": "pulled 4522 of 95621 rows (4.73% of the ledger)\n        between 2026-11-02 03:54Z and 2026-11-02 06:54Z",
+    "rewind_point_line": "rewind point: 2026-11-01 18:07Z (set on the timeline)",
+    "fork": "rewind/20261101T180710Z/keep-all-actors-tile-played-judge-verdict-tile-authored-tile-retired",
+    "precedent_answered": true,
+    "since_line_after": "last seen 2026-11-02 06:54Z (on this screen)",
+    "phone_overflow": 0
+  },
+  "ok": true
+}
