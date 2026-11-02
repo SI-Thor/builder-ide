@@ -8,6 +8,17 @@ Small, fast experiments that mine ideas for Thor-native breakthroughs (CLAUDE.md
 
 ---
 
+## Round 9 — the sleep phase (2026-11-01)
+
+| file | what it measured | verdict |
+|---|---|---|
+| [`exp-sleep-dreaming.md`](exp-sleep-dreaming.md) | Google's SLEEP mechanism (freeze the old parameters, write the new knowledge into fresh ones, distil it on the model's own samples, prune the transient) on a two-phase class-incremental toy: five arms at the same gradient-step budget, in two settings (the trunk shared or frozen), 8 seeds each | **the mechanism does not reduce forgetting here — it protects exactly the parameters it froze (0.970 against the baseline's 0.133, with the trunk put back) and cannot protect the shared representation under them; and it consolidates the teacher's own interference faithfully. The arm that kept the old task was replay, which is what our nightly refit already is, and the price of it (the new task's estimate) is now measured** |
+
+Scripts: [`sleep-dreaming-scripts/`](sleep-dreaming-scripts/) — the toy, the
+box-state meter it reads, and the raw rows.
+
+---
+
 ## Round 8 — the critic's shells (2026-11-01)
 
 | file | what it measured | verdict |

@@ -40,6 +40,10 @@ from boxstate import box_state, format_box_state
 D_IN, D_HID, N_CLS, RANK = 16, 32, 10, 8
 A_CLS, B_CLS = (0, 5), (5, 10)
 N_TRAIN, N_TEST, BATCH, LR, MOM = 600, 300, 64, 0.05, 0.9
+# the dream phase trains on single samples, so it gets its own learning rate
+# and a gradient clip. At LR=0.05 with momentum it produced NaN weights on
+# seed 8 of the first setting, and the run died on a multinomial over inf.
+DREAM_LR, GRAD_CLIP = 0.01, 1.0
 
 
 class Expert(nn.Module):
@@ -47,7 +51,10 @@ class Expert(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.A = nn.Parameter(torch.zeros(RANK, D_HID))
+        # A is random and B is zero: the expert starts as a no-op (B @ A = 0),
+        # but the gradient is not dead. With both at zero the product has zero
+        # gradient in both directions and the expert would never learn.
+        self.A = nn.Parameter(torch.randn(RANK, D_HID) * 0.02)
         self.B = nn.Parameter(torch.zeros(N_CLS, RANK))
 
     def delta(self):
@@ -71,13 +78,15 @@ class Net(nn.Module):
         return F.linear(h, w, self.head.bias)
 
 
-def make_task(classes, seed, n):
-    """Gaussian clusters, one per class, with the class's global label."""
-    gen = torch.Generator().manual_seed(seed)
+def make_task(classes, center_seed, sample_seed, n):
+    """Gaussian clusters, one per class. The centres come from center_seed,
+    so the train split and the test split share the same clusters."""
+    g1 = torch.Generator().manual_seed(center_seed)
+    g2 = torch.Generator().manual_seed(sample_seed)
     lo, hi = classes
-    centers = torch.randn(hi - lo, D_IN, generator=gen) * 2.0
-    y = torch.randint(0, hi - lo, (n,), generator=gen)
-    return centers[y] + torch.randn(n, D_IN, generator=gen), y + lo
+    centers = torch.randn(hi - lo, D_IN, generator=g1) * 2.0
+    y = torch.randint(0, hi - lo, (n,), generator=g2)
+    return centers[y] + torch.randn(n, D_IN, generator=g2), y + lo
 
 
 def train(model, params, x, y, steps, gen, lr=LR):
@@ -124,12 +133,13 @@ def consolidate(model, teacher, prompts, steps, gen, lam=0.5, temp=1.0):
         loss = (1 - lam) * kd(s, t, temp) + lam * F.cross_entropy(s, y_hat)
         opt.zero_grad(set_to_none=True)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_([fresh.A, fresh.B], GRAD_CLIP)
         opt.step()
         val = float(loss.item())
     return val
 
 
-def dream(model, prompts, steps, gen, n_cand=64, keep=0.5, temp=1.0):
+def dream(model, prompts, steps, gen, n_cand=64, keep=0.5, temp=1.0, lr=DREAM_LR):
     """SLEEP's dreaming: generate, select by gradient, train.
 
     The model generates its own samples (labels sampled from its own
@@ -139,7 +149,7 @@ def dream(model, prompts, steps, gen, n_cand=64, keep=0.5, temp=1.0):
     params = [p for p in model.parameters() if p.requires_grad]
     if not params:
         return float("nan")
-    opt = torch.optim.SGD(params, lr=LR, momentum=MOM)
+    opt = torch.optim.SGD(params, lr=lr, momentum=MOM)
     val = float("nan")
     rounds = max(1, steps // 8)
     per = max(1, steps // rounds)
@@ -147,7 +157,8 @@ def dream(model, prompts, steps, gen, n_cand=64, keep=0.5, temp=1.0):
         idx = torch.randint(0, prompts.shape[0], (n_cand,), generator=gen)
         xc = prompts[idx]
         with torch.no_grad():
-            y_hat = torch.multinomial(torch.softmax(model(xc) / temp, -1), 1).squeeze(1)
+            y_hat = torch.multinomial(
+                torch.softmax(torch.nan_to_num(model(xc)) / temp, -1), 1).squeeze(1)
         scores = []
         for i in range(xc.shape[0]):
             loss = F.cross_entropy(model(xc[i : i + 1]), y_hat[i : i + 1])
@@ -160,49 +171,64 @@ def dream(model, prompts, steps, gen, n_cand=64, keep=0.5, temp=1.0):
             loss = F.cross_entropy(model(xc[j : j + 1]), y_hat[j : j + 1])
             opt.zero_grad(set_to_none=True)
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(params, GRAD_CLIP)
             opt.step()
             val = float(loss.item())
     return val
 
 
-def run(arm, seed, steps, T, dream_steps):
+def run(arm, seed, steps, T, dream_steps, freeze_trunk=False):
+    """One (arm, seed) run. `freeze_trunk` is the second setting: the trunk
+    is frozen from the start of phase B, so the old task's features cannot
+    drift. It is the condition under which a frozen head can protect
+    anything at all."""
     torch.manual_seed(seed)
+    ca, cb = seed * 1000 + 1, seed * 1000 + 3
     data = {
-        "A": {"train": make_task(A_CLS, seed * 1000 + 1, N_TRAIN),
-              "test": make_task(A_CLS, seed * 1000 + 2, N_TEST)},
-        "B": {"train": make_task(B_CLS, seed * 1000 + 3, N_TRAIN),
-              "test": make_task(B_CLS, seed * 1000 + 4, N_TEST)},
+        "A": {"train": make_task(A_CLS, ca, ca + 10, N_TRAIN),
+              "test": make_task(A_CLS, ca, ca + 11, N_TEST)},
+        "B": {"train": make_task(B_CLS, cb, cb + 10, N_TRAIN),
+              "test": make_task(B_CLS, cb, cb + 11, N_TEST)},
     }
     xa, ya = data["A"]["train"]
     xb, yb = data["B"]["train"]
     t0 = time.perf_counter()
     model = Net()
     params = list(model.parameters())
-    if arm in ("seq", "seq_extra"):
-        gen = torch.Generator().manual_seed(seed + 101)
+    trunk_A = None
+    a0 = float("nan")
+    if arm in ("seq", "seq_extra", "replay"):
+        gen = torch.Generator().manual_seed(seed + (202 if arm == "replay" else 101))
         train(model, params, xa, ya, steps, gen)
         a0 = acc(model, *data["A"]["test"])
-        train(model, params, xb, yb, steps, gen)
+        trunk_A = {k: v.clone() for k, v in model.trunk.state_dict().items()}
+        pb = params
+        if freeze_trunk:
+            for p in model.trunk.parameters():
+                p.requires_grad_(False)
+            pb = [p for p in params if p.requires_grad]
+        train(model, pb, xb, yb, steps, gen)
         if arm == "seq_extra":
-            train(model, params, xb, yb, T, gen)
-    elif arm == "replay":
-        gen = torch.Generator().manual_seed(seed + 202)
-        train(model, params, xa, ya, steps, gen)
-        a0 = acc(model, *data["A"]["test"])
-        train(model, params, xb, yb, steps, gen)
-        sel = torch.randint(0, xa.shape[0], (200,), generator=gen)
-        train(model, params, xa[sel], ya[sel], T, gen)
+            train(model, pb, xb, yb, T, gen)
+        if arm == "replay":
+            sel = torch.randint(0, xa.shape[0], (200,), generator=gen)
+            train(model, pb, xa[sel], ya[sel], T, gen)
     else:
         gen = torch.Generator().manual_seed(seed + 303)
         train(model, params, xa, ya, steps, gen)
         a0 = acc(model, *data["A"]["test"])
+        trunk_A = {k: v.clone() for k, v in model.trunk.state_dict().items()}
         # phase B: the head is frozen, a transient expert carries the new task
         transient = Expert()
         model.experts.append(transient)
         for p in model.head.parameters():
             p.requires_grad_(False)
-        train(model, [model.trunk.weight, model.trunk.bias, transient.A, transient.B],
-              xb, yb, steps, gen)
+        pb = [model.trunk.weight, model.trunk.bias, transient.A, transient.B]
+        if freeze_trunk:
+            for p in model.trunk.parameters():
+                p.requires_grad_(False)
+            pb = [transient.A, transient.B]
+        train(model, pb, xb, yb, steps, gen)
         # the teacher is the model as it stands at the end of the wake phase
         teacher = Net(n_experts=len(model.experts))
         teacher.load_state_dict(model.state_dict())
@@ -220,8 +246,16 @@ def run(arm, seed, steps, T, dream_steps):
             dream(model, prompts, dream_steps, gen)
     a1 = acc(model, *data["A"]["test"])
     b1 = acc(model, *data["B"]["test"])
+    # where did A go? put the trunk back where it was after phase A and look
+    a1_trunk = float("nan")
+    if trunk_A is not None:
+        saved = {k: v.clone() for k, v in model.trunk.state_dict().items()}
+        model.trunk.load_state_dict(trunk_A)
+        a1_trunk = acc(model, *data["A"]["test"])
+        model.trunk.load_state_dict(saved)
     return dict(arm=arm, seed=seed, a0=round(a0, 4), a1=round(a1, 4), b1=round(b1, 4),
-                forgetting=round(a0 - a1, 4), avg_acc=round((a1 + b1) / 2, 4),
+                a1_trunk=round(a1_trunk, 4), forgetting=round(a0 - a1, 4),
+                avg_acc=round((a1 + b1) / 2, 4),
                 seconds=round(time.perf_counter() - t0, 2))
 
 
@@ -238,31 +272,38 @@ def main():
     print("box state:", file=sys.stderr)
     print(format_box_state(st), file=sys.stderr)
     arms = ["seq", "seq_extra", "replay", "sleep", "sleep_dream"]
+    settings = [("shared_trunk", False), ("frozen_trunk", True)]
     rows = []
-    for arm in arms:
-        for s in range(args.seed0, args.seed0 + args.seeds):
-            r = run(arm, s, args.steps, args.sleep_steps, args.dream_steps)
-            rows.append(r)
-            print(f"{arm:12s} seed {s:2d}  a0 {r['a0']:.3f}  a1 {r['a1']:.3f}  b1 {r['b1']:.3f}"
-                  f"  forget {r['forgetting']:+.3f}  avg {r['avg_acc']:.3f}  {r['seconds']:.1f}s",
-                  file=sys.stderr)
+    for setting, freeze in settings:
+        for arm in arms:
+            for s in range(args.seed0, args.seed0 + args.seeds):
+                r = run(arm, s, args.steps, args.sleep_steps, args.dream_steps, freeze)
+                r["setting"] = setting
+                rows.append(r)
+                print(f"{setting:12s} {arm:12s} seed {s:2d}  a0 {r['a0']:.3f}"
+                      f"  a1 {r['a1']:.3f}  a1+trunk {r['a1_trunk']:.3f}"
+                      f"  b1 {r['b1']:.3f}  forget {r['forgetting']:+.3f}"
+                      f"  avg {r['avg_acc']:.3f}  {r['seconds']:.1f}s", file=sys.stderr)
+    keys = [(s, a) for s, _ in settings for a in arms]
     summary = {}
-    for arm in arms:
-        sel = [r for r in rows if r["arm"] == arm]
-        summary[arm] = {
+    for setting, arm in keys:
+        sel = [r for r in rows if r["arm"] == arm and r["setting"] == setting]
+        summary[f"{setting}/{arm}"] = {
             k: {"mean": round(sum(r[k] for r in sel) / len(sel), 4),
                 "min": round(min(r[k] for r in sel), 4),
                 "max": round(max(r[k] for r in sel), 4),
                 "n": len(sel)}
-            for k in ("a0", "a1", "b1", "forgetting", "avg_acc", "seconds")
+            for k in ("a0", "a1", "a1_trunk", "b1", "forgetting", "avg_acc", "seconds")
         }
     print()
-    print("| arm | a0 | a1 (A kept) | b1 (B learned) | forgetting | avg acc |")
-    print("|---|---|---|---|---|---|")
-    for arm in arms:
-        s = summary[arm]
-        print(f"| `{arm}` | {s['a0']['mean']:.3f} | {s['a1']['mean']:.3f}"
+    print("| setting | arm | a0 | a1 (A kept) | a1 trunk restored | b1 (B) | forgetting | avg |")
+    print("|---|---|---|---|---|---|---|---|")
+    for setting, arm in keys:
+        s = summary[f"{setting}/{arm}"]
+        print(f"| {setting} | `{arm}` | {s['a0']['mean']:.3f} | {s['a1']['mean']:.3f}"
               f" [{s['a1']['min']:.3f}, {s['a1']['max']:.3f}] |"
+              f" {s['a1_trunk']['mean']:.3f}"
+              f" [{s['a1_trunk']['min']:.3f}, {s['a1_trunk']['max']:.3f}] |"
               f" {s['b1']['mean']:.3f} [{s['b1']['min']:.3f}, {s['b1']['max']:.3f}] |"
               f" {s['forgetting']['mean']:.3f}"
               f" [{s['forgetting']['min']:.3f}, {s['forgetting']['max']:.3f}] |"

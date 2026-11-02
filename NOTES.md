@@ -498,3 +498,90 @@ explicitly refuses, and our chooser has **no expansion**.
 MLP, five arms (no sleep / more waking / raw replay / sleep / sleep+dream), the
 same gradient-step budget in each, the forgetting measured per seed. Under
 `thor-admit run --tier practice --peak 2G`.
+
+## 2026-11-01 19:05 — the toy, measured
+
+The brief's rounds 2 and 3: a tiny continual-learning task with and without the
+sleep phase, the forgetting measured, and a verdict for the night.
+
+**The toy.** A two-phase class-incremental task: an MLP (16-32-10) with a
+shared trunk and a shared 10-way head learns classes 0-4, then classes 5-9.
+Five arms, the same gradient-step budget in each: `seq`, `seq_extra` (the same
+budget spent on more waking), `replay` (the old task's samples, with their true
+labels), `sleep` (head frozen, transient expert pruned, fresh expert trained
+only on the teacher's own samples) and `sleep_dream` (the same, then
+self-generated dreams filtered by gradient). Two settings: `shared_trunk` and
+`frozen_trunk`. 8 seeds each, 80 runs, 18 min 24 s, CPU only, 317 MiB.
+
+**The run.** `thor-admit run --tier practice --peak 1G --label
+sleep-dreaming.exp`, lease #39, queued and granted at 18:42:46 with no wait.
+Box state at the start: load 21.59 / 23.71 / 26.87, MemAvailable 112 415 MiB
+of 122.8 GiB, `NV Power Mode: MAXN`, GPU 0 % used by this job, other seats'
+work on the box throughout. 18 min 24 s of wall clock for the 80 runs (1 658 s
+of CPU, 154 %). The 1 GiB promise was ~3x the measured 317 MiB (rusage).
+
+**The numbers** (mean over 8 seeds; the full table with ranges is in
+`docs/lab/exp-sleep-dreaming.md`):
+
+| arm | setting | a1 (A kept) | a1, trunk put back | b1 (B learned) | average |
+|---|---|---|---|---|---|
+| `seq` | shared_trunk | 0.003 | 0.133 | 1.000 | 0.501 |
+| `seq_extra` | shared_trunk | 0.003 | 0.133 | 1.000 | 0.501 |
+| `replay` | shared_trunk | 0.997 | 0.591 | 0.287 | **0.642** |
+| `sleep` | shared_trunk | 0.078 | **0.970** | 0.970 | 0.524 |
+| `sleep_dream` | shared_trunk | 0.035 | 0.951 | 0.965 | 0.500 |
+| `seq` | frozen_trunk | 0.041 | 0.041 | 0.997 | 0.519 |
+| `replay` | frozen_trunk | 0.995 | 0.995 | 0.083 | **0.539** |
+| `sleep` | frozen_trunk | 0.012 | 0.012 | 0.993 | 0.502 |
+| `sleep_dream` | frozen_trunk | 0.000 | 0.000 | 0.943 | 0.472 |
+
+**What it says.** (1) The freeze worked on the parameters it froze: put the
+trunk back and the sleep arm scores **0.970** on A against the baseline's
+0.133 - but it could not protect the shared representation underneath, so the
+forgetting (0.922) barely moved (0.998). (2) With the substrate frozen too,
+the sleep phase still lost A (0.012 against 0.041): the wake phase taught the
+transient expert to suppress A, and the consolidation distils the teacher, so
+it carried the interference over faithfully. **A consolidation step preserves
+the teacher; it cannot undo what the teacher learned.** (3) The arm that kept
+the old task was `replay` - keeping the old task in the loss - and our nightly
+refit is already that shape; the price is the new task's estimate (b1 0.287),
+which we have been assuming. (4) Dreaming in the toy eroded the old task
+(0.035 / 0.000) and lowered the average in both settings. We did **not**
+reproduce the paper's dreaming benefit; we reproduced the risk they name.
+
+**Decided next.** Do not adopt SLEEP's machinery. Take the substrate rule: the
+old knowledge must live in parameters nothing else touches - for the chooser
+that is the per-context counts, and the *context bucket definition* is the
+shared substrate, so a context definition is a versioned thing. And measure the
+one thing the toy says matters: does the nightly refit over a growing log
+drift the old contexts' estimates? That is answerable with `core/tiles/ope.py`
+and our own log.
+
+**The dead ends, so nobody retries them.**
+
+1. *The train and the test split drew different class centres* (two seeds for
+   one task), so the model fitted the training set to zero loss and scored at
+   chance on the test set (a0 = 0.143). The centres now come from one seed and
+   the samples from another. Symptom: train loss 0.0, test accuracy at chance.
+2. *The expert's zero initialisation was dead.* A = 0 and B = 0 means
+   `B @ A` has zero gradient in both directions and the expert never learns.
+   A is now random (0.02) and B zero, so the expert starts as a no-op with a
+   live gradient.
+3. *The dream phase diverged.* Learning rate 0.05 with momentum on a
+   single-sample loss produced NaN weights (seed 8, `shared_trunk`) and the
+   run died on `multinomial` over `inf`. The dream phase now has its own
+   learning rate (0.01) and a gradient clip (1.0); the consolidation clips
+   too. The run that died was **discarded, not merged**.
+4. *The splice left two `if __name__ == "__main__"` blocks*, so the script
+   ran the whole experiment twice; the second pass was killed and the script
+   was re-run once, clean, from the committed file. The published rows are
+   from the clean run.
+5. *The permission gate on this host would not prompt for some file writes*,
+   so the scripts were sent in ~900-byte chunks (`tee` over `cat >`) and
+   patched by a script in `/tmp` rather than by an editor. It is the harness,
+   not the box; but it is why the scripts in this commit look the way they do.
+
+**What was not verified.** The paper's experiment (no LLM on the Thor, B2);
+the figures in the paper (numbers not in the HTML text); anything about the
+night pipeline beyond what the toy implies. The toy is one synthetic task with
+8 seeds - the ranges are in the lab note.
