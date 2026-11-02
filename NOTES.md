@@ -3919,3 +3919,34 @@ message.
 loaded box (240 min at 100% of one core, killed mid-walk) — the
 live-view seam has never produced a glb inside a night; the bar and the
 wedge restart have never fired in anger. All three are in the doc's §9.
+
+## 2026-11-02 07:05 — batched-sim: the plan, the venv, and a CUDA smoke check
+
+**What I tried.** Read the desk brief and the Thor's `BRIEF.md`, the design
+(`docs/design/batched-sim.md`), the language fit, the Stratego lab note, and
+last-mile's `lm-core` beacon rules (read-only) to pick what to port. Read
+`thor-admit status` before anything heavy: no night-v6 lease is up, so the
+box is free (97.6 GB free of 122.8 GB; the GPU pool's **largest free block is
+0.965 GB**, which is the real ceiling for a GPU allocation here).
+
+**What happened.** The plan is written and committed at
+`docs/superpowers/plans/2026-11-02-batched-sim.md`. The toolchain is ready:
+`uv` 0.13.6 installed (`pip install --user --break-system-packages uv` — the
+box's Python is externally managed), the repo venv is at `.venv` (numpy 2.5.4,
+pytest 9.2.0, pybind11 3.1.0), and a `nvcc -arch=sm_110` kernel compiled and
+ran on the GPU: `OK c[100]=300 c[1023]=3069`.
+
+**What I decided next.** Port the **Beacons** ruleset (last-mile's beacon
+game) as the one real game. The rules are read in full and they port cleanly:
+integer-only state, a fixed-size POD, a mask the rules engine writes, and
+hidden state that is real (the acting agent's line of sight). The rules live
+in **one** header compiled for both the host and the device, so "GPU == CPU"
+is a property of the backend rather than of a re-implementation; the Python
+reference is a third, independent implementation and is the ground truth.
+
+**What is left.** The whole interface, the port, the equality gate and the
+measurements (plan tasks 2-8). Two decisions are recorded in the plan and not
+yet proven: torch is **not** installed on this box, so the binding speaks
+numpy and the Python wrapper offers a `torch.from_numpy` conversion; and the
+observation is not stored per rollout row for Beacons (200 rows of a
+128×128×6-plane observation is 322 GB at batch 4096).
