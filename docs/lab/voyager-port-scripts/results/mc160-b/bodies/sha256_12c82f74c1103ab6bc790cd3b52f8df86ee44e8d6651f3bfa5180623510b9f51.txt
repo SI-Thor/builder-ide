@@ -1,0 +1,68 @@
+const LOG = 'jungle_log';
+const T = { x: 16, y: 69, z: -31 };
+const C = { x: T.x + 0.5, y: T.y + 0.5, z: T.z + 0.5 };
+
+function count() {
+  const r = mc.count(LOG);
+  return r && typeof r.count === 'number' ? r.count : 0;
+}
+
+function mineOnce(reach) {
+  mc.look_at(C.x, C.y, C.z);
+  mc.sleep(150);
+  const m = mc.mine_block(LOG, reach, 1);
+  console.log('mine: ' + JSON.stringify(m));
+  mc.sleep(350);
+  const c = mc.collect(LOG, 1, reach);
+  console.log('collect: ' + JSON.stringify(c));
+  mc.sleep(150);
+}
+
+console.log('start ' + LOG + ': ' + count());
+
+if (count() === 0) {
+  const mv = mc.move_to_block(LOG, 32, 60000);
+  console.log('move_to_block: ' + JSON.stringify(mv));
+  mineOnce(8);
+}
+
+if (count() === 0) {
+  const spots = [
+    { x: T.x + 1.5, y: T.y, z: T.z + 0.5 },
+    { x: T.x - 1.5, y: T.y, z: T.z + 0.5 },
+    { x: T.x + 0.5, y: T.y, z: T.z + 1.5 },
+    { x: T.x + 0.5, y: T.y, z: T.z - 1.5 },
+    { x: T.x + 1.5, y: T.y + 1, z: T.z + 0.5 },
+    { x: T.x - 1.5, y: T.y + 1, z: T.z + 0.5 },
+    { x: T.x + 0.5, y: T.y + 1, z: T.z + 1.5 },
+    { x: T.x + 0.5, y: T.y + 1, z: T.z - 1.5 }
+  ];
+  for (const s of spots) {
+    if (count() > 0) break;
+    const mv = mc.move_to(s.x, s.y, s.z, 30000);
+    console.log('move_to: ' + JSON.stringify(mv));
+    mineOnce(6);
+  }
+}
+
+if (count() === 0) {
+  const mv = mc.move_to(T.x + 0.5, T.y + 1, T.z + 0.5, 30000);
+  console.log('move_to above: ' + JSON.stringify(mv));
+  mineOnce(6);
+}
+
+if (count() === 0) {
+  mc.look_at(C.x, C.y, C.z);
+  mc.sleep(200);
+  const m = mc.mine_block(LOG, 64, 1);
+  console.log('long mine: ' + JSON.stringify(m));
+  mc.sleep(400);
+  const c = mc.collect(LOG, 1, 64);
+  console.log('long collect: ' + JSON.stringify(c));
+}
+
+const finalCount = count();
+console.log('final ' + LOG + ': ' + finalCount);
+if (finalCount === 0) {
+  throw new Error('failed to collect ' + LOG);
+}

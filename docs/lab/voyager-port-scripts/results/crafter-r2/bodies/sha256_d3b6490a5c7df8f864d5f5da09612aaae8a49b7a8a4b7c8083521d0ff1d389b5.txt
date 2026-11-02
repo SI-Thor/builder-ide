@@ -1,0 +1,63 @@
+const done = () => Boolean(mc.achievements().make_wood_pickaxe);
+
+let reward = mc.reward();
+
+const changed = () => mc.reward() !== reward;
+
+const eatFood = () => {
+  for (let i = 0; i < 8 && !done(); i++) {
+    reward = mc.reward();
+    mc.act('do', 1);
+    if (changed()) {
+      reward = mc.reward();
+    }
+  }
+};
+
+const chopHere = () => {
+  for (let i = 0; i < 4 && !done(); i++) {
+    reward = mc.reward();
+    mc.act('do', 1);
+    if (changed()) {
+      reward = mc.reward();
+    }
+  }
+};
+
+const craft = () => {
+  mc.act('make_wood_pickaxe', 1);
+};
+
+const spiral = (maxRadius) => {
+  const dirs = ['right', 'down', 'left', 'up'];
+  for (let r = 1; r <= maxRadius && !done(); r++) {
+    for (let side = 0; side < 4 && !done(); side++) {
+      const dir = dirs[side];
+      mc.move(dir, r);
+      chopHere();
+      craft();
+      if (done()) return;
+      const back = dir === 'right' ? 'left' : dir === 'left' ? 'right' : dir === 'up' ? 'down' : 'up';
+      mc.move(back, r);
+    }
+  }
+};
+
+eatFood();
+chopHere();
+craft();
+
+if (!done()) {
+  spiral(10);
+}
+
+if (!done()) {
+  mc.act('place_table', 1);
+  craft();
+}
+
+if (!done()) {
+  spiral(16);
+}
+
+console.log('wood pickaxe: ' + (done() ? 'crafted' : 'not crafted'));

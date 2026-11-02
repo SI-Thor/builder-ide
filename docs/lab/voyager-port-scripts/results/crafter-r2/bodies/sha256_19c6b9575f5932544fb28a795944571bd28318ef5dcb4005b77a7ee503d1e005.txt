@@ -1,0 +1,61 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+const made = () => Boolean(mc.achievements().make_stone_pickaxe);
+const stoneCount = () => {
+  const a = mc.achievements();
+  const v = a.collect_stone;
+  return typeof v === "number" ? v : (v ? 1 : 0);
+};
+
+let mined = 0;
+let lastReward = mc.reward();
+let lastStone = stoneCount();
+
+const tryMine = (dx, dy) => {
+  if (made() || mined >= 3) return;
+  const r0 = mc.reward();
+  const s0 = stoneCount();
+  if (dx > 0) mc.move("right", dx);
+  else if (dx < 0) mc.move("left", -dx);
+  if (dy > 0) mc.move("down", dy);
+  else if (dy < 0) mc.move("up", -dy);
+  mc.act("do", 3);
+  const gained = Math.max(0, stoneCount() - s0);
+  if (gained > 0) mined += gained;
+  else if (mc.reward() > r0) mined += 1;
+  if (dx > 0) mc.move("left", dx);
+  else if (dx < 0) mc.move("right", -dx);
+  if (dy > 0) mc.move("up", dy);
+  else if (dy < 0) mc.move("down", -dy);
+};
+
+console.log("sweeping nearby tiles for stone");
+for (let r = 0; r <= 18 && mined < 3 && !made(); r++) {
+  for (let dx = -r; dx <= r && mined < 3 && !made(); dx++) {
+    for (let dy = -r; dy <= r && mined < 3 && !made(); dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      tryMine(dx, dy);
+    }
+  }
+}
+
+console.log("returning to table and crafting stone pickaxe");
+for (let r = 0; r <= 24 && !made(); r++) {
+  for (let dx = -r; dx <= r && !made(); dx++) {
+    for (let dy = -r; dy <= r && !made(); dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      if (dx > 0) mc.move("right", dx);
+      else if (dx < 0) mc.move("left", -dx);
+      if (dy > 0) mc.move("down", dy);
+      else if (dy < 0) mc.move("up", -dy);
+      mc.act("make_stone_pickaxe", 1);
+      if (dx > 0) mc.move("left", dx);
+      else if (dx < 0) mc.move("right", -dx);
+      if (dy > 0) mc.move("up", dy);
+      else if (dy < 0) mc.move("down", -dy);
+    }
+  }
+}
+
+console.log("stone pickaxe crafted:", made());

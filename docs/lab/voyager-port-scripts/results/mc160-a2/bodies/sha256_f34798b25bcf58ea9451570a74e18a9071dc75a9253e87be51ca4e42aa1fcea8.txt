@@ -1,0 +1,52 @@
+(async () => {
+  const start = { x: 39.5, y: 66, z: 26.5 };
+  const isLog = (name) => typeof name === 'string' && name.endsWith('_log');
+
+  let found = null;
+  for (const radius of [16, 32, 64, 128, 160]) {
+    const scan = await mc.scan(radius);
+    for (const [name, count] of Object.entries(scan.nearby || {})) {
+      if (isLog(name) && count > 0) {
+        found = name;
+        break;
+      }
+    }
+    if (found) break;
+  }
+
+  if (!found) {
+    const points = [];
+    for (let radius = 4; radius <= 80; radius += 4) {
+      for (let angle = 0; angle < 360; angle += 30) {
+        const rad = angle * Math.PI / 180;
+        points.push({
+          x: Math.round(start.x + radius * Math.cos(rad)),
+          y: 66,
+          z: Math.round(start.z + radius * Math.sin(rad))
+        });
+      }
+    }
+
+    for (const p of points) {
+      await mc.move_to(p.x, p.y, p.z, 20000);
+      const scan = await mc.scan(48);
+      for (const [name, count] of Object.entries(scan.nearby || {})) {
+        if (isLog(name) && count > 0) {
+          found = name;
+          break;
+        }
+      }
+      if (found) break;
+    }
+  }
+
+  if (!found) {
+    console.log('No log block found while exploring the surface.');
+    return;
+  }
+
+  const move = await mc.move_to_block(found, 64, 30000);
+  const mine = await mc.mine_block(found, 16, 1);
+  const collect = await mc.collect(found, 64, 16);
+  console.log(`Mined ${mine.mined || 0} ${found} and collected ${collect.collected || 0}.`);
+})();

@@ -1,0 +1,42 @@
+function done() {
+  return !!mc.achievements().make_wood_pickaxe;
+}
+
+function woodCount() {
+  const inv = mc.achievements();
+  return 0;
+}
+
+function tryCraft() {
+  if (done()) return true;
+  mc.act("make_wood_pickaxe", 1);
+  return done();
+}
+
+function collectWoodOnce() {
+  if (done()) return;
+  mc.act("sleep", 1);
+  mc.act_seq(["move_right", "move_down"]);
+  mc.act("do", 1);
+  mc.act_seq(["move_up", "move_left"]);
+}
+
+console.log("starting wood pickaxe skill");
+
+if (!done()) {
+  tryCraft();
+}
+
+for (let i = 0; i < 8 && !done(); i++) {
+  collectWoodOnce();
+  if (!done()) {
+    tryCraft();
+  }
+}
+
+if (!done()) {
+  mc.act("sleep", 1);
+  tryCraft();
+}
+
+console.log("wood pickaxe crafted: " + (done() ? "yes" : "no"));

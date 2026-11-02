@@ -1,0 +1,40 @@
+print("starting wood pickaxe plan")
+
+def done():
+    return bool(mc.achievements().get("make_wood_pickaxe"))
+
+def try_craft():
+    if done():
+        return True
+    mc.act("make_wood_pickaxe", 1)
+    return done()
+
+def try_refill():
+    mc.act("do", 1)
+    mc.act("sleep", 1)
+
+if not try_craft():
+    for _ in range(16):
+        if done():
+            break
+        try_refill()
+        if try_craft():
+            break
+
+if not done():
+    mc.act("place_table", 1)
+    try_craft()
+
+if not done():
+    dirs = ["up", "down", "left", "right"]
+    for i in range(8):
+        if done():
+            break
+        d = dirs[i % 4]
+        mc.move(d, 1)
+        mc.act("make_wood_pickaxe", 1)
+        if done():
+            break
+        mc.move("down" if d == "up" else "up" if d == "down" else "right" if d == "left" else "left", 1)
+
+print("wood pickaxe crafted: " + ("yes" if done() else "no"))

@@ -1,0 +1,38 @@
+const target = { x: 25, y: 78, z: -54 };
+
+let move = mc.move_to_block('jungle_log', 16, 30000);
+console.log('move_to_block:', move);
+
+if (move && move.block && typeof move.block.x === 'number') {
+  target.x = move.block.x;
+  target.y = move.block.y;
+  target.z = move.block.z;
+}
+
+let have = 0;
+for (let i = 0; i < 8 && have < 1; i++) {
+  mc.look_at(target.x, target.y, target.z);
+  const mine = mc.mine_block('jungle_log', 16, 1);
+  console.log('mine attempt', i + 1, mine);
+
+  const collect = mc.collect('jungle_log', 1, 16);
+  console.log('collect attempt', i + 1, collect);
+
+  const counted = mc.count('jungle_log');
+  have = counted && typeof counted.count === 'number' ? counted.count : 0;
+
+  if (have < 1) {
+    mc.sleep(500);
+    if (i % 2 === 1) {
+      const reMove = mc.move_to_block('jungle_log', 16, 15000);
+      console.log('re-move attempt', i + 1, reMove);
+      if (reMove && reMove.block && typeof reMove.block.x === 'number') {
+        target.x = reMove.block.x;
+        target.y = reMove.block.y;
+        target.z = reMove.block.z;
+      }
+    }
+  }
+}
+
+console.log('jungle_log count:', have);

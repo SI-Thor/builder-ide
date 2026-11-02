@@ -1,0 +1,54 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+function stoneCount() {
+  const a = mc.achievements();
+  const v = a.collect_stone;
+  if (typeof v === "number") return v;
+  return v ? 1 : 0;
+}
+
+function crafted() {
+  const a = mc.achievements();
+  return !!a.make_stone_pickaxe;
+}
+
+function go(dx, dy) {
+  if (dx > 0) mc.move("right", dx);
+  else if (dx < 0) mc.move("left", -dx);
+  if (dy > 0) mc.move("down", dy);
+  else if (dy < 0) mc.move("up", -dy);
+}
+
+function back(dx, dy) {
+  if (dy > 0) mc.move("up", dy);
+  else if (dy < 0) mc.move("down", -dy);
+  if (dx > 0) mc.move("left", dx);
+  else if (dx < 0) mc.move("right", -dx);
+}
+
+console.log("sweeping nearby tiles for stone");
+for (let r = 1; r <= 12 && !crafted(); r++) {
+  for (let dx = -r; dx <= r && !crafted(); dx++) {
+    for (let dy = -r; dy <= r && !crafted(); dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      go(dx, dy);
+      mc.act("do", 4);
+      back(dx, dy);
+    }
+  }
+}
+
+console.log("returning to table and crafting stone pickaxe");
+for (let r = 0; r <= 20 && !crafted(); r++) {
+  for (let dx = -r; dx <= r && !crafted(); dx++) {
+    for (let dy = -r; dy <= r && !crafted(); dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      go(dx, dy);
+      mc.act("make_stone_pickaxe", 1);
+      back(dx, dy);
+    }
+  }
+}
+
+console.log("stone pickaxe crafted:", crafted());

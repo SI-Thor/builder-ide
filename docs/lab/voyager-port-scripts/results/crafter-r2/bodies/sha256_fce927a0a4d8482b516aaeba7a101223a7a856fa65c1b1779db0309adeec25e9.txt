@@ -1,0 +1,10 @@
+console.log("start: sleep, dig down, mine stone");
+
+const hadPickaxe = Boolean(mc.achievements().get ? mc.achievements().get("make_wood_pickaxe", false) : mc.achievements().make_wood_pickaxe);
+
+mc.act("sleep", 1);
+mc.act("move_down", 8);
+mc.act("do", 16);
+
+const stone = Boolean(mc.achievements().get ? mc.achievements().get("collect_stone", false) : mc.achievements().collect_stone);
+console.log("collect_stone: " + (stone ? "yes" : "no"));

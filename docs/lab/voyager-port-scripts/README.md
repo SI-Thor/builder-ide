@@ -42,6 +42,10 @@ actually installed, and each is cheap.
 | `probe_planner_reply.py` | why the planner's reply sometimes has no JSON in it (the cap cut it) |
 | `probe_verifier_reply.py` | what the verifier returns for the call the run actually makes |
 | `probe_crafter_adapter.py` | the crafter adapter's whole port, for zero tokens |
+| `probe_facts_value.py` | does the run op carry the program's completion value (round 2: it did not — every facts scan was empty) |
+| `probe_move_to_block.py` | what `mc.move_to_block` really does at 5 blocks and at 90 |
+| `probe_wood_sequence.py` | can the primitives chop a tree end to end, driven by hand (yes: 19 s) |
+| `run_crafter_r2.sh` | round 2's crafter run — the spatial fact, until skills are admitted or the budget stops it |
 | `dump_level.js` / `dump_player.js` | the world's and the bot's saved NBT |
 | `move_bot.js` | put the bot at the tree |
 | `reset_hands.js` | empty the bot's inventory before a measured run |
@@ -57,4 +61,7 @@ mineflayer-pathfinder 2.4.5 emits neither `path_complete` nor `path_blocked`
 nor `path_timeout`; `findBlock`'s `maxDistance` is not a sphere radius; Paper
 restores a missing `.dat` from the `.dat_old` beside it, so both have to be
 moved aside; and the `write` tool is refused by the same gate, so the files
-are staged in `/tmp` and copied over with `scp`.
+are staged in `/tmp` and copied over with `scp`. Round 2 added two: a
+program wrapped in its own async IIFE was fire-and-forget under the
+sandbox's second wrapper (the bridge unwraps one redundant IIFE now),
+and `pkill -f` matches the ssh command's own text — kill by pid.

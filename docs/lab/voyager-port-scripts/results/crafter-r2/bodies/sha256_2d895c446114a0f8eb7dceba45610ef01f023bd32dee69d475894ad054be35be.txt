@@ -1,0 +1,13 @@
+print("start: sleep, chop tree, place table, craft wood pickaxe")
+
+crafted = lambda: bool(mc.achievements().get("make_wood_pickaxe", False))
+
+if not crafted():
+    mc.act("sleep", 1)
+    mc.act_seq(["move_left", "move_left", "move_down", "move_down"])
+    mc.act("do", 24)
+    mc.act_seq(["move_up", "move_up", "move_right", "move_right"])
+    mc.act("place_table", 1)
+    mc.act("make_wood_pickaxe", 1)
+
+print("wood pickaxe crafted: " + ("yes" if crafted() else "no"))

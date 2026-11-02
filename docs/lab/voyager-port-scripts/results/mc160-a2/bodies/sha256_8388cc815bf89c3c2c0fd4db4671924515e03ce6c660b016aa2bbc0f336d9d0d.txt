@@ -1,0 +1,50 @@
+(async () => {
+  const log = { x: -3, y: 66, z: 103 };
+
+  const approach = await mc.move_to_block('oak_log', 128, 600000);
+  if (approach && approach.block) {
+    log.x = approach.block.x;
+    log.y = approach.block.y;
+    log.z = approach.block.z;
+  }
+
+  const spots = [
+    { x: log.x - 1, y: log.y, z: log.z },
+    { x: log.x + 1, y: log.y, z: log.z },
+    { x: log.x, y: log.y, z: log.z - 1 },
+    { x: log.x, y: log.y, z: log.z + 1 },
+    { x: log.x - 1, y: log.y, z: log.z - 1 },
+    { x: log.x + 1, y: log.y, z: log.z - 1 },
+    { x: log.x - 1, y: log.y, z: log.z + 1 },
+    { x: log.x + 1, y: log.y, z: log.z + 1 },
+    { x: log.x, y: log.y + 1, z: log.z },
+    { x: log.x, y: log.y - 1, z: log.z }
+  ];
+
+  let mined = 0;
+  for (const spot of spots) {
+    const move = await mc.move_to(spot.x, spot.y, spot.z, 30000);
+    if (!move || !move.at) continue;
+
+    await mc.look_at(log.x, log.y, log.z);
+    const result = await mc.mine_block('oak_log', 16, 1);
+    if (result && result.mined > 0) {
+      mined += result.mined;
+      break;
+    }
+  }
+
+  if (mined > 0) {
+    await mc.sleep(1000);
+    await mc.collect('oak_log', 1, 16);
+  }
+
+  const count = mc.count('oak_log').count;
+  if (count > 0) {
+    console.log('Got ' + count + ' oak_log.');
+    return;
+  }
+
+  console.log('Could not get oak_log.');
+  throw new Error('No oak_log collected.');
+})();

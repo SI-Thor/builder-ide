@@ -1,0 +1,53 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+
+  const approach = await mc.move_to_block('oak_log', 128, 120000);
+  if (approach && approach.block) {
+    target.x = approach.block.x;
+    target.y = approach.block.y;
+    target.z = approach.block.z;
+  }
+
+  const standSpots = [
+    [target.x + 1, target.y, target.z],
+    [target.x - 1, target.y, target.z],
+    [target.x, target.y, target.z + 1],
+    [target.x, target.y, target.z - 1],
+    [target.x + 1, target.y, target.z + 1],
+    [target.x - 1, target.y, target.z - 1]
+  ];
+
+  let mined = 0;
+  for (let i = 0; i < standSpots.length && mined === 0; i++) {
+    const spot = standSpots[i];
+    await mc.move_to(spot[0], spot[1], spot[2], 30000);
+    await mc.look_at(target.x + 0.5, target.y + 0.5, target.z + 0.5);
+    await mc.sleep(250);
+
+    const result = await mc.mine_block('oak_log', 64, 1);
+    if (result && result.mined > 0) {
+      mined = result.mined;
+    }
+
+    if (mined === 0) {
+      await mc.sleep(500);
+    }
+  }
+
+  if (mined === 0) {
+    console.log('Could not break the oak log.');
+    throw new Error('oak_log not mined');
+  }
+
+  await mc.sleep(1000);
+  const pickup = await mc.collect('oak_log', 1, 64);
+  const count = mc.count('oak_log').count;
+
+  if (count > 0) {
+    console.log('Got ' + count + ' oak_log.');
+    return;
+  }
+
+  console.log('Broke oak_log but did not collect it.');
+  throw new Error('oak_log not collected');
+})();

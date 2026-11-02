@@ -1,0 +1,100 @@
+console.log('wood pickaxe: start');
+
+function ach() {
+  return mc.achievements();
+}
+
+function woodCount() {
+  const a = ach();
+  const v = a.collect_wood;
+  return typeof v === 'number' ? v : (v ? 1 : 0);
+}
+
+function done() {
+  const v = ach().make_wood_pickaxe;
+  return v === true || (typeof v === 'number' && v > 0);
+}
+
+function act(a, t) {
+  return mc.act(a, t);
+}
+
+function move(d, s) {
+  return mc.move(d, s);
+}
+
+function tryDo(n) {
+  for (let i = 0; i < n && !done(); i++) {
+    act('do', 1);
+  }
+}
+
+function tryCraft(n) {
+  for (let i = 0; i < n && !done(); i++) {
+    act('make_wood_pickaxe', 1);
+  }
+}
+
+function spiralSearch(radius, onPos) {
+  if (onPos(0, 0)) return true;
+  for (let r = 1; r <= radius; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (onPos(dx, dy)) return true;
+      }
+    }
+  }
+  return false;
+}
+
+function visit(dx, dy, fn) {
+  const sx = dx < 0 ? 'left' : dx > 0 ? 'right' : null;
+  const sy = dy < 0 ? 'up' : dy > 0 ? 'down' : null;
+  if (sx) move(sx, Math.abs(dx));
+  if (sy) move(sy, Math.abs(dy));
+  const ok = fn();
+  if (sx) move(sx === 'left' ? 'right' : 'left', Math.abs(dx));
+  if (sy) move(sy === 'up' ? 'down' : 'up', Math.abs(dy));
+  return ok;
+}
+
+let woodBefore = woodCount();
+tryDo(3);
+
+if (!done()) {
+  spiralSearch(12, (dx, dy) => {
+    const before = woodCount();
+    visit(dx, dy, () => {
+      tryDo(4);
+      return woodCount() > before;
+    });
+    return woodCount() > woodBefore;
+  });
+}
+
+if (!done()) {
+  spiralSearch(16, (dx, dy) => {
+    visit(dx, dy, () => {
+      tryCraft(3);
+      return done();
+    });
+    return done();
+  });
+}
+
+if (!done()) {
+  spiralSearch(10, (dx, dy) => {
+    const before = woodCount();
+    visit(dx, dy, () => {
+      tryDo(4);
+      if (woodCount() > before) {
+        tryCraft(3);
+      }
+      return done();
+    });
+    return done();
+  });
+}
+
+console.log('wood pickaxe: ' + (done() ? 'crafted' : 'failed'));

@@ -1,0 +1,32 @@
+function done() {
+  return !!mc.achievements().make_wood_pickaxe;
+}
+
+function tryCraft() {
+  if (done()) return true;
+  mc.act("make_wood_pickaxe", 1);
+  return done();
+}
+
+console.log("starting wood pickaxe skill");
+
+for (let i = 0; i < 16 && !done(); i++) {
+  mc.act("sleep", 1);
+}
+
+mc.move("right", 1);
+mc.move("down", 1);
+
+for (let i = 0; i < 8 && !done(); i++) {
+  mc.act("do", 1);
+}
+
+mc.move("up", 1);
+mc.move("left", 1);
+
+for (let i = 0; i < 4 && !done(); i++) {
+  mc.act("do", 1);
+}
+
+const crafted = tryCraft();
+console.log("wood pickaxe crafted: " + (crafted ? "yes" : "no"));

@@ -1,0 +1,22 @@
+const target = { x: 8, y: 72, z: -44 };
+
+const move = mc.move_to_block('jungle_log', 16, 15000);
+console.log('moved to jungle_log: ' + JSON.stringify(move));
+
+mc.look_at(target.x, target.y, target.z);
+
+let have = 0;
+for (let i = 0; i < 3 && have < 1; i++) {
+  const mined = mc.mine_block('jungle_log', 8, 1);
+  console.log('mined jungle_log: ' + JSON.stringify(mined));
+
+  const pickup = mc.collect('jungle_log', 1, 8);
+  console.log('collected jungle_log: ' + JSON.stringify(pickup));
+
+  have = mc.count('jungle_log').count;
+  if (have < 1) {
+    mc.sleep(500);
+  }
+}
+
+console.log('jungle_log count: ' + mc.count('jungle_log').count);

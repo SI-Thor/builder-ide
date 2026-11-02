@@ -1,0 +1,12 @@
+print("start: sleep, go to tree, chop, craft wood pickaxe")
+
+def crafted():
+    return bool(mc.achievements().get("make_wood_pickaxe"))
+
+if not crafted():
+    mc.act("sleep", 1)
+    mc.move("up", 2)
+    mc.act("do", 12)
+    mc.act("make_wood_pickaxe", 1)
+
+print("wood pickaxe crafted: " + ("yes" if crafted() else "no"))

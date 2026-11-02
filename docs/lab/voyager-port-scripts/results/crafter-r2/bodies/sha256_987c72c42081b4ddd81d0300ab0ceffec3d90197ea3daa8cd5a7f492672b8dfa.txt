@@ -1,0 +1,49 @@
+const crafted = () => Boolean((mc.achievements() || {}).get ? (mc.achievements() || {}).get("make_wood_pickaxe") : (mc.achievements() || {})["make_wood_pickaxe"]);
+
+const tryCraft = () => {
+  mc.act("make_wood_pickaxe", 1);
+  return crafted();
+};
+
+const ensureEnergy = () => {
+  for (let i = 0; i < 12 && !crafted(); i++) {
+    mc.act("do", 1);
+    mc.act("sleep", 1);
+  }
+};
+
+const chopTree = () => {
+  const paths = [
+    ["right", 1],
+    ["down", 1],
+    ["right", 1],
+    ["down", 1],
+    ["right", 1],
+    ["down", 1],
+    ["right", 1],
+    ["down", 1]
+  ];
+  for (const [dir, steps] of paths) {
+    mc.move(dir, steps);
+    mc.act("do", 8);
+    if (crafted()) return;
+  }
+  mc.act("do", 16);
+};
+
+const placeAndCraft = () => {
+  mc.act("place_table", 1);
+  if (tryCraft()) return;
+  mc.act("do", 1);
+  if (tryCraft()) return;
+  mc.act("place_table", 1);
+  tryCraft();
+};
+
+if (!crafted()) {
+  ensureEnergy();
+  if (!crafted()) chopTree();
+  if (!crafted()) placeAndCraft();
+}
+
+console.log("wood pickaxe crafted:", crafted() ? "yes" : "no");

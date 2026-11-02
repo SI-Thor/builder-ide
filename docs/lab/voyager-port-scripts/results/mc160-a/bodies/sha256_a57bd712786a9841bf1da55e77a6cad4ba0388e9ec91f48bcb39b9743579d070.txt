@@ -1,0 +1,68 @@
+(async () => {
+  const logs = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+  const hasWood = async () => {
+    for (const id of logs) {
+      const r = await mc.count(id);
+      if (r && r.count > 0) return true;
+    }
+    return false;
+  };
+  const collectLogs = async () => {
+    for (const id of logs) {
+      const c = await mc.collect(id, 64, 64);
+      if (c && c.collected > 0) console.log('collected ' + id + ' ' + c.collected);
+    }
+  };
+  const findLogs = async (radius) => {
+    const s = await mc.scan(radius);
+    const found = Object.keys(s.nearby || {}).filter((b) => typeof b === 'string' && b.includes('log'));
+    return found;
+  };
+  const harvest = async (block) => {
+    const approach = await mc.move_to_block(block, 128, 45000);
+    console.log('approach ' + block + ' ' + JSON.stringify(approach.at) + ' ' + (approach.why || ''));
+    if (approach.block) {
+      await mc.look_at(approach.block.x, approach.block.y, approach.block.z);
+    }
+    for (let i = 0; i < 48; i++) {
+      const m = await mc.mine_block(block, 64, 64);
+      console.log('mine ' + block + ' mined=' + (m.mined || 0) + ' ' + (m.problem || ''));
+      if (!m.mined) break;
+      await collectLogs();
+      if (await hasWood()) return true;
+    }
+    await collectLogs();
+    return await hasWood();
+  };
+  const checkHere = async () => {
+    const found = await findLogs(160);
+    for (const b of found) {
+      if (await harvest(b)) return true;
+    }
+    return false;
+  };
+  if (await hasWood()) {
+    console.log('already have wood');
+    return;
+  }
+  if (await checkHere()) {
+    console.log('got wood');
+    return;
+  }
+  let pos = { x: 37.6, y: 67, z: 44.7 };
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+  for (let ring = 1; ring <= 32; ring++) {
+    for (const [dx, dz] of dirs) {
+      const tx = pos.x + dx * ring * 10;
+      const tz = pos.z + dz * ring * 10;
+      const mv = await mc.move_to(tx, pos.y, tz, 20000);
+      if (mv && mv.at) pos = mv.at;
+      console.log('walk to ' + JSON.stringify(pos) + ' ' + (mv.why || ''));
+      if (await checkHere()) {
+        console.log('got wood');
+        return;
+      }
+    }
+  }
+  throw new Error('no wood found');
+})();

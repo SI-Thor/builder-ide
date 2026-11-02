@@ -1,0 +1,12 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+console.log("sweeping nearby tiles for stone");
+mc.act_seq(["move_left", "do", "move_up", "do", "move_right", "do", "move_right", "do", "move_down", "do", "move_down", "do", "move_left", "do", "move_left", "do"]);
+
+console.log("placing a table");
+mc.act("place_table", 1);
+
+console.log("crafting stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+console.log("done");

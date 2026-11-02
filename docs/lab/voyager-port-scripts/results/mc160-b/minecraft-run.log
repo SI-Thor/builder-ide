@@ -1,0 +1,66 @@
+[07:49:53] the bot is connected to 127.0.0.1:25600
+[07:50:35] step 1: goal=wood verdict=DENIED truth=False disposition=rejected tokens=10556
+[07:51:46] step 2: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11196
+[07:52:34] step 3: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11371
+[07:53:25] step 4: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11213
+[07:54:18] step 5: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11414
+[07:55:17] step 6: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11480
+[07:56:20] step 7: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11491
+[07:57:21] step 8: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11950
+[07:58:16] step 9: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11988
+[08:00:17] step 10: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11871
+[08:01:04] step 11: goal=wood verdict=DENIED truth=False disposition=rejected tokens=11947
+[08:02:02] step 12: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12100
+[08:02:57] step 13: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12370
+[08:03:50] step 14: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12638
+[08:04:44] step 15: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12386
+[08:05:50] step 16: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12365
+[08:06:41] step 17: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12338
+[08:07:36] step 18: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12261
+[08:08:28] step 19: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12545
+[08:09:17] step 20: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12994
+[08:10:18] step 21: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13291
+[08:11:15] step 22: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13718
+[08:12:12] step 23: goal=wood verdict=DENIED truth=False disposition=rejected tokens=15987
+[08:13:16] step 24: goal=wood verdict=DENIED truth=False disposition=rejected tokens=18878
+[08:14:14] step 25: goal=wood verdict=DENIED truth=False disposition=rejected tokens=16862
+[08:15:12] step 26: goal=wood verdict=DENIED truth=False disposition=rejected tokens=18285
+[08:16:27] step 27: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12715
+[08:18:42] step 28: goal=wood verdict=DENIED truth=False disposition=rejected tokens=21694
+[08:19:34] step 29: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13754
+[08:20:40] step 30: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13637
+[08:22:33] step 31: goal=wood verdict=DENIED truth=False disposition=rejected tokens=21781
+[08:23:20] step 32: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12643
+[08:24:07] step 33: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12651
+[08:25:11] step 34: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13065
+[08:26:12] step 35: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13216
+[08:27:26] step 36: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13094
+[08:28:32] step 37: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12793
+[08:29:46] step 38: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12925
+[08:30:59] step 39: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13020
+[08:32:06] step 40: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12749
+[08:33:24] step 41: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12672
+[08:35:28] step 42: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12703
+[08:37:00] step 43: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13075
+[08:40:39] step 44: goal=wood verdict=DENIED truth=False disposition=rejected tokens=21147
+[08:44:41] step 45: goal=wood verdict=DENIED truth=False disposition=rejected tokens=21289
+[08:46:32] step 46: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13110
+[08:48:02] step 47: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13219
+[08:49:49] step 48: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13073
+[08:51:19] step 49: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13171
+[08:52:34] step 50: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13027
+[08:54:51] step 51: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13111
+[08:56:09] step 52: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13029
+[08:57:55] step 53: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13178
+[09:01:51] step 54: goal=wood verdict=DENIED truth=False disposition=rejected tokens=20931
+[09:03:40] step 55: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13025
+[09:07:06] step 56: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13046
+[09:08:40] step 57: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13023
+[09:11:55] step 58: goal=wood verdict=DENIED truth=False disposition=rejected tokens=12909
+[09:13:01] step 59: goal=wood verdict=DENIED truth=False disposition=rejected tokens=13052
+[09:25:46] step 60: failed (coder_unreadable: no JSON object in the reply)
+[09:34:00] step 61: failed (coder_unreadable: no JSON object in the reply)
+[09:41:01] step 62: failed (coder_unreadable: no JSON object in the reply)
+[09:44:07] step 63: goal=wood verdict=DENIED truth=False disposition=rejected tokens=19268
+[09:50:56] step 64: failed (coder_unreadable: no JSON object in the reply)
+[09:50:56] the run ends: steps=64 unique_items=1 milestones=[] admitted=0 rejected=60 tokens=949367

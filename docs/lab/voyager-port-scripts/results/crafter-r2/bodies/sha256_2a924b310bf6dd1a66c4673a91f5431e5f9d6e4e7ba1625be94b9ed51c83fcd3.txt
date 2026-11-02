@@ -1,0 +1,80 @@
+import time
+
+def ach():
+    return mc.achievements()
+
+def done():
+    v = ach().get('make_wood_pickaxe', 0)
+    return v is True or (isinstance(v, (int, float)) and v > 0)
+
+def act(a, t=1):
+    return mc.act(a, t)
+
+def move(d, s=1):
+    return mc.move(d, s)
+
+def sleep_refill():
+    for _ in range(3):
+        if done():
+            return True
+        act('sleep', 1)
+        time.sleep(0.05)
+    return done()
+
+def try_do(n=4):
+    for _ in range(n):
+        if done():
+            return True
+        act('do', 1)
+        time.sleep(0.02)
+    return done()
+
+def try_craft(n=4):
+    for _ in range(n):
+        if done():
+            return True
+        act('make_wood_pickaxe', 1)
+        time.sleep(0.02)
+    return done()
+
+def visit(dx, dy, fn):
+    if dx < 0:
+        move('left', -dx)
+    elif dx > 0:
+        move('right', dx)
+    if dy < 0:
+        move('up', -dy)
+    elif dy > 0:
+        move('down', dy)
+    ok = fn()
+    if dx < 0:
+        move('right', -dx)
+    elif dx > 0:
+        move('left', dx)
+    if dy < 0:
+        move('down', -dy)
+    elif dy > 0:
+        move('up', dy)
+    return ok
+
+def spiral(radius, fn):
+    if fn(0, 0):
+        return True
+    for r in range(1, radius + 1):
+        for dx in range(-r, r + 1):
+            for dy in range(-r, r + 1):
+                if max(abs(dx), abs(dy)) != r:
+                    continue
+                if fn(dx, dy):
+                    return True
+    return False
+
+sleep_refill()
+
+if not done():
+    spiral(18, lambda dx, dy: visit(dx, dy, lambda: try_do(5)))
+
+if not done():
+    spiral(24, lambda dx, dy: visit(dx, dy, lambda: try_craft(5)))
+
+print('wood pickaxe: ' + ('crafted' if done() else 'failed'))

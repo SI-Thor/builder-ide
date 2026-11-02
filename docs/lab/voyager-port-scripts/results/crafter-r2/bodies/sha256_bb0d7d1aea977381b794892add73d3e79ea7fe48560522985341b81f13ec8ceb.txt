@@ -1,0 +1,18 @@
+function log(msg) {
+  try {
+    if (typeof console !== "undefined" && console.log) {
+      console.log(msg);
+    } else if (typeof print !== "undefined") {
+      print(msg);
+    }
+  } catch (e) {}
+}
+
+log("collect wood: start");
+mc.act("do", 1);
+mc.act("sleep", 1);
+mc.move("left", 4);
+mc.move("up", 3);
+mc.act("do", 8);
+mc.act("do", 1);
+log("collect wood: finished");

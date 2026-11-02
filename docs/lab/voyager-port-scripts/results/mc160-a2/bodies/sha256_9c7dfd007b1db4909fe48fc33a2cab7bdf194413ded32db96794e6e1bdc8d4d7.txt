@@ -1,0 +1,61 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+  let blockPos = null;
+
+  const move = await mc.move_to_block('oak_log', 128, 600000);
+  if (move && move.block) {
+    blockPos = move.block;
+  }
+
+  if (!blockPos) {
+    blockPos = target;
+    await mc.move_to(target.x, target.y, target.z, 600000);
+  }
+
+  const adjacent = [
+    [1, 0, 0],
+    [-1, 0, 0],
+    [0, 0, 1],
+    [0, 0, -1],
+    [1, 1, 0],
+    [-1, 1, 0],
+    [0, 1, 1],
+    [0, 1, -1],
+    [1, -1, 0],
+    [-1, -1, 0],
+    [0, -1, 1],
+    [0, -1, -1]
+  ];
+
+  const tryMine = async () => {
+    await mc.look_at(blockPos.x, blockPos.y, blockPos.z);
+    const mine = await mc.mine_block('oak_log', 64, 1);
+    if (mine && mine.mined > 0) {
+      const pickup = await mc.collect('oak_log', 64, 64);
+      const count = mc.count('oak_log').count;
+      console.log(`Mined ${mine.mined} oak_log and now hold ${count}.`);
+      return count > 0;
+    }
+    return false;
+  };
+
+  if (await tryMine()) {
+    return;
+  }
+
+  for (const [dx, dy, dz] of adjacent) {
+    const x = blockPos.x + dx;
+    const y = blockPos.y + dy;
+    const z = blockPos.z + dz;
+    await mc.move_to(x, y, z, 120000);
+    if (await tryMine()) {
+      return;
+    }
+  }
+
+  const held = mc.count('oak_log').count;
+  console.log(`Failed to collect oak_log; holding ${held}.`);
+  if (held === 0) {
+    throw new Error('No oak_log collected.');
+  }
+})();

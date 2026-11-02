@@ -1,0 +1,64 @@
+print('sleeping to refill energy')
+mc.act('sleep', 1)
+
+def stone_count():
+    a = mc.achievements()
+    v = a.get('collect_stone', 0) if a else 0
+    try:
+        return int(v)
+    except Exception:
+        return 0
+
+def has_stone_pickaxe():
+    a = mc.achievements()
+    v = a.get('make_stone_pickaxe', 0) if a else 0
+    return v is True or int(v) > 0
+
+def sweep(radius):
+    for dx in range(-radius, radius + 1):
+        for dy in range(-radius, radius + 1):
+            if dx == 0 and dy == 0:
+                continue
+            if dx > 0:
+                mc.move('right', dx)
+            elif dx < 0:
+                mc.move('left', -dx)
+            if dy > 0:
+                mc.move('down', dy)
+            elif dy < 0:
+                mc.move('up', -dy)
+            mc.act('do', 1)
+            if dy > 0:
+                mc.move('up', dy)
+            elif dy < 0:
+                mc.move('down', -dy)
+            if dx > 0:
+                mc.move('left', dx)
+            elif dx < 0:
+                mc.move('right', -dx)
+
+print('stone before mining: ' + str(stone_count()))
+r = 2
+while stone_count() < 3 and r <= 16:
+    sweep(r)
+    print('stone after sweep radius ' + str(r) + ': ' + str(stone_count()))
+    r += 4
+
+print('chopping tree 3 right, 3 down')
+mc.move('right', 3)
+mc.move('down', 3)
+mc.act('do', 8)
+
+print('returning to table')
+mc.move('up', 3)
+mc.move('left', 3)
+mc.act('place_table', 1)
+mc.act('make_stone_pickaxe', 1)
+
+made = has_stone_pickaxe()
+print('stone_pickaxe=' + ('1' if made else '0'))
+if not made:
+    print('retrying craft after table')
+    mc.act('make_stone_pickaxe', 1)
+    made = has_stone_pickaxe()
+    print('stone_pickaxe=' + ('1' if made else '0'))

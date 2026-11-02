@@ -1,0 +1,69 @@
+console.log("gather wood and craft wood pickaxe: start");
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const wait = async (ms) => {
+  const start = Date.now();
+  while (Date.now() - start < ms) {
+    await sleep(50);
+  }
+};
+
+const woodCount = () => {
+  const a = mc.achievements();
+  const v = a.collect_wood;
+  return typeof v === "number" ? v : (v ? 1 : 0);
+};
+
+const pickaxeDone = () => {
+  const a = mc.achievements();
+  const v = a.make_wood_pickaxe;
+  return typeof v === "number" ? v > 0 : Boolean(v);
+};
+
+const tryCraft = async () => {
+  if (pickaxeDone()) return true;
+  mc.act("place_table", 1);
+  await wait(50);
+  mc.act("make_wood_pickaxe", 1);
+  await wait(50);
+  return pickaxeDone();
+};
+
+if (!pickaxeDone()) {
+  for (let i = 0; i < 9 && !pickaxeDone(); i++) {
+    mc.act("do", 1);
+    await wait(20);
+  }
+}
+
+if (!pickaxeDone()) {
+  mc.move("left", 2);
+  await wait(50);
+  mc.move("up", 1);
+  await wait(50);
+}
+
+if (!pickaxeDone()) {
+  for (let i = 0; i < 64 && !pickaxeDone(); i++) {
+    mc.act("do", 1);
+    await wait(20);
+    if (woodCount() >= 7) break;
+  }
+}
+
+if (!pickaxeDone()) {
+  mc.move("down", 1);
+  await wait(50);
+  mc.move("right", 2);
+  await wait(50);
+}
+
+if (!pickaxeDone()) {
+  await tryCraft();
+}
+
+if (pickaxeDone()) {
+  console.log("gather wood and craft wood pickaxe: crafted wood pickaxe");
+} else {
+  console.log("gather wood and craft wood pickaxe: failed");
+}

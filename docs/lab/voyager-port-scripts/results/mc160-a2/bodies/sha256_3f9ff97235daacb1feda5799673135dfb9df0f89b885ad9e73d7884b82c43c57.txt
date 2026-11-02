@@ -1,0 +1,25 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+
+  const move = await mc.move_to_block('oak_log', 128, 60000);
+  if (!move || !move.block || move.block.x !== target.x || move.block.y !== target.y || move.block.z !== target.z) {
+    await mc.move_to(target.x, target.y, target.z, 60000);
+  }
+
+  let mine = await mc.mine_block('oak_log', 64, 1);
+  let collected = 0;
+
+  if (mine && mine.mined > 0) {
+    const pickup = await mc.collect('oak_log', 64, 64);
+    collected = pickup.collected || 0;
+  }
+
+  if (collected === 0) {
+    mine = await mc.mine_block('oak_log', 64, 1);
+    const pickup = await mc.collect('oak_log', 64, 64);
+    collected = pickup.collected || 0;
+  }
+
+  const held = mc.count('oak_log').count;
+  console.log(`Mined ${mine ? mine.mined || 0 : 0} oak_log and collected ${collected}; now holding ${held}.`);
+})();

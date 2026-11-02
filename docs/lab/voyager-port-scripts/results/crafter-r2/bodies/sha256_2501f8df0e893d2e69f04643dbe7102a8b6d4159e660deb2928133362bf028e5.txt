@@ -1,0 +1,74 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+function stoneCount() {
+  const a = mc.achievements();
+  const v = a.collect_stone;
+  if (typeof v === "number") return v;
+  if (v) return 1;
+  return 0;
+}
+
+function crafted() {
+  const a = mc.achievements();
+  return !!a.make_stone_pickaxe;
+}
+
+function tryCraftHere() {
+  if (crafted()) return true;
+  mc.act("make_stone_pickaxe", 1);
+  return crafted();
+}
+
+function sweepRadius(radius) {
+  if (radius === 0) {
+    mc.act_seq(["do", "move_left", "do", "move_right", "move_right", "do", "move_left", "move_left", "move_up", "do", "move_down", "move_down", "do", "move_up", "move_up"]);
+    return stoneCount() >= 3;
+  }
+  for (let dx = -radius; dx <= radius; dx++) {
+    for (let dy = -radius; dy <= radius; dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== radius) continue;
+      if (dx > 0) mc.move("right", dx);
+      else if (dx < 0) mc.move("left", -dx);
+      if (dy > 0) mc.move("down", dy);
+      else if (dy < 0) mc.move("up", -dy);
+      mc.act_seq(["do", "move_left", "do", "move_right", "move_right", "do", "move_left", "move_left", "move_up", "do", "move_down", "move_down", "do", "move_up", "move_up"]);
+      if (dx > 0) mc.move("left", dx);
+      else if (dx < 0) mc.move("right", -dx);
+      if (dy > 0) mc.move("up", dy);
+      else if (dy < 0) mc.move("down", -dy);
+      if (stoneCount() >= 3) return true;
+    }
+  }
+  return stoneCount() >= 3;
+}
+
+console.log("sweeping nearby tiles for stone");
+for (let r = 0; r <= 8; r++) {
+  if (sweepRadius(r)) break;
+}
+
+console.log("searching for crafting table");
+if (!tryCraftHere()) {
+  for (let r = 1; r <= 10; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (dx > 0) mc.move("right", dx);
+        else if (dx < 0) mc.move("left", -dx);
+        if (dy > 0) mc.move("down", dy);
+        else if (dy < 0) mc.move("up", -dy);
+        if (tryCraftHere()) break;
+        if (dx > 0) mc.move("left", dx);
+        else if (dx < 0) mc.move("right", -dx);
+        if (dy > 0) mc.move("up", dy);
+        else if (dy < 0) mc.move("down", -dy);
+        if (crafted()) break;
+      }
+      if (crafted()) break;
+    }
+    if (crafted()) break;
+  }
+}
+
+console.log("stone pickaxe crafted:", crafted());

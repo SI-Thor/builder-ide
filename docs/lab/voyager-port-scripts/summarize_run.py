@@ -62,6 +62,25 @@ def main() -> int:
     print("superseded       :", payload.get("skills_superseded"))
 
     print()
+    print("=== the episodes ===")
+    # crafter's teacher-comparison number: achievements per episode,
+    # read off the last step's own facts (the adapter exposes it;
+    # a minecraft run has no such facts and says so)
+    last_facts = {}
+    for step in steps:
+        if step.get("facts"):
+            last_facts = step["facts"]
+    if last_facts.get("episodes_finished") is None:
+        print("episodes         : (not this world's facts)")
+    else:
+        print("episodes finished:", last_facts.get("episodes_finished"))
+        print("achievements/epi :", last_facts.get("mean_achievements_per_episode"))
+        print("episode now      :", last_facts.get("episode"))
+        reached_names = last_facts.get("achievements_reached") or []
+        print("achievements     :", ", ".join(reached_names) or "(none)")
+        print("spatial fact     :", "yes" if last_facts.get("spatial") else "no")
+
+    print()
     print("=== the tokens ===")
     print("by role          :", json.dumps(payload.get("tokens_by_role"), sort_keys=True))
     print("total            :", payload.get("total_tokens"))

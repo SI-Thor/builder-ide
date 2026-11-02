@@ -1,0 +1,53 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+
+  const approach = await mc.move_to_block('oak_log', 128, 600000);
+  if (approach && approach.block) {
+    target.x = approach.block.x;
+    target.y = approach.block.y;
+    target.z = approach.block.z;
+  }
+
+  const offsets = [
+    { x: -1, y: 0, z: 0 },
+    { x: 1, y: 0, z: 0 },
+    { x: 0, y: 0, z: -1 },
+    { x: 0, y: 0, z: 1 },
+    { x: -1, y: 0, z: -1 },
+    { x: 1, y: 0, z: -1 },
+    { x: -1, y: 0, z: 1 },
+    { x: 1, y: 0, z: 1 },
+    { x: 0, y: 1, z: 0 },
+    { x: 0, y: -1, z: 0 }
+  ];
+
+  let mined = 0;
+  for (const off of offsets) {
+    const spot = { x: target.x + off.x, y: target.y + off.y, z: target.z + off.z };
+    const move = await mc.move_to(spot.x, spot.y, spot.z, 30000);
+    if (!move || !move.at) continue;
+    if (dist(move.at, target) > 8) continue;
+
+    await mc.look_at(target.x, target.y, target.z);
+    const result = await mc.mine_block('oak_log', 8, 1);
+    if (result && result.mined > 0) {
+      mined += result.mined;
+      break;
+    }
+  }
+
+  if (mined > 0) {
+    await mc.sleep(1000);
+    await mc.collect('oak_log', 1, 16);
+  }
+
+  const count = mc.count('oak_log').count;
+  if (count > 0) {
+    console.log('Got ' + count + ' oak_log.');
+    return;
+  }
+
+  console.log('Could not get oak_log.');
+  throw new Error('No oak_log collected.');
+})();

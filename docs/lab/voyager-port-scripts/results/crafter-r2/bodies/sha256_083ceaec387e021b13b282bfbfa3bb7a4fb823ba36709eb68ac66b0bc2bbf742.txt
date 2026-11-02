@@ -1,0 +1,64 @@
+print("wood pickaxe: start")
+
+def done():
+    return bool(mc.achievements().get("make_wood_pickaxe"))
+
+def try_make():
+    mc.act("make_wood_pickaxe", 1)
+    return done()
+
+def refill():
+    if done():
+        return True
+    for _ in range(8):
+        mc.act("do", 1)
+        if done():
+            return True
+    for _ in range(8):
+        mc.act("sleep", 1)
+        if done():
+            return True
+    return done()
+
+def craft_nearby():
+    if try_make():
+        return True
+    for _ in range(4):
+        mc.act("move_left", 1)
+        if try_make():
+            return True
+    for _ in range(4):
+        mc.act("move_right", 1)
+        if try_make():
+            return True
+    for _ in range(4):
+        mc.act("move_up", 1)
+        if try_make():
+            return True
+    for _ in range(4):
+        mc.act("move_down", 1)
+        if try_make():
+            return True
+    for _ in range(4):
+        mc.act("move_left", 1)
+        if try_make():
+            return True
+    for _ in range(4):
+        mc.act("move_right", 1)
+        if try_make():
+            return True
+    for _ in range(4):
+        mc.act("move_up", 1)
+        if try_make():
+            return True
+    for _ in range(4):
+        mc.act("move_down", 1)
+        if try_make():
+            return True
+    return done()
+
+refill()
+if not done():
+    craft_nearby()
+
+print("wood pickaxe: " + ("crafted" if done() else "failed"))

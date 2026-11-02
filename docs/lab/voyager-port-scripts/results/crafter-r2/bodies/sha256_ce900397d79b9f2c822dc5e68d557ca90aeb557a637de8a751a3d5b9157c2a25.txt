@@ -1,0 +1,100 @@
+print('wood pickaxe: start')
+
+def ach():
+    try:
+        return mc.achievements()
+    except Exception:
+        return {}
+
+def has(k):
+    a = ach()
+    if not a:
+        return False
+    if hasattr(a, 'get'):
+        return bool(a.get(k))
+    return bool(a.get(k) if isinstance(a, dict) else a[k])
+
+def done():
+    return has('make_wood_pickaxe')
+
+def act(a, t=1):
+    try:
+        return mc.act(a, t)
+    except Exception:
+        return 0
+
+def move(d, s=1):
+    try:
+        return mc.move(d, s)
+    except Exception:
+        return 0
+
+def try_do(n=3):
+    for _ in range(n):
+        if done():
+            return True
+        act('do', 1)
+    return done()
+
+def try_craft(n=3):
+    for _ in range(n):
+        if done():
+            return True
+        act('make_wood_pickaxe', 1)
+    return done()
+
+def refill():
+    if done():
+        return
+    for _ in range(12):
+        if done():
+            return
+        act('do', 1)
+        act('sleep', 1)
+
+refill()
+
+if not done():
+    dirs = ['left', 'right', 'up', 'down']
+    for d in dirs:
+        if done():
+            break
+        for dist in range(1, 12):
+            if done():
+                break
+            move(d, dist)
+            if try_do(4):
+                print('wood pickaxe: found wood at ' + d + ' ' + str(dist))
+                break
+            move('left' if d == 'right' else 'right' if d == 'left' else 'up' if d == 'down' else 'down', dist)
+
+if not done():
+    dirs = ['left', 'right', 'up', 'down']
+    for d in dirs:
+        if done():
+            break
+        for dist in range(1, 14):
+            if done():
+                break
+            move(d, dist)
+            if try_craft(3):
+                print('wood pickaxe: crafted at ' + d + ' ' + str(dist))
+                break
+            move('left' if d == 'right' else 'right' if d == 'left' else 'up' if d == 'down' else 'down', dist)
+
+if not done():
+    dirs = ['left', 'right', 'up', 'down']
+    for d in dirs:
+        if done():
+            break
+        for dist in range(1, 10):
+            if done():
+                break
+            move(d, dist)
+            if try_do(4):
+                if try_craft(3):
+                    print('wood pickaxe: crafted after second wood at ' + d + ' ' + str(dist))
+                    break
+            move('left' if d == 'right' else 'right' if d == 'left' else 'up' if d == 'down' else 'down', dist)
+
+print('wood pickaxe: ' + ('crafted' if done() else 'failed'))

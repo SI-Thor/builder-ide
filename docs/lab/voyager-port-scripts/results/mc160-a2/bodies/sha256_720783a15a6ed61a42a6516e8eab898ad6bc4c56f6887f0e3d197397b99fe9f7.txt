@@ -1,0 +1,57 @@
+(async () => {
+  const hasLog = () => mc.count('oak_log').count > 0;
+  if (hasLog()) {
+    console.log('Already holding oak_log.');
+    return;
+  }
+
+  const target = { x: -3, y: 66, z: 103 };
+  const adjacent = [
+    { x: target.x - 1, y: target.y, z: target.z },
+    { x: target.x + 1, y: target.y, z: target.z },
+    { x: target.x, y: target.y, z: target.z - 1 },
+    { x: target.x, y: target.y, z: target.z + 1 },
+    { x: target.x, y: target.y + 1, z: target.z },
+    { x: target.x - 1, y: target.y + 1, z: target.z },
+    { x: target.x + 1, y: target.y + 1, z: target.z },
+    { x: target.x, y: target.y + 1, z: target.z - 1 },
+    { x: target.x, y: target.y + 1, z: target.z + 1 }
+  ];
+
+  const tryBreak = async (block) => {
+    await mc.look_at(block.x, block.y, block.z);
+    const mined = await mc.mine_block('oak_log', 64, 1);
+    if (mined && mined.mined > 0) {
+      await mc.sleep(250);
+      await mc.collect('oak_log', 1, 16);
+      if (hasLog()) {
+        console.log('Broke oak_log and collected it.');
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const near = await mc.move_to_block('oak_log', 128, 120000);
+  if (near && near.block) {
+    target.x = near.block.x;
+    target.y = near.block.y;
+    target.z = near.block.z;
+    if (await tryBreak(target)) return;
+  }
+
+  for (const spot of adjacent) {
+    const moved = await mc.move_to(spot.x, spot.y, spot.z, 45000);
+    if (moved && moved.at) {
+      if (await tryBreak(target)) return;
+    }
+  }
+
+  const direct = await mc.move_to(target.x, target.y, target.z, 120000);
+  if (direct && direct.at) {
+    if (await tryBreak(target)) return;
+  }
+
+  console.log('Failed to collect oak_log.');
+  throw new Error('No oak_log collected.');
+})();

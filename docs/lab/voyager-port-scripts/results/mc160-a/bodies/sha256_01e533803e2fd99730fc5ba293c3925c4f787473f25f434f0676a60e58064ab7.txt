@@ -1,0 +1,74 @@
+const LOGS = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+
+function logIds(nearby) {
+  const found = [];
+  for (const id of LOGS) {
+    if (nearby && nearby[id] > 0) found.push(id);
+  }
+  return found;
+}
+
+async function hasWood() {
+  for (const id of LOGS) {
+    const r = await mc.count(id);
+    if (r && r.count > 0) return true;
+  }
+  return false;
+}
+
+async function collectWood() {
+  let got = 0;
+  for (const id of LOGS) {
+    const r = await mc.collect(id, 64, 16);
+    if (r && r.collected > 0) got += r.collected;
+  }
+  return got;
+}
+
+async function tryMineNearby() {
+  const scan = await mc.scan(64);
+  const ids = logIds(scan.nearby);
+  for (const id of ids) {
+    const mv = await mc.move_to_block(id, 64, 12000);
+    if (mv && mv.block) {
+      const m = await mc.mine_block(id, 16, 64);
+      const got = await collectWood();
+      console.log('mined ' + (m && m.mined ? m.mined : 0) + ' ' + id + ', collected ' + got);
+      if ((m && m.mined > 0) || got > 0 || (await hasWood())) return true;
+    }
+  }
+  return false;
+}
+
+async function main() {
+  if (await hasWood()) {
+    console.log('already have wood');
+    return;
+  }
+
+  if (await tryMineNearby()) {
+    console.log('got wood');
+    return;
+  }
+
+  const sx = 38;
+  const sz = 45;
+  const dirs = [[1,0],[0,1],[-1,0],[0,-1],[1,1],[-1,1],[-1,-1],[1,-1]];
+
+  for (const d of dirs) {
+    for (const step of [16, 32, 48, 64, 80, 96, 112, 128]) {
+      const tx = sx + d[0] * step;
+      const tz = sz + d[1] * step;
+      const mv = await mc.move_to(tx, 67, tz, 10000);
+      console.log('walked to ' + (mv && mv.at ? mv.at.x + ',' + mv.at.y + ',' + mv.at.z : '?') + ' ' + (mv && mv.why ? mv.why : ''));
+      if (await tryMineNearby()) {
+        console.log('got wood');
+        return;
+      }
+    }
+  }
+
+  throw new Error('no reachable tree found');
+}
+
+main();

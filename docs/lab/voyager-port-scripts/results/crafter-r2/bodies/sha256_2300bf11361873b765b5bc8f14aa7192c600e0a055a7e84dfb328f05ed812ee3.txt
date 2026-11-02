@@ -1,0 +1,49 @@
+const log=(m)=>console.log(m);
+const ach=()=>mc.achievements();
+const has=(k)=>{const a=ach();if(!a)return false;if(typeof a.get==='function')return Boolean(a.get(k));return Boolean(a[k]);};
+const done=()=>has('make_wood_pickaxe');
+const reward=()=>{try{return Number(mc.reward())||0;}catch(e){return 0;}};
+const act=(a,t)=>mc.act(a,t);
+const move=(d,s)=>mc.move(d,s);
+const dirs=[['right','left'],['left','right'],['up','down'],['down','up']];
+log('wood pickaxe: start');
+if(done()){log('wood pickaxe: already done');}
+if(!done()){
+  const r0=reward();
+  for(const [d,b] of dirs){
+    if(done())break;
+    for(let dist=1;dist<=8;dist++){
+      if(done())break;
+      move(d,dist);
+      act('do',4);
+      if(reward()!==r0){log('wood pickaxe: found wood at '+d+' '+dist);break;}
+      move(b,dist);
+    }
+  }
+}
+if(!done()){
+  for(const [d,b] of dirs){
+    if(done())break;
+    for(let dist=1;dist<=10;dist++){
+      if(done())break;
+      move(d,dist);
+      act('make_wood_pickaxe',1);
+      if(done()){log('wood pickaxe: crafted at '+d+' '+dist);break;}
+      move(b,dist);
+    }
+  }
+}
+if(!done()){
+  for(const [d,b] of dirs){
+    if(done())break;
+    for(let dist=1;dist<=6;dist++){
+      if(done())break;
+      move(d,dist);
+      act('do',4);
+      act('make_wood_pickaxe',1);
+      if(done()){log('wood pickaxe: crafted after second wood at '+d+' '+dist);break;}
+      move(b,dist);
+    }
+  }
+}
+log('wood pickaxe: '+(done()?'crafted':'failed'));

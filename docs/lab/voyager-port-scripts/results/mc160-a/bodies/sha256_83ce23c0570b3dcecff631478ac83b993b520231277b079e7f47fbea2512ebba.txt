@@ -1,0 +1,61 @@
+(async () => {
+  const start = { x: 37.6, y: 67, z: 44.7 };
+  const isLog = (b) => typeof b === 'string' && b.endsWith('_log');
+  const findLog = (nearby) => Object.keys(nearby || {}).find(isLog);
+
+  let logBlock = null;
+
+  const checkHere = async (radius) => {
+    const scan = await mc.scan(radius);
+    const block = findLog(scan.nearby);
+    if (block) {
+      logBlock = block;
+      return true;
+    }
+    return false;
+  };
+
+  if (await checkHere(160)) {
+    console.log('found ' + logBlock + ' without moving');
+  } else {
+    const offsets = [];
+    for (let r = 8; r <= 128; r += 8) {
+      offsets.push([r, 0], [-r, 0], [0, r], [0, -r], [r, r], [r, -r], [-r, r], [-r, -r]);
+    }
+
+    for (const [dx, dz] of offsets) {
+      const target = { x: start.x + dx, y: start.y, z: start.z + dz };
+      const move = await mc.move_to(target.x, target.y, target.z, 15000);
+      console.log('moved to ' + JSON.stringify(move.at) + ' ' + (move.why || ''));
+      if (await checkHere(64)) {
+        console.log('found ' + logBlock + ' after moving');
+        break;
+      }
+    }
+  }
+
+  if (!logBlock) {
+    console.log('no log block found while exploring outward');
+    throw new Error('no log block found');
+  }
+
+  const approach = await mc.move_to_block(logBlock, 128, 30000);
+  console.log('approached ' + logBlock + ' at ' + JSON.stringify(approach.at) + ' ' + (approach.why || ''));
+
+  let minedTotal = 0;
+  for (let i = 0; i < 8; i++) {
+    const mine = await mc.mine_block(logBlock, 64, 64);
+    minedTotal += mine.mined || 0;
+    console.log('mined ' + (mine.mined || 0) + ' ' + logBlock + ' ' + (mine.problem || ''));
+    if (!mine.mined) break;
+  }
+
+  const collect = await mc.collect(logBlock, 64, 64);
+  console.log('collected ' + (collect.collected || 0) + ' ' + logBlock + '; have ' + (collect.have || 0) + ' ' + (collect.problem || ''));
+
+  const have = await mc.count(logBlock);
+  if (!have.count) {
+    throw new Error('no ' + logBlock + ' in inventory after mining and collecting');
+  }
+  console.log('goal met: have ' + have.count + ' ' + logBlock);
+})();

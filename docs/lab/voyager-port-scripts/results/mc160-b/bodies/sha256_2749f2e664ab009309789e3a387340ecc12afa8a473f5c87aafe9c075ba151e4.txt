@@ -1,0 +1,48 @@
+const target = { x: 8, y: 70, z: -44 };
+
+function logCount(item) {
+  const r = mc.count(item);
+  if (typeof r === 'number') return r;
+  if (r && typeof r.count === 'number') return r.count;
+  if (r && typeof r.have === 'number') return r.have;
+  return 0;
+}
+
+function hasLog() {
+  return logCount('jungle_log') > 0;
+}
+
+let moved = mc.move_to_block('jungle_log', 16, 30000);
+console.log('move_to_block: ' + JSON.stringify(moved));
+
+let bx = target.x;
+let by = target.y;
+let bz = target.z;
+if (moved && moved.block && typeof moved.block.x === 'number') {
+  bx = moved.block.x;
+  by = moved.block.y;
+  bz = moved.block.z;
+}
+
+mc.look_at(bx, by, bz);
+
+let mined = mc.mine_block('jungle_log', 16, 1);
+console.log('mine_block: ' + JSON.stringify(mined));
+
+mc.sleep(500);
+
+let collected = mc.collect('jungle_log', 1, 16);
+console.log('collect: ' + JSON.stringify(collected));
+
+if (!hasLog()) {
+  moved = mc.move_to(bx, by, bz, 30000);
+  console.log('move_to: ' + JSON.stringify(moved));
+  mc.look_at(bx, by, bz);
+  mined = mc.mine_block('jungle_log', 16, 1);
+  console.log('retry mine_block: ' + JSON.stringify(mined));
+  mc.sleep(500);
+  collected = mc.collect('jungle_log', 1, 16);
+  console.log('retry collect: ' + JSON.stringify(collected));
+}
+
+console.log('jungle_log count: ' + logCount('jungle_log'));

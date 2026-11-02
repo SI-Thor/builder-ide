@@ -1,0 +1,12 @@
+done = lambda: bool(mc.achievements().get('make_wood_pickaxe'))
+
+mc.act('sleep', 32)
+
+for _ in range(48):
+    if done():
+        break
+    mc.act('do', 4)
+
+mc.act('make_wood_pickaxe', 4)
+
+print('wood pickaxe: ' + ('crafted' if done() else 'not crafted'))

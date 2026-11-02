@@ -1,0 +1,22 @@
+print("collect wood and craft pickaxe: start")
+
+for _ in range(3):
+    mc.act("sleep", 1)
+
+mc.move("left", 1)
+
+wood = mc.achievements().get("collect_wood", 0)
+for _ in range(24):
+    mc.act("do", 1)
+    wood = mc.achievements().get("collect_wood", 0)
+    if wood >= 4:
+        break
+
+mc.move("down", 1)
+mc.act("place_table", 1)
+mc.act("make_wood_pickaxe", 1)
+
+if mc.achievements().get("make_wood_pickaxe", False):
+    print("collect wood and craft pickaxe: crafted wood pickaxe")
+else:
+    print("collect wood and craft pickaxe: failed")

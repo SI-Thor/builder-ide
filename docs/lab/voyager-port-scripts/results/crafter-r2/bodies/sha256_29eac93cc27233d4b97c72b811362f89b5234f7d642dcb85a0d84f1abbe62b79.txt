@@ -1,0 +1,16 @@
+function ach() { return mc.achievements(); }
+function n(v) { if (v === true) return 1; if (typeof v === 'number' && isFinite(v)) return Math.max(0, Math.floor(v)); return 0; }
+function stoneCount() { return n(ach().collect_stone); }
+function woodCount() { return n(ach().collect_wood); }
+function done() { return n(ach().make_stone_pickaxe) > 0; }
+function tryCraft() { if (done()) return true; mc.act('make_stone_pickaxe', 1); return done(); }
+function sweepOnce() { if (done() || stoneCount() >= 3) return; mc.act('do', 1); }
+function sweepCross() { sweepOnce(); mc.act('move_left', 1); sweepOnce(); mc.act('move_right', 1); sweepOnce(); mc.act('move_up', 1); sweepOnce(); mc.act('move_down', 1); sweepOnce(); }
+function sweepSquare(r) { for (let dy = -r; dy <= r; dy++) { for (let dx = -r; dx <= r; dx++) { if (done() || stoneCount() >= 3) return; if (dx > 0) mc.move('right', dx); else if (dx < 0) mc.move('left', -dx); if (dy > 0) mc.move('down', dy); else if (dy < 0) mc.move('up', -dy); sweepOnce(); if (dx > 0) mc.move('left', dx); else if (dx < 0) mc.move('right', -dx); if (dy > 0) mc.move('up', dy); else if (dy < 0) mc.move('down', -dy); } } }
+function searchTable(r) { for (let dy = -r; dy <= r; dy++) { for (let dx = -r; dx <= r; dx++) { if (done()) return true; if (dx > 0) mc.move('right', dx); else if (dx < 0) mc.move('left', -dx); if (dy > 0) mc.move('down', dy); else if (dy < 0) mc.move('up', -dy); if (tryCraft()) return true; if (dx > 0) mc.move('left', dx); else if (dx < 0) mc.move('right', -dx); if (dy > 0) mc.move('up', dy); else if (dy < 0) mc.move('down', -dy); } } return false; }
+mc.act('sleep', 1);
+for (let r = 0; r < 12; r++) { if (done() || stoneCount() >= 3) break; sweepSquare(r); }
+if (!done() && stoneCount() < 3) { mc.act('move_right', 2); mc.act('move_down', 3); mc.act('do', 1); mc.act('move_up', 3); mc.act('move_left', 2); }
+if (!done() && woodCount() < 1) { mc.act('move_right', 2); mc.act('move_down', 3); mc.act('do', 1); mc.act('move_up', 3); mc.act('move_left', 2); }
+for (let r = 0; r < 16; r++) { if (searchTable(r)) break; }
+console.log('stone=' + stoneCount() + ' wood=' + woodCount() + ' stone_pickaxe=' + done());

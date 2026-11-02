@@ -1,0 +1,4 @@
+mc.act('sleep', 1);
+voyager.skill_body('tile_158253b2ad9f', 1);
+mc.act('make_stone_pickaxe', 1);
+console.log('stone_pickaxe=' + (mc.achievements().make_stone_pickaxe ? 1 : 0));

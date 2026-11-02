@@ -190,7 +190,11 @@ def crafter_vocabulary() -> SkillVocabulary:
             "direction": {
                 "type": "string",
                 "enum": ["left", "right", "up", "down"],
-                "hint": "left, right, up or down",
+                "hint": (
+                    "left, right, up or down — the facts' spatial.nearest "
+                    "gives every direction in these same words, with the "
+                    "number of moves it takes"
+                ),
             },
             "steps": {"type": "integer", "minimum": 1, "maximum": 512},
         },
@@ -226,6 +230,11 @@ class CrafterAdapter:
         self._achievements: dict[str, int] = {}
         self._seen: set[str] = set()
         self._milestones = {m.key: m for m in CRAFTER_MILESTONES}
+        # Episodes: crafter ends one at death or at `length` steps, and
+        # the achievements-per-episode number the teacher comparison
+        # asks for is counted over them.
+        self._episodes = 0
+        self._episode_scores: list[int] = []
 
     # -- the world -------------------------------------------------------------
 
@@ -243,6 +252,7 @@ class CrafterAdapter:
             reward=True,
         )
         self._env.reset()
+        self._episodes = 1
         self._log("the crafter world is open")
 
     def close(self) -> None:
@@ -253,10 +263,127 @@ class CrafterAdapter:
             raise RuntimeError("the crafter world is not open")
         return self._env
 
+    def _maybe_reset(self) -> None:
+        """End a spent episode before the loop reads or acts again.
+
+        The round-1 smokes never died, so nothing here had to be true;
+        a run of hours will meet zombies. Without this, a dead player
+        stalled the run — every later ``env.step`` returned done at
+        once. The finished episode's score (its own achievements, the
+        env's per-episode record) is kept for the teacher comparison;
+        the loop's milestones survive the reset because ``_absorb``
+        max-accumulates.
+        """
+        env = self._require_env()
+        player = env._player
+        spent = (
+            int(getattr(player, "health", 1)) <= 0
+            or (env._length and env._step >= env._length)
+        )
+        if not spent:
+            return
+        own = getattr(player, "achievements", {}) or {}
+        score = sum(1 for count in own.values() if int(count) > 0)
+        self._episode_scores.append(score)
+        env.reset()
+        self._episodes += 1
+        self._log(
+            f"the episode ends with {score} achievements; "
+            f"a fresh episode begins (number {self._episodes})"
+        )
+
     # -- the environment -------------------------------------------------------
+
+    #: The four directions the move primitives and the player's facing
+    #: share, as (dx, dy). Crafter's own teacher maps them the same way
+    #: (its DIRS/MOVE tables): -1 on x is left, -1 on y is up.
+    _FACING_WORDS = {
+        (-1, 0): "left",
+        (1, 0): "right",
+        (0, -1): "up",
+        (0, 1): "down",
+    }
+
+    def _spatial(self) -> dict[str, Any]:
+        """Nearest of each resource and creature, as direction and
+        distance, from the local grid.
+
+        The round-1 smokes played blind: the facts said what the player
+        held but never what was around it, and collecting wood in
+        Crafter means facing a tree and pressing do. crafter-lab's
+        scripted teacher reads the whole grid (privileged access); this
+        reads only the window the observation already renders — the
+        pixels' own information, in words, so the comparison with the
+        teacher stays honest. Distance is the number of ``mc.move``
+        actions the walk would take (|dx| + |dy|; there are no diagonal
+        moves).
+        """
+        import numpy as np
+
+        env = self._require_env()
+        world = env._world
+        player = env._player
+        pos = np.asarray(player.pos, dtype=int)
+        # The window LocalView renders for the pixels, with the player
+        # at _offset — the engine's own numbers, not a re-derivation.
+        grid = np.asarray(env._local_view._grid, dtype=int)
+        offset = np.asarray(env._local_view._offset, dtype=int)
+        lo = np.maximum(pos - offset, 0)
+        hi = np.minimum(pos - offset + grid, np.asarray(world.area, dtype=int))
+        window = world._mat_map[lo[0]:hi[0], lo[1]:hi[1]]
+
+        def words(dx: int, dy: int) -> str:
+            if dx == 0 and dy == 0:
+                return "here (on the player's tile)"
+            parts = []
+            if dx:
+                parts.append(f"{abs(dx)} {'left' if dx < 0 else 'right'}")
+            if dy:
+                parts.append(f"{abs(dy)} {'up' if dy < 0 else 'down'}")
+            return ", ".join(parts) + f" ({abs(dx) + abs(dy)} moves)"
+
+        nearest: dict[str, str] = {}
+        for material_id in np.unique(window):
+            name = world._mat_names.get(int(material_id))
+            if name is None:
+                continue
+            xs, ys = np.nonzero(window == material_id)
+            deltas = np.stack([xs + lo[0] - pos[0], ys + lo[1] - pos[1]], axis=1)
+            # nearest by moves, ties broken by Chebyshev so the answer
+            # is deterministic
+            order = np.lexsort((np.abs(deltas).max(axis=1), np.abs(deltas).sum(axis=1)))
+            nearest[str(name)] = words(int(deltas[order[0]][0]), int(deltas[order[0]][1]))
+        def key(delta) -> tuple[int, int, int]:
+            return (abs(int(delta[0])) + abs(int(delta[1])), abs(int(delta[0])), abs(int(delta[1])))
+
+        object_deltas: dict[str, tuple[int, int]] = {}
+        for obj in world.objects:
+            kind = type(obj).__name__.lower()
+            if kind == "player":
+                continue
+            at = np.asarray(obj.pos, dtype=int)
+            if not (lo[0] <= at[0] < hi[0] and lo[1] <= at[1] < hi[1]):
+                continue
+            delta = (int(at[0] - pos[0]), int(at[1] - pos[1]))
+            if kind not in object_deltas or key(delta) < key(object_deltas[kind]):
+                object_deltas[kind] = delta
+        for kind, delta in object_deltas.items():
+            nearest[kind] = words(delta[0], delta[1])
+
+        facing = tuple(int(v) for v in getattr(player, "facing", (0, 1)))
+        in_front: Any = None
+        ahead = pos + np.asarray(facing, dtype=int)
+        if (0 <= ahead[0] < world.area[0]) and (0 <= ahead[1] < world.area[1]):
+            in_front = world[tuple(ahead)][0]
+        return {
+            "facing": self._FACING_WORDS.get(facing, str(facing)),
+            "in_front": in_front,
+            "nearest": nearest,
+        }
 
     def observe(self) -> dict[str, Any]:
         """The facts, in the player's terms."""
+        self._maybe_reset()
         env = self._require_env()
         player = env._player
         inventory = {
@@ -283,10 +410,21 @@ class CrafterAdapter:
                 name for name, count in self._achievements.items() if count > 0
             ),
             "unique_materials": sorted(self._seen),
+            "spatial": self._spatial(),
+            # the teacher comparison's own number: crafter-lab counts
+            # achievements per episode; so does the loop now
+            "episode": self._episodes,
+            "episodes_finished": len(self._episode_scores),
+            "mean_achievements_per_episode": (
+                round(sum(self._episode_scores) / len(self._episode_scores), 3)
+                if self._episode_scores
+                else 0.0
+            ),
         }
 
     def run_code(self, code: str, *, timeout_s: float) -> ExecResult:
         """Run a skill: a program that calls the action primitives."""
+        self._maybe_reset()
         env = self._require_env()
         captured: list[str] = []
         started = __import__("time").time()
@@ -447,6 +585,11 @@ class CrafterAdapter:
     def _absorb(self, info: Mapping[str, Any]) -> None:
         achievements = info.get("achievements") or {}
         for name, count in achievements.items():
-            self._achievements[str(name)] = int(count)
+            # max, not overwrite: a fresh episode reports 0 for
+            # everything, and a milestone once reached stays reached
+            # for the loop (and for the world's own record)
+            self._achievements[str(name)] = max(
+                self._achievements.get(str(name), 0), int(count)
+            )
             if int(count) > 0:
                 self._seen.add(str(name))

@@ -1,0 +1,52 @@
+const ITEM = 'oak_log';
+const TARGET = { x: 1, y: 70, z: -39 };
+
+function have() {
+  const r = mc.count(ITEM);
+  return r && typeof r.count === 'number' ? r.count : 0;
+}
+
+function tryMineCollect(maxDistance, tries) {
+  for (let i = 0; i < tries && have() < 1; i++) {
+    const m = mc.mine_block(ITEM, maxDistance, 1);
+    console.log('mine: ' + JSON.stringify(m));
+    mc.sleep(300);
+    const c = mc.collect(ITEM, 1, maxDistance);
+    console.log('collect: ' + JSON.stringify(c));
+    mc.sleep(250);
+  }
+  return have();
+}
+
+let n = have();
+console.log('start ' + ITEM + ': ' + n);
+
+if (n < 1) {
+  const mv = mc.move_to_block(ITEM, 32, 30000);
+  console.log('move_to_block: ' + JSON.stringify(mv));
+  const bx = mv && mv.block && typeof mv.block.x === 'number' ? mv.block.x : TARGET.x;
+  const by = mv && mv.block && typeof mv.block.y === 'number' ? mv.block.y : TARGET.y;
+  const bz = mv && mv.block && typeof mv.block.z === 'number' ? mv.block.z : TARGET.z;
+  mc.look_at(bx + 0.5, by + 0.5, bz + 0.5);
+  mc.sleep(200);
+  n = tryMineCollect(32, 6);
+}
+
+if (n < 1) {
+  const spots = [
+    { x: TARGET.x + 1.5, y: TARGET.y + 0.5, z: TARGET.z + 0.5 },
+    { x: TARGET.x - 1.5, y: TARGET.y + 0.5, z: TARGET.z + 0.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y + 0.5, z: TARGET.z + 1.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y + 0.5, z: TARGET.z - 1.5 }
+  ];
+  for (const s of spots) {
+    if (have() >= 1) break;
+    const mv = mc.move_to(s.x, s.y, s.z, 20000);
+    console.log('move_to: ' + JSON.stringify(mv));
+    mc.look_at(TARGET.x + 0.5, TARGET.y + 0.5, TARGET.z + 0.5);
+    mc.sleep(200);
+    n = tryMineCollect(32, 4);
+  }
+}
+
+console.log('final ' + ITEM + ': ' + n);

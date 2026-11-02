@@ -1,0 +1,84 @@
+print("sleeping to refill energy")
+mc.act("sleep", 1)
+
+ach = mc.achievements()
+stone = ach.get("collect_stone", 0) if isinstance(ach, dict) else 0
+if not isinstance(stone, int):
+    stone = 1 if stone else 0
+
+need = max(0, 3 - stone)
+mined = 0
+
+print("sweeping nearby tiles for stone")
+for r in range(0, 25):
+    if mined >= need:
+        break
+    for dx in range(-r, r + 1):
+        if mined >= need:
+            break
+        for dy in range(-r, r + 1):
+            if mined >= need:
+                break
+            if max(abs(dx), abs(dy)) != r:
+                continue
+            if dx == 0 and dy == 0:
+                continue
+            before = mc.achievements().get("collect_stone", 0)
+            if not isinstance(before, int):
+                before = 1 if before else 0
+            if dx > 0:
+                mc.move("right", dx)
+            elif dx < 0:
+                mc.move("left", -dx)
+            if dy > 0:
+                mc.move("down", dy)
+            elif dy < 0:
+                mc.move("up", -dy)
+            mc.act("do", 4)
+            after = mc.achievements().get("collect_stone", 0)
+            if not isinstance(after, int):
+                after = 1 if after else 0
+            gained = max(0, after - before)
+            if gained > 0:
+                mined += gained
+            if dx > 0:
+                mc.move("left", dx)
+            elif dx < 0:
+                mc.move("right", -dx)
+            if dy > 0:
+                mc.move("up", dy)
+            elif dy < 0:
+                mc.move("down", -dy)
+
+print("returning to table and crafting stone pickaxe")
+for r in range(0, 30):
+    done = mc.achievements().get("make_stone_pickaxe", False)
+    if done:
+        break
+    for dx in range(-r, r + 1):
+        if mc.achievements().get("make_stone_pickaxe", False):
+            break
+        for dy in range(-r, r + 1):
+            if mc.achievements().get("make_stone_pickaxe", False):
+                break
+            if max(abs(dx), abs(dy)) != r:
+                continue
+            if dx > 0:
+                mc.move("right", dx)
+            elif dx < 0:
+                mc.move("left", -dx)
+            if dy > 0:
+                mc.move("down", dy)
+            elif dy < 0:
+                mc.move("up", -dy)
+            mc.act("make_stone_pickaxe", 1)
+            if dx > 0:
+                mc.move("left", dx)
+            elif dx < 0:
+                mc.move("right", -dx)
+            if dy > 0:
+                mc.move("up", dy)
+            elif dy < 0:
+                mc.move("down", -dy)
+
+print("stone pickaxe crafted:", bool(mc.achievements().get("make_stone_pickaxe", False)))

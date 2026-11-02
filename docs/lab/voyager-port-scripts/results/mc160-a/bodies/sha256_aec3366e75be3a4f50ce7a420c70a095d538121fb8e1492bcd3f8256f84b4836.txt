@@ -1,0 +1,57 @@
+(async () => {
+  const start = { x: 37.6, y: 67, z: 44.7 };
+  const isLog = (b) => typeof b === 'string' && b.endsWith('_log');
+
+  const findLog = async (radius) => {
+    const s = await mc.scan(radius);
+    const found = Object.keys(s.nearby || {}).find(isLog);
+    if (found) {
+      console.log('scan found ' + found + ' at radius ' + radius);
+      return found;
+    }
+    return null;
+  };
+
+  const harvest = async (type) => {
+    for (let i = 0; i < 4; i++) {
+      const m = await mc.mine_block(type, 6, 1);
+      console.log('mine ' + type + ' mined=' + (m.mined || 0) + ' ' + (m.problem || ''));
+      if (m.mined) {
+        const c = await mc.collect(type, 64, 16);
+        console.log('collect ' + type + ' collected=' + (c.collected || 0) + ' ' + (c.problem || ''));
+        const h = await mc.count(type);
+        if (h.count > 0) {
+          console.log('got wood: ' + h.count + ' ' + type);
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const approachAndHarvest = async (type) => {
+    const a = await mc.move_to_block(type, 32, 12000);
+    console.log('approach ' + type + ' at ' + JSON.stringify(a.at) + ' ' + (a.why || ''));
+    if (a.block) {
+      await mc.look_at(a.block.x, a.block.y, a.block.z);
+      if (await harvest(type)) return true;
+    }
+    return false;
+  };
+
+  const found0 = await findLog(160);
+  if (found0 && await approachAndHarvest(found0)) return;
+
+  const step = 8;
+  const maxSteps = 24;
+  for (let i = 1; i <= maxSteps; i++) {
+    const tx = start.x + i * step;
+    const mv = await mc.move_to(tx, start.y, start.z, 10000);
+    console.log('walk +x step ' + i + ' to ' + JSON.stringify(mv.at) + ' ' + (mv.why || ''));
+
+    const found = await findLog(48);
+    if (found && await approachAndHarvest(found)) return;
+  }
+
+  throw new Error('no wood found while walking outward');
+})();

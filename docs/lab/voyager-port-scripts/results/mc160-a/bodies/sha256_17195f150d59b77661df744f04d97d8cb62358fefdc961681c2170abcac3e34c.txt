@@ -1,0 +1,34 @@
+(async () => {
+  const cx = 39.5;
+  const cz = 41.5;
+  const cy = 67;
+
+  let found = null;
+  let foundRadius = 0;
+
+  for (let radius = 8; radius <= 64; radius += 8) {
+    const scan = await mc.scan(radius);
+    const nearby = scan.nearby || {};
+    const logBlock = Object.keys(nearby).find((b) => b.endsWith("_log"));
+    if (logBlock) {
+      found = logBlock;
+      foundRadius = radius;
+      console.log("found " + logBlock + " at radius " + radius);
+      break;
+    }
+  }
+
+  if (!found) {
+    console.log("no log block found within 64 blocks");
+    return;
+  }
+
+  const approach = await mc.move_to_block(found, 128, 30000);
+  console.log("approached " + found + " at " + JSON.stringify(approach.at));
+
+  const mine = await mc.mine_block(found, 16, 64);
+  console.log("mined " + (mine.mined || 0) + " " + found);
+
+  const collect = await mc.collect(found, 64, 16);
+  console.log("collected " + (collect.collected || 0) + " " + found + "; have " + (collect.have || 0));
+})();

@@ -1,0 +1,21 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+console.log("sweeping nearby tiles for stone");
+const sweep = [
+  "do", "move_left", "do", "move_right", "do", "move_right", "do",
+  "move_left", "do", "move_left", "do", "move_up", "do", "move_up", "do",
+  "move_down", "do", "move_down", "do", "move_down", "do", "move_down", "do",
+  "move_right", "do", "move_right", "do", "move_right", "do", "move_right", "do",
+  "move_left", "do", "move_left", "do", "move_left", "do", "move_left", "do",
+  "move_up", "do", "move_up", "do", "move_up", "do", "move_up", "do",
+  "move_down", "do", "move_down", "do", "move_down", "do", "move_down", "do",
+  "move_right", "do", "move_right", "do", "move_right", "do", "move_right", "do"
+];
+for (let i = 0; i < 8; i++) {
+  mc.act_seq(sweep);
+}
+
+console.log("crafting stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+console.log("done");

@@ -1,0 +1,59 @@
+const LOG = 'jungle_log';
+const TARGET = { x: 0, y: 64, z: -41 };
+
+function logCount() {
+  const r = mc.count(LOG);
+  return r && typeof r.count === 'number' ? r.count : 0;
+}
+
+function tryMineCollect(reach, tries) {
+  for (let i = 0; i < tries && logCount() === 0; i++) {
+    const m = mc.mine_block(LOG, reach, 1);
+    console.log('mine: ' + JSON.stringify(m));
+    mc.sleep(250);
+    const c = mc.collect(LOG, 1, reach);
+    console.log('collect: ' + JSON.stringify(c));
+    mc.sleep(200);
+  }
+}
+
+console.log('start ' + LOG + ': ' + logCount());
+
+if (logCount() === 0) {
+  mc.look_at(TARGET.x + 0.5, TARGET.y + 0.5, TARGET.z + 0.5);
+  mc.sleep(200);
+  tryMineCollect(16, 2);
+}
+
+if (logCount() === 0) {
+  const mv = mc.move_to_block(LOG, 16, 30000);
+  console.log('move_to_block: ' + JSON.stringify(mv));
+  mc.look_at(TARGET.x + 0.5, TARGET.y + 0.5, TARGET.z + 0.5);
+  mc.sleep(200);
+  tryMineCollect(8, 4);
+}
+
+if (logCount() === 0) {
+  const spots = [
+    { x: TARGET.x + 1.5, y: TARGET.y + 0.5, z: TARGET.z + 0.5 },
+    { x: TARGET.x - 1.5, y: TARGET.y + 0.5, z: TARGET.z + 0.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y + 0.5, z: TARGET.z + 1.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y + 0.5, z: TARGET.z - 1.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y + 1.5, z: TARGET.z + 0.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y - 1.5, z: TARGET.z + 0.5 }
+  ];
+  for (const s of spots) {
+    if (logCount() > 0) break;
+    const mv = mc.move_to(s.x, s.y, s.z, 20000);
+    console.log('move_to: ' + JSON.stringify(mv));
+    mc.look_at(TARGET.x + 0.5, TARGET.y + 0.5, TARGET.z + 0.5);
+    mc.sleep(200);
+    tryMineCollect(8, 3);
+  }
+}
+
+const finalCount = logCount();
+console.log('final ' + LOG + ': ' + finalCount);
+if (finalCount === 0) {
+  throw new Error('failed to collect ' + LOG);
+}

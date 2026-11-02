@@ -4588,3 +4588,118 @@ the props the prior passed?).
 
 The doc is complete and committed (b9f564d). All four brief items are
 done; nothing else was started.
+## 2026-11-02 — round 2: the two levers pulled, the runs started
+
+The director's round-2 note (BRIEF.md): pull the two named levers and
+measure — Minecraft's facts scan 96 -> 160 with three 2 h runs for
+repeats, Crafter's spatial fact with a run until skills are admitted;
+release the sandbox lease at the end. The levers went in first, each
+with its safety number, committed before any run:
+
+- **scan 160 costs nothing**: probe_scan_cost.py (which now measures
+  160) reads 0.02 s at 160 against 0.03 s at 16, world as the round-1
+  run left it — the repaired single-walk scan made the reach free.
+  The adapter's facts now scan 160 (`minecraft.py`).
+- **the crafter spatial fact**: nearest of each resource/creature in
+  the LocalView window the pixels render (9x8, player centred), in
+  the move primitives' own direction words with |dx|+|dy| moves, plus
+  facing and the faced tile — `crafter.py`; a sample: facing down,
+  grass in front, cow "4 right (4 moves)", tree "4 left, 3 up (7
+  moves)". The teacher stays privileged (whole grid); this is the
+  pixels' own information in words. 32 tests pass (28 before).
+
+Decided next: run 1 on the round-1 seed (`voyager-port`, fresh world
+from spawn), then two new seeds (`voyager-port-r2b`, `-r2c`); the
+crafter run starts in parallel and runs until skills are admitted or
+its budget stops it. Outputs under `results/mc160-{a,b,c}/` and
+`results/crafter-r2/`, one directory per run, so the ledgers never mix.
+
+## 2026-11-02 05:30 — round 2, run 1: the lever was pulled but inert — the bridge dropped the value
+
+Run 1 (seed `voyager-port`, fresh world, spawn, 160 facts scan, 2 h):
+**91 steps, 730,335 tokens (coder 502,721 / planner 93,438 / verifier
+134,176), 0 items, 0 milestones, 0 skills — the same zero as round
+1**, and the payload names the reason: every step's `nearby` was {},
+all 91, while the same `mc.scan(160)` through run_code sees 19 block
+types (probe_scan_cost). Round 1's 51-step run re-checked: all 51
+`nearby` {} too. `probe_facts_value.py` found the mechanism:
+`runInSandbox` returns the program's completion value, but the run op
+built its answer from log and seconds only — the value was dropped,
+so `return await mc.scan(...)` could never deliver anything at any
+radius, since fe1f0ff. The adapter's `except Exception: nearby = {}`
+swallowed the shape mismatch and let it read as an empty world.
+
+**Correction of the round-1 report** (DOC-RULES item 5): "the planner
+was correctly blind for two hours" because "the facts reach 96" was
+incomplete — the planner never saw *any* block at *any* radius; the
+tree at 111 is still measured fact, but the radius was never the
+binding constraint. The report gets a Superseded note.
+
+The repair is committed (bridge carries the value, adapter reads it,
+failed scans log instead of vanishing); measured after it, scan 160
+hands the planner deepslate 60, gravel 54.5, diamond ore 109.2, iron
+ore 64.5, coal 20.5. 33 tests pass. The crafter run (spatial fact)
+runs on untouched — it shares no bridge; its first skill was admitted
+at step 5 (03:27), episodes 1-6 scored 4, 2, 2, 7, 4 so far.
+
+Decided next: the three-seed measurement runs with the repaired
+facts — same seed as round 1 (`mc160-a2`), then `voyager-port-r2b`
+(`mc160-b`) and `voyager-port-r2c` (`mc160-c`); `mc160-a` is kept as
+the honest control (the lever pulled but inert).
+
+## 2026-11-02 07:50 — round 2: a2's eyes worked; the legs never moved — and then b's programs never ran
+
+a2 (seed `voyager-port`, fresh world, fixed facts): **59 steps,
+775,031 tokens, 0 milestones** — but the facts now see: 59/59 steps
+non-empty `nearby`, oak_log in 58 (pinned at 87.4; the coder even
+hardcoded the scan's own tree coordinates into its programs). The
+bottleneck moved to execution, and the replay of a2's own step-4
+program pinned it: the code completed ok in 0.02 s with an empty log
+— impossible for a program whose tail always logs. **The coder
+drifted into wrapping programs in their own async IIFE** (0/51 in
+round 1's run, 24/91 in the control run, 59/59 in a2 — it spreads
+through the coder's previous_code), and the sandbox wraps every
+program again, so the inner IIFE was an un-awaited expression
+statement: vacuous "success" in milliseconds, empty log, bot
+untouched. A 5.3-block walk driven by hand works (probe_move_to_block:
+2302 ms, why=complete); far goals burn their caller's clock
+(20/60/90-block moves: three 30 s timeouts, thrown honestly).
+
+Fix (committed): the bridge unwraps one redundant IIFE and awaits a
+thenable completion value under the same clock. Replayed, the a2
+program now runs to its wall instead of returning instantly. The b
+run — 10 steps in on the broken executor — was stopped and re-launched
+from a fresh world on the fixed bridge; a2 and the control stand as
+measured, payloads naming the mechanism. The crafter run finished
+before all this and shares none of it: **152 steps, 4.176
+achievements/episode over 17 episodes** (teacher 9.625 privileged;
+students 1.125/0.875/1.375), 3 skills admitted (collect_wood step 5
+/ 25,927 tokens; make_wood_pickaxe step 99 / 734,728; collect_stone
+step 103 / 763,975), 1,230,853 tokens, 10 achievements incl.
+defeat_zombie x151.
+
+Decided next: b (r2b) and c (r2c) on the fixed bridge, 2 h each,
+fresh worlds; the report then carries the correction chain and the
+three-seed numbers.
+
+## 2026-11-02 12:00 — round 2 closes: c lands, the report is written, the lease released
+
+c (seed `voyager-port-r2c`, fixed stack): **22 steps, 536,914 tokens,
+0 milestones** — 11 of 22 steps were `coder_unreadable` (the same
+no-JSON replies that ate b's tail; the doubled-budget retries are why
+c's steps cost ~2x and only 22 fit in 2 h), oak_log visible at 43–48
+blocks for the steps that scanned it, 0 wrapped programs. b's tally
+re-checked precisely: **no silent-fast programs at all** — 33 fast
+failures with logs, 21 honest throws (20 chasing `jungle_log`, which
+this world does not hold), 3 long runs, 1 syntax error; the
+hand-driven probe chops a tree end-to-end in 19 s. So on the fixed
+stack the Minecraft bottleneck is the coder's own programs — wrong
+block names and collect chains that miss — named as round 3's prompt
+lever.
+
+The report's round-2 section is appended (correction chain under
+"Superseded", the four MC runs, the crafter numbers); the scripts
+README carries the three new probes and `run_crafter_r2.sh`. The
+sandbox lease is released at the end of this note — nothing is left
+running. Decided next: nothing started; the round-2 brief is carried
+out and the next levers are named in the report.

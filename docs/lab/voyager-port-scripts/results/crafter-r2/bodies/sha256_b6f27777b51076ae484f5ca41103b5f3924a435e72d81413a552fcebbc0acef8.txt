@@ -1,0 +1,15 @@
+const wood = () => (mc.achievements() || {}).collect_wood || 0;
+const crafted = () => (mc.achievements() || {}).make_wood_pickaxe;
+
+if (!crafted()) {
+  mc.act("do", 3);
+  mc.act("sleep", 1);
+  mc.move("right", 4);
+  mc.move("down", 2);
+  mc.act("do", 12);
+  mc.move("up", 2);
+  mc.move("left", 4);
+  mc.act("do", 12);
+}
+
+console.log("wood:", wood(), "crafted:", crafted() ? "yes" : "no");

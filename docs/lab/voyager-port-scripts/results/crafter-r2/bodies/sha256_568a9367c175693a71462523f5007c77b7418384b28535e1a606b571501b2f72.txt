@@ -1,0 +1,66 @@
+print("sleeping to refill energy")
+mc.act("sleep", 1)
+print("sweeping nearby tiles for stone")
+need = 3
+got = int(mc.achievements().get("collect_stone", 0) or 0)
+for r in range(1, 13):
+    if got >= need:
+        break
+    for dx in range(-r, r + 1):
+        if got >= need:
+            break
+        for dy in range(-r, r + 1):
+            if got >= need:
+                break
+            if dx == 0 and dy == 0:
+                continue
+            if abs(dx) != r and abs(dy) != r:
+                continue
+            if dx > 0:
+                mc.move("right", dx)
+            elif dx < 0:
+                mc.move("left", -dx)
+            if dy > 0:
+                mc.move("down", dy)
+            elif dy < 0:
+                mc.move("up", -dy)
+            mc.act("do", 1)
+            got = int(mc.achievements().get("collect_stone", 0) or 0)
+            if dx > 0:
+                mc.move("left", dx)
+            elif dx < 0:
+                mc.move("right", -dx)
+            if dy > 0:
+                mc.move("up", dy)
+            elif dy < 0:
+                mc.move("down", -dy)
+print("returning to table")
+mc.act("move_up", 1)
+mc.act("move_left", 1)
+mc.act("move_up", 1)
+mc.act("move_right", 1)
+mc.act("move_down", 1)
+mc.act("move_right", 1)
+mc.act("move_down", 1)
+mc.act("move_left", 1)
+mc.act("move_left", 1)
+mc.act("move_down", 1)
+mc.act("move_left", 1)
+mc.act("move_up", 1)
+mc.act("move_right", 1)
+mc.act("move_up", 1)
+mc.act("move_left", 1)
+mc.act("move_down", 1)
+mc.act("move_left", 1)
+mc.act("move_up", 1)
+mc.act("move_right", 1)
+mc.act("move_down", 1)
+mc.act("move_right", 1)
+mc.act("move_up", 1)
+mc.act("move_left", 1)
+mc.act("move_down", 1)
+mc.act("move_left", 1)
+mc.act("move_up", 1)
+mc.act("move_right", 1)
+mc.act("make_stone_pickaxe", 1)
+print("stone pickaxe crafted: " + str(bool(mc.achievements().get("make_stone_pickaxe", False))))

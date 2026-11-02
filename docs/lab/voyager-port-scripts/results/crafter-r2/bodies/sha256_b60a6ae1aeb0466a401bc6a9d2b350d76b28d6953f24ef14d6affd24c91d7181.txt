@@ -1,0 +1,14 @@
+console.log("start: sleep, chop tree, place table, craft wood pickaxe");
+
+const crafted = () => mc.achievements().make_wood_pickaxe === true;
+
+if (!crafted()) {
+  mc.act("sleep", 1);
+  mc.act_seq(["move_left", "move_left", "move_down", "move_down"]);
+  mc.act("do", 12);
+  mc.act_seq(["move_up", "move_up", "move_right", "move_right"]);
+  mc.act("place_table", 1);
+  mc.act("make_wood_pickaxe", 1);
+}
+
+console.log("wood pickaxe crafted: " + (crafted() ? "yes" : "no"));

@@ -1,0 +1,48 @@
+console.log("collect wood and craft wood pickaxe: start");
+
+function achievementDone() {
+  const a = mc.achievements();
+  return a && a.make_wood_pickaxe === true;
+}
+
+function woodCount() {
+  const a = mc.achievements();
+  if (a && typeof a.collect_wood === "number") return a.collect_wood;
+  return 0;
+}
+
+function tryCraft() {
+  if (achievementDone()) return true;
+  if (woodCount() >= 2) {
+    mc.act("place_table", 1);
+    mc.act("make_wood_pickaxe", 1);
+  }
+  return achievementDone();
+}
+
+function refillEnergy() {
+  for (let i = 0; i < 3 && !achievementDone(); i++) {
+    mc.act("sleep", 1);
+  }
+}
+
+function collectWoodFromTree() {
+  if (achievementDone()) return;
+  mc.move("left", 2);
+  mc.move("up", 1);
+  mc.act("do", 5);
+  mc.move("down", 1);
+  mc.move("right", 2);
+}
+
+refillEnergy();
+for (let i = 0; i < 4 && !achievementDone(); i++) {
+  collectWoodFromTree();
+  tryCraft();
+}
+
+if (achievementDone()) {
+  console.log("collect wood and craft wood pickaxe: crafted wood pickaxe");
+} else {
+  console.log("collect wood and craft wood pickaxe: failed");
+}

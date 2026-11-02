@@ -1,0 +1,58 @@
+const done = () => Boolean(mc.achievements().get('make_wood_pickaxe'));
+const log = (m) => console.log(m);
+const sleep = (t) => mc.act('sleep', t);
+const doAction = (t) => mc.act('do', t);
+const move = (d, s) => mc.move(d, s);
+const craft = () => mc.act('make_wood_pickaxe', 1);
+
+log('wood pickaxe: start');
+if (!done()) {
+  sleep(1);
+}
+
+const dirs = ['right', 'left', 'up', 'down'];
+for (const d of dirs) {
+  if (done()) break;
+  const back = d === 'right' ? 'left' : d === 'left' ? 'right' : d === 'up' ? 'down' : 'up';
+  for (const dist of [1, 2, 3, 4, 5]) {
+    if (done()) break;
+    move(d, dist);
+    doAction(3);
+    move(back, dist);
+    if (done()) break;
+  }
+}
+
+if (!done()) {
+  for (const d of dirs) {
+    if (done()) break;
+    const back = d === 'right' ? 'left' : d === 'left' ? 'right' : d === 'up' ? 'down' : 'up';
+    for (const dist of [1, 2, 3, 4, 5, 6]) {
+      if (done()) break;
+      move(d, dist);
+      doAction(3);
+      move(back, dist);
+      if (done()) break;
+    }
+  }
+}
+
+if (!done()) {
+  craft();
+}
+
+if (!done()) {
+  for (const d of dirs) {
+    if (done()) break;
+    const back = d === 'right' ? 'left' : d === 'left' ? 'right' : d === 'up' ? 'down' : 'up';
+    for (const dist of [1, 2, 3]) {
+      if (done()) break;
+      move(d, dist);
+      craft();
+      move(back, dist);
+      if (done()) break;
+    }
+  }
+}
+
+log('wood pickaxe: ' + (done() ? 'crafted' : 'failed'));

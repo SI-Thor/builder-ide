@@ -1,0 +1,65 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  const logs = () => mc.count('oak_log').count;
+
+  if (logs() > 0) {
+    console.log(`Already holding ${logs()} oak_log.`);
+    return;
+  }
+
+  const mineAndCollect = async () => {
+    await mc.look_at(target.x, target.y, target.z);
+    const m = await mc.mine_block('oak_log', 64, 1);
+    if (m && m.mined > 0) {
+      await mc.sleep(750);
+      await mc.collect('oak_log', 1, 64);
+      const n = logs();
+      if (n > 0) {
+        console.log(`Mined and collected oak_log; now holding ${n}.`);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const moveAttempts = [
+    { type: 'block', max_distance: 1, timeout_ms: 600000 },
+    { type: 'block', max_distance: 2, timeout_ms: 600000 },
+    { type: 'block', max_distance: 5, timeout_ms: 600000 },
+    { type: 'block', max_distance: 16, timeout_ms: 600000 },
+    { type: 'block', max_distance: 32, timeout_ms: 600000 },
+    { type: 'block', max_distance: 64, timeout_ms: 600000 },
+    { type: 'block', max_distance: 128, timeout_ms: 600000 }
+  ];
+
+  for (const attempt of moveAttempts) {
+    const r = await mc.move_to_block('oak_log', attempt.max_distance, attempt.timeout_ms);
+    if (r && r.block) {
+      target.x = r.block.x;
+      target.y = r.block.y;
+      target.z = r.block.z;
+    }
+    if (await mineAndCollect()) return;
+  }
+
+  const offsets = [
+    [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1],
+    [1, 0, 1], [1, 0, -1], [-1, 0, 1], [-1, 0, -1],
+    [0, 1, 0], [0, -1, 0], [1, 1, 0], [-1, 1, 0],
+    [0, 1, 1], [0, 1, -1], [1, 1, 1], [-1, 1, 1]
+  ];
+
+  for (const [dx, dy, dz] of offsets) {
+    const p = { x: target.x + dx, y: target.y + dy, z: target.z + dz };
+    const m = await mc.move_to(p.x, p.y, p.z, 120000);
+    if (m && m.at) {
+      const d = dist(m.at, target);
+      if (d <= 64 && await mineAndCollect()) return;
+    }
+  }
+
+  const held = logs();
+  console.log(`Failed to collect oak_log; holding ${held}.`);
+  if (held === 0) throw new Error('No oak_log collected.');
+})();

@@ -1,0 +1,10 @@
+const target = { x: 9, y: 69, z: -39 };
+const move = mc.move_to(target.x, target.y, target.z, 10000);
+console.log('moved to oak_log: ' + JSON.stringify(move));
+mc.look_at(target.x, target.y, target.z);
+const mined = mc.mine_block('oak_log', 8, 1);
+console.log('mined oak_log: ' + JSON.stringify(mined));
+const collected = mc.collect('oak_log', 1, 8);
+console.log('collected oak_log: ' + JSON.stringify(collected));
+const held = mc.count('oak_log');
+console.log('oak_log count: ' + held.count);

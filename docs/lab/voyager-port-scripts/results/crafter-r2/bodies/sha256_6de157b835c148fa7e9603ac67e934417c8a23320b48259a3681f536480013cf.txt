@@ -1,0 +1,31 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+let foundStone = false;
+const rings = [
+  ["noop"],
+  ["move_left", "move_up", "move_right", "move_right", "move_down", "move_down", "move_left", "move_left"],
+  ["move_left", "move_up", "move_up", "move_right", "move_right", "move_right", "move_down", "move_down", "move_down", "move_left", "move_left", "move_left"],
+  ["move_left", "move_up", "move_up", "move_up", "move_right", "move_right", "move_right", "move_right", "move_down", "move_down", "move_down", "move_down", "move_left", "move_left", "move_left", "move_left"],
+  ["move_left", "move_up", "move_up", "move_up", "move_up", "move_right", "move_right", "move_right", "move_right", "move_right", "move_down", "move_down", "move_down", "move_down", "move_down", "move_left", "move_left", "move_left", "move_left", "move_left"]
+];
+
+for (const ring of rings) {
+  for (const action of ring) {
+    mc.act(action, 1);
+    mc.act("do", 1);
+    if (mc.achievements()["collect_stone"]) {
+      foundStone = true;
+      break;
+    }
+  }
+  if (foundStone) break;
+}
+
+console.log("placing crafting table");
+mc.act("place_table", 1);
+
+console.log("crafting stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+
+console.log("done");

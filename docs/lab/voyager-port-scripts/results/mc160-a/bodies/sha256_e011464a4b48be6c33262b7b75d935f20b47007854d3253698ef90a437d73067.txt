@@ -1,0 +1,82 @@
+(async () => {
+  const LOGS = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+
+  const hasWood = async () => {
+    for (const id of LOGS) {
+      const r = await mc.count(id);
+      if (r && r.count > 0) return true;
+    }
+    return false;
+  };
+
+  const collectAll = async () => {
+    for (const id of LOGS) {
+      const c = await mc.collect(id, 64, 64);
+      if (c && c.collected > 0) console.log('collected ' + c.collected + ' ' + id);
+    }
+  };
+
+  const mineOne = async (id) => {
+    for (let i = 0; i < 8; i++) {
+      const m = await mc.mine_block(id, 64, 64);
+      if (!m) break;
+      console.log('mine ' + id + ' mined=' + (m.mined || 0) + ' ' + (m.problem || ''));
+      if (m.mined > 0) {
+        await collectAll();
+        if (await hasWood()) return true;
+      } else {
+        break;
+      }
+    }
+    return false;
+  };
+
+  const tryHere = async () => {
+    const s = await mc.scan(128);
+    const nearby = (s && s.nearby) || {};
+    for (const id of LOGS) {
+      if (!nearby[id]) continue;
+      const mv = await mc.move_to_block(id, 128, 30000);
+      if (mv && mv.block) {
+        await mc.look_at(mv.block.x, mv.block.y, mv.block.z);
+        if (await mineOne(id)) return true;
+      }
+    }
+    return false;
+  };
+
+  if (await hasWood()) {
+    console.log('already have wood');
+    return;
+  }
+
+  if (await tryHere()) {
+    console.log('got wood');
+    return;
+  }
+
+  let x = 37.6;
+  let y = 67;
+  let z = 44.7;
+  const dirs = [[1,0],[0,1],[-1,0],[0,-1],[1,1],[-1,1],[-1,-1],[1,-1]];
+
+  for (let ring = 1; ring <= 48; ring++) {
+    for (const [dx, dz] of dirs) {
+      const tx = x + dx * ring * 12;
+      const tz = z + dz * ring * 12;
+      const mv = await mc.move_to(tx, y, tz, 25000);
+      if (mv && mv.at) {
+        x = mv.at.x;
+        y = mv.at.y;
+        z = mv.at.z;
+      }
+      console.log('search ring=' + ring + ' dir=' + dx + ',' + dz + ' ' + (mv && mv.why || ''));
+      if (await tryHere()) {
+        console.log('got wood');
+        return;
+      }
+    }
+  }
+
+  throw new Error('no tree found');
+})();

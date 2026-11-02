@@ -1,0 +1,31 @@
+console.log("craft wood pickaxe: start");
+
+function done() {
+  const a = mc.achievements();
+  const v = a && a.make_wood_pickaxe;
+  return v === true || (typeof v === "number" && v > 0);
+}
+
+function chopTree() {
+  mc.move("left", 2);
+  mc.move("up", 1);
+  mc.act("do", 3);
+  mc.move("down", 1);
+  mc.move("right", 2);
+}
+
+mc.act("sleep", 1);
+for (let i = 0; i < 3 && !done(); i++) {
+  chopTree();
+}
+
+if (!done()) {
+  mc.act("place_table", 1);
+  mc.act("make_wood_pickaxe", 1);
+}
+
+if (done()) {
+  console.log("craft wood pickaxe: crafted wood pickaxe");
+} else {
+  console.log("craft wood pickaxe: failed");
+}

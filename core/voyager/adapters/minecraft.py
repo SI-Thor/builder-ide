@@ -432,17 +432,26 @@ class MinecraftAdapter:
         # player knows what is in reach.
         # The facts are what the planner reasons over, so they are the
         # world as a player would describe it: what is in reach and what
-        # is in the world around. The scan reaches the loaded area of
-        # the server, which is where the tree is when the tree is 86
-        # blocks away; a scan of sixteen blocks says "empty" and hides
-        # the only thing worth doing.
+        # is in the world around. The scan now reaches as far as the
+        # bridge does — 160 blocks, the whole loaded area: the round-1
+        # measured run spent two hours blind because the only tree sat
+        # 111 blocks out against a 96-block facts scan, and the loop
+        # cannot cross a distance it cannot see. The repaired scan
+        # walks the loaded columns once, so the extra reach is measured
+        # cheap (0.02 s at 160, against 0.03 s at 16 — probe_scan_cost).
         try:
-            nearby = (self._call("run", timeout_s=45.0, code="return await mc.scan(96)", timeout_ms=30000) or {}).get("nearby", {})
-        except Exception:
+            answer = self._call("run", timeout_s=45.0, code="return await mc.scan(160)", timeout_ms=30000) or {}
+            nearby = (answer.get("value") or {}).get("nearby", {})
+        except Exception as exc:
+            # a facts scan that fails is a fact the run's reader must
+            # see, not an empty world masquerading as one
+            self._log(f"the facts scan failed: {exc}")
             nearby = {}
         try:
-            ores = (self._call("run", timeout_s=45.0, code="return await mc.scan_ore(32)", timeout_ms=30000) or {}).get("ores", {})
-        except Exception:
+            answer = self._call("run", timeout_s=45.0, code="return await mc.scan_ore(32)", timeout_ms=30000) or {}
+            ores = (answer.get("value") or {}).get("ores", {})
+        except Exception as exc:
+            self._log(f"the ore scan failed: {exc}")
             ores = {}
         return {
             "world": "minecraft",

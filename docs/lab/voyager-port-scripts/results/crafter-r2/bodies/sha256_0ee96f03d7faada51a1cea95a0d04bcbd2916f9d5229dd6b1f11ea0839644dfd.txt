@@ -1,0 +1,52 @@
+function stoneCount() {
+  const v = mc.achievements().collect_stone;
+  if (v === true) return 1;
+  if (v === false) return 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function woodCount() {
+  const v = mc.achievements().collect_wood;
+  if (v === true) return 1;
+  if (v === false) return 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+console.log("collecting wood from nearby tree");
+mc.act_seq([
+  "move_right", "move_right", "move_right",
+  "move_down", "move_down", "move_down",
+  "do", "do", "do", "do", "do"
+]);
+
+console.log("sweeping for stone");
+for (let radius = 1; radius <= 24 && stoneCount() < 3; radius++) {
+  for (let i = 0; i < radius && stoneCount() < 3; i++) {
+    mc.move("right", 1);
+    mc.act("do", 1);
+  }
+  for (let i = 0; i < radius && stoneCount() < 3; i++) {
+    mc.move("down", 1);
+    mc.act("do", 1);
+  }
+  for (let i = 0; i < radius && stoneCount() < 3; i++) {
+    mc.move("left", 1);
+    mc.act("do", 1);
+  }
+  for (let i = 0; i < radius && stoneCount() < 3; i++) {
+    mc.move("up", 1);
+    mc.act("do", 1);
+  }
+}
+
+console.log("ensuring a table is available");
+mc.act("place_table", 1);
+
+console.log("crafting stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+console.log("done");

@@ -1,0 +1,36 @@
+console.log("start: collect wood, then craft wood pickaxe");
+const done = () => Boolean(mc.achievements().get("make_wood_pickaxe"));
+const craft = () => { mc.act("make_wood_pickaxe", 1); return done(); };
+const chop = () => { mc.act("do", 1); };
+const tryHere = () => { if (craft()) return true; chop(); return craft(); };
+if (craft()) { console.log("wood pickaxe already available: yes"); }
+else {
+  mc.act("do", 9);
+  if (craft()) { console.log("wood pickaxe crafted after eating: yes"); }
+  else {
+    mc.act("sleep", 1);
+    if (craft()) { console.log("wood pickaxe crafted after sleep: yes"); }
+    else {
+      mc.move("left", 1);
+      mc.move("up", 1);
+      if (tryHere()) { console.log("wood pickaxe crafted after moving to tree: yes"); }
+      else {
+        mc.move("down", 1);
+        mc.move("right", 1);
+        mc.move("left", 1);
+        mc.move("up", 1);
+        if (tryHere()) { console.log("wood pickaxe crafted after second tree approach: yes"); }
+        else {
+          mc.move("down", 1);
+          mc.move("right", 1);
+          mc.act("do", 9);
+          mc.act("sleep", 1);
+          mc.move("left", 1);
+          mc.move("up", 1);
+          if (tryHere()) { console.log("wood pickaxe crafted after refill and tree approach: yes"); }
+          else { console.log("wood pickaxe crafted: no"); }
+        }
+      }
+    }
+  }
+}

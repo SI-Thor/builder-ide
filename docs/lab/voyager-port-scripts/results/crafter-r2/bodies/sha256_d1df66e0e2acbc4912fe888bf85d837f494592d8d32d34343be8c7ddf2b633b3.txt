@@ -1,0 +1,8 @@
+var log = (typeof console !== 'undefined' && console.log) ? console.log.bind(console) : (typeof print !== 'undefined' ? print : function () {});
+log("sleeping to refill energy");
+mc.act("sleep", 1);
+log("sweeping nearby tiles for stone");
+mc.act_seq(["move_left", "do", "move_up", "do", "move_right", "do", "move_right", "do", "move_down", "do", "move_down", "do", "move_left", "do", "move_left", "do"]);
+log("crafting stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+log("done");

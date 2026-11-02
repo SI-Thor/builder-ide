@@ -1,0 +1,35 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+const stoneCount = () => {
+  const v = mc.achievements().collect_stone;
+  if (v === true) return 1;
+  if (v === false) return 0;
+  return Number(v) || 0;
+};
+
+console.log("sweeping nearby tiles for stone");
+let radius = 0;
+while (stoneCount() < 3 && radius < 12) {
+  radius += 1;
+  for (let i = 0; i < radius && stoneCount() < 3; i++) {
+    mc.move("right", 1);
+    mc.act("do", 1);
+  }
+  for (let i = 0; i < radius && stoneCount() < 3; i++) {
+    mc.move("down", 1);
+    mc.act("do", 1);
+  }
+  for (let i = 0; i < radius && stoneCount() < 3; i++) {
+    mc.move("left", 1);
+    mc.act("do", 1);
+  }
+  for (let i = 0; i < radius && stoneCount() < 3; i++) {
+    mc.move("up", 1);
+    mc.act("do", 1);
+  }
+}
+
+console.log("crafting stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+console.log("done");

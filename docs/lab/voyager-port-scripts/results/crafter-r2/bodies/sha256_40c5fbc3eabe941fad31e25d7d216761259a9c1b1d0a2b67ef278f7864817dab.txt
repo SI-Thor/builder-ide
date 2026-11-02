@@ -1,0 +1,28 @@
+import math
+
+def done():
+    return bool(mc.achievements().get("make_wood_pickaxe"))
+
+print("starting wood pickaxe skill")
+
+if not done():
+    mc.act("sleep", 1)
+    mc.act("do", 1)
+    mc.act("do", 1)
+    mc.act("do", 1)
+
+if not done():
+    dirs = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+    for radius in range(0, 64):
+        if done():
+            break
+        for dx, dy in dirs:
+            if done():
+                break
+            for step in range(1, radius + 1):
+                if done():
+                    break
+                mc.move("right" if dx == 1 else "left" if dx == -1 else "down" if dy == 1 else "up", 1)
+                mc.act("make_wood_pickaxe", 1)
+
+print("wood pickaxe crafted: " + ("yes" if done() else "no"))

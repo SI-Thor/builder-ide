@@ -658,7 +658,6 @@ def test_the_crafter_adapter_round_trips():
     pytest = __import__("pytest")
     crafter = pytest.importorskip("crafter")
     from core.voyager.adapters.crafter import CrafterAdapter
-
     adapter = CrafterAdapter(log=lambda m: None)
     adapter.open()
     try:
@@ -668,6 +667,59 @@ def test_the_crafter_adapter_round_trips():
         assert result.ok, result.error
         check = adapter.evaluate("mc.achievements()['collect_wood'] > 0", timeout_s=10.0)
         assert check.detail == "False"  # a fresh world: no wood yet
+    finally:
+        adapter.close()
+
+
+def test_the_crafter_spatial_fact_names_directions_the_move_primitive_accepts():
+    pytest = __import__("pytest")
+    pytest.importorskip("crafter")
+    import re
+
+    from core.voyager.adapters.crafter import CrafterAdapter, crafter_vocabulary
+
+    adapter = CrafterAdapter(log=lambda m: None)
+    adapter.open()
+    try:
+        spatial = adapter.observe()["spatial"]
+        directions = crafter_vocabulary().require("mc.move")["direction"]["enum"]
+        assert spatial["facing"] in directions
+        assert spatial["in_front"] is None or isinstance(spatial["in_front"], str)
+        assert spatial["nearest"], "the local window always holds the ground underfoot"
+        for name, where in spatial["nearest"].items():
+            counted = re.search(r"\((\d+) moves\)", where)
+            if counted:
+                # the window the pixels render is 9 x 8 with the player
+                # at its centre: nothing inside it is farther than its
+                # own diagonal in moves
+                assert int(counted.group(1)) <= 8, (name, where)
+            else:
+                assert where.startswith("here"), (name, where)
+            for word in re.findall(r"\b(left|right|up|down)\b", where):
+                assert word in directions, (name, where)
+    finally:
+        adapter.close()
+
+
+def test_a_dead_episode_resets_instead_of_stalling_the_run():
+    pytest = __import__("pytest")
+    pytest.importorskip("crafter")
+    from core.voyager.adapters.crafter import CrafterAdapter
+
+    adapter = CrafterAdapter(log=lambda m: None)
+    adapter.open()
+    try:
+        before = adapter.observe()
+        # the episode is spent: a dead player ends it (a run of hours
+        # will meet zombies; the smokes never did)
+        adapter._env._player.health = 0
+        adapter._absorb({"achievements": {"collect_wood": 1}})
+        after = adapter.observe()
+        assert after["episode"] == before["episode"] + 1
+        assert after["health"] > 0  # the facts describe a living player
+        assert after["episodes_finished"] == 1
+        # a milestone once reached stays reached across the reset
+        assert adapter.goal_truth("collect_wood")
     finally:
         adapter.close()
 

@@ -1,0 +1,27 @@
+console.log("crafting wood pickaxe");
+
+function done() {
+  return !!mc.achievements().make_wood_pickaxe;
+}
+
+function energyNow() {
+  try {
+    return Number(mc.achievements().energy || 0);
+  } catch (e) {
+    return 0;
+  }
+}
+
+for (let i = 0; i < 64 && !done() && energyNow() <= 0; i++) {
+  mc.act("sleep", 1);
+}
+
+if (!done()) {
+  mc.act("place_table", 1);
+}
+
+if (!done()) {
+  mc.act("make_wood_pickaxe", 1);
+}
+
+console.log("wood pickaxe crafted: " + (done() ? "yes" : "no"));

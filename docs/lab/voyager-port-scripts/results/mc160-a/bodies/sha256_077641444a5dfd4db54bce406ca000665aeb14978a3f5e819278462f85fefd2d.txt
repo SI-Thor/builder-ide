@@ -1,0 +1,64 @@
+(async () => {
+  const logTypes = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+  const isLog = (b) => typeof b === 'string' && b.endsWith('_log');
+
+  const scanForLog = async (radius) => {
+    const s = await mc.scan(radius);
+    const found = Object.keys(s.nearby || {}).filter(isLog);
+    if (found.length) {
+      console.log('scan found ' + found.join(',') + ' at radius ' + radius);
+      return found;
+    }
+    return [];
+  };
+
+  const tryHarvest = async (type) => {
+    const approach = await mc.move_to_block(type, 128, 30000);
+    console.log('approach ' + type + ' at ' + JSON.stringify(approach.at) + ' ' + (approach.why || ''));
+    if (approach.block) {
+      await mc.look_at(approach.block.x, approach.block.y, approach.block.z);
+    }
+
+    for (let i = 0; i < 8; i++) {
+      const m = await mc.mine_block(type, 16, 1);
+      console.log('mine ' + type + ' mined=' + (m.mined || 0) + ' ' + (m.problem || ''));
+      if (!m.mined) break;
+
+      const c = await mc.collect(type, 64, 32);
+      console.log('collect ' + type + ' collected=' + (c.collected || 0) + ' ' + (c.problem || ''));
+
+      const h = await mc.count(type);
+      if (h.count > 0) {
+        console.log('got wood: ' + h.count + ' ' + type);
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const initial = await scanForLog(128);
+  for (const type of initial) {
+    if (await tryHarvest(type)) return;
+  }
+
+  const start = { x: 37.6, y: 67, z: 44.7 };
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+  const step = 8;
+  const maxSteps = 24;
+
+  for (let i = 1; i <= maxSteps; i++) {
+    for (const [dx, dz] of dirs) {
+      const tx = start.x + dx * i * step;
+      const tz = start.z + dz * i * step;
+      const mv = await mc.move_to(tx, start.y, tz, 10000);
+      console.log('walk to ' + JSON.stringify(mv.at) + ' ' + (mv.why || ''));
+
+      const found = await scanForLog(96);
+      for (const type of found) {
+        if (await tryHarvest(type)) return;
+      }
+    }
+  }
+
+  throw new Error('no wood found while walking outward');
+})();

@@ -1,0 +1,7 @@
+print("collect wood: start")
+mc.act("do", 9)
+mc.move("left", 4)
+mc.move("up", 3)
+mc.act("do", 16)
+mc.act("do", 1)
+print("collect wood: finished")

@@ -1,0 +1,25 @@
+const target = { x: 8, y: 70, z: -44 };
+let have = mc.count('jungle_log').count;
+
+for (let attempt = 0; attempt < 3 && have < 1; attempt++) {
+  const moved = mc.move_to_block('jungle_log', 16, 30000);
+  console.log('move attempt ' + (attempt + 1) + ': ' + JSON.stringify(moved));
+
+  const bx = moved && moved.block && typeof moved.block.x === 'number' ? moved.block.x : target.x;
+  const by = moved && moved.block && typeof moved.block.y === 'number' ? moved.block.y : target.y;
+  const bz = moved && moved.block && typeof moved.block.z === 'number' ? moved.block.z : target.z;
+
+  mc.look_at(bx, by, bz);
+
+  const mined = mc.mine_block('jungle_log', 16, 1);
+  console.log('mine attempt ' + (attempt + 1) + ': ' + JSON.stringify(mined));
+
+  mc.sleep(500);
+
+  const collected = mc.collect('jungle_log', 1, 16);
+  console.log('collect attempt ' + (attempt + 1) + ': ' + JSON.stringify(collected));
+
+  have = mc.count('jungle_log').count;
+}
+
+console.log('jungle_log count: ' + have);

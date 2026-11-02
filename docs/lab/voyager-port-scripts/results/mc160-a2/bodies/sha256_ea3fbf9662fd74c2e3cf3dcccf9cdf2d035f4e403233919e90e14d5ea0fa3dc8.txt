@@ -1,0 +1,40 @@
+(async () => {
+  if (mc.count('oak_log').count > 0) {
+    console.log('Already holding oak_log.');
+    return;
+  }
+
+  const ranges = [1, 2, 4, 8, 16, 32, 64, 128];
+  let moved = null;
+  for (const range of ranges) {
+    moved = await mc.move_to_block('oak_log', range, 600000);
+    if (moved && moved.at && moved.block) break;
+  }
+
+  if (!moved || !moved.at || !moved.block) {
+    console.log('Could not reach an oak_log.');
+    throw new Error('Could not reach an oak_log.');
+  }
+
+  const target = moved.block;
+  await mc.look_at(target.x, target.y, target.z);
+
+  let mined = await mc.mine_block('oak_log', 64, 1);
+  if (!mined || mined.mined <= 0) {
+    await mc.sleep(500);
+    mined = await mc.mine_block('oak_log', 64, 1);
+  }
+
+  if (mined && mined.mined > 0) {
+    await mc.sleep(250);
+    await mc.collect('oak_log', 1, 64);
+  }
+
+  if (mc.count('oak_log').count > 0) {
+    console.log('Broke and collected oak_log.');
+    return;
+  }
+
+  console.log('Failed to collect oak_log.');
+  throw new Error('No oak_log collected.');
+})();

@@ -1,0 +1,66 @@
+def done():
+    return (mc.achievements().get('make_wood_pickaxe', 0) or 0) > 0
+
+def act(action, times=1):
+    for _ in range(times):
+        if done():
+            return
+        mc.act(action, 1)
+
+def move_dir(direction, steps):
+    for _ in range(steps):
+        if done():
+            return
+        mc.move(direction, 1)
+
+def visit(dx, dy, fn):
+    if dx < 0:
+        move_dir('left', -dx)
+    elif dx > 0:
+        move_dir('right', dx)
+    if dy < 0:
+        move_dir('up', -dy)
+    elif dy > 0:
+        move_dir('down', dy)
+    if not done():
+        fn()
+    if dx < 0:
+        move_dir('right', -dx)
+    elif dx > 0:
+        move_dir('left', -dx)
+    if dy < 0:
+        move_dir('down', -dy)
+    elif dy > 0:
+        move_dir('up', -dy)
+
+def spiral(radius, fn):
+    if fn(0, 0):
+        return True
+    for r in range(1, radius + 1):
+        if done():
+            return True
+        for dx in range(-r, r + 1):
+            if done():
+                return True
+            for dy in range(-r, r + 1):
+                if done():
+                    return True
+                if max(abs(dx), abs(dy)) != r:
+                    continue
+                if fn(dx, dy):
+                    return True
+    return done()
+
+act('do', 12)
+act('sleep', 8)
+
+if not done():
+    spiral(12, lambda dx, dy: visit(dx, dy, lambda: (act('do', 2), act('make_wood_pickaxe', 3))))
+
+if not done():
+    act('sleep', 8)
+
+if not done():
+    spiral(20, lambda dx, dy: visit(dx, dy, lambda: (act('do', 2), act('make_wood_pickaxe', 3))))
+
+print('wood pickaxe: ' + ('crafted' if done() else 'not crafted'))

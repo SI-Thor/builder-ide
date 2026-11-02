@@ -1,0 +1,57 @@
+(async () => {
+  const start = { x: 37.6, y: 67, z: 44.7 };
+  const logRe = /_log$/;
+  const findLog = (nearby) => Object.keys(nearby || {}).find((b) => logRe.test(b));
+
+  let logBlock = null;
+  let foundAt = null;
+
+  const scanForLog = async (radius) => {
+    const scan = await mc.scan(radius);
+    const block = findLog(scan.nearby);
+    if (block) {
+      logBlock = block;
+      const approach = await mc.move_to_block(block, 128, 30000);
+      foundAt = approach.block || null;
+      console.log('found ' + block + ' near ' + JSON.stringify(approach.at) + ' ' + (approach.why || ''));
+      return true;
+    }
+    return false;
+  };
+
+  if (await scanForLog(160)) {
+    console.log('log found without walking north');
+  } else {
+    for (let dz = -8; dz >= -128; dz -= 8) {
+      const target = { x: start.x, y: start.y, z: start.z + dz };
+      const move = await mc.move_to(target.x, target.y, target.z, 15000);
+      console.log('walked north to ' + JSON.stringify(move.at) + ' ' + (move.why || ''));
+      if (await scanForLog(64)) {
+        console.log('log found while walking north');
+        break;
+      }
+    }
+  }
+
+  if (!logBlock) {
+    console.log('no log block found while exploring north');
+    throw new Error('no log block found');
+  }
+
+  let mined = 0;
+  for (let i = 0; i < 4; i++) {
+    const mine = await mc.mine_block(logBlock, 6, 1);
+    mined += mine.mined || 0;
+    console.log('mined ' + (mine.mined || 0) + ' ' + logBlock + ' ' + (mine.problem || ''));
+    if (mine.mined) break;
+  }
+
+  const collect = await mc.collect(logBlock, 64, 64);
+  console.log('collected ' + (collect.collected || 0) + ' ' + logBlock + '; have ' + (collect.have || 0) + ' ' + (collect.problem || ''));
+
+  const have = await mc.count(logBlock);
+  if (!have.count) {
+    throw new Error('no ' + logBlock + ' in inventory after mining and collecting');
+  }
+  console.log('goal met: have ' + have.count + ' ' + logBlock);
+})();

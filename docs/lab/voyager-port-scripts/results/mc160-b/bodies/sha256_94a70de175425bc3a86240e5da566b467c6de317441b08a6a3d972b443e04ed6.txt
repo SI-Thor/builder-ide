@@ -1,0 +1,62 @@
+const LOG_BLOCK = 'jungle_log';
+const LOG_ITEM = 'jungle_log';
+const TARGET = { x: 11, y: 67, z: -35 };
+
+function logCount() {
+  const r = mc.count(LOG_ITEM);
+  return r && typeof r.count === 'number' ? r.count : 0;
+}
+
+function tryMineAndCollect() {
+  mc.look_at(TARGET.x + 0.5, TARGET.y + 0.5, TARGET.z + 0.5);
+  mc.sleep(200);
+
+  let mined = 0;
+  for (let i = 0; i < 5 && mined < 1; i++) {
+    const m = mc.mine_block(LOG_BLOCK, 64, 1);
+    console.log('mine_block: ' + JSON.stringify(m));
+    if (m && typeof m.mined === 'number') mined += m.mined;
+    mc.sleep(300);
+  }
+
+  let collected = 0;
+  for (let i = 0; i < 5 && collected < 1; i++) {
+    const c = mc.collect(LOG_ITEM, 1, 64);
+    console.log('collect: ' + JSON.stringify(c));
+    if (c && typeof c.collected === 'number') collected += c.collected;
+    mc.sleep(300);
+  }
+
+  return logCount();
+}
+
+let have = logCount();
+console.log('initial ' + LOG_ITEM + ': ' + have);
+
+if (have < 1) {
+  const moved = mc.move_to_block(LOG_BLOCK, 32, 30000);
+  console.log('move_to_block: ' + JSON.stringify(moved));
+  have = tryMineAndCollect();
+}
+
+if (have < 1) {
+  const spots = [
+    [10, 66, -35],
+    [12, 66, -35],
+    [11, 66, -34],
+    [11, 66, -36],
+    [10, 66, -34],
+    [12, 66, -34],
+    [10, 66, -36],
+    [12, 66, -36]
+  ];
+
+  for (const spot of spots) {
+    if (have >= 1) break;
+    const moved = mc.move_to(spot[0], spot[1], spot[2], 15000);
+    console.log('move_to ' + spot.join(',') + ': ' + JSON.stringify(moved));
+    have = tryMineAndCollect();
+  }
+}
+
+console.log('final ' + LOG_ITEM + ': ' + have);

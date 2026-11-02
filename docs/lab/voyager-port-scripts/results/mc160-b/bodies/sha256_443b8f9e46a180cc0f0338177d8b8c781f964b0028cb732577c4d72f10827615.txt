@@ -1,0 +1,23 @@
+const known = { x: 9, y: 65, z: -39 };
+let target = known;
+const moved = mc.move_to_block('oak_log', 32, 30000);
+console.log('move_to_block: ' + JSON.stringify(moved));
+if (moved && moved.block && typeof moved.block.x === 'number' && typeof moved.block.y === 'number' && typeof moved.block.z === 'number') {
+  target = { x: moved.block.x, y: moved.block.y, z: moved.block.z };
+}
+let got = 0;
+for (let i = 0; i < 3 && got < 1; i++) {
+  mc.look_at(target.x + 0.5, target.y + 0.5, target.z + 0.5);
+  const mined = mc.mine_block('oak_log', 32, 1);
+  console.log('mine_block: ' + JSON.stringify(mined));
+  mc.sleep(750);
+  const collected = mc.collect('oak_log', 1, 32);
+  console.log('collect: ' + JSON.stringify(collected));
+  got = collected && typeof collected.collected === 'number' ? collected.collected : 0;
+  if (got < 1 && moved && moved.at && typeof moved.at.x === 'number') {
+    const near = mc.move_to(target.x + 0.5, target.y + 1, target.z + 0.5, 10000);
+    console.log('move_to: ' + JSON.stringify(near));
+  }
+}
+const count = mc.count('oak_log');
+console.log('oak_log count: ' + (count && typeof count.count === 'number' ? count.count : 0));

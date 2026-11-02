@@ -1,0 +1,7 @@
+const LOGS=['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+async function hasWood(){for(const id of LOGS){const r=await mc.has(id);if(r&&r.has)return true;}return false;}
+async function collectLogs(){let n=0;for(const id of LOGS){const r=await mc.collect(id,64,64);if(r&&r.collected)n+=r.collected;}return n;}
+async function findLog(){const scan=await mc.scan(128);const nearby=(scan&&scan.nearby)||{};for(const id of LOGS){if(nearby[id]>0)return id;}return null;}
+async function mineLog(id){const mv=await mc.move_to_block(id,128,45000);if(mv&&mv.block){const b=mv.block;if(typeof b.x==='number')await mc.look_at(b.x,b.y,b.z);}for(let i=0;i<48;i++){const m=await mc.mine_block(id,16,1);if(m&&m.mined>0){await collectLogs();if(await hasWood())return true;}await mc.sleep(50);}await collectLogs();return await hasWood();}
+async function main(){if(await hasWood()){console.log('already have wood');return;}let x=63.7,z=44.3,y=66;const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];for(let ring=0;ring<16;ring++){for(const d of dirs){const tx=x+d[0]*(ring+1)*8,tz=z+d[1]*(ring+1)*8;const mv=await mc.move_to(tx,y,tz,30000);if(mv&&mv.at){if(typeof mv.at.x==='number')x=mv.at.x;if(typeof mv.at.y==='number')y=mv.at.y;if(typeof mv.at.z==='number')z=mv.at.z;}const id=await findLog();if(id){if(await mineLog(id)){console.log('got wood');return;}}}}throw new Error('no reachable tree found');}
+main();

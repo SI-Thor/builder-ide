@@ -1,0 +1,38 @@
+console.log("start: craft wood pickaxe");
+
+const done = () => Boolean(mc.achievements().make_wood_pickaxe);
+
+const refillEnergy = () => {
+  mc.act("do", 1);
+  mc.act("sleep", 1);
+};
+
+const tryCraft = () => {
+  if (done()) return true;
+  mc.act("make_wood_pickaxe", 1);
+  return done();
+};
+
+refillEnergy();
+tryCraft();
+
+if (!done()) {
+  mc.move("down", 2);
+  for (let i = 0; i < 8 && !done(); i++) {
+    mc.act("do", 1);
+    tryCraft();
+  }
+}
+
+if (!done()) {
+  mc.move("up", 2);
+  refillEnergy();
+  tryCraft();
+}
+
+if (!done()) {
+  mc.act("place_table", 1);
+  tryCraft();
+}
+
+console.log("wood pickaxe crafted: " + (done() ? "yes" : "no"));
