@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>return — the world while you were away</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header id="top">
+  <h1>The return</h1>
+  <div id="who">
+    <label for="human-select">you are</label>
+    <select id="human-select"></select>
+    <button id="mark-seen" title="Log that you were here, at this time">I'm back — mark seen</button>
+    <span id="since-line"></span>
+  </div>
+</header>
+
+<main>
+
+<!-- the letter -->
+<section id="letter" class="card">
+  <h2>The Biographer's letter <span id="letter-words" class="badge"></span></h2>
+  <div id="letter-body"></div>
+  <div id="letter-question" role="question"></div>
+  <details id="letter-receipts"><summary>receipts</summary><div></div></details>
+</section>
+
+<!-- beat 1: what changed -->
+<section id="beat-what-changed" class="card beat">
+  <h2><span class="beatnum">1</span> What changed</h2>
+  <div id="threshold-counters" class="counters"></div>
+  <svg id="hourly" viewBox="0 0 640 80" preserveAspectRatio="none" aria-label="plays per hour since your last visit"></svg>
+</section>
+
+<!-- beat 2: what matters -->
+<section id="beat-what-matters" class="card beat">
+  <h2><span class="beatnum">2</span> What matters</h2>
+
+  <div id="ask" class="askbox">
+    <form id="ask-form">
+      <input id="ask-input" type="text" autocomplete="off"
+             placeholder="what happened to X?  e.g. what did Kite play in the last 3 hours?">
+      <button>ask</button>
+    </form>
+    <div id="ask-answer" class="hidden"></div>
+  </div>
+
+  <div id="scrubber-wrap">
+    <div id="scrubber-legend"></div>
+    <svg id="scrubber" preserveAspectRatio="none"></svg>
+    <div id="scrubber-lanes"></div>
+    <div id="mark-detail" class="hidden"></div>
+    <p class="hint">any click on the timeline sets the rewind point (below) and reads the mark nearest it</p>
+  </div>
+
+  <div id="lanes"></div>
+</section>
+
+<!-- beat 3: what is waiting on you -->
+<section id="beat-waiting" class="card beat">
+  <h2><span class="beatnum">3</span> What is waiting on you</h2>
+  <div id="precedents"></div>
+  <div id="thread"></div>
+</section>
+
+<!-- beat 4: what was undone -->
+<section id="beat-undone" class="card beat">
+  <h2><span class="beatnum">4</span> What was undone</h2>
+  <div id="undone"></div>
+
+  <div id="rewind" class="rewind-panel">
+    <h3>Rewind to here, keep these</h3>
+    <p class="hint" id="rewind-point-line">no point picked yet — click the timeline above</p>
+    <div class="rewind-controls">
+      <fieldset id="keep-actors"><legend>keep actors</legend></fieldset>
+      <fieldset id="keep-kinds"><legend>keep kinds</legend></fieldset>
+      <button id="rewind-preview-btn" disabled>preview the fork</button>
+    </div>
+    <div id="rewind-result" class="hidden"></div>
+  </div>
+</section>
+
+<!-- beat 5: what next -->
+<section id="beat-next" class="card beat">
+  <h2><span class="beatnum">5</span> What next</h2>
+  <div id="next"></div>
+</section>
+
+</main>
+
+<footer>
+  <span id="ledger-line"></span> · <span id="server-line"></span>
+</footer>
+
+<script src="/app.js"></script>
+</body>
+</html>
