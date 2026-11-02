@@ -69,3 +69,13 @@ tools/return_screen/.venv/
 tools/return_screen/state/
 tools/return_screen/server.log
 tools/return_screen/server.pid
+# The upstream AtaraxosAI/stratego checkout (MIT). Cloned, ported and built
+# here; the port itself lives in docs/lab/stratego-port/, so the upstream tree
+# is not tracked.
+third_party/
+
+# The stratego RL run's checkpoints (50-60 MB each). The run's *numbers* are
+# committed - its logs, its box state and its JSON - but not its weights.
+docs/lab/stratego-scripts/results/rl_128/*.pthm
+docs/lab/stratego-scripts/results/rl_128/*.pthw
+docs/lab/stratego-scripts/results/rl_128/*.ptho

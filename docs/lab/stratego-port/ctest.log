@@ -1,0 +1,496 @@
+thor-admit: "stratego.ctest" admitted after 0.000s (peak 8.0G, floor 25.0G)
+Test project /home/caseydigennaro/lm-wt/stratego/third_party/stratego/build
+      Start  1: test_tensor_size
+      Start  2: test_action_transforms
+      Start  3: test_alt_log_loss
+      Start  4: test_arrangement_distribution_behavior
+ 1/45 Test  #3: test_alt_log_loss ........................   Passed    2.03 sec
+      Start  5: test_attack_planes
+ 2/45 Test  #2: test_action_transforms ...................   Passed    3.34 sec
+      Start  6: test_battle_planes
+ 3/45 Test  #1: test_tensor_size .........................   Passed    4.53 sec
+      Start  7: test_belief_mask
+ 4/45 Test  #4: test_arrangement_distribution_behavior ...   Passed   21.10 sec
+      Start  8: test_chan_last
+ 5/45 Test  #8: test_chan_last ...........................   Passed   14.90 sec
+      Start  9: test_circular_buffer
+ 6/45 Test  #9: test_circular_buffer .....................   Passed    3.79 sec
+      Start 10: test_cemetery
+ 7/45 Test #10: test_cemetery ............................   Passed  288.31 sec
+      Start 11: test_continuous_chase
+ 8/45 Test  #7: test_belief_mask .........................   Passed  358.28 sec
+      Start 12: test_continuous_chase_new
+ 9/45 Test #11: test_continuous_chase ....................   Passed  235.87 sec
+      Start 13: test_cpu_mem_leak
+10/45 Test #13: test_cpu_mem_leak ........................   Passed   18.59 sec
+      Start 14: test_dm_planes
+11/45 Test #14: test_dm_planes ...........................   Passed  294.05 sec
+      Start 15: test_env_state
+12/45 Test #12: test_continuous_chase_new ................   Passed  591.25 sec
+      Start 16: test_env
+13/45 Test #15: test_env_state ...........................Subprocess aborted***Exception:  78.62 sec
+<frozen importlib._bootstrap>:488: FutureWarning: pybind11-bound class 'pystratego.StrategoConf' is using an old-style placement-new '__init__' which has been deprecated. See the upgrade guide in pybind11's docs. This message is only visible when compiled in debug mode.
+<frozen importlib._bootstrap>:488: FutureWarning: pybind11-bound class 'pystratego.StrategoRolloutBuffer' is using an old-style placement-new '__init__' which has been deprecated. See the upgrade guide in pybind11's docs. This message is only visible when compiled in debug mode.
+/home/caseydigennaro/lm-wt/stratego/third_party/stratego/.venv/lib/python3.12/site-packages/wandb/sdk/launch/builder/build.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+test_overlap (__main__.EnvStateTest.test_overlap)
+This test checks that the snapshots at consecutive states have the correct overlap ... [µstratego:1793601015.031|>INFO] [stratego.cu:073] =========================================================
+[µstratego:1793601015.031|>INFO] [stratego.cu:074] =                        µSTRATEGO                      =
+[µstratego:1793601015.031|>INFO] [stratego.cu:075] =                      Rollout Buffer                   =
+[µstratego:1793601015.031|>INFO] [stratego.cu:076] =========================================================
+[µstratego:1793601015.031|>INFO] [stratego.cu:077] Env configuration
+[µstratego:1793601015.031|>INFO] [stratego.cu:078]   * Buffer size              : 240 rows  x  256 envs
+[µstratego:1793601015.031|>INFO] [stratego.cu:079]   * Float dtype              : Float
+[µstratego:1793601015.031|>INFO] [stratego.cu:080]   * CUDA device              : 0
+[µstratego:1793601015.031|>INFO] [stratego.cu:081]   * Compilation mode         : RELEASE (ASSERTS)
+[µstratego:1793601015.031|>INFO] [stratego.cu:082]   * Move memory              : 30
+[µstratego:1793601015.031|>INFO] [stratego.cu:083]   * Max num moves            : 4000
+[µstratego:1793601015.031|>INFO] [stratego.cu:084]   * Reset behavior           : RANDOM_JB_CLASSIC_BOARD
+[µstratego:1793601015.038|>INFO] [stratego.cu:143] ---------------------------------------------------------
+[µstratego:1793601015.038|>INFO] [stratego.cu:144] CUDA allocations
+[µstratego:1793601015.038|>INFO] [stratego.cu:145]   * legal_action_mask                :    0.4608 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:146]   * board_state_tensor               :   36.3520 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:147]   * move_summary_history_tensor      :    0.0461 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:148]   * infostate_tensor                 :   39.4240 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:149]   * reward_pl0                       :    0.0010 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:150]   * is_unknown_piece                 :    0.0256 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:151]   * piece_type_onehot                :    0.3584 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:152]   * two_square_rule_applies          :    0.0003 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:153]   * distrib_                         :    1.8432 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:154]   * init_offset_red_                 :    0.2458 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:155]   * init_offset_blue_                :    0.2458 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:156]   * private_action_mask_             :    0.4608 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:157]   * d_boards_                        :  117.9648 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:158]   * d_zero_boards_                   :  117.9648 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:159]   * d_num_moves_                     :    0.2458 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:160]   * d_num_moves_since_last_attack_   :    0.2458 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:161]   * d_num_moves_since_reset_         :    0.2458 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:162]   * d_terminated_since_              :    0.0614 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:163]   * d_flag_captured_                 :    0.0614 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:164]   * d_has_legal_movement_            :    0.0614 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:165]   * d_twosquare_state_red_           :    0.2458 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:166]   * d_init_twosquare_state_red_      :    0.0010 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:167]   * d_twosquare_state_blue_          :    0.2458 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:168]   * d_init_twosquare_state_blue_     :    0.0010 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cu:169]   * d_action_history_                :    0.2458 MBytes
+[µstratego:1793601015.038|>INFO] [stratego.cok
+test_overlap_deterministic (__main__.EnvStateTest.test_overlap_deterministic)
+This test checks that the snapshots at consecutive states have the correct overlap ... 
+
+      Start 17: test_far_action_history
+14/45 Test #17: test_far_action_history ..................   Passed  126.03 sec
+      Start 18: test_gen_methods
+15/45 Test  #5: test_attack_planes .......................   Passed  2313.67 sec
+      Start 19: test_infostate
+16/45 Test #18: test_gen_methods .........................   Passed  1419.50 sec
+      Start 20: test_initial_board_memory
+17/45 Test  #6: test_battle_planes .......................   Passed  2683.86 sec
+      Start 21: test_instantiate
+18/45 Test #16: test_env .................................   Passed  1733.34 sec
+      Start 22: test_is_terminal_arrangement
+19/45 Test #22: test_is_terminal_arrangement .............   Passed    2.84 sec
+      Start 23: test_last_attack
+20/45 Test #19: test_infostate ...........................   Passed  419.01 sec
+      Start 24: test_last_moves_encoder
+21/45 Test #24: test_last_moves_encoder ..................   Passed    2.59 sec
+      Start 25: test_legal_action_consistency
+22/45 Test #25: test_legal_action_consistency ............   Passed    8.75 sec
+      Start 26: test_log_prob_compression
+23/45 Test #26: test_log_prob_compression ................   Passed    3.08 sec
+      Start 27: test_magnet_policy
+24/45 Test #27: test_magnet_policy .......................Subprocess aborted***Exception:   3.19 sec
+<frozen importlib._bootstrap>:488: FutureWarning: pybind11-bound class 'pystratego.StrategoConf' is using an old-style placement-new '__init__' which has been deprecated. See the upgrade guide in pybind11's docs. This message is only visible when compiled in debug mode.
+<frozen importlib._bootstrap>:488: FutureWarning: pybind11-bound class 'pystratego.StrategoRolloutBuffer' is using an old-style placement-new '__init__' which has been deprecated. See the upgrade guide in pybind11's docs. This message is only visible when compiled in debug mode.
+/home/caseydigennaro/lm-wt/stratego/third_party/stratego/.venv/lib/python3.12/site-packages/wandb/sdk/launch/builder/build.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+test_case (__main__.MagnetTests.test_case) ... 
+
+      Start 28: test_move_summary
+25/45 Test #21: test_instantiate .........................   Passed  172.59 sec
+      Start 29: test_new_planes
+26/45 Test #20: test_initial_board_memory ................   Passed  398.52 sec
+      Start 30: test_piece_arrangement_generator
+27/45 Test #30: test_piece_arrangement_generator .........   Passed    3.15 sec
+      Start 31: test_piece_id
+28/45 Test #31: test_piece_id ............................   Passed  777.15 sec
+      Start 32: test_process_data
+29/45 Test #29: test_new_planes ..........................   Passed  850.23 sec
+      Start 33: test_process_arr_data
+30/45 Test #23: test_last_attack .........................   Passed  1103.36 sec
+      Start 34: test_protect_planes
+31/45 Test #33: test_process_arr_data ....................   Passed  102.43 sec
+      Start 35: test_replay_games
+32/45 Test #35: test_replay_games ........................***Failed    1.92 sec
+Traceback (most recent call last):
+  File "/home/caseydigennaro/lm-wt/stratego/third_party/stratego/build/../tests/test_replay_games.py", line 5, in <module>
+    import msgpack
+ModuleNotFoundError: No module named 'msgpack'
+
+      Start 36: test_reset_behavior
+33/45 Test #28: test_move_summary ........................   Passed  1085.81 sec
+      Start 37: test_rewards
+34/45 Test #32: test_process_data ........................   Passed  179.70 sec
+      Start 38: test_samplers
+35/45 Test #38: test_samplers ............................   Passed    7.02 sec
+      Start 39: test_save_games
+36/45 Test #39: test_save_games ..........................***Failed    1.79 sec
+Traceback (most recent call last):
+  File "/home/caseydigennaro/lm-wt/stratego/third_party/stratego/build/../tests/test_save_games.py", line 5, in <module>
+    import msgpack
+ModuleNotFoundError: No module named 'msgpack'
+
+      Start 40: test_search
+37/45 Test #37: test_rewards .............................   Passed  132.83 sec
+      Start 41: test_snapshot_env_history
+38/45 Test #40: test_search ..............................   Passed  327.58 sec
+      Start 42: test_transformer_action_reduction
+39/45 Test #42: test_transformer_action_reduction ........   Passed   57.12 sec
+      Start 43: test_twosquare_rule
+40/45 Test #43: test_twosquare_rule ......................Subprocess aborted***Exception:  31.88 sec
+<frozen importlib._bootstrap>:488: FutureWarning: pybind11-bound class 'pystratego.StrategoConf' is using an old-style placement-new '__init__' which has been deprecated. See the upgrade guide in pybind11's docs. This message is only visible when compiled in debug mode.
+<frozen importlib._bootstrap>:488: FutureWarning: pybind11-bound class 'pystratego.StrategoRolloutBuffer' is using an old-style placement-new '__init__' which has been deprecated. See the upgrade guide in pybind11's docs. This message is only visible when compiled in debug mode.
+/home/caseydigennaro/lm-wt/stratego/third_party/stratego/.venv/lib/python3.12/site-packages/wandb/sdk/launch/builder/build.py:11: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  import pkg_resources
+test_action_reduction (__main__.TwosquareTests.test_action_reduction) ... [µstratego:1793604391.632|>INFO] [stratego.cu:073] =========================================================
+[µstratego:1793604391.632|>INFO] [stratego.cu:074] =                        µSTRATEGO                      =
+[µstratego:1793604391.632|>INFO] [stratego.cu:075] =                      Rollout Buffer                   =
+[µstratego:1793604391.632|>INFO] [stratego.cu:076] =========================================================
+[µstratego:1793604391.632|>INFO] [stratego.cu:077] Env configuration
+[µstratego:1793604391.632|>INFO] [stratego.cu:078]   * Buffer size              : 296 rows  x  1 envs
+[µstratego:1793604391.632|>INFO] [stratego.cu:079]   * Float dtype              : Float
+[µstratego:1793604391.632|>INFO] [stratego.cu:080]   * CUDA device              : 0
+[µstratego:1793604391.632|>INFO] [stratego.cu:081]   * Compilation mode         : RELEASE (ASSERTS)
+[µstratego:1793604391.632|>INFO] [stratego.cu:082]   * Move memory              : 86
+[µstratego:1793604391.632|>INFO] [stratego.cu:083]   * Max num moves            : 4000
+[µstratego:1793604391.632|>INFO] [stratego.cu:084]   * Reset behavior           : RANDOM_JB_CLASSIC_BOARD
+[µstratego:1793604391.633|>INFO] [stratego.cu:143] ---------------------------------------------------------
+[µstratego:1793604391.633|>INFO] [stratego.cu:144] CUDA allocations
+[µstratego:1793604391.633|>INFO] [stratego.cu:145]   * legal_action_mask                :    0.0018 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:146]   * board_state_tensor               :    0.1420 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:147]   * move_summary_history_tensor      :    0.0005 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:148]   * infostate_tensor                 :    0.1764 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:149]   * reward_pl0                       :    0.0000 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:150]   * is_unknown_piece                 :    0.0001 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:151]   * piece_type_onehot                :    0.0014 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:152]   * two_square_rule_applies          :    0.0000 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:153]   * distrib_                         :    0.0072 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:154]   * init_offset_red_                 :    0.0012 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:155]   * init_offset_blue_                :    0.0012 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:156]   * private_action_mask_             :    0.0018 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:157]   * d_boards_                        :    0.5683 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:158]   * d_zero_boards_                   :    0.5683 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:159]   * d_num_moves_                     :    0.0012 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:160]   * d_num_moves_since_last_attack_   :    0.0012 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:161]   * d_num_moves_since_reset_         :    0.0012 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:162]   * d_terminated_since_              :    0.0003 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:163]   * d_flag_captured_                 :    0.0003 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:164]   * d_has_legal_movement_            :    0.0003 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:165]   * d_twosquare_state_red_           :    0.0012 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:166]   * d_init_twosquare_state_red_      :    0.0000 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:167]   * d_twosquare_state_blue_          :    0.0012 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:168]   * d_init_twosquare_state_blue_     :    0.0000 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:169]   * d_action_history_                :    0.0012 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:170]   * d_move_summary_history_          :    0.0018 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:171]   * d_illegal_chase_actions_         :    0.2486 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:172]   * d_scratch_                       :    0.0018 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:173]   * d_unknown_piece_type_onehot_     :    0.0006 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:174]   * d_unknown_piece_has_moved_       :    0.0000 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:175]   * d_unknown_piece_position_onehot_ :    0.0040 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:176]   * d_chase_state_.last_dst_pos      :    0.0006 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:177]   * d_chase_state_.last_src_pos      :    0.0006 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:178]   * d_chase_state_.chase_length      :    0.0024 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:180]   > CUDA TOTAL                       :    1.7386 MBytes
+[µstratego:1793604391.633|>INFO] [stratego.cu:181] =========================================================
+[µstratego:1793604391.633|>INFO] [stratego.cu:188] Constructed CUDA random number generator (seed: 912788509218461)
+[µstratego:1793604391.708|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 89526)
+[µstratego:1793604391.832|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604392.010|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 1)
+[µstratego:1793604392.023|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604392.038|>INFO] [stratego.cu:073] =========================================================
+[µstratego:1793604392.038|>INFO] [stratego.cu:074] =                        µSTRATEGO                      =
+[µstratego:1793604392.038|>INFO] [stratego.cu:075] =                      Rollout Buffer                   =
+[µstratego:1793604392.038|>INFO] [stratego.cu:076] =========================================================
+[µstratego:1793604392.038|>INFO] [stratego.cu:077] Env configuration
+[µstratego:1793604392.038|>INFO] [stratego.cu:078]   * Buffer size              : 296 rows  x  1 envs
+[µstratego:1793604392.038|>INFO] [stratego.cu:079]   * Float dtype              : Float
+[µstratego:1793604392.038|>INFO] [stratego.cu:080]   * CUDA device              : 0
+[µstratego:1793604392.038|>INFO] [stratego.cu:081]   * Compilation mode         : RELEASE (ASSERTS)
+[µstratego:1793604392.038|>INFO] [stratego.cu:082]   * Move memory              : 86
+[µstratego:1793604392.038|>INFO] [stratego.cu:083]   * Max num moves            : 4000
+[µstratego:1793604392.038|>INFO] [stratego.cu:084]   * Reset behavior           : RANDOM_JB_CLASSIC_BOARD
+[µstratego:1793604392.040|>INFO] [stratego.cu:143] ---------------------------------------------------------
+[µstratego:1793604392.040|>INFO] [stratego.cu:144] CUDA allocations
+[µstratego:1793604392.040|>INFO] [stratego.cu:145]   * legal_action_mask                :    0.0018 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:146]   * board_state_tensor               :    0.1420 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:147]   * move_summary_history_tensor      :    0.0005 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:148]   * infostate_tensor                 :    0.1764 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:149]   * reward_pl0                       :    0.0000 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:150]   * is_unknown_piece                 :    0.0001 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:151]   * piece_type_onehot                :    0.0014 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:152]   * two_square_rule_applies          :    0.0000 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:153]   * distrib_                         :    0.0072 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:154]   * init_offset_red_                 :    0.0012 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cok
+test_attack_move (__main__.TwosquareTests.test_attack_move) ... u:155]   * init_offset_blue_                :    0.0012 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:156]   * private_action_mask_             :    0.0018 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:157]   * d_boards_                        :    0.5683 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:158]   * d_zero_boards_                   :    0.5683 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:159]   * d_num_moves_                     :    0.0012 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:160]   * d_num_moves_since_last_attack_   :    0.0012 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:161]   * d_num_moves_since_reset_         :    0.0012 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:162]   * d_terminated_since_              :    0.0003 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:163]   * d_flag_captured_                 :    0.0003 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:164]   * d_has_legal_movement_            :    0.0003 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:165]   * d_twosquare_state_red_           :    0.0012 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:166]   * d_init_twosquare_state_red_      :    0.0000 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:167]   * d_twosquare_state_blue_          :    0.0012 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:168]   * d_init_twosquare_state_blue_     :    0.0000 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:169]   * d_action_history_                :    0.0012 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:170]   * d_move_summary_history_          :    0.0018 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:171]   * d_illegal_chase_actions_         :    0.2486 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:172]   * d_scratch_                       :    0.0018 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:173]   * d_unknown_piece_type_onehot_     :    0.0006 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:174]   * d_unknown_piece_has_moved_       :    0.0000 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:175]   * d_unknown_piece_position_onehot_ :    0.0040 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:176]   * d_chase_state_.last_dst_pos      :    0.0006 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:177]   * d_chase_state_.last_src_pos      :    0.0006 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:178]   * d_chase_state_.chase_length      :    0.0024 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:180]   > CUDA TOTAL                       :    1.7386 MBytes
+[µstratego:1793604392.040|>INFO] [stratego.cu:181] =========================================================
+[µstratego:1793604392.040|>INFO] [stratego.cu:188] Constructed CUDA random number generator (seed: 3356310661157212)
+[µstratego:1793604392.094|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 89526)
+[µstratego:1793604392.184|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604392.215|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 1)
+[µstratego:1793604392.224|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604410.976|>INFO] [stratego.cu:596] Tearing down rollout buffer
+[µstratego:1793604410.977|>INFO] [stratego.cu:596] Tearing down rollout buffer
+[µstratego:1793604410.979|>INFO] [stratego.cu:073] =========================================================
+[µstratego:1793604410.979|>INFO] [stratego.cu:074] =                        µSTRATEGO                      =
+[µstratego:1793604410.979|>INFO] [stratego.cu:075] =                      Rollout Buffer                   =
+[µstratego:1793604410.979|>INFO] [stratego.cu:076] =========================================================
+[µstratego:1793604410.979|>INFO] [stratego.cu:077] Env configuration
+[µstratego:1793604410.979|>INFO] [stratego.cu:078]   * Buffer size              : 296 rows  x  1 envs
+[µstratego:1793604410.979|>INFO] [stratego.cu:079]   * Float dtype              : Float
+[µstratego:1793604410.979|>INFO] [stratego.cu:080]   * CUDA device              : 0
+[µstratego:1793604410.979|>INFO] [stratego.cu:081]   * Compilation mode         : RELEASE (ASSERTS)
+[µstratego:1793604410.979|>INFO] [stratego.cu:082]   * Move memory              : 86
+[µstratego:1793604410.979|>INFO] [stratego.cu:083]   * Max num moves            : 4000
+[µstratego:1793604410.979|>INFO] [stratego.cu:084]   * Reset behavior           : RANDOM_JB_CLASSIC_BOARD
+[µstratego:1793604410.981|>INFO] [stratego.cu:143] ---------------------------------------------------------
+[µstratego:1793604410.981|>INFO] [stratego.cu:144] CUDA allocations
+[µstratego:1793604410.981|>INFO] [stratego.cu:145]   * legal_action_mask                :    0.0018 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:146]   * board_state_tensor               :    0.1420 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:147]   * move_summary_history_tensor      :    0.0005 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:148]   * infostate_tensor                 :    0.1764 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:149]   * reward_pl0                       :    0.0000 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:150]   * is_unknown_piece                 :    0.0001 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:151]   * piece_type_onehot                :    0.0014 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:152]   * two_square_rule_applies          :    0.0000 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:153]   * distrib_                         :    0.0072 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:154]   * init_offset_red_                 :    0.0012 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:155]   * init_offset_blue_                :    0.0012 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:156]   * private_action_mask_             :    0.0018 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:157]   * d_boards_                        :    0.5683 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:158]   * d_zero_boards_                   :    0.5683 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:159]   * d_num_moves_                     :    0.0012 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:160]   * d_num_moves_since_last_attack_   :    0.0012 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:161]   * d_num_moves_since_reset_         :    0.0012 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:162]   * d_terminated_since_              :    0.0003 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:163]   * d_flag_captured_                 :    0.0003 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:164]   * d_has_legal_movement_            :    0.0003 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:165]   * d_twosquare_state_red_           :    0.0012 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:166]   * d_init_twosquare_state_red_      :    0.0000 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:167]   * d_twosquare_state_blue_          :    0.0012 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:168]   * d_init_twosquare_state_blue_     :    0.0000 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:169]   * d_action_history_                :    0.0012 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:170]   * d_move_summary_history_          :    0.0018 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:171]   * d_illegal_chase_actions_         :    0.2486 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:172]   * d_scratch_                       :    0.0018 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:173]   * d_unknown_piece_type_onehot_     :    0.0006 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:174]   * d_unknown_piece_has_moved_       :    0.0000 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:175]   * d_unknown_piece_position_onehot_ :    0.0040 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:176]   * d_chase_state_.last_dst_pos      :ok
+test_basic_noprune (__main__.TwosquareTests.test_basic_noprune) ...     0.0006 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:177]   * d_chase_state_.last_src_pos      :    0.0006 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:178]   * d_chase_state_.chase_length      :    0.0024 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:180]   > CUDA TOTAL                       :    1.7386 MBytes
+[µstratego:1793604410.981|>INFO] [stratego.cu:181] =========================================================
+[µstratego:1793604410.981|>INFO] [stratego.cu:188] Constructed CUDA random number generator (seed: 1742982679443630)
+[µstratego:1793604414.430|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 89526)
+[µstratego:1793604414.554|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604414.585|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 1)
+[µstratego:1793604414.591|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604414.945|>INFO] [stratego.cu:596] Tearing down rollout buffer
+[µstratego:1793604414.946|>INFO] [stratego.cu:073] =========================================================
+[µstratego:1793604414.946|>INFO] [stratego.cu:074] =                        µSTRATEGO                      =
+[µstratego:1793604414.946|>INFO] [stratego.cu:075] =                      Rollout Buffer                   =
+[µstratego:1793604414.946|>INFO] [stratego.cu:076] =========================================================
+[µstratego:1793604414.946|>INFO] [stratego.cu:077] Env configuration
+[µstratego:1793604414.946|>INFO] [stratego.cu:078]   * Buffer size              : 296 rows  x  1 envs
+[µstratego:1793604414.946|>INFO] [stratego.cu:079]   * Float dtype              : Float
+[µstratego:1793604414.946|>INFO] [stratego.cu:080]   * CUDA device              : 0
+[µstratego:1793604414.946|>INFO] [stratego.cu:081]   * Compilation mode         : RELEASE (ASSERTS)
+[µstratego:1793604414.946|>INFO] [stratego.cu:082]   * Move memory              : 86
+[µstratego:1793604414.946|>INFO] [stratego.cu:083]   * Max num moves            : 4000
+[µstratego:1793604414.946|>INFO] [stratego.cu:084]   * Reset behavior           : RANDOM_JB_CLASSIC_BOARD
+[µstratego:1793604414.946|>INFO] [stratego.cu:143] ---------------------------------------------------------
+[µstratego:1793604414.946|>INFO] [stratego.cu:144] CUDA allocations
+[µstratego:1793604414.946|>INFO] [stratego.cu:145]   * legal_action_mask                :    0.0018 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:146]   * board_state_tensor               :    0.1420 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:147]   * move_summary_history_tensor      :    0.0005 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:148]   * infostate_tensor                 :    0.1764 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:149]   * reward_pl0                       :    0.0000 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:150]   * is_unknown_piece                 :    0.0001 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:151]   * piece_type_onehot                :    0.0014 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:152]   * two_square_rule_applies          :    0.0000 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:153]   * distrib_                         :    0.0072 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:154]   * init_offset_red_                 :    0.0012 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:155]   * init_offset_blue_                :    0.0012 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:156]   * private_action_mask_             :    0.0018 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:157]   * d_boards_                        :    0.5683 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:158]   * d_zero_boards_                   :    0.5683 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:159]   * d_num_moves_                     :    0.0012 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:160]   * d_num_moves_since_last_attack_   :    0.0012 MBytes
+[µstraok
+test_basic_prune (__main__.TwosquareTests.test_basic_prune) ... tego:1793604414.946|>INFO] [stratego.cu:161]   * d_num_moves_since_reset_         :    0.0012 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:162]   * d_terminated_since_              :    0.0003 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:163]   * d_flag_captured_                 :    0.0003 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:164]   * d_has_legal_movement_            :    0.0003 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:165]   * d_twosquare_state_red_           :    0.0012 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:166]   * d_init_twosquare_state_red_      :    0.0000 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:167]   * d_twosquare_state_blue_          :    0.0012 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:168]   * d_init_twosquare_state_blue_     :    0.0000 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:169]   * d_action_history_                :    0.0012 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:170]   * d_move_summary_history_          :    0.0018 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:171]   * d_illegal_chase_actions_         :    0.2486 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:172]   * d_scratch_                       :    0.0018 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:173]   * d_unknown_piece_type_onehot_     :    0.0006 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:174]   * d_unknown_piece_has_moved_       :    0.0000 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:175]   * d_unknown_piece_position_onehot_ :    0.0040 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:176]   * d_chase_state_.last_dst_pos      :    0.0006 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:177]   * d_chase_state_.last_src_pos      :    0.0006 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:178]   * d_chase_state_.chase_length      :    0.0024 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:180]   > CUDA TOTAL                       :    1.7386 MBytes
+[µstratego:1793604414.946|>INFO] [stratego.cu:181] =========================================================
+[µstratego:1793604414.946|>INFO] [stratego.cu:188] Constructed CUDA random number generator (seed: 5316549984574212)
+[µstratego:1793604417.913|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 89526)
+[µstratego:1793604418.026|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604418.053|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 1)
+[µstratego:1793604418.058|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604418.466|>INFO] [stratego.cu:596] Tearing down rollout buffer
+[µstratego:1793604418.467|>INFO] [stratego.cu:073] =========================================================
+[µstratego:1793604418.467|>INFO] [stratego.cu:074] =                        µSTRATEGO                      =
+[µstratego:1793604418.467|>INFO] [stratego.cu:075] =                      Rollout Buffer                   =
+[µstratego:1793604418.467|>INFO] [stratego.cu:076] =========================================================
+[µstratego:1793604418.467|>INFO] [stratego.cu:077] Env configuration
+[µstratego:1793604418.467|>INFO] [stratego.cu:078]   * Buffer size              : 296 rows  x  1 envs
+[µstratego:1793604418.467|>INFO] [stratego.cu:079]   * Float dtype              : Float
+[µstratego:1793604418.467|>INFO] [stratego.cu:080]   * CUDA device              : 0
+[µstratego:1793604418.467|>INFO] [stratego.cu:081]   * Compilation mode         : RELEASE (ASSERTS)
+[µstratego:1793604418.467|>INFO] [stratego.cu:082]   * Move memory              : 86
+[µstratego:1793604418.467|>INFO] [stratego.cu:083]   * Max num moves            : 4000
+[µstratego:1793604418.467|>INFO] [stratego.cu:084]   * Reset behavior           : RANDOM_JB_CLASSIC_BOARD
+[µstratego:1793604418.467|>INFO] [stratego.cu:143] ---------------------------------------------------------
+[µstratego:1793604418.467|>INFO] [stratego.cu:144] CUDA allocations
+[µstratego:1793604418.467|>INFO] [stratego.cu:145]   * legal_action_mask                :    0.0018 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:146]   * board_state_tensor               :    0.1420 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:147]   * move_summary_history_tensor      :    0.0005 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:148]   * infostate_tensor                 :    0.1764 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:149]   * reward_pl0                       :    0.0000 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:150]   * is_unknown_piece                 :    0.0001 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:151]   * piece_type_onehot                :    0.0014 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:152]   * two_square_rule_applies          :    0.0000 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:153]   * distrib_                         :    0.0072 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:154]   * init_offset_red_                 :    0.0012 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:155]   * init_offset_blue_                :    0.0012 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:156]   * private_action_mask_             :    0.0018 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:157]   * d_boards_                        :    0.5683 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:158]   * d_zero_boards_                   :    0.5683 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:159]   * d_num_moves_                     :    0.0012 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:160]   * d_num_moves_since_last_attack_   :    0.0012 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:161]   * d_num_moves_since_reset_         :    0.0012 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:162]   * d_terminated_since_              :    0.0003 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:163]   * d_flag_captured_                 :    0.0003 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:164]   * d_has_legal_movement_            :    0.0003 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:165]   * d_twosquare_state_red_           :    0.0012 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:166]   * d_init_twosquare_state_red_      :    0.0000 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:167]   * d_twosquare_state_blue_          :    0.0012 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:168]   * d_init_twosquare_state_blue_     :    0.0000 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:169]   * d_action_history_                :    0.0012 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:170]   * d_move_summary_history_          :    0.0018 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:171]   * d_illegal_chase_actions_         :    0.2486 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:172]   * d_scratch_                       :    0.0018 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:173]   * d_unknown_piece_type_onehot_     :    0.0006 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:174]   * d_unknown_piece_has_moved_       :    0.0000 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:175]   * d_unknown_piece_position_onehot_ :    0.0040 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:176]   * d_chase_state_.last_dst_pos      :    0.0006 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:177]   * d_chase_state_.last_src_pos      :    0.0006 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:178]   * d_chase_state_.chase_length      :    0.0024 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:180]   > CUDA TOTAL                       :    1.7386 MBytes
+[µstratego:1793604418.467|>INFO] [stratego.cu:181] =========================================================
+[µstratego:1793604418.467|>INFO] [stratego.cu:188] Constructed CUDA random number generator (seed: 1810742112550031)
+[µstratego:1793604418.528|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 89526)
+[µstratego:1793604418.627|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604418.657|>INFO] [stratego_board.cu:463] Generating initialization boards (num arrangements: 1)
+[µstratego:1793604418.667|>INFO] [stratego_board.cu:550] ...done
+[µstratego:1793604418.934|>INFO] [stratego.cu:596] Tearing down rollout buffer
+[µstratego:1793604418.934|>INFO] [stratego.cu:073] =========================================================
+[µstratego:1793604418.934|>INFO] [stratego.cu:074] =                        µSTRATEGO                      =
+[µstratego:1793604418.934|>INFO] [stratego.cu:075] =                      Rollout Buffer                   =
+[µstratego:1793604418.934|>INFO] [stratego.cu:076] =========================================================
+[µstratego:1793604418.934|>INFO] [stratego.cu:077] Env configuration
+[µstratego:1793604418.934|>INFO] [stratego.cu:078]   * Buffer size              : 296 rows  x  1 envs
+[µstratego:1793604418.934|>INFO] [stratego.cu:079]   * Float dtype              : Float
+[µstratego:1793604418.934|>INFO] [stratego.cu:080]   * CUDA device              : 0
+[µstratego:1793604418.934|>INFO] [stratego.cu:081]   * Compilation mode         : RELEASE (ASSERTS)
+[µstratego:1793604418.934|>INFO] [stratego.cu:082]   * Move memory              : 86
+[µstratego:1793604418.934|>INFO] [stratego.cu:083]   * Max num moves            : 4000
+[µstratego:1793604418.934|>INFO] [stratego.cu:084]   * Reset behavior           : RANDOM_JB_CLASSIC_BOARD
+[µstratego:1793604418.935|>INFO] [stratego.cu:143] ---------------------------------------------------------
+[µstratego:1793604418.935|>INFO] [stratego.cu:144] CUDA allocations
+[µstratego:1793604418.935|>INFO] [stratego.cu:145]   * legal_action_mask                :    0.0018 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:146]   * board_state_tensor               :    0.1420 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:147]   * move_summary_history_tensor      :    0.0005 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:148]   * infostate_tensor                 :    0.1764 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:149]   * reward_pl0                       :    0.0000 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:150]   * is_unknown_piece                 :    0.0001 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:151]   * piece_type_onehot                :    0.0014 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:152]   * two_square_rule_applies          :    0.0000 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:153]   * distrib_                         :    0.0072 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:154]   * init_offset_red_                 :    0.0012 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:155]   * init_offset_blue_                :    0.0012 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:156]   * private_action_mask_             :    0.0018 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:157]   * d_boards_                        :    0.5683 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:158]   * d_zero_boards_                   :    0.5683 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:159]   * d_num_moves_                     :    0.0012 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:160]   * d_num_moves_since_last_attack_   :    0.0012 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:161]   * d_num_moves_since_reset_         :    0.0012 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:162]   * d_terminated_since_              :    0.0003 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:163]   * d_flag_captured_                 :    0.0003 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:164]   * d_has_legal_movement_            :    0.0003 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:165]   * d_twosquare_state_red_           :    0.0012 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:166]   * d_init_twosquare_state_red_      :    0.0000 MBytes
+[µstratego:1793604418.935|>INFO] [stratego.cu:16ok
+test_flag (__main__.TwosquareTests.test_flag) ... 
+
+      Start 44: test_unknown_piece_counts
+41/45 Test #44: test_unknown_piece_counts ................   Passed   30.99 sec
+      Start 45: test_uniform_belief
+42/45 Test #36: test_reset_behavior ......................   Passed  552.67 sec
+43/45 Test #45: test_uniform_belief ......................   Passed  569.22 sec
+44/45 Test #41: test_snapshot_env_history ................   Passed  1282.24 sec
+45/45 Test #34: test_protect_planes ......................   Passed  1914.24 sec
+
+89% tests passed, 5 tests failed out of 45
+
+Total Test time (real) = 5707.86 sec
+
+The following tests FAILED:
+	 15 - test_env_state (Subprocess aborted)
+	 27 - test_magnet_policy (Subprocess aborted)
+	 35 - test_replay_games (Failed)
+	 39 - test_save_games (Failed)
+	 43 - test_twosquare_rule (Subprocess aborted)
+Errors while running CTest
+CTEST_EXIT=8
+thor-admit: "stratego.ctest" finished with code 0 (peak RSS 2.2G)

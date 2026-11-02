@@ -1,0 +1,90 @@
+barrage: false
+eval_against: []
+full_info: false
+init_approach: NN
+max_num_moves: 4000
+max_num_moves_between_attacks: 100
+move_memory: 86
+num_envs: 128
+random_inits: 1000000
+resume:
+  eval_against: null
+  max_num_moves_between_attacks: null
+  use_wb: null
+rl:
+  adv_filt_rate: 0.75
+  adv_filt_thresh: 0.01
+  arr_batch_size: 1024
+  arr_clip_range: 0.2
+  arr_ent_pred_coef: 1.0
+  arr_gae_lambda: 1.0
+  arr_kl_coef: 0.1
+  arr_lr: 5.0e-05
+  arr_max_grad_norm: 0.5
+  arr_num_epoch_per_train: 5
+  arr_policy_coef: 1.0
+  arr_reg_norm: 10.0
+  arr_td_lambda: 1.0
+  arr_temperature_ceil: 1.0
+  arr_temperature_coef: 0.1
+  arr_temperature_decay: 0.3
+  arr_temperature_floor: 0.001
+  arr_transformer:
+    depth: 4
+    embed_dim_per_head_over8: 8
+    force_handedness: true
+    n_head: 8
+    pos_emb_std: 0.1
+    use_cat_vf: true
+  arr_vf_coef: 0.5
+  arr_weight_decay: 0.0
+  clip_range: 0.2
+  dtype: float32
+  ema_decay: 0.999
+  eval_every: 2000
+  gae_lambda: 0.5
+  kl_coef: 0.1
+  lr_ceil: 0.0001
+  lr_coef: 0.5
+  lr_decay: 1.1
+  lr_floor: 5.0e-06
+  max_grad_norm: 0.267
+  max_num_train: 3
+  move_transformer:
+    depth: 8
+    dropout: 0
+    embed_dim_per_head_over8: 6
+    ff_factor: 4
+    n_head: 8
+    plane_history_len: 32
+    pos_emb_std: 0.1
+    use_cat_vf: true
+    use_planes: true
+  n_arr: 1024
+  policy_coef: 1.0
+  resume:
+    adv_filt_thresh: null
+    arr_temperature_coef: null
+    arr_temperature_floor: null
+    eval_every: null
+    kl_coef: null
+    lr_coef: null
+    lr_floor: null
+    save_every: null
+    temperature_coef: null
+    temperature_floor: null
+  resume_from: ''
+  save_every: 2000
+  td_lambda: 0.8
+  temperature_ceil: 0.1
+  temperature_coef: 0.05
+  temperature_decay: 0.3
+  temperature_floor: 0.001
+  torch_compile: false
+  train_every_per_player: 101
+  uniform_magnet: true
+  vf_coef: 1.0
+  weight_decay: 0.0
+save_dir: /home/caseydigennaro/lm-wt/stratego/docs/lab/stratego-scripts/results/rl_128
+seed: 1
+use_wb: false

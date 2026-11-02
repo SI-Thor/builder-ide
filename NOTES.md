@@ -2784,3 +2784,301 @@ the lab README), the closing commits, and the server left running on
 Casey (dsmc's calibration); the rewind preview stops at the selection
 (this world has no canon commits — the cherry-pick proof is the
 rewind-select lane's); the precedent seam is a stub until its lane lands.
+
+## 2026-11-01 21:20 — stratego: the study, and the port to CUDA 13.2 / sm_110
+
+What changed — three things, in this order. (1) The upstream
+AtaraxosAI/stratego checkout (MIT) is cloned into
+`third_party/stratego/` (gitignored; the port itself is tracked, the upstream
+tree is not) at commit `92db29e`. (2) `docs/research/stratego.md` — the study:
+how the environment is batched on the GPU (a fixed-size POD state per game, one
+contiguous array, one kernel per rule, the legal-move mask computed by the
+rules engine), how the belief model is trained (cross-entropy on the hidden
+pieces' true types, with the KL to two uniform references as the diagnostic),
+how the search uses sampled beliefs (the belief samples *are* the search's
+branching factor), and how the arrangement model works (autoregressive over
+the 40 setup cells, trained on the rewards of the games its setups produced,
+with a forced handedness to halve the sample cost). Every claim cites the
+upstream file and line. (3) `docs/design/batched-sim.md` — the design for our
+own rule systems: one `core/sim/` interface (fixed-size state, a batch that is
+one contiguous array, the mask in the rules engine, a plane manifest that both
+sides read), where the belief model helps (the drift detector's stuck-vs-
+waiting and the screen watcher's, which is the same latent variable with a
+different sensor), sampled-belief search as the third tier of the vibecode
+pre-flight, and the arrangement model as a learned room seeder anchored by the
+critic with the human's verdicts held out (the anti-GAN part). The three first
+builds are ranked: the drift simulator, the pre-flight simulator, the room
+seeder.
+
+The port — seven changes, all in `docs/lab/stratego-port/apply_port.py`, which
+applies them as exact string replacements and refuses to continue on a missing
+anchor. Upstream builds with CUDA 11.8 on x86_64 against PyTorch 2.5.1; the
+Thor has CUDA 13.2, an sm_110 GPU on aarch64, and PyTorch 2.15.0+cu132 (the
+wheel already in the box's uv cache — nothing downloaded twice, and no model
+re-downloaded). The changes: (1) the libstdc++ ABI is now read from the
+installed PyTorch instead of the hardcoded `-D_GLIBCXX_USE_CXX11_ABI=0`, which
+matched PyTorch 2.5.1's old-ABI wheels and would have mismatched every
+`std::string` argument against libtorch 2.15's CXX11 ABI; (2) the CUDA 13.2
+toolkit is located explicitly (`nvcc` is not on PATH on this box, and CUDA 13
+dropped the `sm_52` target nvcc used to default to) and the architecture is
+set to `sm_110`; (3) `CUDNN_ROOT` points at the cuDNN bundled in the PyTorch
+wheel; (4) `get_pybind_flags.py` no longer crashes — PyTorch ≥ 2.6 removed the
+`_PYBIND11_*` attributes it reads, and the crash left `PYBIND_FLAGS` empty,
+which then aborted the configure with "message called with incorrect number
+of arguments"; (5) the `message()` calls quote their argument so an empty
+value cannot abort cmake; (6) C++20 for both g++ and nvcc — PyTorch ≥ 2.6
+refuses anything older (`#error C++20 or later compatible compiler is
+required to use PyTorch`); (7) `--expt-relaxed-constexpr` is restored for nvcc,
+because upstream deliberately wipes Torch's CUDA flags and PyTorch 2.15's
+bundled CUB calls constexpr host functions from device code.
+
+What happened — the extension builds: `pystratego.cpython-312-aarch64-linux-gnu.so`,
+10.9 MB, 0 errors, sm_110 code (`-gencode arch=compute_110,code=sm_110`).
+The smoke test (`docs/lab/stratego-scripts/smoke_test.py`) passes: the module
+loads, `NUM_ACTIONS=1800` and `NUM_BOARD_STATE_CHANNELS=355` are the expected
+constants, a batch of 8 games resets, takes 5 steps, and produces 8-19 legal
+actions per game with a legal 40-piece-per-side board. Two aborts along the
+way were *ours*, not the port's: a 64-row buffer is too small for the
+continuous chasing rule (the env says so, and correctly), and the legal-action
+mask is filled in by `compute_legal_action_mask`, not by a step.
+
+Decided next — the upstream ctest suite (45 cases over the rules engine) is
+running detached as the port's correctness gate; then the three measurements
+the brief asks for: one RL iteration at `--num_envs 128` against upstream's
+"10-20 seconds on an RTX A6000", the pretrained model against a random
+baseline over N games, and env steps/s at batch 128/1024/4096.
+## 2026-11-01 21:30 — stratego: the seat resumes after the WSL crash; the scripts are checked against upstream before they are trusted
+
+The ProArt's WSL crashed and killed the previous seat mid-task. What it left:
+commit `1afb7d8` (the study, the port, the design) and a half-finished ctest
+run that had reached 6 of 45 cases. Checked for a leftover copy before
+starting anything: `pgrep -af` found nothing of ours; the three leases on the
+box (`serve.qwen3-vl-8b`, `refit-drift.exp2`, `voyager-port.mc`) belong to
+other work and were left alone.
+
+What changed — (1) `docs/lab/stratego-port/README.md`, the directory README
+DOC-RULES.md asks for beside every script that produces a number: the seven
+port changes as a table (file, change, why), the three commands, and the
+deliberate choice to build with no `CMAKE_BUILD_TYPE` (upstream's own `make`
+does the same, so the device asserts stay in and the timing stays comparable
+with upstream's 10-20 s figure). (2) `docs/lab/stratego-port/time_one_test.sh`
+was left untracked; it times one ctest case alone, which is how to tell "the
+port is slow" from "the box is busy". (3) `docs/lab/stratego-scripts/README.md`,
+the same for the four measurement scripts.
+
+What happened — the four measurement scripts were written by the previous seat
+but never run, so before running them I checked every API they use against the
+upstream tree at `92db29e`, and two of the checks changed the scripts:
+
+- `extract_action` (`pyengine/core/evaluation.py:16`) dispatches on the
+  agent's *type*, not on duck typing: a `Model` is called with five keyword
+  arguments, an `ActionTaker` with the legal-action mask, and anything else
+  raises `ValueError`. `ActionTaker` is the alias
+  `Callable[[torch.Tensor], torch.Tensor]` and `utils.extended_isinstance`
+  checks it with `typeguard`, so a one-argument plain function does match it.
+  A three-argument function would have matched `Model` instead and been
+  called the wrong way.
+- `evaluate` (`evaluation.py:100`) returns **2 x num_envs**, the first half
+  the agent as player 0 and the second half as player 1. So one `evaluate()`
+  call already covers both seats, and the game count is `2 * num_envs`, not
+  `num_envs`.
+
+Checked and correct as written: `load_pretrained_rl_model` returns
+`(model, arrangements)` as a tuple of two lists; `TransformerRL.forward`
+takes `infostate_tensor, piece_ids, legal_action_mask` and swallows the rest
+in `**kwargs`, which is exactly what `extract_action` passes it;
+`Stratego.__init__` takes `num_envs, traj_len_per_player` and takes
+`quiet`/`verbose` through `**kwargs` without complaint;
+`sample_random_legal_action(out=None)` allocates its own tensor when called
+with no argument; `env.seed_action_sampler(seed)` exists; and the trainer's
+CLI is **pyrallis, not argparse** (`rl_main.py` ends in
+`pyrallis.parse(config_class=MainConfig)`), so nested options take dots
+(`--rl.dtype float32`), and `RLConfig` does have `max_num_train`, `dtype`
+and `torch_compile`.
+
+Decided next — the ctest correctness gate is running detached under a
+`thor-admit` lease (`--peak 8G`, label `stratego.ctest`): 45 upstream cases
+over the rules engine, and it is the gate for everything else, because the
+three measurements are worthless if the port is wrong. It is slow — the
+four slowest cases take 3-6 minutes each — and it is CPU-heavy, so the
+timing measurements wait for it rather than run beside it and be distorted
+by the contention. Then the three measurements the brief asks for: (a) one
+RL iteration at `--num_envs 128` timed against upstream's 10-20 s on an RTX
+A6000, (b) the pretrained model against a random policy over N games, (c)
+env steps/s at batch 128/1024/4096.
+## 2026-11-01 22:40 — stratego: the box's GPU pool, the D-state wedge, and the flaky smoke test
+
+Three things happened that are worth writing down before anything else, because
+each one cost an hour of wall clock and each one is a property of the Thor,
+not of Stratego.
+
+**1. The GPU-visible memory pool on the Thor is the system memory, and when it
+is exhausted a CUDA process blocks instead of failing.** The first attempt at
+measurement (a) - one RL iteration at `--num_envs 128` - built both models
+(14.8 M + 12.6 M parameters) and then sat for 15 minutes without producing a
+single line of output. It was not slow: it was stopped. Its voluntary and
+non-voluntary context-switch counters, and its utime/stime, did not move at
+all across an 8-second sample, and its main thread sat in
+`os_acquire_rwlock_write` with fds open on `/dev/nvidia0` and `/dev/nvmap`.
+`nvidia-smi` on the same box blocked the same way, and did so four times: two
+of the stuck processes were **thor-admit's own daemon samplers**, which is why
+the daemon's GPU view froze at 06:18:58Z and stopped updating for half an
+hour. `timeout 20 nvidia-smi` did not return in 50 s, because the process was
+in uninterruptible sleep and the signal could not be delivered.
+
+`thor-admit`'s daemon log has the history. The GPU pool's largest free block
+was 10.7 GB at 04:42Z, fell to 134 MB at 05:28Z and 25 MB at 05:34Z, and
+recovered to 3.8 GB by 06:00Z. At the time of the wedge it was 1.07 GB. The
+box has 122 GB of unified memory and 41 GB of it was committed to the GPU by
+other seats' long-lived services (ComfyUI, a llama-server, the world). The
+practical rule this gives us: **on the Thor, a new CUDA workload has to be
+sized against the GPU pool's largest free block, not against the free system
+memory**, because the two are the same bytes and the allocation blocks.
+
+**2. A 4096-game batch needs 6.26 GB of GPU memory and the box could not give
+it.** The env's own allocation table says so: `d_boards_` 2013 MB,
+`d_zero_boards_` 2013 MB, `d_illegal_chase_actions_` 881 MB, plus the
+observation tensors, **CUDA TOTAL 6256 MB** at 4096 games x 256 rows. The
+constructor returned, and the process then wedged in D state with the
+allocation held. The same run at 128 and 1024 games allocated and completed.
+So the 4096 number is a *capacity* result for this box, not a throughput
+result, and it is reported that way.
+
+**3. The smoke test's "40 pieces per side" assertion was flaky, and it was
+wrong.** The board string is 100 cells, each cell followed by a one-character
+movement flag ('.', has moved, or '@', has not) -
+`StrategoBoard::BoardString`, src/env/stratego_board.cu:62 - so it is 200
+characters and the cells are the *even* indices. The previous seat's smoke
+test counted 40 red / 40 blue *after five random steps* and reported that it
+passed. On the Thor the first run failed with 39/39 and a later run passed:
+the difference is whether a piece was captured in those five steps, because a
+captured piece leaves the board. The count is now checked where it is
+deterministic - at reset - where both sides must have exactly the classic 40
+with exactly the classic composition:
+
+    SPY 1, SCOUT 8, MINER 5, SERGEANT 4, LIEUTENANT 4, CAPTAIN 4,
+    MAJOR 3, COLONEL 2, GENERAL 1, MARSHAL 1, FLAG 1, BOMB 6   = 40
+
+    red   C=SPY D=SCOUT E=MINER F=SERGEANT G=LIEUTENANT H=CAPTAIN
+          I=MAJOR J=COLONEL K=GENERAL L=MARSHAL M=FLAG B=BOMB
+    blue  O=SPY P=SCOUT Q=MINER R=SERGEANT S=LIEUTENANT T=CAPTAIN
+          U=MAJOR V=COLONEL W=GENERAL X=MARSHAL Y=FLAG N=BOMB
+
+Measured at reset on the Thor: red {B:6, C:1, D:8, E:5, F:4, G:4, H:4, I:3,
+J:2, K:1, L:1, M:1} and blue {N:6, O:1, P:8, Q:5, R:4, S:4, T:4, U:3, V:2,
+W:1, X:1, Y:1} - the classic composition, exactly, on both sides. The port
+places pieces correctly. After the five steps one red scout had been captured
+(B:6 -> B:5 plus a visible 'b', D:8 -> D:7), which is the legal consequence of
+a capture, not a defect. The test now asserts the composition at reset and
+the *upper bound* after the steps.
+
+Also fixed: `bench_env.py` used to call `nvidia-smi` for its box state, which
+can block in uninterruptible sleep on this box - a benchmark that hangs on
+its own instrumentation is worse than one without it. It now reads
+`thor-admit status` instead, and writes its JSON after *each* batch size, so
+a run that cannot allocate the largest batch still leaves the smaller ones on
+disk.
+
+Decided next — the ctest correctness gate is still running (37 of 45) and its
+failures are now accounted for: `test_env_state` and `test_magnet_policy`
+abort in the C++ constructor on `MUSTRATEGO_FATAL("Unrecognized configuration
+key %s")` (src/pybind.cc:52), because the upstream tests at commit 92db29e
+pass `custom_inits=` and the upstream API's parameter is `initial_arrangements`
+(src/pybind.cc:42) - a stale test against the upstream's own API, in Python
+land, which none of the port's seven changes touch. `test_replay_games` and
+`test_save_games` failed on `ModuleNotFoundError: No module named 'msgpack'`;
+msgpack is in upstream's `environment.yml` but was missing from the venv, so it
+is now installed with `uv pip install --no-deps` and both are re-run.
+## 2026-11-01 23:15 — stratego: the three measurements, the gate's five failures, and the report
+
+What changed — (1) The port gained an **eighth** change, and it was the one
+that stopped the RL run from ever finishing. The trainer logs a GPU-memory
+counter every iteration (`RL.log_stats`, `pyengine/core/rl.py:386` ->
+`utils.get_gpumem_usage_gb()`), and that helper asks NVML for the device's used
+memory. **NVML does not exist on the Jetson Thor**: `nvidia-smi` reports "Not
+Supported" for memory and `nvmlDeviceGetMemoryInfo` raises
+`NVMLError_NotSupported`. The exception is not caught, so the *first*
+`log_stats()` after the first iteration killed the run - the training was fine,
+the counter was not. The fix falls back to this process's own reserved GPU
+memory, which is the better number on this box anyway, since the GPU memory IS
+the system memory and NVML's device-wide "used" would count other seats' work
+as ours. (2) `docs/lab/exp-stratego.md` — the report, with the numbers and the
+box state beside them. (3) The results are committed under
+`docs/lab/stratego-scripts/results/`.
+
+What happened — the three measurements the brief asks for:
+
+**(a) One RL iteration at `--num_envs 128`.** The trainer's own counter:
+**58.21 s** for the first iteration and **34.90 s** for the second, against
+upstream's "10-20 s on an RTX A6000". The first iteration pays for cuDNN
+autotuning and the first-touch allocations (its `train` step is 18.59 s
+against 4.85 s afterwards), so 34.90 s is the steady state. The breakdown is
+the trainer's own stopwatch: rollout 26.97 s, train 4.85 s,
+update_arrangements 2.78 s, prep_data 0.06 s, arr_train 0.23 s. The rollout
+is where the time goes, and it is **the policy, not the environment**: iteration
+2 made 51,456 env steps in 26.97 s, and the environment alone does 35,862
+env-steps/s at batch 128, so the environment's share is about 1.4 s of those
+27 s. The rest is the transformer forward and the per-step `.item()` calls,
+which force a GPU sync every step. **Caveat, and it is a real one: the box was
+never quiet.** Load average 29.54 / 24.66 / 20.20 on 14 cores before the run,
+with two other seats' processes at 505% and 412% CPU. The honest statement is
+"34.90 s per iteration on a Thor sharing its CPU with other jobs", not "the
+Thor is 3x slower than an A6000".
+
+**(b) The pretrained model against a random policy.** **256 games, 256 wins, 0
+losses, 0 draws** - a 1.000 win rate - with both the EMA weights
+(`model42400.pthm`) and the raw weights (`model42400.pthw`), against the
+environment's own uniform sampler over legal actions, over the checkpoint's own
+1000 arrangements, 128 games per seat. The control (EMA against itself, which
+should score about 0) was **not** completed: it was still running when the two
+matchups the brief asks for had finished, and it was holding the GPU lease
+that measurement (a) was queued behind, so it was stopped. It is not claimed.
+
+**(c) Env steps/s.** Batch 128: **35,862 env-steps/s** (27.885 us per
+env-step) for the environment alone, 33,301 with the infostate observation.
+Batch 1024: **281,482 env-steps/s** (3.553 us per env-step), 145,614 with the
+infostate. The 7.8x improvement *per game* from 128 to 1024 is the batch-size
+effect the study predicts: the step is one thread per game, so at 128 games
+the Thor's GPU is not filled and the step is launch-latency-bound rather than
+work-bound. **4096 was not measured**: that configuration needs 6.26 GB of GPU
+memory (the env's own allocation table - `d_boards_` 2013 MB,
+`d_zero_boards_` 2013 MB, `d_illegal_chase_actions_` 881 MB, plus the
+observation tensors) and the box's GPU pool would not give it; the
+constructor returned and the process then wedged in uninterruptible sleep
+holding the allocation. That is a capacity result and it is reported as one.
+
+**The correctness gate.** The upstream ctest suite finished: **40 of 45
+passed (89%)**, 5708 s wall clock. The five failures are now all accounted
+for, and none of them is the port's:
+
+- `test_replay_games` and `test_save_games` failed on
+  `ModuleNotFoundError: No module named 'msgpack'` - msgpack is in upstream's
+  `environment.yml` but was not in the venv. After `uv pip install
+  --no-deps msgpack`: **test_replay_games OK (237.4 s)** and **test_save_games
+  OK (24.8 s)**. The latter only core-dumped when five tests ran at once on a
+  contended GPU; run alone it passes.
+- `test_env_state`, `test_magnet_policy` and `test_twosquare_rule` abort at
+  **the same line**, `pyengine/core/env.py:99`, inside `Stratego.__init__` ->
+  `pystratego.StrategoRolloutBuffer(...)` -> `ParseStrategoConf(kwargs)`
+  (`src/pybind.cc:188`). All three pass `custom_inits=` to the constructor, but
+  the upstream API's parameter is `initial_arrangements`
+  (`src/pybind.cc:42`), and an unknown key is answered with
+  `MUSTRATEGO_FATAL("Unrecognized configuration key %s")`
+  (`src/pybind.cc:52`), which aborts. `custom_inits` appears nowhere in
+  `pyengine/`. It is a stale name in three upstream test files and one
+  upstream script, and it would fail identically on upstream's own x86_64 /
+  CUDA 11.8 build.
+
+So the gate reads **42 of 45 passing, 3 failing, and all three failures are the
+same upstream defect**. The port itself has no failing case.
+
+Decided next — nothing. The brief's three items are done: the study
+(`docs/research/stratego.md`), the port with its measurements
+(`docs/lab/exp-stratego.md`), and the design (`docs/design/batched-sim.md`).
+The next build is not this seat's: the design's first build is the drift
+simulator in `core/sim/systems/drift/`, and the first thing it needs is a
+bit-for-bit check against the Python reference in `core/drift/`. Two things
+from this session are worth carrying forward: the GPU pool's largest free block
+is the number to size a workload against on this box (not the free system
+memory), and `nvidia-smi` can block in uninterruptible sleep here, so nothing
+that runs on the Thor should depend on it.

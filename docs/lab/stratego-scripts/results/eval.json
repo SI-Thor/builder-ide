@@ -1,0 +1,50 @@
+{
+  "_note": "The evaluation was stopped after the two matchups the brief asks for (the pretrained model against a random baseline) and before the third control matchup (ema vs ema) finished. The numbers below are the ones the run printed; the raw run log is eval.log in this directory. The script's own --out file was not written because the process was stopped before its final write.",
+  "num_envs": 128,
+  "num_games_per_seat": 128,
+  "games_per_matchup": 256,
+  "seed": 1,
+  "model_dir": "pretrained/final_run",
+  "baseline": "the environment's own uniform sampler over legal actions (sample_random_legal_action)",
+  "matchups": [
+    {
+      "matchup": "ema_vs_random",
+      "agent_a": "pretrained EMA weights (model42400.pthm)",
+      "games": 256,
+      "wins": 256,
+      "losses": 0,
+      "ties": 0,
+      "win_rate": 1.0,
+      "loss_rate": 0.0,
+      "tie_rate": 0.0,
+      "mean_reward": 1.0,
+      "elapsed_s": 239.7,
+      "games_per_s": 1.1
+    },
+    {
+      "matchup": "weights_vs_random",
+      "agent_a": "pretrained raw weights (model42400.pthw)",
+      "games": 256,
+      "wins": 256,
+      "losses": 0,
+      "ties": 0,
+      "win_rate": 1.0,
+      "loss_rate": 0.0,
+      "tie_rate": 0.0,
+      "mean_reward": 1.0,
+      "elapsed_s": 216.4,
+      "games_per_s": 1.2
+    }
+  ],
+  "not_completed": [
+    {
+      "matchup": "ema_vs_ema",
+      "why": "the control (a strong agent against itself must score about 0) was still running after the two matchups the brief asks for had finished, and it was holding the GPU lease that the RL-iteration measurement (item (a)) was queued behind. It was stopped to release the lease. It is not a result, and it is not claimed as one."
+    }
+  ],
+  "box": {
+    "note": "the box was shared; see docs/lab/exp-stratego.md for the full box state and the GPU-pool story",
+    "gpu": "NVIDIA Thor, compute capability 11.0 (sm_110), CUDA 13.2",
+    "torch": "2.15.0+cu132"
+  }
+}
