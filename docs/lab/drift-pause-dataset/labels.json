@@ -1,0 +1,564 @@
+{
+ "meta": {
+  "bots_log": "/home/caseydigennaro/lm-wt/agent-world/runtime/logs/bots.jsonl",
+  "generated_at": "2026-11-02T05:40:11Z",
+  "kinds": [
+   "client_failure",
+   "designed_yield",
+   "incident_hang",
+   "incident_judge",
+   "incident_judge_startup",
+   "incident_wedge",
+   "write_path_failure"
+  ],
+  "incidents": [
+   {
+    "kind": "incident_hang",
+    "window": [
+     "2026-11-01T19:40:00Z",
+     "2026-11-01T20:06:00Z"
+    ],
+    "source": "docs/lab/incident-2026-11-01-jax-hang.md"
+   },
+   {
+    "kind": "incident_wedge",
+    "window": [
+     "2026-11-01T17:22:00Z",
+     "2026-11-01T21:53:00Z"
+    ],
+    "source": "agent-world/docs/playtest-2026-11-01-reward.md"
+   },
+   {
+    "kind": "incident_judge",
+    "window": [
+     "2026-11-01T20:06:00Z",
+     "2026-11-01T21:45:00Z"
+    ],
+    "source": "agent-world/docs/playtest-2026-11-01-reward.md"
+   },
+   {
+    "kind": "incident_judge_startup",
+    "window": [
+     "2026-11-01T06:25:00Z",
+     "2026-11-01T09:05:00Z"
+    ],
+    "source": "agent-world/docs/playtest-2026-11-01-reward.md"
+   }
+  ]
+ },
+ "labels": [
+  {
+   "at": 1793511300.0,
+   "until": null,
+   "count": 5,
+   "iso": "2026-11-01T05:35:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: \"Connection throttled! Please wait before reconnecting.\""
+  },
+  {
+   "at": 1793511300.0,
+   "until": null,
+   "count": 24,
+   "iso": "2026-11-01T05:35:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "leased: another seat holds the box this tick"
+  },
+  {
+   "at": 1793511300.0,
+   "until": null,
+   "count": 9,
+   "iso": "2026-11-01T05:35:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "the reflex did not answer in time (never-wait)"
+  },
+  {
+   "at": 1793511600.0,
+   "until": null,
+   "count": 39,
+   "iso": "2026-11-01T05:40:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: \"Connection throttled! Please wait before reconnecting.\""
+  },
+  {
+   "at": 1793511600.0,
+   "until": null,
+   "count": 27,
+   "iso": "2026-11-01T05:40:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "ProgrammingError: SQLite objects created in a thread can only be used in that same thread. The object was created in thread id 281473503909664 and this is thread id 281472844624256."
+  },
+  {
+   "at": 1793511900.0,
+   "until": null,
+   "count": 3,
+   "iso": "2026-11-01T05:45:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: \"Connection throttled! Please wait before reconnecting.\""
+  },
+  {
+   "at": 1793512500.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-01T05:55:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 24 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793513100.0,
+   "until": null,
+   "count": 412,
+   "iso": "2026-11-01T06:05:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 23 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793513400.0,
+   "until": null,
+   "count": 584,
+   "iso": "2026-11-01T06:10:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 8 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793513700.0,
+   "until": null,
+   "count": 588,
+   "iso": "2026-11-01T06:15:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 18 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793514000.0,
+   "until": null,
+   "count": 256,
+   "iso": "2026-11-01T06:20:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 22 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793514300.0,
+   "until": 1793523900.0,
+   "count": 1,
+   "iso": "2026-11-01T06:25:00Z",
+   "kind": "incident_judge_startup",
+   "source": "agent-world/docs/playtest-2026-11-01-reward.md",
+   "detail": "from 2026-11-01T06:25:00Z to 2026-11-01T09:05:00Z"
+  },
+  {
+   "at": 1793535000.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-01T12:10:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "the reflex did not answer in time (never-wait)"
+  },
+  {
+   "at": 1793553720.0,
+   "until": 1793569980.0,
+   "count": 1,
+   "iso": "2026-11-01T17:22:00Z",
+   "kind": "incident_wedge",
+   "source": "agent-world/docs/playtest-2026-11-01-reward.md",
+   "detail": "from 2026-11-01T17:22:00Z to 2026-11-01T21:53:00Z"
+  },
+  {
+   "at": 1793556900.0,
+   "until": null,
+   "count": 6,
+   "iso": "2026-11-01T18:15:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "the reflex did not answer in time (never-wait)"
+  },
+  {
+   "at": 1793557200.0,
+   "until": null,
+   "count": 2,
+   "iso": "2026-11-01T18:20:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "the reflex did not answer in time (never-wait)"
+  },
+  {
+   "at": 1793561700.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-01T19:35:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "reflex_unreachable: the reflex did not answer in time"
+  },
+  {
+   "at": 1793561700.0,
+   "until": null,
+   "count": 166,
+   "iso": "2026-11-01T19:35:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 6 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793561700.0,
+   "until": null,
+   "count": 3,
+   "iso": "2026-11-01T19:35:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "the reflex did not answer in time (never-wait)"
+  },
+  {
+   "at": 1793562000.0,
+   "until": null,
+   "count": 42,
+   "iso": "2026-11-01T19:40:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 0 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793562000.0,
+   "until": 1793563560.0,
+   "count": 1,
+   "iso": "2026-11-01T19:40:00Z",
+   "kind": "incident_hang",
+   "source": "docs/lab/incident-2026-11-01-jax-hang.md",
+   "detail": "from 2026-11-01T19:40:00Z to 2026-11-01T20:06:00Z"
+  },
+  {
+   "at": 1793562300.0,
+   "until": null,
+   "count": 2,
+   "iso": "2026-11-01T19:45:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "reflex_unreachable: the reflex did not answer in time"
+  },
+  {
+   "at": 1793562300.0,
+   "until": null,
+   "count": 27,
+   "iso": "2026-11-01T19:45:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 0 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793563500.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-01T20:05:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: \"Connection throttled! Please wait before reconnecting.\""
+  },
+  {
+   "at": 1793563560.0,
+   "until": 1793569500.0,
+   "count": 1,
+   "iso": "2026-11-01T20:06:00Z",
+   "kind": "incident_judge",
+   "source": "agent-world/docs/playtest-2026-11-01-reward.md",
+   "detail": "from 2026-11-01T20:06:00Z to 2026-11-01T21:45:00Z"
+  },
+  {
+   "at": 1793569500.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-01T21:45:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "reflex_unreachable: connect ECONNREFUSED 127.0.0.1:8110"
+  },
+  {
+   "at": 1793576400.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-01T23:40:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: \"Connection throttled! Please wait before reconnecting.\""
+  },
+  {
+   "at": 1793577600.0,
+   "until": null,
+   "count": 4,
+   "iso": "2026-11-02T00:00:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: [object Object]"
+  },
+  {
+   "at": 1793577900.0,
+   "until": null,
+   "count": 8,
+   "iso": "2026-11-02T00:05:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: [object Object]"
+  },
+  {
+   "at": 1793578500.0,
+   "until": null,
+   "count": 4,
+   "iso": "2026-11-02T00:15:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: [object Object]"
+  },
+  {
+   "at": 1793578800.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-02T00:20:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "the reflex did not answer in time (never-wait)"
+  },
+  {
+   "at": 1793580300.0,
+   "until": null,
+   "count": 76,
+   "iso": "2026-11-02T00:45:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 22 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793580300.0,
+   "until": null,
+   "count": 30,
+   "iso": "2026-11-02T00:45:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793580600.0,
+   "until": null,
+   "count": 9,
+   "iso": "2026-11-02T00:50:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: [object Object]"
+  },
+  {
+   "at": 1793580600.0,
+   "until": null,
+   "count": 23,
+   "iso": "2026-11-02T00:50:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 0 GB free; the rule is 25 GB"
+  },
+  {
+   "at": 1793582700.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-02T01:25:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "kicked: \"Connection throttled! Please wait before reconnecting.\""
+  },
+  {
+   "at": 1793582700.0,
+   "until": null,
+   "count": 311,
+   "iso": "2026-11-02T01:25:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793583000.0,
+   "until": null,
+   "count": 581,
+   "iso": "2026-11-02T01:30:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793583300.0,
+   "until": null,
+   "count": 582,
+   "iso": "2026-11-02T01:35:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793583600.0,
+   "until": null,
+   "count": 582,
+   "iso": "2026-11-02T01:40:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793583900.0,
+   "until": null,
+   "count": 582,
+   "iso": "2026-11-02T01:45:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793584200.0,
+   "until": null,
+   "count": 582,
+   "iso": "2026-11-02T01:50:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793584500.0,
+   "until": null,
+   "count": 584,
+   "iso": "2026-11-02T01:55:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793584800.0,
+   "until": null,
+   "count": 587,
+   "iso": "2026-11-02T02:00:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793585100.0,
+   "until": null,
+   "count": 585,
+   "iso": "2026-11-02T02:05:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793585400.0,
+   "until": null,
+   "count": 455,
+   "iso": "2026-11-02T02:10:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793585700.0,
+   "until": null,
+   "count": 3,
+   "iso": "2026-11-02T02:15:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "play_not_recorded: socket hang up"
+  },
+  {
+   "at": 1793585700.0,
+   "until": null,
+   "count": 464,
+   "iso": "2026-11-02T02:15:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793586000.0,
+   "until": null,
+   "count": 31,
+   "iso": "2026-11-02T02:20:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "reflex_unreachable: connect ECONNREFUSED 127.0.0.1:8110"
+  },
+  {
+   "at": 1793586000.0,
+   "until": null,
+   "count": 471,
+   "iso": "2026-11-02T02:20:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793586300.0,
+   "until": null,
+   "count": 1,
+   "iso": "2026-11-02T02:25:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "play_not_recorded: socket hang up"
+  },
+  {
+   "at": 1793586300.0,
+   "until": null,
+   "count": 410,
+   "iso": "2026-11-02T02:25:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793586600.0,
+   "until": null,
+   "count": 3,
+   "iso": "2026-11-02T02:30:00Z",
+   "kind": "client_failure",
+   "source": "bots.jsonl",
+   "detail": "play_not_recorded: socket hang up"
+  },
+  {
+   "at": 1793586600.0,
+   "until": null,
+   "count": 486,
+   "iso": "2026-11-02T02:30:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793586900.0,
+   "until": null,
+   "count": 522,
+   "iso": "2026-11-02T02:35:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793587200.0,
+   "until": null,
+   "count": 316,
+   "iso": "2026-11-02T02:40:00Z",
+   "kind": "write_path_failure",
+   "source": "bots.jsonl",
+   "detail": "IntegrityError: UNIQUE constraint failed: audit.id"
+  },
+  {
+   "at": 1793589900.0,
+   "until": null,
+   "count": 18,
+   "iso": "2026-11-02T03:25:00Z",
+   "kind": "designed_yield",
+   "source": "bots.jsonl",
+   "detail": "yielded: the box has 19 GB free; the rule is 25 GB"
+  }
+ ]
+}

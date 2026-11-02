@@ -325,12 +325,17 @@ def build_series(
     bucket_seconds: int = 300,
     baseline_horizon_seconds: int = 24 * 3600,
     extra_yields: list[dict[str, object]] | None = None,
+    until: float | None = None,
 ) -> WorldSeries:
     """Fold the live ledger into buckets.
 
     ``extra_yields`` are yield points the ledger itself does not carry
     (the backfill from the clients' refusal records). They are folded
     exactly as the ledger's own ``drift.yield`` events are.
+
+    ``until`` cuts the run at a wall-clock time (events strictly before
+    it): the ledger is live, and a before/after comparison must be cut
+    from the same span of world.
 
     The reference period is the first ``baseline_horizon_seconds`` of
     the run. The baselines are computed over it and **frozen**: a
@@ -340,6 +345,11 @@ def build_series(
     verdicts = read_verdicts(path)
     violations = rule_violation_events(path)
     yield_points = read_yields(path) + list(extra_yields or [])
+    if until is not None:
+        plays = [p for p in plays if float(p["at"]) < until]
+        verdicts = [v for v in verdicts if float(v["at"]) < until]
+        violations = [v for v in violations if float(v["at"]) < until]
+        yield_points = [y for y in yield_points if float(y["at"]) < until]
     yields_by_agent: dict[str, list[float]] = {}
     for point in yield_points:
         agent = str(point.get("agent") or "")

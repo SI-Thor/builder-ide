@@ -2187,3 +2187,48 @@ resume-gap after a busy stretch is a stall alarm waiting to happen.
 Decided next — backfill the yields from bots.jsonl
 (`extract.py --yields-from-bots`), re-extract a second dataset, re-run
 the negative control and the holdout, and report before/after.
+
+## 2026-11-01 22:40 — drift-pause #3, step 2: the backfill, and the before/after
+
+What was tried — `extract.py --yields-from-bots --until
+2026-11-02T04:20:00Z` (the cut matters: the ledger is live and three
+hours longer than build #2's snapshot; the before/after is cut from the
+same 22.67 h span, and `--until` was added to `build_series` and
+`extract.py` for it). 2,217 yield points backfilled from bots.jsonl —
+the same records the `designed_yield` labels are cut from, so on this
+dataset the negative control measures the plumbing, not an independent
+discovery (the holdout's labels come from other instruments and are the
+independent check). The re-run of the "before" on the committed dataset
+with the new code reproduces build #2 byte for byte where it matters:
+same chosen thresholds, same holdout (6/6, 88 alarm windows, 28
+false-alarm windows), same 5-of-12 control.
+
+What happened, on the same thresholds (the sweep chose the same ones
+again: stall 10.0, success 0.2, errors 0.8, spend 0.5) —
+
+| | before | after |
+|---|---|---|
+| negative control (designed yield) | 5 of 12 | **3 of 12** |
+| … of which pure yield windows | 1 of 6 | 1 of 6 |
+| holdout episodes detected | 6/6 | **6/6** |
+| holdout alarm windows | 88 | 86 |
+| holdout false-alarm windows | 28 | **28** |
+| stall rate gate, leave-one-out fw | 12.1 | **10.4** |
+| alarms / hour | 1.63 | 1.63 (37) |
+
+Exactly two stall alarm windows moved: 19:40Z (the hang's first window
+— its gaps span the yields the box was full enough to write) to 19:45Z
+(the silence after the box went dark carries **no** yields — the reflex
+itself was hung — so it is correctly unexplained); and 00:50Z (Kite's
+193× gap, also yield-spanned; that episode stays detected through the
+errors signal, 21 of its 24 windows). The remaining pure-yield alarm is
+06:20Z — the errors signal's onset catch of the judge's first absence,
+one window ahead of its label: a correct alarm that happens to land in
+a yield window, not a yield-caused one. So the honest claim is narrower
+than the build-#2 note's: the stall signal no longer alarms on a wait
+the world chose, and what the control still counts against it is an
+alarm it should keep.
+
+Decided next — part 2 of the brief: the pause ladder wired to action
+(the pause file the world now reads + the thor-admit presence door),
+dry-run by default, tests for both.
