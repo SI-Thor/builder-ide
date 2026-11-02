@@ -1,0 +1,3707 @@
+{
+  "meta": {
+    "started": {
+      "machine": "NVIDIA Jetson AGX Thor, aarch64, 14 Neoverse cores",
+      "kernel": "6.8.12-1021-tegra",
+      "python": "3.12.3",
+      "numpy": "2.5.4",
+      "open3d": "0.20.0",
+      "load_average": [
+        20.92,
+        25.2,
+        30.92
+      ],
+      "mem_available_gb": 109.3,
+      "mem_total_gb": 122.8
+    },
+    "ended": {
+      "machine": "NVIDIA Jetson AGX Thor, aarch64, 14 Neoverse cores",
+      "kernel": "6.8.12-1021-tegra",
+      "python": "3.12.3",
+      "numpy": "2.5.4",
+      "open3d": "0.20.0",
+      "load_average": [
+        21.27,
+        21.82,
+        23.49
+      ],
+      "mem_available_gb": 110.9,
+      "mem_total_gb": 122.8
+    },
+    "resolution": 64,
+    "simplify_to": 0.1,
+    "watertight_definitions": {
+      "ours": "every edge used by exactly two triangles (closed)",
+      "o3d": "edge-manifold, vertex-manifold and not self-intersecting (a valid solid boundary)"
+    },
+    "rss_peak_mb": 1111.2,
+    "meshes": 45
+  },
+  "meshes": [
+    {
+      "name": "IV_pole_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/IV_pole_a01.glb",
+      "triangles": 458714,
+      "vertices": 230723,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 2544,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.1597
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 108.9205
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.002512263910652921,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.8462477551536527,
+        "o3d_area": 0.8462477551536461,
+        "area_rel_diff": 7.740423304401069e-15
+      },
+      "occupancy": {
+        "box_volume": 0.74175147491537,
+        "ours_convex": 0.32045458705937335,
+        "ours_convex_seconds": 0.2384,
+        "o3d_hull": 0.320454587059373,
+        "o3d_hull_seconds": 0.045,
+        "hull_rel_diff": 1.0393575902405068e-15,
+        "o3d_raycast_interior": 0.0013556739197054287,
+        "o3d_raycast_cells": 61,
+        "o3d_raycast_seconds": 0.1673,
+        "ours_visual": 0.0009026287860794183,
+        "ours_visual_seconds": 0.339,
+        "o3d_grid_visual": 0.021024057836743208,
+        "o3d_grid_seconds": 0.107,
+        "visual_rel_diff": 0.957066861540786,
+        "fill_ratio_ours": 0.4320241993397257,
+        "fill_ratio_grid_visual": 0.028343803211367993
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 105.506,
+        "ours": null
+      },
+      "simplify": {
+        "target": 45871,
+        "out_triangles": 45871,
+        "seconds": 5.316,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0195,
+        "o3d_seconds": 0.2863,
+        "ours_triangles": 458714,
+        "o3d_triangles": 458714,
+        "triangles_agree": true,
+        "o3d_vertices": 230723,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.002512263910652921,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.32045458705937335,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "bodyPart_door_front_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/bodyPart_door_front_a01.glb",
+      "triangles": 168604,
+      "vertices": 84204,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0519
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 19.8403
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.0007904336596994502,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 3.504994238903018,
+        "o3d_area": 3.5049942389030697,
+        "area_rel_diff": 1.4697413128624514e-14
+      },
+      "occupancy": {
+        "box_volume": 0.2226551047874235,
+        "ours_convex": 0.11514926388048231,
+        "ours_convex_seconds": 0.0198,
+        "o3d_hull": 0.11514926388048217,
+        "o3d_hull_seconds": 0.0242,
+        "hull_rel_diff": 1.2051998719000693e-15,
+        "o3d_raycast_interior": 0.0007439185355489551,
+        "o3d_raycast_cells": 117,
+        "o3d_raycast_seconds": 0.0641,
+        "ours_visual": 0.09399122829773358,
+        "ours_visual_seconds": 0.1294,
+        "o3d_grid_visual": 0.10316942015228502,
+        "o3d_grid_seconds": 0.0884,
+        "visual_rel_diff": 0.08896232857569425,
+        "fill_ratio_ours": 0.5171642661883691,
+        "fill_ratio_grid_visual": 0.4633597790213901
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 18.5375,
+        "ours": null
+      },
+      "simplify": {
+        "target": 16860,
+        "out_triangles": 16860,
+        "seconds": 1.794,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0051,
+        "o3d_seconds": 0.0681,
+        "ours_triangles": 168604,
+        "o3d_triangles": 168604,
+        "triangles_agree": true,
+        "o3d_vertices": 84204,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0007904336596994502,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.11514926388048231,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "bodyPart_trunk_lid_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/bodyPart_trunk_lid_a01.glb",
+      "triangles": 317648,
+      "vertices": 158686,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.1004
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 61.1679
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.0015045258198050939,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 3.8026268701263906,
+        "o3d_area": 3.8026268701263897,
+        "area_rel_diff": 2.335697006397591e-16
+      },
+      "occupancy": {
+        "box_volume": 0.28162284618202904,
+        "ours_convex": 0.12781518410288853,
+        "ours_convex_seconds": 0.0343,
+        "o3d_hull": 0.12781518410288822,
+        "o3d_hull_seconds": 0.0505,
+        "hull_rel_diff": 2.388693752740276e-15,
+        "o3d_raycast_interior": 0.0013583675456594392,
+        "o3d_raycast_cells": 200,
+        "o3d_raycast_seconds": 0.1105,
+        "ours_visual": 0.08354232410621379,
+        "ours_visual_seconds": 0.2382,
+        "o3d_grid_visual": 0.11101937950674595,
+        "o3d_grid_seconds": 0.1374,
+        "visual_rel_diff": 0.24749782896113695,
+        "fill_ratio_ours": 0.45385232709520384,
+        "fill_ratio_grid_visual": 0.3942129731725946
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 58.6571,
+        "ours": null
+      },
+      "simplify": {
+        "target": 31765,
+        "out_triangles": 31764,
+        "seconds": 3.4726,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0111,
+        "o3d_seconds": 0.1622,
+        "ours_triangles": 317648,
+        "o3d_triangles": 317648,
+        "triangles_agree": true,
+        "o3d_vertices": 158686,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0015045258198050939,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.12781518410288853,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "box_long_a08",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/box_long_a08.glb",
+      "triangles": 4924,
+      "vertices": 2847,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 752,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0019
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0264
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.0004864890902880412,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.5683658897779508,
+        "o3d_area": 0.5683658897779521,
+        "area_rel_diff": 2.3440316414320275e-15
+      },
+      "occupancy": {
+        "box_volume": 0.007598835725965909,
+        "ours_convex": 0.007392126096975476,
+        "ours_convex_seconds": 0.002,
+        "o3d_hull": 0.007392126096975479,
+        "o3d_hull_seconds": 0.0031,
+        "hull_rel_diff": 3.520076876164038e-16,
+        "o3d_raycast_interior": 0.0005849022218029847,
+        "o3d_raycast_cells": 5197,
+        "o3d_raycast_seconds": 0.0055,
+        "ours_visual": 0.00747648051051447,
+        "ours_visual_seconds": 0.0126,
+        "o3d_grid_visual": 0.007844014864495059,
+        "o3d_grid_seconds": 0.0974,
+        "visual_rel_diff": 0.04685538723851565,
+        "fill_ratio_ours": 0.9727971973016751,
+        "fill_ratio_grid_visual": 1.032265355821728
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.0126,
+        "ours": null
+      },
+      "simplify": {
+        "target": 492,
+        "out_triangles": 491,
+        "seconds": 0.0174,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0014,
+        "o3d_seconds": 0.0019,
+        "ours_triangles": 4924,
+        "o3d_triangles": 4924,
+        "triangles_agree": true,
+        "o3d_vertices": 2477,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0004864890902880412,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.007392126096975476,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "cabinet_file_a03",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/cabinet_file_a03.glb",
+      "triangles": 19720,
+      "vertices": 11018,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 2204,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0056
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.253
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.003973585088919293,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 15.43323586112162,
+        "o3d_area": 15.43323586112145,
+        "area_rel_diff": 1.104954645396255e-14
+      },
+      "occupancy": {
+        "box_volume": 0.6158598944333747,
+        "ours_convex": 0.6133164496118686,
+        "ours_convex_seconds": 0.0056,
+        "o3d_hull": 0.6133164496118694,
+        "o3d_hull_seconds": 0.0102,
+        "hull_rel_diff": 1.2671372465705499e-15,
+        "o3d_raycast_interior": 0.5335717106532124,
+        "o3d_raycast_cells": 17477,
+        "o3d_raycast_seconds": 0.0079,
+        "ours_visual": 0.6146570430770596,
+        "ours_visual_seconds": 0.0246,
+        "o3d_grid_visual": 0.6323360571636628,
+        "o3d_grid_seconds": 0.0567,
+        "visual_rel_diff": 0.02795825714241611,
+        "fill_ratio_ours": 0.9958700918106606,
+        "fill_ratio_grid_visual": 1.026753102254608
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.1672,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1972,
+        "out_triangles": 1971,
+        "seconds": 0.1054,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0016,
+        "o3d_seconds": 0.0062,
+        "ours_triangles": 19720,
+        "o3d_triangles": 19720,
+        "triangles_agree": true,
+        "o3d_vertices": 11018,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.003973585088919293,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.6133164496118686,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "cleaning_sponge_c01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/cleaning_sponge_c01.glb",
+      "triangles": 3552,
+      "vertices": 1778,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0016
+        },
+        "o3d": {
+          "watertight": true,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0151
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.00014663052851853056,
+        "o3d_get_volume": 0.00014663052851853056,
+        "rel_diff": 0.0,
+        "ours_area": 0.01857093154651472,
+        "o3d_area": 0.018570931546514683,
+        "area_rel_diff": 2.055035116353769e-15
+      },
+      "occupancy": {
+        "box_volume": 0.00017498714055899417,
+        "ours_convex": 0.00016464664305708396,
+        "ours_convex_seconds": 0.0027,
+        "o3d_hull": 0.00016464664305708426,
+        "o3d_hull_seconds": 0.0057,
+        "hull_rel_diff": 1.8108817276653547e-15,
+        "o3d_raycast_interior": 0.00014563009603763848,
+        "o3d_raycast_cells": 50894,
+        "o3d_raycast_seconds": 0.0034,
+        "ours_visual": 0.0001489931287162368,
+        "ours_visual_seconds": 0.0068,
+        "o3d_grid_visual": 0.00016125641651670367,
+        "o3d_grid_seconds": 0.0596,
+        "visual_rel_diff": 0.07604837106867365,
+        "fill_ratio_ours": 0.9409071005510599,
+        "fill_ratio_grid_visual": 0.9215329538020458
+      },
+      "self_intersection": {
+        "o3d": false,
+        "o3d_seconds": 0.0063,
+        "ours": null
+      },
+      "simplify": {
+        "target": 355,
+        "out_triangles": 354,
+        "seconds": 0.0125,
+        "watertight_after": true,
+        "volume_after": 0.00014607606873558184,
+        "volume_rel_drift": 0.0037813393196536494
+      },
+      "read": {
+        "ours_seconds": 0.0007,
+        "o3d_seconds": 0.0012,
+        "ours_triangles": 3552,
+        "o3d_triangles": 3552,
+        "triangles_agree": true,
+        "o3d_vertices": 1778,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": true,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.00014663052851853056,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.00016464664305708396,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "consumable_fuse_micro_green_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/consumable_fuse_micro_green_a01.glb",
+      "triangles": 20496,
+      "vertices": 10284,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 64,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0062
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.2689
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 6.0527218204571e-06,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.0026547218944817886,
+        "o3d_area": 0.0026547218944818,
+        "area_rel_diff": 4.247413869334986e-15
+      },
+      "occupancy": {
+        "box_volume": 9.294763357088635e-06,
+        "ours_convex": 7.2650176128081735e-06,
+        "ours_convex_seconds": 0.0144,
+        "o3d_hull": 7.26501761280818e-06,
+        "o3d_hull_seconds": 0.0506,
+        "hull_rel_diff": 9.327250034587517e-16,
+        "o3d_raycast_interior": 6.427919357123327e-06,
+        "o3d_raycast_cells": 11346,
+        "o3d_raycast_seconds": 0.0092,
+        "ours_visual": 6.798043781005439e-06,
+        "ours_visual_seconds": 0.0242,
+        "o3d_grid_visual": 8.21477442960411e-06,
+        "o3d_grid_seconds": 0.0353,
+        "visual_rel_diff": 0.17246129650171618,
+        "fill_ratio_ours": 0.781624806753958,
+        "fill_ratio_grid_visual": 0.8838067322433902
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.1754,
+        "ours": null
+      },
+      "simplify": {
+        "target": 2050,
+        "out_triangles": 2050,
+        "seconds": 0.0978,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0015,
+        "o3d_seconds": 0.0062,
+        "ours_triangles": 20496,
+        "o3d_triangles": 20496,
+        "triangles_agree": true,
+        "o3d_vertices": 10284,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 6.0527218204571e-06,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 7.2650176128081735e-06,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "container_system_sterilising_e01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/container_system_sterilising_e01.glb",
+      "triangles": 85800,
+      "vertices": 42264,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0244
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 3.6463
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.0033414875339947098,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 1.6107923699228612,
+        "o3d_area": 1.6107923699228597,
+        "area_rel_diff": 9.649364272501819e-16
+      },
+      "occupancy": {
+        "box_volume": 0.02332894693402829,
+        "ours_convex": 0.02082834383513049,
+        "ours_convex_seconds": 0.0108,
+        "o3d_hull": 0.02082834383513048,
+        "o3d_hull_seconds": 0.0146,
+        "hull_rel_diff": 4.997200419893891e-16,
+        "o3d_raycast_interior": 0.0033442074042658518,
+        "o3d_raycast_cells": 6687,
+        "o3d_raycast_seconds": 0.0382,
+        "ours_visual": 0.01972135396675977,
+        "ours_visual_seconds": 0.081,
+        "o3d_grid_visual": 0.021374521378543815,
+        "o3d_grid_seconds": 0.1318,
+        "visual_rel_diff": 0.07734289729844096,
+        "fill_ratio_ours": 0.8928111454850821,
+        "fill_ratio_grid_visual": 0.9162231556781635
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 3.0841,
+        "ours": null
+      },
+      "simplify": {
+        "target": 8580,
+        "out_triangles": 8580,
+        "seconds": 0.6722,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0034,
+        "o3d_seconds": 0.0358,
+        "ours_triangles": 85800,
+        "o3d_triangles": 85800,
+        "triangles_agree": true,
+        "o3d_vertices": 42264,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0033414875339947098,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.02082834383513049,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "crate_white_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/crate_white_a01.glb",
+      "triangles": 60744,
+      "vertices": 31324,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 4704,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0176
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 2.1506
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.0014963324706853975,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 1.2442102809014606,
+        "o3d_area": 1.2442102809014841,
+        "area_rel_diff": 1.8917001798924167e-14
+      },
+      "occupancy": {
+        "box_volume": 0.06207918769216397,
+        "ours_convex": 0.061870608378265336,
+        "ours_convex_seconds": 0.0084,
+        "o3d_hull": 0.061870608378265315,
+        "o3d_hull_seconds": 0.0102,
+        "hull_rel_diff": 3.3645509972121793e-16,
+        "o3d_raycast_interior": 0.0013119123288033317,
+        "o3d_raycast_cells": 1552,
+        "o3d_raycast_seconds": 0.0199,
+        "ours_visual": 0.06184142713139229,
+        "ours_visual_seconds": 0.0614,
+        "o3d_grid_visual": 0.0573843301244478,
+        "o3d_grid_seconds": 0.0949,
+        "visual_rel_diff": 0.07207299723977355,
+        "fill_ratio_ours": 0.9966401088407771,
+        "fill_ratio_grid_visual": 0.924373083117697
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 1.7181,
+        "ours": null
+      },
+      "simplify": {
+        "target": 6074,
+        "out_triangles": 6324,
+        "seconds": 0.5266,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0029,
+        "o3d_seconds": 0.0202,
+        "ours_triangles": 60744,
+        "o3d_triangles": 60744,
+        "triangles_agree": true,
+        "o3d_vertices": 31324,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0014963324706853975,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.061870608378265336,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "decor_candle_l01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/decor_candle_l01.glb",
+      "triangles": 13856,
+      "vertices": 6940,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0038
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.1252
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.00017106391433309898,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.03541529102820997,
+        "o3d_area": 0.03541529102820995,
+        "area_rel_diff": 5.877879612831701e-16
+      },
+      "occupancy": {
+        "box_volume": 0.002164518123486799,
+        "ours_convex": 0.000711750798150488,
+        "ours_convex_seconds": 0.0031,
+        "o3d_hull": 0.0007117507981504875,
+        "o3d_hull_seconds": 0.0051,
+        "hull_rel_diff": 7.616445076723804e-16,
+        "o3d_raycast_interior": 0.00017084004987665753,
+        "o3d_raycast_cells": 2180,
+        "o3d_raycast_seconds": 0.0048,
+        "ours_visual": 0.00013088966863064857,
+        "ours_visual_seconds": 0.0158,
+        "o3d_grid_visual": 0.00032835771054275006,
+        "o3d_grid_seconds": 0.0195,
+        "visual_rel_diff": 0.6013808586547336,
+        "fill_ratio_ours": 0.32882644429141406,
+        "fill_ratio_grid_visual": 0.15170014377786872
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.0799,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1386,
+        "out_triangles": 1386,
+        "seconds": 0.0518,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0014,
+        "o3d_seconds": 0.0039,
+        "ours_triangles": 13856,
+        "o3d_triangles": 13856,
+        "triangles_agree": true,
+        "o3d_vertices": 6940,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.00017106391433309898,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.000711750798150488,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "dishware_mug_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/dishware_mug_a01.glb",
+      "triangles": 11876,
+      "vertices": 5938,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0038
+        },
+        "o3d": {
+          "watertight": true,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0977
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 4.330388188709641e-05,
+        "o3d_get_volume": 4.330388188709641e-05,
+        "rel_diff": 0.0,
+        "ours_area": 0.0517539903534705,
+        "o3d_area": 0.051753990353470725,
+        "area_rel_diff": 4.29038617908504e-15
+      },
+      "occupancy": {
+        "box_volume": 0.0008258254343819427,
+        "ours_convex": 0.0004889548123606755,
+        "ours_convex_seconds": 0.0049,
+        "o3d_hull": 0.0004889548123606754,
+        "o3d_hull_seconds": 0.0173,
+        "hull_rel_diff": 2.217387261720511e-16,
+        "o3d_raycast_interior": 4.44063179393808e-05,
+        "o3d_raycast_cells": 7766,
+        "o3d_raycast_seconds": 0.0095,
+        "ours_visual": 0.0004496701145312443,
+        "ours_visual_seconds": 0.0148,
+        "o3d_grid_visual": 0.0004988020001037863,
+        "o3d_grid_seconds": 0.1108,
+        "visual_rel_diff": 0.09849977658934632,
+        "fill_ratio_ours": 0.5920801079790124,
+        "fill_ratio_grid_visual": 0.6040041627890712
+      },
+      "self_intersection": {
+        "o3d": false,
+        "o3d_seconds": 0.0626,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1188,
+        "out_triangles": 1188,
+        "seconds": 0.0484,
+        "watertight_after": true,
+        "volume_after": 4.194384122189359e-05,
+        "volume_rel_drift": 0.03140689947263324
+      },
+      "read": {
+        "ours_seconds": 0.0012,
+        "o3d_seconds": 0.0036,
+        "ours_triangles": 11876,
+        "o3d_triangles": 11876,
+        "triangles_agree": true,
+        "o3d_vertices": 5938,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": true,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 4.330388188709641e-05,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.0004889548123606755,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "drum_fiber_a02",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/drum_fiber_a02.glb",
+      "triangles": 25425,
+      "vertices": 13101,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 765,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0072
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.4019
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.02230799197831712,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 4.361794323133553,
+        "o3d_area": 4.361794323133511,
+        "area_rel_diff": 9.774088594571416e-15
+      },
+      "occupancy": {
+        "box_volume": 0.30707651084794757,
+        "ours_convex": 0.2361600943724645,
+        "ours_convex_seconds": 0.0062,
+        "o3d_hull": 0.23616009437246457,
+        "o3d_hull_seconds": 0.0147,
+        "hull_rel_diff": 3.52585931455299e-16,
+        "o3d_raycast_interior": 0.027565208559978967,
+        "o3d_raycast_cells": 9678,
+        "o3d_raycast_seconds": 0.018,
+        "ours_visual": 0.22633983803768645,
+        "ours_visual_seconds": 0.0261,
+        "o3d_grid_visual": 0.24990120209175395,
+        "o3d_grid_seconds": 0.1273,
+        "visual_rel_diff": 0.09428271595675114,
+        "fill_ratio_ours": 0.7690594559653632,
+        "fill_ratio_grid_visual": 0.8138076123168384
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.2913,
+        "ours": null
+      },
+      "simplify": {
+        "target": 2542,
+        "out_triangles": 2541,
+        "seconds": 0.1155,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0063,
+        "o3d_seconds": 0.0077,
+        "ours_triangles": 25425,
+        "o3d_triangles": 25425,
+        "triangles_agree": true,
+        "o3d_vertices": 13101,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.02230799197831712,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.2361600943724645,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "engineComponent_camshaft_b01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/engineComponent_camshaft_b01.glb",
+      "triangles": 361096,
+      "vertices": 182269,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 3448,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.1299
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 84.4201
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.007271532141322183,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.7341368465146005,
+        "o3d_area": 0.7341368465145942,
+        "area_rel_diff": 8.62001583275324e-15
+      },
+      "occupancy": {
+        "box_volume": 0.1088062581545449,
+        "ours_convex": 0.04596027090482782,
+        "ours_convex_seconds": 0.042,
+        "o3d_hull": 0.045960270904827905,
+        "o3d_hull_seconds": 0.0496,
+        "hull_rel_diff": 1.8117109670504568e-15,
+        "o3d_raycast_interior": 0.005539346537326472,
+        "o3d_raycast_cells": 874,
+        "o3d_raycast_seconds": 0.1291,
+        "ours_visual": 0.009656024130658464,
+        "ours_visual_seconds": 0.2526,
+        "o3d_grid_visual": 0.017296197597670412,
+        "o3d_grid_seconds": 0.0937,
+        "visual_rel_diff": 0.4417256118790518,
+        "fill_ratio_ours": 0.42240466388934483,
+        "fill_ratio_grid_visual": 0.15896326085493587
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 81.4223,
+        "ours": null
+      },
+      "simplify": {
+        "target": 36110,
+        "out_triangles": 36110,
+        "seconds": 3.8803,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0478,
+        "o3d_seconds": 0.2247,
+        "ours_triangles": 361096,
+        "o3d_triangles": 361096,
+        "triangles_agree": true,
+        "o3d_vertices": 182269,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.007271532141322183,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.04596027090482782,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "equipment_bench_vise_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/equipment_bench_vise_a01.glb",
+      "triangles": 106162,
+      "vertices": 53099,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 3,
+          "seconds": 0.0306
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 6.3091
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.0024735541962423147,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.3487842484935749,
+        "o3d_area": 0.3487842484936222,
+        "area_rel_diff": 1.3560102284807309e-13
+      },
+      "occupancy": {
+        "box_volume": 0.013611697877486019,
+        "ours_convex": 0.006881232396730958,
+        "ours_convex_seconds": 0.0139,
+        "o3d_hull": 0.006881232396730958,
+        "o3d_hull_seconds": 0.0164,
+        "hull_rel_diff": 0.0,
+        "o3d_raycast_interior": 0.0025729285866962375,
+        "o3d_raycast_cells": 19760,
+        "o3d_raycast_seconds": 0.0421,
+        "ours_visual": 0.0025379141126933447,
+        "ours_visual_seconds": 0.0794,
+        "o3d_grid_visual": 0.003990122652364348,
+        "o3d_grid_seconds": 0.1051,
+        "visual_rel_diff": 0.36395085219009415,
+        "fill_ratio_ours": 0.5055381377596276,
+        "fill_ratio_grid_visual": 0.2931392312904681
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 5.6454,
+        "ours": null
+      },
+      "simplify": {
+        "target": 10616,
+        "out_triangles": 10616,
+        "seconds": 0.9221,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0044,
+        "o3d_seconds": 0.0415,
+        "ours_triangles": 106162,
+        "o3d_triangles": 106162,
+        "triangles_agree": true,
+        "o3d_vertices": 53099,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0024735541962423147,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.006881232396730958,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "fixture_cabinet_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/fixture_cabinet_a01.glb",
+      "triangles": 483180,
+      "vertices": 241842,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 28,
+          "seconds": 0.1554
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 145.0911
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.05797835764264444,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 6.765453699909997,
+        "o3d_area": 6.765453699909647,
+        "area_rel_diff": 5.1724882451934416e-14
+      },
+      "occupancy": {
+        "box_volume": 0.23574064827913882,
+        "ours_convex": 0.21913537101632188,
+        "ours_convex_seconds": 0.0442,
+        "o3d_hull": 0.21913537101632152,
+        "o3d_hull_seconds": 0.033,
+        "hull_rel_diff": 1.6465734460380688e-15,
+        "o3d_raycast_interior": 0.0587020395787749,
+        "o3d_raycast_cells": 34564,
+        "o3d_raycast_seconds": 0.1959,
+        "ours_visual": 0.20282343220854557,
+        "ours_visual_seconds": 0.3315,
+        "o3d_grid_visual": 0.20891329668283537,
+        "o3d_grid_seconds": 0.3584,
+        "visual_rel_diff": 0.029150200446720318,
+        "fill_ratio_ours": 0.9295612471415844,
+        "fill_ratio_grid_visual": 0.886199720785796
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 141.2432,
+        "ours": null
+      },
+      "simplify": {
+        "target": 48318,
+        "out_triangles": 48318,
+        "seconds": 5.4263,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0153,
+        "o3d_seconds": 0.3192,
+        "ours_triangles": 483180,
+        "o3d_triangles": 483180,
+        "triangles_agree": true,
+        "o3d_vertices": 241828,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.05797835764264444,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.21913537101632188,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "food_processed_cannedFood_k01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/food_processed_cannedFood_k01.glb",
+      "triangles": 13140,
+      "vertices": 6572,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0037
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.1383
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.0004857659437762794,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.03872076867526829,
+        "o3d_area": 0.03872076867526786,
+        "area_rel_diff": 1.1110611611309066e-14
+      },
+      "occupancy": {
+        "box_volume": 0.0006636760638822855,
+        "ours_convex": 0.0005114542903385802,
+        "ours_convex_seconds": 0.004,
+        "o3d_hull": 0.0005114542903385797,
+        "o3d_hull_seconds": 0.0076,
+        "hull_rel_diff": 8.479367114255845e-16,
+        "o3d_raycast_interior": 0.0004848016522061268,
+        "o3d_raycast_cells": 85107,
+        "o3d_raycast_seconds": 0.01,
+        "ours_visual": 0.0005014077928615061,
+        "ours_visual_seconds": 0.0144,
+        "o3d_grid_visual": 0.0005492903488424265,
+        "o3d_grid_seconds": 0.0878,
+        "visual_rel_diff": 0.08717166810199388,
+        "fill_ratio_ours": 0.7706384457301981,
+        "fill_ratio_grid_visual": 0.8276482741132166
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.1006,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1314,
+        "out_triangles": 1314,
+        "seconds": 0.0601,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0013,
+        "o3d_seconds": 0.0037,
+        "ours_triangles": 13140,
+        "o3d_triangles": 13140,
+        "triangles_agree": true,
+        "o3d_vertices": 6572,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0004857659437762794,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.0005114542903385802,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "handTool_hammer_crossPeen_b01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/handTool_hammer_crossPeen_b01.glb",
+      "triangles": 540751,
+      "vertices": 270380,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 3,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 736,
+          "seconds": 0.1748
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 167.2655
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.00028966070309782883,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.041514464325378864,
+        "o3d_area": 0.04151446432537985,
+        "area_rel_diff": 2.373444895331215e-14
+      },
+      "occupancy": {
+        "box_volume": 0.0010021410183312129,
+        "ours_convex": 0.0006399945672906012,
+        "ours_convex_seconds": 0.1038,
+        "o3d_hull": 0.0006399945672906007,
+        "o3d_hull_seconds": 0.4668,
+        "hull_rel_diff": 6.776321099570851e-16,
+        "o3d_raycast_interior": 0.0003045366578931654,
+        "o3d_raycast_cells": 4164,
+        "o3d_raycast_seconds": 0.1906,
+        "ours_visual": 0.00033294856968131504,
+        "ours_visual_seconds": 0.3896,
+        "o3d_grid_visual": 0.00042257752384887356,
+        "o3d_grid_seconds": 0.1367,
+        "visual_rel_diff": 0.2121006184882008,
+        "fill_ratio_ours": 0.6386272546316227,
+        "fill_ratio_grid_visual": 0.42167471056374767
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 162.8576,
+        "ours": null
+      },
+      "simplify": {
+        "target": 54075,
+        "out_triangles": 54074,
+        "seconds": 5.9202,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0661,
+        "o3d_seconds": 0.3605,
+        "ours_triangles": 540751,
+        "o3d_triangles": 540751,
+        "triangles_agree": true,
+        "o3d_vertices": 270339,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.00028966070309782883,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.0006399945672906012,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "instrument_spoon_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/instrument_spoon_a01.glb",
+      "triangles": 18624,
+      "vertices": 9314,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0057
+        },
+        "o3d": {
+          "watertight": true,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.2334
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 5.490365558756978e-05,
+        "o3d_get_volume": 5.4903655587569785e-05,
+        "rel_diff": 1.2342099092521178e-16,
+        "ours_area": 0.010330879814797045,
+        "o3d_area": 0.010330879814797056,
+        "area_rel_diff": 1.0074980100874698e-15
+      },
+      "occupancy": {
+        "box_volume": 0.00015198770720882554,
+        "ours_convex": 6.61286221912099e-05,
+        "ours_convex_seconds": 0.0126,
+        "o3d_hull": 6.612862219120996e-05,
+        "o3d_hull_seconds": 0.0457,
+        "hull_rel_diff": 8.197677016092589e-16,
+        "o3d_raycast_interior": 5.5679855376958636e-05,
+        "o3d_raycast_cells": 2403,
+        "o3d_raycast_seconds": 0.006,
+        "ours_visual": 6.271672921826582e-05,
+        "ours_visual_seconds": 0.021,
+        "o3d_grid_visual": 8.853629937384892e-05,
+        "o3d_grid_seconds": 0.016,
+        "visual_rel_diff": 0.29162694101950976,
+        "fill_ratio_ours": 0.435091912402834,
+        "fill_ratio_grid_visual": 0.5825227645036009
+      },
+      "self_intersection": {
+        "o3d": false,
+        "o3d_seconds": 0.1549,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1862,
+        "out_triangles": 1862,
+        "seconds": 0.0795,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0015,
+        "o3d_seconds": 0.0052,
+        "ours_triangles": 18624,
+        "o3d_triangles": 18624,
+        "triangles_agree": true,
+        "o3d_vertices": 9314,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": true,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 5.490365558756978e-05,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 6.61286221912099e-05,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "kitchenware_knife_b01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/kitchenware_knife_b01.glb",
+      "triangles": 7660,
+      "vertices": 3836,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0129
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.046
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.00018517522301773567,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.052643121676018076,
+        "o3d_area": 0.05264312167601825,
+        "area_rel_diff": 3.295251916580521e-15
+      },
+      "occupancy": {
+        "box_volume": 0.0012754783227521675,
+        "ours_convex": 0.0004737162843051,
+        "ours_convex_seconds": 0.0027,
+        "o3d_hull": 0.0004737162843050994,
+        "o3d_hull_seconds": 0.0045,
+        "hull_rel_diff": 1.3732297686273547e-15,
+        "o3d_raycast_interior": 0.00020118579098101,
+        "o3d_raycast_cells": 1717,
+        "o3d_raycast_seconds": 0.0026,
+        "ours_visual": 0.00013636715298376084,
+        "ours_visual_seconds": 0.0107,
+        "o3d_grid_visual": 0.00033862954917595744,
+        "o3d_grid_seconds": 0.0163,
+        "visual_rel_diff": 0.5972969479019026,
+        "fill_ratio_ours": 0.37140285009543494,
+        "fill_ratio_grid_visual": 0.26549220252154376
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.0257,
+        "ours": null
+      },
+      "simplify": {
+        "target": 766,
+        "out_triangles": 766,
+        "seconds": 0.0241,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0031,
+        "o3d_seconds": 0.0024,
+        "ours_triangles": 7660,
+        "o3d_triangles": 7660,
+        "triangles_agree": true,
+        "o3d_vertices": 3836,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.00018517522301773567,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.0004737162843051,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "lighting_overheadLed_hexGrid_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/lighting_overheadLed_hexGrid_a01.glb",
+      "triangles": 189103,
+      "vertices": 95535,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 1879,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0535
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 13.3738
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.014364403099626293,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 10.86811803432396,
+        "o3d_area": 10.868118034323846,
+        "area_rel_diff": 1.0460581801059525e-14
+      },
+      "occupancy": {
+        "box_volume": 12.49807103395267,
+        "ours_convex": 12.405271372266323,
+        "ours_convex_seconds": 0.0187,
+        "o3d_hull": 12.405271372266276,
+        "o3d_hull_seconds": 0.0157,
+        "hull_rel_diff": 3.8662301875178275e-15,
+        "o3d_raycast_interior": 0.0,
+        "o3d_raycast_cells": 0,
+        "o3d_raycast_seconds": 0.0654,
+        "ours_visual": 0.12896454676377095,
+        "ours_visual_seconds": 0.1142,
+        "o3d_grid_visual": 1.1440138261348691,
+        "o3d_grid_seconds": 0.0538,
+        "visual_rel_diff": 0.8872701152577092,
+        "fill_ratio_ours": 0.9925748812409336,
+        "fill_ratio_grid_visual": 0.09153523155909449
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 12.1915,
+        "ours": null
+      },
+      "simplify": {
+        "target": 18910,
+        "out_triangles": 18909,
+        "seconds": 1.5956,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0058,
+        "o3d_seconds": 0.0848,
+        "ours_triangles": 189103,
+        "o3d_triangles": 189103,
+        "triangles_agree": true,
+        "o3d_vertices": 95465,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.014364403099626293,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 12.405271372266323,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "misc_golfBall_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/misc_golfBall_a01.glb",
+      "triangles": 12288,
+      "vertices": 6146,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0035
+        },
+        "o3d": {
+          "watertight": true,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0914
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 4.0556915974246514e-05,
+        "o3d_get_volume": 4.0556915974246514e-05,
+        "rel_diff": 0.0,
+        "ours_area": 0.0057391081470845335,
+        "o3d_area": 0.005739108147084525,
+        "area_rel_diff": 1.5113179883690173e-15
+      },
+      "occupancy": {
+        "box_volume": 7.758415787404268e-05,
+        "ours_convex": 4.0740364473697255e-05,
+        "ours_convex_seconds": 0.0105,
+        "o3d_hull": 4.0740364473697343e-05,
+        "o3d_hull_seconds": 0.0411,
+        "hull_rel_diff": 2.1622640752593296e-15,
+        "o3d_raycast_interior": 4.055775048961313e-05,
+        "o3d_raycast_cells": 136562,
+        "o3d_raycast_seconds": 0.0149,
+        "ours_visual": 4.575453969899512e-05,
+        "ours_visual_seconds": 0.0129,
+        "o3d_grid_visual": 4.845950580607486e-05,
+        "o3d_grid_seconds": 0.1214,
+        "visual_rel_diff": 0.05581910219853389,
+        "fill_ratio_ours": 0.5251118990018419,
+        "fill_ratio_grid_visual": 0.6246056815458192
+      },
+      "self_intersection": {
+        "o3d": false,
+        "o3d_seconds": 0.0532,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1229,
+        "out_triangles": 1228,
+        "seconds": 0.0566,
+        "watertight_after": true,
+        "volume_after": 4.0413595450826295e-05,
+        "volume_rel_drift": 0.0035338121742596734
+      },
+      "read": {
+        "ours_seconds": 0.0013,
+        "o3d_seconds": 0.0035,
+        "ours_triangles": 12288,
+        "o3d_triangles": 12288,
+        "triangles_agree": true,
+        "o3d_vertices": 6146,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": true,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 4.0556915974246514e-05,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 4.0740364473697255e-05,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "paint_container_bottle_orange_a02",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/paint_container_bottle_orange_a02.glb",
+      "triangles": 35100,
+      "vertices": 17628,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 144,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0114
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.6529
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 5.04191053062513e-05,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.029572695537597466,
+        "o3d_area": 0.029572695537597473,
+        "area_rel_diff": 2.3463853320659974e-16
+      },
+      "occupancy": {
+        "box_volume": 0.0002197620775327203,
+        "ours_convex": 0.00012069006850327162,
+        "ours_convex_seconds": 0.0088,
+        "o3d_hull": 0.00012069006850327183,
+        "o3d_hull_seconds": 0.0143,
+        "hull_rel_diff": 1.796671732697065e-15,
+        "o3d_raycast_interior": 5.10657292635072e-05,
+        "o3d_raycast_cells": 20572,
+        "o3d_raycast_seconds": 0.0179,
+        "ours_visual": 0.00010434976516268854,
+        "ours_visual_seconds": 0.0378,
+        "o3d_grid_visual": 0.00012775120340979964,
+        "o3d_grid_seconds": 0.1189,
+        "visual_rel_diff": 0.18317978713706587,
+        "fill_ratio_ours": 0.5491851454002664,
+        "fill_ratio_grid_visual": 0.5813159615347139
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.4775,
+        "ours": null
+      },
+      "simplify": {
+        "target": 3510,
+        "out_triangles": 3510,
+        "seconds": 0.2031,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0021,
+        "o3d_seconds": 0.0101,
+        "ours_triangles": 35100,
+        "o3d_triangles": 35100,
+        "triangles_agree": true,
+        "o3d_vertices": 17628,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 5.04191053062513e-05,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.00012069006850327162,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "pallet_rackable_solid_top_blue_a02",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/pallet_rackable_solid_top_blue_a02.glb",
+      "triangles": 24078,
+      "vertices": 12023,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 16,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0076
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.4103
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.07239041458884293,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 4.435784370883912,
+        "o3d_area": 4.435784370883965,
+        "area_rel_diff": 1.2013817788755073e-14
+      },
+      "occupancy": {
+        "box_volume": 0.1871886993035972,
+        "ours_convex": 0.18475172627009478,
+        "ours_convex_seconds": 0.0045,
+        "o3d_hull": 0.1847517262700949,
+        "o3d_hull_seconds": 0.0063,
+        "hull_rel_diff": 6.009270100145551e-16,
+        "o3d_raycast_interior": 0.0708672373425473,
+        "o3d_raycast_cells": 10532,
+        "o3d_raycast_seconds": 0.0089,
+        "ours_visual": 0.18316706709199645,
+        "ours_visual_seconds": 0.0255,
+        "o3d_grid_visual": 0.15072409005631024,
+        "o3d_grid_seconds": 0.0884,
+        "visual_rel_diff": 0.17712232635898237,
+        "fill_ratio_ours": 0.9869811957529021,
+        "fill_ratio_grid_visual": 0.8051986611213864
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.3226,
+        "ours": null
+      },
+      "simplify": {
+        "target": 2408,
+        "out_triangles": 2408,
+        "seconds": 0.1278,
+        "watertight_after": true,
+        "volume_after": 0.07237703107132465,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0015,
+        "o3d_seconds": 0.007,
+        "ours_triangles": 24078,
+        "o3d_triangles": 24078,
+        "triangles_agree": true,
+        "o3d_vertices": 12022,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.07239041458884293,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.18475172627009478,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "powerTool_cutting_tool_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/powerTool_cutting_tool_a01.glb",
+      "triangles": 39858,
+      "vertices": 20236,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 546,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 9,
+          "seconds": 0.0112
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.7998
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.00012255945456259815,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.05850931968575375,
+        "o3d_area": 0.05850931968575347,
+        "area_rel_diff": 4.743787103439357e-15
+      },
+      "occupancy": {
+        "box_volume": 0.0007282737788725745,
+        "ours_convex": 0.00036205707798815006,
+        "ours_convex_seconds": 0.0059,
+        "o3d_hull": 0.00036205707798815016,
+        "o3d_hull_seconds": 0.0063,
+        "hull_rel_diff": 2.994561461165495e-16,
+        "o3d_raycast_interior": 0.00012068244756855701,
+        "o3d_raycast_cells": 1488,
+        "o3d_raycast_seconds": 0.0131,
+        "ours_visual": 0.00015280903218500933,
+        "ours_visual_seconds": 0.0325,
+        "o3d_grid_visual": 0.0002477720949744232,
+        "o3d_grid_seconds": 0.0265,
+        "visual_rel_diff": 0.38326778808249823,
+        "fill_ratio_ours": 0.49714419012674477,
+        "fill_ratio_grid_visual": 0.3402183384358476
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.6154,
+        "ours": null
+      },
+      "simplify": {
+        "target": 3986,
+        "out_triangles": 3986,
+        "seconds": 0.2451,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.002,
+        "o3d_seconds": 0.0114,
+        "ours_triangles": 39858,
+        "o3d_triangles": 39858,
+        "triangles_agree": true,
+        "o3d_vertices": 20232,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.00012255945456259815,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.00036205707798815006,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "ppe_respirator_halfMask_b01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/ppe_respirator_halfMask_b01.glb",
+      "triangles": 101780,
+      "vertices": 51297,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 784,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0293
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 4.9766
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 5.532629706001493e-05,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.05257123477724092,
+        "o3d_area": 0.052571234777241085,
+        "area_rel_diff": 3.167767590002821e-15
+      },
+      "occupancy": {
+        "box_volume": 0.0007430897921751649,
+        "ours_convex": 0.00036950412238530674,
+        "ours_convex_seconds": 0.0219,
+        "o3d_hull": 0.0003695041223853075,
+        "o3d_hull_seconds": 0.0407,
+        "hull_rel_diff": 2.0539460178158778e-15,
+        "o3d_raycast_interior": 7.154770349079014e-05,
+        "o3d_raycast_cells": 11264,
+        "o3d_raycast_seconds": 0.0413,
+        "ours_visual": 0.0003790992719121171,
+        "ours_visual_seconds": 0.0894,
+        "o3d_grid_visual": 0.0003649415621768339,
+        "o3d_grid_seconds": 0.1388,
+        "visual_rel_diff": 0.03734565266737105,
+        "fill_ratio_ours": 0.4972536647337033,
+        "fill_ratio_grid_visual": 0.4911136796921684
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 4.4143,
+        "ours": null
+      },
+      "simplify": {
+        "target": 10178,
+        "out_triangles": 10178,
+        "seconds": 0.8504,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0039,
+        "o3d_seconds": 0.0357,
+        "ours_triangles": 101780,
+        "o3d_triangles": 101780,
+        "triangles_agree": true,
+        "o3d_vertices": 51169,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 5.532629706001493e-05,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.00036950412238530674,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "rack_f04",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/rack_f04.glb",
+      "triangles": 151834,
+      "vertices": 78533,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 5666,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.043
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 11.7412
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.06757682095134206,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 7.909092464315235,
+        "o3d_area": 7.909092464315228,
+        "area_rel_diff": 8.983871903963364e-16
+      },
+      "occupancy": {
+        "box_volume": 1.8932425992836943,
+        "ours_convex": 1.7300271849882052,
+        "ours_convex_seconds": 0.0137,
+        "o3d_hull": 1.7300271849882036,
+        "o3d_hull_seconds": 0.0101,
+        "hull_rel_diff": 8.98432260465211e-16,
+        "o3d_raycast_interior": 0.07340057346212862,
+        "o3d_raycast_cells": 2038,
+        "o3d_raycast_seconds": 0.0595,
+        "ours_visual": 0.25569290536895717,
+        "ours_visual_seconds": 0.1016,
+        "o3d_grid_visual": 0.23676907259079175,
+        "o3d_grid_seconds": 0.075,
+        "visual_rel_diff": 0.07401000333137481,
+        "fill_ratio_ours": 0.9137905441398575,
+        "fill_ratio_grid_visual": 0.12506008087942505
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 10.7487,
+        "ours": null
+      },
+      "simplify": {
+        "target": 15183,
+        "out_triangles": 15183,
+        "seconds": 1.2278,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0055,
+        "o3d_seconds": 0.0544,
+        "ours_triangles": 151834,
+        "o3d_triangles": 151834,
+        "triangles_agree": true,
+        "o3d_vertices": 78533,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.06757682095134206,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 1.7300271849882052,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "serviceTool_brake_lathe_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/serviceTool_brake_lathe_a01.glb",
+      "triangles": 451042,
+      "vertices": 226074,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 431,
+          "nonmanifold_edges": 1,
+          "consistent_winding": true,
+          "degenerate_triangles": 1,
+          "seconds": 0.1417
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": false,
+          "orientable": true,
+          "seconds": 91.8466
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.3695056463179837,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 11.423546664892541,
+        "o3d_area": 11.423546664893323,
+        "area_rel_diff": 6.841982024182584e-14
+      },
+      "occupancy": {
+        "box_volume": 1.5941063304540077,
+        "ours_convex": 0.7957623357770248,
+        "ours_convex_seconds": 0.0392,
+        "o3d_hull": 0.7957623357770242,
+        "o3d_hull_seconds": 0.029,
+        "hull_rel_diff": 8.371014621151243e-16,
+        "o3d_raycast_interior": 0.36593001447182205,
+        "o3d_raycast_cells": 45842,
+        "o3d_raycast_seconds": 0.164,
+        "ours_visual": 0.4518085942843318,
+        "ours_visual_seconds": 0.3007,
+        "o3d_grid_visual": 0.5596712862585154,
+        "o3d_grid_seconds": 0.23,
+        "visual_rel_diff": 0.19272507742046496,
+        "fill_ratio_ours": 0.499190248840169,
+        "fill_ratio_grid_visual": 0.3510878010873458
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 88.8313,
+        "ours": null
+      },
+      "simplify": {
+        "target": 45104,
+        "out_triangles": 45104,
+        "seconds": 4.6835,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0126,
+        "o3d_seconds": 0.2279,
+        "ours_triangles": 451042,
+        "o3d_triangles": 451042,
+        "triangles_agree": true,
+        "o3d_vertices": 226074,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.3695056463179837,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.7957623357770248,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "sign_hospital_board_b02",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/sign_hospital_board_b02.glb",
+      "triangles": 3920,
+      "vertices": 3474,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 2954,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0014
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.018
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.005713760293057892,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 1.251828239061054,
+        "o3d_area": 1.2518282390610525,
+        "area_rel_diff": 1.2416337848721532e-15
+      },
+      "occupancy": {
+        "box_volume": 0.006679542197765288,
+        "ours_convex": 0.006663526712451071,
+        "ours_convex_seconds": 0.0017,
+        "o3d_hull": 0.006663526712451066,
+        "o3d_hull_seconds": 0.0095,
+        "hull_rel_diff": 6.508278389337758e-16,
+        "o3d_raycast_interior": 0.00880743165028882,
+        "o3d_raycast_cells": 2304,
+        "o3d_raycast_seconds": 0.0015,
+        "ours_visual": 0.005635863729364462,
+        "ours_visual_seconds": 0.0093,
+        "o3d_grid_visual": 0.00880743165028882,
+        "o3d_grid_seconds": 0.0289,
+        "visual_rel_diff": 0.36010133792186216,
+        "fill_ratio_ours": 0.9976023079366764,
+        "fill_ratio_grid_visual": 1.318568157745218
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.008,
+        "ours": null
+      },
+      "simplify": {
+        "target": 392,
+        "out_triangles": 391,
+        "seconds": 0.0126,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0011,
+        "o3d_seconds": 0.0019,
+        "ours_triangles": 3920,
+        "o3d_triangles": 3920,
+        "triangles_agree": true,
+        "o3d_vertices": 3474,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.005713760293057892,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.006663526712451071,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "stationery_pen_plastic_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/stationery_pen_plastic_a01.glb",
+      "triangles": 83200,
+      "vertices": 41771,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 328,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0244
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 2.8806
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 9.75129154439434e-06,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.015677541490872558,
+        "o3d_area": 0.015677541490872676,
+        "area_rel_diff": 7.524215224376784e-15
+      },
+      "occupancy": {
+        "box_volume": 3.226469401292929e-05,
+        "ours_convex": 1.764234921253455e-05,
+        "ours_convex_seconds": 0.0205,
+        "o3d_hull": 1.7642349212534627e-05,
+        "o3d_hull_seconds": 0.0631,
+        "hull_rel_diff": 4.417043910004323e-15,
+        "o3d_raycast_interior": 8.07793636403532e-06,
+        "o3d_raycast_cells": 375,
+        "o3d_raycast_seconds": 0.0265,
+        "ours_visual": 1.726517569487636e-05,
+        "ours_visual_seconds": 0.0717,
+        "o3d_grid_visual": 3.1428557747006754e-05,
+        "o3d_grid_seconds": 0.0296,
+        "visual_rel_diff": 0.45065326147456797,
+        "fill_ratio_ours": 0.5468004502216822,
+        "fill_ratio_grid_visual": 0.9740851016412096
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 2.432,
+        "ours": null
+      },
+      "simplify": {
+        "target": 8320,
+        "out_triangles": 8319,
+        "seconds": 0.4888,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0032,
+        "o3d_seconds": 0.0269,
+        "ours_triangles": 83200,
+        "o3d_triangles": 83200,
+        "triangles_agree": true,
+        "o3d_vertices": 41770,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 9.75129154439434e-06,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 1.764234921253455e-05,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "storage_shelf_basic_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/storage_shelf_basic_a01.glb",
+      "triangles": 1326754,
+      "vertices": 663215,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 827,
+          "seconds": 0.4529
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 811.5293
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.225409095363323,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 69.32184128236004,
+        "o3d_area": 69.32184128235767,
+        "area_rel_diff": 3.4234704294310677e-14
+      },
+      "occupancy": {
+        "box_volume": 7.658667745920041,
+        "ours_convex": 7.658571280508949,
+        "ours_convex_seconds": 0.1027,
+        "o3d_hull": 7.658571280508945,
+        "o3d_hull_seconds": 0.0743,
+        "hull_rel_diff": 4.638872641744748e-16,
+        "o3d_raycast_interior": 0.057597677540416045,
+        "o3d_raycast_cells": 973,
+        "o3d_raycast_seconds": 0.4993,
+        "ours_visual": 7.205944374830956,
+        "ours_visual_seconds": 1.0752,
+        "o3d_grid_visual": 1.2878674949324682,
+        "o3d_grid_seconds": 0.4975,
+        "visual_rel_diff": 0.8212770696050952,
+        "fill_ratio_ours": 0.9999874044136275,
+        "fill_ratio_grid_visual": 0.16815816244523032
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 801.3839,
+        "ours": null
+      },
+      "simplify": {
+        "target": 132675,
+        "out_triangles": 132674,
+        "seconds": 15.4031,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.1032,
+        "o3d_seconds": 0.7876,
+        "ours_triangles": 1326754,
+        "o3d_triangles": 1326754,
+        "triangles_agree": true,
+        "o3d_vertices": 663206,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.225409095363323,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 7.658571280508949,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "structure_beam_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/structure_beam_a01.glb",
+      "triangles": 11732,
+      "vertices": 6408,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 1008,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0039
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0973
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.7531191351049743,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 21.77064745386635,
+        "o3d_area": 21.77064745386628,
+        "area_rel_diff": 3.1005765924164835e-15
+      },
+      "occupancy": {
+        "box_volume": 2.7696334751288716,
+        "ours_convex": 2.7684247713776418,
+        "ours_convex_seconds": 0.0021,
+        "o3d_hull": 2.768424771377643,
+        "o3d_hull_seconds": 0.0022,
+        "hull_rel_diff": 4.812367102492062e-16,
+        "o3d_raycast_interior": 0.7166063854549376,
+        "o3d_raycast_cells": 1193,
+        "o3d_raycast_seconds": 0.0041,
+        "ours_visual": 1.4028200313328212,
+        "ours_visual_seconds": 0.0198,
+        "o3d_grid_visual": 1.9798278679459131,
+        "o3d_grid_seconds": 0.0224,
+        "visual_rel_diff": 0.2914434360456508,
+        "fill_ratio_ours": 0.9995635871092389,
+        "fill_ratio_grid_visual": 0.7148338889331887
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.06,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1173,
+        "out_triangles": 1172,
+        "seconds": 0.048,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0014,
+        "o3d_seconds": 0.0045,
+        "ours_triangles": 11732,
+        "o3d_triangles": 11732,
+        "triangles_agree": true,
+        "o3d_vertices": 6408,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.7531191351049743,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 2.7684247713776418,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "suspension_control_arm_rearward_left_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/suspension_control_arm_rearward_left_a01.glb",
+      "triangles": 21066,
+      "vertices": 10535,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0061
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.263
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 7.088730153448545e-05,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.03963914248571352,
+        "o3d_area": 0.039639142485713395,
+        "area_rel_diff": 3.1509281593401214e-15
+      },
+      "occupancy": {
+        "box_volume": 0.0005054765893699111,
+        "ours_convex": 0.0003799231452523118,
+        "ours_convex_seconds": 0.0054,
+        "o3d_hull": 0.000379923145252313,
+        "o3d_hull_seconds": 0.0107,
+        "hull_rel_diff": 3.1391148568798446e-15,
+        "o3d_raycast_interior": 7.056094312794267e-05,
+        "o3d_raycast_cells": 1206,
+        "o3d_raycast_seconds": 0.0068,
+        "ours_visual": 0.00012493260842081418,
+        "ours_visual_seconds": 0.0257,
+        "o3d_grid_visual": 0.0001782161134060642,
+        "o3d_grid_seconds": 0.0208,
+        "visual_rel_diff": 0.29898253287481313,
+        "fill_ratio_ours": 0.7516137309660479,
+        "fill_ratio_grid_visual": 0.35257045955029276
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.1816,
+        "ours": null
+      },
+      "simplify": {
+        "target": 2107,
+        "out_triangles": 2106,
+        "seconds": 0.1075,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0017,
+        "o3d_seconds": 0.0062,
+        "ours_triangles": 21066,
+        "o3d_triangles": 21066,
+        "triangles_agree": true,
+        "o3d_vertices": 10535,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 7.088730153448545e-05,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.0003799231452523118,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "tape_clear_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/tape_clear_a01.glb",
+      "triangles": 2816,
+      "vertices": 1408,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0013
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.011
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.00017114356058180668,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.05870316355112723,
+        "o3d_area": 0.05870316355112711,
+        "area_rel_diff": 2.0094521186014987e-15
+      },
+      "occupancy": {
+        "box_volume": 0.0005011248788836246,
+        "ours_convex": 0.0003917290511170373,
+        "ours_convex_seconds": 0.0025,
+        "o3d_hull": 0.0003917290511170372,
+        "o3d_hull_seconds": 0.007,
+        "hull_rel_diff": 2.767734916248466e-16,
+        "o3d_raycast_interior": 0.00017170125663061055,
+        "o3d_raycast_cells": 45184,
+        "o3d_raycast_seconds": 0.0057,
+        "ours_visual": 0.00039297195092143604,
+        "ours_visual_seconds": 0.012,
+        "o3d_grid_visual": 0.0002034012363316674,
+        "o3d_grid_seconds": 0.1358,
+        "visual_rel_diff": 0.48240266040684443,
+        "fill_ratio_ours": 0.7816994677847714,
+        "fill_ratio_grid_visual": 0.4058893200129921
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.0053,
+        "ours": null
+      },
+      "simplify": {
+        "target": 282,
+        "out_triangles": 282,
+        "seconds": 0.0079,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.001,
+        "o3d_seconds": 0.0011,
+        "ours_triangles": 2816,
+        "o3d_triangles": 2816,
+        "triangles_agree": true,
+        "o3d_vertices": 1408,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.00017114356058180668,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.0003917290511170373,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "testingTool_multimeter_clamp_b01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/testingTool_multimeter_clamp_b01.glb",
+      "triangles": 72588,
+      "vertices": 37212,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 1784,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0226
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 4.1445
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.0002826184931525874,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.07014382633818286,
+        "o3d_area": 0.0701438263381827,
+        "area_rel_diff": 2.3741712191586107e-15
+      },
+      "occupancy": {
+        "box_volume": 0.001282177368967682,
+        "ours_convex": 0.0006751585472859232,
+        "ours_convex_seconds": 0.0132,
+        "o3d_hull": 0.000675158547285924,
+        "o3d_hull_seconds": 0.0237,
+        "hull_rel_diff": 1.1240937758852777e-15,
+        "o3d_raycast_interior": 0.00025155062158625297,
+        "o3d_raycast_cells": 4669,
+        "o3d_raycast_seconds": 0.024,
+        "ours_visual": 7.13809834393095e-05,
+        "ours_visual_seconds": 0.057,
+        "o3d_grid_visual": 0.00045897617161989483,
+        "o3d_grid_seconds": 0.0499,
+        "visual_rel_diff": 0.8444778011298933,
+        "fill_ratio_ours": 0.5265718796998522,
+        "fill_ratio_grid_visual": 0.35796620867628465
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 3.69,
+        "ours": null
+      },
+      "simplify": {
+        "target": 7259,
+        "out_triangles": 7258,
+        "seconds": 0.5588,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0031,
+        "o3d_seconds": 0.0257,
+        "ours_triangles": 72588,
+        "o3d_triangles": 72588,
+        "triangles_agree": true,
+        "o3d_vertices": 37204,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0002826184931525874,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.0006751585472859232,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "utensils_scissors_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/utensils_scissors_a01.glb",
+      "triangles": 15176,
+      "vertices": 7686,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 184,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0049
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.2081
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 7.9729668573352e-06,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.010317948950258646,
+        "o3d_area": 0.01031794895025872,
+        "area_rel_diff": 7.061324527022301e-15
+      },
+      "occupancy": {
+        "box_volume": 0.00013091354756468803,
+        "ours_convex": 4.0188442937760115e-05,
+        "ours_convex_seconds": 0.004,
+        "o3d_hull": 4.018844293776019e-05,
+        "o3d_hull_seconds": 0.0094,
+        "hull_rel_diff": 1.8547346926034623e-15,
+        "o3d_raycast_interior": 8.082658423889696e-06,
+        "o3d_raycast_cells": 265,
+        "o3d_raycast_seconds": 0.0048,
+        "ours_visual": 9.082506902919698e-06,
+        "ours_visual_seconds": 0.0157,
+        "o3d_grid_visual": 3.3123649239034754e-05,
+        "o3d_grid_seconds": 0.0109,
+        "visual_rel_diff": 0.7257999311194141,
+        "fill_ratio_ours": 0.30698459926694666,
+        "fill_ratio_grid_visual": 0.25301926236982797
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.1398,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1518,
+        "out_triangles": 1518,
+        "seconds": 0.093,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0017,
+        "o3d_seconds": 0.0044,
+        "ours_triangles": 15176,
+        "o3d_triangles": 15176,
+        "triangles_agree": true,
+        "o3d_vertices": 7686,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 7.9729668573352e-06,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 4.0188442937760115e-05,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "vehicleSupport_jack_stand_b01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/vehicleSupport_jack_stand_b01.glb",
+      "triangles": 31466,
+      "vertices": 15740,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 64,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0093
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.7579
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.0013666035877976778,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.24411388101993065,
+        "o3d_area": 0.24411388101993037,
+        "area_rel_diff": 1.1369929272216524e-15
+      },
+      "occupancy": {
+        "box_volume": 0.01679912883738116,
+        "ours_convex": 0.006709766664357875,
+        "ours_convex_seconds": 0.0048,
+        "o3d_hull": 0.006709766664357877,
+        "o3d_hull_seconds": 0.0097,
+        "hull_rel_diff": 2.585370792685858e-16,
+        "o3d_raycast_interior": 0.002054574398192325,
+        "o3d_raycast_cells": 18951,
+        "o3d_raycast_seconds": 0.0183,
+        "ours_visual": 0.0009354281755037415,
+        "ours_visual_seconds": 0.0328,
+        "o3d_grid_visual": 0.0025502481963314894,
+        "o3d_grid_seconds": 0.0824,
+        "visual_rel_diff": 0.6332011226007934,
+        "fill_ratio_ours": 0.39941158433331414,
+        "fill_ratio_grid_visual": 0.15180835988689584
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.5683,
+        "ours": null
+      },
+      "simplify": {
+        "target": 3147,
+        "out_triangles": 3147,
+        "seconds": 0.2408,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0022,
+        "o3d_seconds": 0.0098,
+        "ours_triangles": 31466,
+        "o3d_triangles": 31466,
+        "triangles_agree": true,
+        "o3d_vertices": 15740,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0013666035877976778,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.006709766664357875,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "vehicle_forklift_blue_c01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/vehicle_forklift_blue_c01.glb",
+      "triangles": 997893,
+      "vertices": 528487,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 53005,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.355
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": false,
+          "orientable": true,
+          "seconds": 603.6597
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 1.8322308251186212,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 54.81465655677823,
+        "o3d_area": 54.81465655678464,
+        "area_rel_diff": 1.1692302532109585e-13
+      },
+      "occupancy": {
+        "box_volume": 11.066781482004046,
+        "ours_convex": 7.1372969082695175,
+        "ours_convex_seconds": 0.0899,
+        "o3d_hull": 7.137296908269528,
+        "o3d_hull_seconds": 0.0602,
+        "hull_rel_diff": 1.4933021805569836e-15,
+        "o3d_raycast_interior": 1.6204128779225844,
+        "o3d_raycast_cells": 8163,
+        "o3d_raycast_seconds": 0.3782,
+        "ours_visual": 3.0063157764300237,
+        "ours_visual_seconds": 0.7112,
+        "o3d_grid_visual": 4.315344303951863,
+        "o3d_grid_seconds": 0.3317,
+        "visual_rel_diff": 0.30334277761407596,
+        "fill_ratio_ours": 0.6449297765457503,
+        "fill_ratio_grid_visual": 0.3899367048106214
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 595.4691,
+        "ours": null
+      },
+      "simplify": {
+        "target": 99789,
+        "out_triangles": 99788,
+        "seconds": 11.3108,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.117,
+        "o3d_seconds": 0.7535,
+        "ours_triangles": 997893,
+        "o3d_triangles": 997893,
+        "triangles_agree": true,
+        "o3d_vertices": 527858,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 1.8322308251186212,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 7.1372969082695175,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "warehouse_conveyorBelt_a33",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/warehouse_conveyorBelt_a33.glb",
+      "triangles": 306856,
+      "vertices": 153256,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 1044,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.099
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 55.1491
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.08453721674169351,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 16.271181639833213,
+        "o3d_area": 16.2711816398331,
+        "area_rel_diff": 6.987005629837058e-15
+      },
+      "occupancy": {
+        "box_volume": 19.03606331408204,
+        "ours_convex": 6.704487622462042,
+        "ours_convex_seconds": 0.032,
+        "o3d_hull": 6.704487622462054,
+        "o3d_hull_seconds": 0.0294,
+        "hull_rel_diff": 1.7221777570918289e-15,
+        "o3d_raycast_interior": 0.15974669128430458,
+        "o3d_raycast_cells": 430,
+        "o3d_raycast_seconds": 0.1153,
+        "ours_visual": 0.038123829803058895,
+        "ours_visual_seconds": 0.1912,
+        "o3d_grid_visual": 0.9168717071852645,
+        "o3d_grid_seconds": 0.0848,
+        "visual_rel_diff": 0.9584196681997129,
+        "fill_ratio_ours": 0.35219927102797344,
+        "fill_ratio_grid_visual": 0.04816498516828336
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 52.9488,
+        "ours": null
+      },
+      "simplify": {
+        "target": 30686,
+        "out_triangles": 30685,
+        "seconds": 3.0851,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0247,
+        "o3d_seconds": 0.1221,
+        "ours_triangles": 306856,
+        "o3d_triangles": 306856,
+        "triangles_agree": true,
+        "o3d_vertices": 153255,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.08453721674169351,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 6.704487622462042,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "dishware_mug_a02",
+      "group": "extra",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/dishware_mug_a02.glb",
+      "triangles": 5800,
+      "vertices": 2900,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0019
+        },
+        "o3d": {
+          "watertight": true,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0373
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.00015602026722411516,
+        "o3d_get_volume": 0.00015602026722411514,
+        "rel_diff": 1.737277777713493e-16,
+        "ours_area": 0.06264773909915038,
+        "o3d_area": 0.06264773909915035,
+        "area_rel_diff": 4.430419359859282e-16
+      },
+      "occupancy": {
+        "box_volume": 0.0010675707930480505,
+        "ours_convex": 0.0006849039138677271,
+        "ours_convex_seconds": 0.0044,
+        "o3d_hull": 0.0006849039138677277,
+        "o3d_hull_seconds": 0.0132,
+        "hull_rel_diff": 9.49799366480091e-16,
+        "o3d_raycast_interior": 0.00015451128473645422,
+        "o3d_raycast_cells": 19716,
+        "o3d_raycast_seconds": 0.0065,
+        "ours_visual": 0.0006071059552933928,
+        "ours_visual_seconds": 0.0096,
+        "o3d_grid_visual": 0.0006594393672871616,
+        "o3d_grid_seconds": 0.1187,
+        "visual_rel_diff": 0.07936046070324987,
+        "fill_ratio_ours": 0.6415536265395939,
+        "fill_ratio_grid_visual": 0.6177008321896651
+      },
+      "self_intersection": {
+        "o3d": false,
+        "o3d_seconds": 0.0228,
+        "ours": null
+      },
+      "simplify": {
+        "target": 580,
+        "out_triangles": 580,
+        "seconds": 0.0186,
+        "watertight_after": true,
+        "volume_after": 0.00015106222166503795,
+        "volume_rel_drift": 0.03177821476202963
+      },
+      "read": {
+        "ours_seconds": 0.0012,
+        "o3d_seconds": 0.0018,
+        "ours_triangles": 5800,
+        "o3d_triangles": 5800,
+        "triangles_agree": true,
+        "o3d_vertices": 2900,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": true,
+        "ours_reader_watertight": true
+      }
+    },
+    {
+      "name": "misc_golfBall_a03",
+      "group": "extra",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/misc_golfBall_a03.glb",
+      "triangles": 12288,
+      "vertices": 6146,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0035
+        },
+        "o3d": {
+          "watertight": true,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.1025
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 4.0556915206128956e-05,
+        "o3d_get_volume": 4.055691520612896e-05,
+        "rel_diff": 1.6708034976512153e-16,
+        "ours_area": 0.005739108117234783,
+        "o3d_area": 0.005739108117234777,
+        "area_rel_diff": 1.0579225973606871e-15
+      },
+      "occupancy": {
+        "box_volume": 7.758415450188284e-05,
+        "ours_convex": 4.074036406905557e-05,
+        "ours_convex_seconds": 0.0104,
+        "o3d_hull": 4.074036406905559e-05,
+        "o3d_hull_seconds": 0.0397,
+        "hull_rel_diff": 4.989840223235505e-16,
+        "o3d_raycast_interior": 4.055773456684882e-05,
+        "o3d_raycast_cells": 136562,
+        "o3d_raycast_seconds": 0.0138,
+        "ours_visual": 4.5754537710295035e-05,
+        "ours_visual_seconds": 0.0128,
+        "o3d_grid_visual": 4.845948678112204e-05,
+        "o3d_grid_seconds": 0.1162,
+        "visual_rel_diff": 0.05581877255622838,
+        "fill_ratio_ours": 0.5251119166100711,
+        "fill_ratio_grid_visual": 0.62460546347703
+      },
+      "self_intersection": {
+        "o3d": false,
+        "o3d_seconds": 0.0644,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1229,
+        "out_triangles": 1228,
+        "seconds": 0.0511,
+        "watertight_after": true,
+        "volume_after": 4.0413594781102754e-05,
+        "volume_rel_drift": 0.003533809815115084
+      },
+      "read": {
+        "ours_seconds": 0.0012,
+        "o3d_seconds": 0.0035,
+        "ours_triangles": 12288,
+        "o3d_triangles": 12288,
+        "triangles_agree": true,
+        "o3d_vertices": 6146,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": true,
+        "ours_reader_watertight": true
+      }
+    },
+    {
+      "name": "sign_hospital_board_b01",
+      "group": "extra",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/sign_hospital_board_b01.glb",
+      "triangles": 3282,
+      "vertices": 2866,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 2386,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0012
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0131
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.004300127680096547,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.9428173452761351,
+        "o3d_area": 0.9428173452761343,
+        "area_rel_diff": 9.420471782262266e-16
+      },
+      "occupancy": {
+        "box_volume": 0.005015193346473887,
+        "ours_convex": 0.005000603762484328,
+        "ours_convex_seconds": 0.0016,
+        "o3d_hull": 0.005000603762484326,
+        "o3d_hull_seconds": 0.0026,
+        "hull_rel_diff": 3.4690280581538957e-16,
+        "o3d_raycast_interior": 0.006605574918063577,
+        "o3d_raycast_cells": 1728,
+        "o3d_raycast_seconds": 0.0013,
+        "ours_visual": 0.004231569386087342,
+        "ours_visual_seconds": 0.0082,
+        "o3d_grid_visual": 0.006605574918063577,
+        "o3d_grid_seconds": 0.0221,
+        "visual_rel_diff": 0.35939423311728547,
+        "fill_ratio_ours": 0.9970909229252712,
+        "fill_ratio_grid_visual": 1.31711271365198
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 0.0049,
+        "ours": null
+      },
+      "simplify": {
+        "target": 328,
+        "out_triangles": 327,
+        "seconds": 0.0099,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0011,
+        "o3d_seconds": 0.0016,
+        "ours_triangles": 3282,
+        "o3d_triangles": 3282,
+        "triangles_agree": true,
+        "o3d_vertices": 2866,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      }
+    },
+    {
+      "name": "storage_shelf_basic_c01",
+      "group": "extra",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/storage_shelf_basic_c01.glb",
+      "triangles": 457760,
+      "vertices": 228520,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.1427
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 71.9375
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.027647314900281165,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 12.880480852721181,
+        "o3d_area": 12.880480852717422,
+        "area_rel_diff": 2.9181915761916893e-13
+      },
+      "occupancy": {
+        "box_volume": 3.73022454296289,
+        "ours_convex": 3.7274205421462976,
+        "ours_convex_seconds": 0.0332,
+        "o3d_hull": 3.727420542146301,
+        "o3d_hull_seconds": 0.0293,
+        "hull_rel_diff": 9.531292856895612e-16,
+        "o3d_raycast_interior": 0.04399684774373911,
+        "o3d_raycast_cells": 1018,
+        "o3d_raycast_seconds": 0.1632,
+        "ours_visual": 3.4242295609229654,
+        "ours_visual_seconds": 0.3214,
+        "o3d_grid_visual": 0.6456904767106703,
+        "o3d_grid_seconds": 0.1736,
+        "visual_rel_diff": 0.8114348161468967,
+        "fill_ratio_ours": 0.9992483024053117,
+        "fill_ratio_grid_visual": 0.17309694611515344
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 68.6542,
+        "ours": null
+      },
+      "simplify": {
+        "target": 45776,
+        "out_triangles": 45776,
+        "seconds": 6.8443,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0231,
+        "o3d_seconds": 0.2094,
+        "ours_triangles": 457760,
+        "o3d_triangles": 457760,
+        "triangles_agree": true,
+        "o3d_vertices": 228520,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      }
+    },
+    {
+      "name": "vehicle_forklift_blue_a01",
+      "group": "extra",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/vehicle_forklift_blue_a01.glb",
+      "triangles": 329976,
+      "vertices": 186037,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 39286,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 10,
+          "seconds": 0.0993
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 45.8533
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.268122309865208,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 10.777718628195101,
+        "o3d_area": 10.777718628196938,
+        "area_rel_diff": 1.7042131412992168e-13
+      },
+      "occupancy": {
+        "box_volume": 3.0357248832618144,
+        "ours_convex": 1.5094512295626519,
+        "ours_convex_seconds": 0.0324,
+        "o3d_hull": 1.509451229562653,
+        "o3d_hull_seconds": 0.0267,
+        "hull_rel_diff": 7.355143398351675e-16,
+        "o3d_raycast_interior": 0.2083215232678209,
+        "o3d_raycast_cells": 7281,
+        "o3d_raycast_seconds": 0.1162,
+        "ours_visual": 0.19173620945803016,
+        "ours_visual_seconds": 0.2073,
+        "o3d_grid_visual": 0.5125493431973278,
+        "o3d_grid_seconds": 0.128,
+        "visual_rel_diff": 0.6259165834415807,
+        "fill_ratio_ours": 0.49722925746182317,
+        "fill_ratio_grid_visual": 0.16883919423113392
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 43.7083,
+        "ours": null
+      },
+      "simplify": {
+        "target": 32998,
+        "out_triangles": 32998,
+        "seconds": 2.8195,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0127,
+        "o3d_seconds": 0.1673,
+        "ours_triangles": 329976,
+        "o3d_triangles": 329976,
+        "triangles_agree": true,
+        "o3d_vertices": 186024,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      }
+    },
+    {
+      "name": "control-cube",
+      "group": "control",
+      "path": null,
+      "triangles": 12,
+      "vertices": 8,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0005
+        },
+        "o3d": {
+          "watertight": true,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0001
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 1.0,
+        "o3d_get_volume": 1.0,
+        "rel_diff": 0.0,
+        "ours_area": 6.0,
+        "o3d_area": 6.0,
+        "area_rel_diff": 0.0
+      },
+      "occupancy": {
+        "box_volume": 1.0,
+        "ours_convex": 1.0,
+        "ours_convex_seconds": 0.0004,
+        "o3d_hull": 1.0,
+        "o3d_hull_seconds": 0.0002,
+        "hull_rel_diff": 0.0,
+        "o3d_raycast_interior": 1.0,
+        "o3d_raycast_cells": 262144,
+        "o3d_raycast_seconds": 0.0097,
+        "ours_visual": 1.0,
+        "ours_visual_seconds": 0.0027,
+        "o3d_grid_visual": 1.0,
+        "o3d_grid_seconds": 0.1346,
+        "visual_rel_diff": 0.0,
+        "fill_ratio_ours": 1.0,
+        "fill_ratio_grid_visual": 1.0
+      },
+      "self_intersection": {
+        "o3d": false,
+        "o3d_seconds": 0.0,
+        "ours": null
+      },
+      "simplify": {
+        "target": 1,
+        "out_triangles": 0,
+        "seconds": 0.0001,
+        "watertight_after": true,
+        "volume_after": 0.0,
+        "volume_rel_drift": 1.0
+      },
+      "analytic": {
+        "occupied_volume": 1.0,
+        "signed_volume": 1.0
+      }
+    },
+    {
+      "name": "control-hollow-mug",
+      "group": "control",
+      "path": null,
+      "triangles": 384,
+      "vertices": 194,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0005
+        },
+        "o3d": {
+          "watertight": true,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 0.0012
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.00012491356595458933,
+        "o3d_get_volume": 0.00012491356595458912,
+        "rel_diff": 1.7359238193226374e-15,
+        "ours_area": 0.051306866732566264,
+        "o3d_area": 0.051306866732566465,
+        "area_rel_diff": 3.922046619260467e-15
+      },
+      "occupancy": {
+        "box_volume": 0.000576,
+        "ours_convex": 0.0004510985203124985,
+        "ours_convex_seconds": 0.0008,
+        "o3d_hull": 0.00045109852031249826,
+        "o3d_hull_seconds": 0.0012,
+        "hull_rel_diff": 4.806941826075702e-16,
+        "o3d_raycast_interior": 0.00012817512130737304,
+        "o3d_raycast_cells": 46091,
+        "o3d_raycast_seconds": 0.0074,
+        "ours_visual": 0.0004494375,
+        "ours_visual_seconds": 0.0054,
+        "o3d_grid_visual": 0.00046879541015625,
+        "o3d_grid_seconds": 0.1759,
+        "visual_rel_diff": 0.04129287475275825,
+        "fill_ratio_ours": 0.7831571533203099,
+        "fill_ratio_grid_visual": 0.8138809204101562
+      },
+      "self_intersection": {
+        "o3d": false,
+        "o3d_seconds": 0.0004,
+        "ours": null
+      },
+      "simplify": {
+        "target": 38,
+        "out_triangles": 38,
+        "seconds": 0.0009,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "analytic": {
+        "occupied_volume": 0.0004523893421169302,
+        "signed_volume": 0.0001193805208364121
+      }
+    }
+  ]
+}

@@ -1228,3 +1228,114 @@ What was not verified: the link is still a model, not a socket — the delay and
 drawn from a distribution, the loss is memoryless, and the packets of one subscriber never
 reorder. Nothing here says what a real congested link does to the resync path, and the
 uplink request bytes are still excluded from the bytes metric.
+## 2026-11-01 17:30 — open3d-critic starts: the aarch64 wheel exists and imports
+
+The brief (this worktree, 17:13) asks for Open3D evaluated against the critic's
+geometry checks. Step 1 — the wheel:
+
+- **`open3d 0.20.0` ships `cp312-cp312-manylinux_2_35_aarch64`** (PyPI's own
+  file list; 0.17/0.18's aarch64 wheels stop at cp310/cp311, so 0.20.0 is the
+  only version with a cp312 aarch64 wheel). The Thor's glibc is **2.39**, so
+  `manylinux_2_35` is in range. (`uv pip download` does not exist in uv
+  0.13.5; the PyPI JSON file list answered instead.)
+- Installed with `uv venv` + `uv pip install open3d numpy scipy` into this
+  worktree's `.venv` (gitignored; uv's shared cache). open3d **0.20.0**,
+  numpy **2.5.4**, scipy **1.18.1**, pydantic 2.14.2 — same versions the
+  critic-shells run used (`~/lm-wt/mesh-repair/.venv`).
+- Smoke test on the box: import ok; `is_watertight` True and `get_volume`
+  0.16666… on a tetrahedron (exact: 1/6); `simplify_quadric_decimation`
+  runs. The API the brief names is all there: `is_self_intersecting`,
+  `get_self_intersecting_triangles`, `compute_convex_hull`,
+  `simplify_quadric_decimation`, `get_volume`.
+- First look at the multi-primitive trap: on the 32-primitive forklift
+  (`vehicle_forklift_blue_c01.glb`, 997 893 triangles), Open3D's **own GLB
+  reader returns the same 997 893 triangles** as our `Glb.asset` whole-object
+  reader (527 858 vertices against our 528 487 — it deduplicates 629).
+
+Box at the start: load 5.41, 115 GB available. Decided next: fetch 5 fresh
+SimReady packages (the survey's own HTTP fetcher + pxr USD converter), then
+the per-mesh comparison script.
+
+## 2026-11-01 18:30 — the five fresh samples, and three semantics pinned before the sweep
+
+`fetch_extra_samples.py` (docs/lab/open3d-critic/) picked and fetched 5
+SimReady packages the prior never saw — five categories chosen to span the
+kinds the critic must tell apart (a shell `dishware_mug_a02`, a multi-part
+vehicle `vehicle_forklift_blue_a01` — 15 primitives, 329 976 tris, a
+near-convex `misc_golfBall_a03`, a thin plate `sign_hospital_board_b01`,
+a sparse frame `storage_shelf_basic_c01` — 457 760 tris), each the
+unsampled asset closest to its category's median payload (the survey's own
+rule). 183 files, 379 MB, 90 s, 0 failures, to `~/lm-cold/simready-extra`;
+converted to GLB by the survey's own pxr loader (2 s total) into
+`~/lm-wt/simready-survey/data/glb-extra/`.
+
+Three things had to be pinned before the numbers could be believed:
+
+1. **Open3D's `is_watertight` is not our watertight.** Ours asks "is every
+   edge used exactly twice" (closed); Open3D demands edge-manifold ∧
+   vertex-manifold ∧ **no self-intersections** — verified on
+   `bodyPart_door_front_a01` (closed by our census, self-intersecting:
+   Open3D says False, the formula reproduces its False). Both defensible;
+   the disagreement rows in the table are this difference, not a bug.
+2. **Open3D's rasteriser gives two volumes that are NOT the critic's
+   envelope.** Ray parity (`count_intersections`) is a winding-free
+   *enclosed solid* — on the hollow mug it reads 0.000128 (the ceramic,
+   analytic 0.000119) not the 0.000452 cylinder the critic wants; on a
+   thin door skin it reads 0.33 % of the box. Reachability of the surface
+   voxel grid (flood from outside) gives *sealed regions* — a mug's cup is
+   open to the sky, so the real mug reads **−53 %** (0.000214 vs
+   0.000452). Dead end, recorded; the comparison instead measures the
+   visual-hull semantic on Open3D's voxel grid (intersection of the three
+   axis projections) against our `visual`.
+3. **The self-intersection test is the cost centre**: ~80 s on a 300
+   k-triangle mesh at load ~25 (another seat is compiling); `is_watertight`
+   and `get_volume` each re-run it inside. The script computes it once and
+   derives the flag from the verified formula; `get_volume` is called only
+   on derived-closed meshes.
+
+Also fixed on the way: Open3D's VoxelGrid reports a sample exactly on the
+max bound one cell past the grid (clipped back, or the face's silhouette
+is a cell short — a unit cube read 0.046 instead of 1.0 before the clip).
+
+Quick pass (3 reference meshes, load 24–32): peak RSS 420 MB; hull
+agreement with scipy 0.00 % on all three; simplification 1.7–4.9 s.
+Decided next: the full 43-mesh sweep, detached.
+
+## 2026-11-01 19:25 — the sweep, the digest, and the report
+
+The full 45-mesh sweep (compare.py, detached, load 20.9-25.3 throughout,
+109-111 GB available) took ~39 min wall and peaked at 1111 MB RSS —
+CPU-only, no lease, under the brief's 4 GB line. results.json is committed
+beside the scripts. The findings the report rests on:
+
+- **Exact agreement on every shared quantity**: hull volume (scipy vs o3d)
+  max rel diff 4.4e-15 over 45/45; signed volume 1.7e-15 (where o3d
+  answers, 8/45); area 2.9e-13. The reference set reproduced bit-exact
+  (occupied and signed rel diff 0.0, 38/38 watertight flags).
+- **The reader**: o3d's GLB reader matched our whole-asset reader on all
+  43 files — triangle counts equal, max bbox gap 0.0 m — and is 8x slower
+  (4.12 s vs 0.53 s over the set).
+- **Watertight**: 33/45 agree; all 12 disagreements are closed-but-self-
+  intersecting meshes (o3d's definition adds vertex-manifold + no
+  self-intersection, verified empirically). 34/38 reference meshes
+  self-intersect; 11 of them closed — and their signed volume is inflated
+  by the overlap (shelf a01: 0.2254 vs parity 0.0576, 3.9x).
+- **is_self_intersecting cost**: median 0.16 s / max 18.5 s under 200 k
+  tris; heavy tail 801 s at 1.33 M (shelf), 596 s at 1 M (forklift). The
+  sweep's 39 min is almost entirely this.
+- **Ray parity**: median 1.1 % off the signed volume on closed meshes;
+  answers on all 45 in median 18 ms. Not an envelope (the mug reads its
+  ceramic, 0.000128 vs the 0.000452 it occupies) — kept as the
+  winding-free fallback volume.
+- **Grid visual hull**: collapses on the same sparse shapes our `visual`
+  does (11 of 43 below 0.2), disagrees with ours by median 25 % (different
+  grid semantics; o3d's isotropic-cell grid even reads 131.9 % of the box
+  on the thin board). The hull stays.
+- **Simplify**: 7.41 M -> 741 k tris in 79 s total (exactly 10 %); drift
+  median 0.4 % where measurable; opens 14 of 19 closed meshes — LOD only.
+
+Report: docs/lab/exp-open3d-critic.md — **adopt-for-X** (self-intersection
+check under a ~200 k cap, quadric simplification for diet/LOD, ray parity
+as the fallback volume; pin ==0.20.0, the only cp312 aarch64 wheel), not
+the measurement path, not the watertight flag, not the reader. The brief's
+three steps are done; nothing running was left behind.
