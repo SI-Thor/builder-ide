@@ -3961,3 +3961,197 @@ next check. Docs: docs/lab/exp-seat-watch-live.md §7, the tool README.
 Known edge left open: the missed-DONE rule trusts the .out's mtime; an .out
 written after its EXIT line can re-report a spoken DONE at the next
 restart. Not in tonight's log; watch for it.
+## 2026-11-02 07:05 — batched-sim: the plan, the venv, and a CUDA smoke check
+
+**What I tried.** Read the desk brief and the Thor's `BRIEF.md`, the design
+(`docs/design/batched-sim.md`), the language fit, the Stratego lab note, and
+last-mile's `lm-core` beacon rules (read-only) to pick what to port. Read
+`thor-admit status` before anything heavy: no night-v6 lease is up, so the
+box is free (97.6 GB free of 122.8 GB; the GPU pool's **largest free block is
+0.965 GB**, which is the real ceiling for a GPU allocation here).
+
+**What happened.** The plan is written and committed at
+`docs/superpowers/plans/2026-11-02-batched-sim.md`. The toolchain is ready:
+`uv` 0.13.6 installed (`pip install --user --break-system-packages uv` — the
+box's Python is externally managed), the repo venv is at `.venv` (numpy 2.5.4,
+pytest 9.2.0, pybind11 3.1.0), and a `nvcc -arch=sm_110` kernel compiled and
+ran on the GPU: `OK c[100]=300 c[1023]=3069`.
+
+**What I decided next.** Port the **Beacons** ruleset (last-mile's beacon
+game) as the one real game. The rules are read in full and they port cleanly:
+integer-only state, a fixed-size POD, a mask the rules engine writes, and
+hidden state that is real (the acting agent's line of sight). The rules live
+in **one** header compiled for both the host and the device, so "GPU == CPU"
+is a property of the backend rather than of a re-implementation; the Python
+reference is a third, independent implementation and is the ground truth.
+
+**What is left.** The whole interface, the port, the equality gate and the
+measurements (plan tasks 2-8). Two decisions are recorded in the plan and not
+yet proven: torch is **not** installed on this box, so the binding speaks
+numpy and the Python wrapper offers a `torch.from_numpy` conversion; and the
+observation is not stored per rollout row for Beacons (200 rows of a
+128×128×6-plane observation is 322 GB at batch 4096).
+
+## 2026-11-02 07:55 — batched-sim: the interface, the Beacons port, and the CPU half of the equality gate
+
+**What I tried.** Built `core/sim/` (the general batched-simulator interface)
+and ported **last-mile's Beacons ruleset** onto it: the first ranked item of
+`docs/design/batched-sim.md` §5. The rules are written **once**, in
+`core/sim/systems/beacons/rules.cuh`, compiled by g++ for the CPU backend
+and by nvcc for the CUDA backend — so "the GPU agrees with the CPU" is a
+property of the backend, not of a second implementation that might drift. A
+third, independent Python implementation (`reference.py`) is the ground
+truth, written from the Rust rather than from the C++.
+
+**What happened.**
+- The module builds: `_pysim.so`, sm_110, no `-DNDEBUG` (the device-side
+  asserts stay in, the way the Stratego port did it).
+- The **CPU backend works end to end**: the mask is `(num_envs, 9)`, the
+  observation is `(num_envs, 6, 128, 128)`, the state bytes and the world
+  bytes are canonical and little-endian.
+- **25 rule tests pass** (`tests/sim/test_beacons_rules.py`), written from
+  last-mile's Rust tests: the tag and the respawn, the contested beacon, the
+  tie, the line of sight and its symmetry, the generator's determinism and
+  point symmetry, the motor's axis order and speed budget.
+- The C++ world generator and the Python one agree byte for byte on a
+  32x32 world (beacons, spawns, initiative, walls, cover).
+- **The GPU is wedged on the box.** The pool's largest free block is
+  **197 MB** (it was 1035 MB when this seat started), and a trivial CUDA
+  program that ran at the start of the session now hangs. The wedged
+  process sits in uninterruptible sleep (`D` state), where a timeout cannot
+  reap it — exactly the failure `docs/lab/exp-stratego.md` §0 describes.
+  So the CUDA half of the equality gate is **guarded by the pool's free
+  block**: it is skipped when the box has no room, not attempted.
+
+**What I decided next.** Size every GPU allocation against the pool's
+largest free block, never against the free system memory. Wait for the
+pool. Meanwhile the CPU half of the gate and the docs are done.
+
+**What is left.** The CUDA half of the byte-for-byte gate, and the
+measurements (env steps/s at 128 / 1024 / 4096). Both need the GPU.
+
+## 2026-11-02 10:15 — batched-sim: the CUDA half of the gate passes, and the first measurement
+
+**What I tried.** The CUDA half of the byte-for-byte gate, under a lease
+(`thor-admit run --tier live --peak 2G --label batched-sim.gate`), and the
+first throughput measurement of the GPU backend.
+
+**What happened.**
+
+- **The CUDA half of the gate passes**: 7 passed in 1.09 s. The GPU and the
+  CPU produce the same state bytes, the same world bytes, the same mask, the
+  same observation and the same reward from the same seeds and the same
+  actions. The log is `docs/lab/batched-sim-scripts/results/gate_cuda.log`.
+  The earlier `gate exit: 1` in `/tmp/watch_gpu.log` was the watcher running
+  the *pre-fix* test file; the committed test file passes.
+- **The GPU backend, batch 128 on the game's own 128x128 world**
+  (`results/bench_cuda_128_w128.json`, 2000 steps, 7 repetitions, median):
+  - the rule step alone: **2,399,051 env-steps/s**, 0.417 us an env-step;
+  - the step plus the observation: **5,448 env-steps/s**, 183.544 us an
+    env-step.
+  So the observation is about **440x** the cost of the rules themselves, and
+  it is the only thing worth optimising next. It is not optimised here.
+  - Box before: load 10.55 / 10.90 / 10.45, 101.0 GB free, the GPU pool's
+    largest free block **1648.4 MB**. Box after: load 9.03 / 8.67 / 9.51,
+    111.8 GB free, **2948.6 MB**.
+
+**Two dead ends, recorded so nobody retries them.**
+
+- `cudaMallocManaged` wedges this box at about 184 MB of free block, where
+  `cudaMalloc` (what the simulator uses) runs at 125 MB. The benchmark's
+  guard threshold is 64 MB for the same reason: managed memory is what
+  wedges, and a benchmark that wedges is worse than one that refuses.
+- The admission daemon will not grant a lease while another lease is
+  over-reserved (`over_reserved: true` in the status), and the GPU pool's
+  largest free block fell to **12.6 MB** while the night-v6 jobs queued
+  behind this seat's own small lease. The measurements therefore wait for
+  room instead of being taken.
+
+**A bug in the benchmark script, found and fixed.** The `step+obs` rate was
+computed with the *rule* step count rather than the observation step count,
+so it would have been reported 10x too high for the runs that use fewer
+observation steps. Fixed before the later runs; the run quoted above is
+unaffected (its observation ran the same 2000 steps).
+
+**What I decided next.** The pure Python reference joins the benchmark as a
+third device (`--device python`), so the report can say what the GPU is
+faster *than*. The batch 1024 / world 128 GPU run was started before the
+`--obs-steps` flag reached the box, so it will hit its own 1800 s timeout and
+write no JSON; it is re-run with 200 observation steps afterwards.
+
+**What is left.** The rest of the measurements (the GPU at 1024 and 4096, the
+CPU backend, the Python reference), the lab note's section 4, and the final
+commit.
+
+## 2026-11-02 10:40 — batched-sim: the measurements are in, and the note is written
+
+**What I tried.** The rest of the measurements, one configuration at a time,
+each under its own lease, and then the lab note.
+
+**What happened.**
+
+- **The GPU backend** (`cuda`), the game's own 128x128 world, 2000 steps, 7
+  repetitions, median:
+
+  | batch | the rules | the step and the observation |
+  |---:|---:|---:|
+  | 128 | **2,399,051 env-steps/s** (0.417 us) | 5,448 env-steps/s (183.544 us) |
+  | 1024 | **22,109,458 env-steps/s** (0.045 us) | 17,860 env-steps/s (55.992 us) |
+
+  Box before the first run: load 10.55 / 10.90 / 10.45, 101.0 GB free, the
+  GPU pool's largest free block 1648.4 MB; after the second run: load
+  11.78 / 10.88 / 9.80, 90.7 GB free, 302.0 MB.
+
+- **The CPU backend** (`cpu`, the same `rules.cuh` compiled by g++, **14
+  threads striding over the worlds**), 200 steps, 3 repetitions:
+
+  | batch | world | the rules | the step and the observation |
+  |---:|---:|---:|---:|
+  | 128 | 128 | 309,029 env/s (3.236 us) | 27,648 env/s (36.168 us) |
+  | 1024 | 128 | 2,895,973 env/s (0.345 us) | skipped: 16.8 M cells a step |
+  | 4096 | 128 | 9,644,540 env/s (0.104 us) | skipped: 67.1 M cells a step |
+  | 128 | 64 | 359,363 env/s (2.783 us) | 65,825 env/s (15.192 us) |
+  | 1024 | 64 | 3,014,118 env/s (0.332 us) | 108,152 env/s (9.246 us) |
+  | 4096 | 64 | 9,456,769 env/s (0.106 us) | skipped: 16.8 M cells a step |
+
+- **The Python reference** (`python`, one world at a time, the ground truth
+  the two are checked against): 154,397 env/s at batch 128, 142,219 at 1024,
+  133,031 at 4096 (6.477 / 7.031 / 7.517 us an env-step). It does **not**
+  scale with the batch, which is the point of having it as the baseline.
+
+**What the numbers say, in one line each.**
+
+- The rule step is what the batched simulator is for: at batch 1024 the GPU
+  does 22.1 M env-steps/s, **7.6x** the 14-thread CPU backend and **156x**
+  the Python reference. It scales with the batch (8x the worlds is 9.2x the
+  throughput) and is already saturated at batch 128.
+- **The CUDA observation kernel is currently slower than the 14-thread CPU
+  one**: 5,448 env/s against 27,648 at batch 128 on the 128x128 world. It
+  gives every cell its own Bresenham walk and writes six planes
+  uncoalesced. A DDA sweep along each row is the fix, and it is the obvious
+  next piece of work. It is left naive here on purpose, and the note says so
+  instead of quietly quoting the better number.
+
+**Two things I did not get, and why.**
+
+- **The GPU at batch 4096**, at either world size. The observation buffer is
+  always allocated, so 4096 worlds is one 402 MB allocation at a 64x64
+  world and 1.6 GB at 128x128. The pool's largest free block was 104.9 MB
+  for most of the session. A CUDA allocation that does not fit blocks in the
+  kernel rather than failing, so the benchmark script refuses it and the
+  note records it as not measured. The CPU and the Python reference are
+  measured at 4096.
+- **The `cuda` rows on the 64x64 world.** The admission daemon stopped
+  granting leases entirely: two model-server leases
+  (`serve.qwen3-vl-8b`, `serve.sensenova-si-1.3-qwen3-vl-8b`) sit **over
+  their reservations**, and a probe with a 512 MB peak was refused after
+  25 s of waiting. Both runs are still queued (`batched-sim.bench`,
+  `batched-sim.bench-small`) and will start if the daemon clears them.
+
+**What I decided next.** Stop starting new work: the brief is done, the
+measurements that the box allows are measured, and the two that are left
+are queued. The next session picks them up from the queue, or from
+`docs/lab/exp-batched-sim.md` §4, which says exactly which cells of the
+table are empty and why.
+
+**What is left.** The queued GPU runs, and the DDA observation sweep.

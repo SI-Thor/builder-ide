@@ -1,0 +1,122 @@
+thor-admit: "batched-sim.bench-cpu" waited 223.7s for room (it was 3 of 3 in the queue)
+thor-admit: "batched-sim.bench-cpu" admitted after 223.728s (peak 2.0G, floor 25.0G)
+== batch 128 (cpu, 128x128) ==
+   step           309,029 env-steps/s (3.236 us/env-step)
+   step+obs        27,648 env-steps/s (36.168 us/env-step)
+{
+  "box_before": {
+    "load_average": [
+      4.87,
+      7.2,
+      8.5
+    ],
+    "mem_available_bytes": 98886569984,
+    "gpu_largest_free_block_bytes": 461373440,
+    "gpu_box_used_bytes": 80821092352,
+    "leases": [
+      {
+        "label": "agent-world-gym.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1539661824
+      },
+      {
+        "label": "voyager-port.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1544810496
+      },
+      {
+        "label": "serve.qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 992391168
+      },
+      {
+        "label": "serve.sensenova-si-1.3-qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 892915712
+      },
+      {
+        "label": "scenebloom-eval.bedroom_qwen_s1",
+        "peak_bytes": 42949672960,
+        "current_rss_bytes": 524288
+      },
+      {
+        "label": "batched-sim.bench-cpu",
+        "peak_bytes": 2147483648,
+        "current_rss_bytes": 8388608
+      }
+    ]
+  },
+  "device": "cpu",
+  "world": 128,
+  "results": [
+    {
+      "device": "cpu",
+      "num_envs": 128,
+      "steps": 200,
+      "obs_steps": 200,
+      "reps": 3,
+      "params": {
+        "world_w": 128,
+        "world_h": 128
+      },
+      "step": {
+        "seconds_median": 0.08284000200364972,
+        "seconds_min": 0.06616540600225562,
+        "seconds_max": 0.11340125499555143,
+        "env_steps_per_s": 309029.4468953795,
+        "us_per_env_step": 3.235937578267567
+      },
+      "step_obs": {
+        "seconds_median": 0.9259124359959969,
+        "seconds_min": 0.9189875910014962,
+        "seconds_max": 0.9438023309994605,
+        "env_steps_per_s": 27648.402813017925,
+        "us_per_env_step": 36.16845453109363
+      }
+    }
+  ],
+  "box_after": {
+    "load_average": [
+      6.4,
+      7.48,
+      8.58
+    ],
+    "mem_available_bytes": 97956892672,
+    "gpu_largest_free_block_bytes": 465567744,
+    "gpu_box_used_bytes": 81710284800,
+    "leases": [
+      {
+        "label": "agent-world-gym.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1539661824
+      },
+      {
+        "label": "voyager-port.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1544810496
+      },
+      {
+        "label": "serve.qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 992391168
+      },
+      {
+        "label": "serve.sensenova-si-1.3-qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 892915712
+      },
+      {
+        "label": "scenebloom-eval.bedroom_qwen_s1",
+        "peak_bytes": 42949672960,
+        "current_rss_bytes": 629690368
+      },
+      {
+        "label": "batched-sim.bench-cpu",
+        "peak_bytes": 2147483648,
+        "current_rss_bytes": 140472320
+      }
+    ]
+  }
+}
+wrote /home/caseydigennaro/lm-wt/batched-sim/docs/lab/batched-sim-scripts/results/bench_cpu_128_w128.json
+thor-admit: "batched-sim.bench-cpu" finished with code 0 (peak RSS 134.5M)

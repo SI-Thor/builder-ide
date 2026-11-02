@@ -1,0 +1,161 @@
+thor-admit: "batched-sim.bench-py" waited 900.1s for room (it was 1 of 1 in the queue)
+thor-admit: "batched-sim.bench-py" admitted after 900.117s (peak 2.0G, floor 25.0G)
+== batch 128 (python, 128x128) ==
+   step           154,397 env-steps/s (6.477 us/env-step)
+   step+obs  skipped: the observation is 2097152 cells a step; the pure Python reference is measured on it only up to 20000 cells
+== batch 1024 (python, 128x128) ==
+   step           142,219 env-steps/s (7.031 us/env-step)
+   step+obs  skipped: the observation is 16777216 cells a step; the pure Python reference is measured on it only up to 20000 cells
+== batch 4096 (python, 128x128) ==
+   step           133,031 env-steps/s (7.517 us/env-step)
+   step+obs  skipped: the observation is 67108864 cells a step; the pure Python reference is measured on it only up to 20000 cells
+{
+  "box_before": {
+    "load_average": [
+      11.43,
+      10.4,
+      9.54
+    ],
+    "mem_available_bytes": 83862093824,
+    "gpu_largest_free_block_bytes": 8388608,
+    "gpu_box_used_bytes": 91491401728,
+    "leases": [
+      {
+        "label": "agent-world-gym.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1539530752
+      },
+      {
+        "label": "voyager-port.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1494609920
+      },
+      {
+        "label": "batched-sim.bench",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 927756288
+      },
+      {
+        "label": "serve.qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 992522240
+      },
+      {
+        "label": "serve.sensenova-si-1.3-qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 892915712
+      },
+      {
+        "label": "batched-sim.bench-py",
+        "peak_bytes": 2147483648,
+        "current_rss_bytes": 7602176
+      }
+    ]
+  },
+  "device": "python",
+  "world": 128,
+  "results": [
+    {
+      "device": "python",
+      "num_envs": 128,
+      "steps": 200,
+      "obs_steps": 0,
+      "reps": 3,
+      "params": {
+        "world_w": 128,
+        "world_h": 128
+      },
+      "step": {
+        "seconds_median": 0.1658067230018787,
+        "seconds_min": 0.16543400500086136,
+        "seconds_max": 0.16727227400406264,
+        "env_steps_per_s": 154396.6344459382,
+        "us_per_env_step": 6.476825117260887
+      },
+      "step_obs": {
+        "skipped": "the observation is 2097152 cells a step; the pure Python reference is measured on it only up to 20000 cells"
+      }
+    },
+    {
+      "device": "python",
+      "num_envs": 1024,
+      "steps": 200,
+      "obs_steps": 0,
+      "reps": 3,
+      "params": {
+        "world_w": 128,
+        "world_h": 128
+      },
+      "step": {
+        "seconds_median": 1.4400313639998785,
+        "seconds_min": 1.4176464890042553,
+        "seconds_max": 1.452913888002513,
+        "env_steps_per_s": 142219.12461068959,
+        "us_per_env_step": 7.031403144530657
+      },
+      "step_obs": {
+        "skipped": "the observation is 16777216 cells a step; the pure Python reference is measured on it only up to 20000 cells"
+      }
+    },
+    {
+      "device": "python",
+      "num_envs": 4096,
+      "steps": 200,
+      "obs_steps": 0,
+      "reps": 3,
+      "params": {
+        "world_w": 128,
+        "world_h": 128
+      },
+      "step": {
+        "seconds_median": 6.157963768004265,
+        "seconds_min": 6.106728519000171,
+        "seconds_max": 6.283538978001161,
+        "env_steps_per_s": 133030.98733000414,
+        "us_per_env_step": 7.517045615239581
+      },
+      "step_obs": {
+        "skipped": "the observation is 67108864 cells a step; the pure Python reference is measured on it only up to 20000 cells"
+      }
+    }
+  ],
+  "box_after": {
+    "load_average": [
+      11.24,
+      10.78,
+      9.77
+    ],
+    "mem_available_bytes": 91089297408,
+    "gpu_largest_free_block_bytes": 306184192,
+    "gpu_box_used_bytes": 82386616320,
+    "leases": [
+      {
+        "label": "agent-world-gym.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1539530752
+      },
+      {
+        "label": "voyager-port.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1511256064
+      },
+      {
+        "label": "serve.qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 992391168
+      },
+      {
+        "label": "serve.sensenova-si-1.3-qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 892915712
+      },
+      {
+        "label": "batched-sim.bench-py",
+        "peak_bytes": 2147483648,
+        "current_rss_bytes": 116121600
+      }
+    ]
+  }
+}
+wrote docs/lab/batched-sim-scripts/results/bench_python_w128.json
+thor-admit: "batched-sim.bench-py" finished with code 0 (peak RSS 110.7M)
