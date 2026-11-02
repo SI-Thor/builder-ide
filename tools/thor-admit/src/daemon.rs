@@ -51,7 +51,17 @@ use crate::tier::Tier;
 /// is not a lease (the desktop, the seat's own tooling, the kernel).
 pub const DEFAULT_FLOOR: u64 = 25 * 1024 * 1024 * 1024;
 /// The default emergency floor: below this, the watchdog acts.
-pub const DEFAULT_EMERGENCY_FLOOR: u64 = 8 * 1024 * 1024 * 1024;
+///
+/// Sixteen gibibytes, about a thirteenth of the box, and up from eight:
+/// the two hangs of 2026-11-01 were both the same shape with the eight
+/// gibibyte floor in place. At 13:22 the box fell to a global OOM, and on
+/// the second the daemon watched `MemAvailable` fall to **50 MiB** while it
+/// logged `watchdog.pressure_outside_leases` — below eight gibibytes for
+/// minutes, with nothing it could stop. An eight gibibyte line is a line
+/// the box has already died on; sixteen is the line the director ran the
+/// daemon at after the second hang (2026-11-01 16:40), and it is early
+/// enough that the watchdog still has processes that are alive to stop.
+pub const DEFAULT_EMERGENCY_FLOOR: u64 = 16 * 1024 * 1024 * 1024;
 /// The default sample interval.
 pub const DEFAULT_SAMPLE_INTERVAL: Duration = Duration::from_millis(250);
 /// The default interval for reading the processes' resident sets.
@@ -68,14 +78,29 @@ pub const DEFAULT_MIN_VICTIM_RSS: u64 = 2 * 1024 * 1024 * 1024;
 /// helpers, the tooling — sits below this; the model server (58.9 GiB) and
 /// the incident's runaway (94.5 GB) sit far above it.
 pub const DEFAULT_GUARD_MIN_RSS: u64 = 4 * 1024 * 1024 * 1024;
-/// The default fall in free memory that counts as a runaway (round 12).
+/// The default fall in free memory that counts as a runaway (round 12;
+/// the window and the figure moved together in round 13, item 0).
 ///
-/// Eight gibibytes inside the guard's window: a quarter of the box, taken in
-/// ten seconds, with no lease to explain it. The incident took 94.5 GB in
-/// 20 seconds — about forty times this, and it killed the box.
-pub const DEFAULT_GUARD_DROP_BYTES: u64 = 8 * 1024 * 1024 * 1024;
+/// Twelve gibibytes inside the guard's window: a tenth of the box, taken
+/// with no lease to explain it. The old figure — eight gibibytes inside a
+/// ten second window — was tuned to the incident (94.5 GB in 20 seconds,
+/// about forty times this), and it stayed true of the incident's shape,
+/// but it was also true of ordinary page-cache churn on a busy box: on the
+/// afternoon of 2026-11-01 the daemon logged the same
+/// `guard.unexplained_drop` six times in two minutes while the box was
+/// merely working. Twelve gibibytes over two minutes is still far smaller
+/// than the incident and far larger than the churn.
+pub const DEFAULT_GUARD_DROP_BYTES: u64 = 12 * 1024 * 1024 * 1024;
 /// The default window the guard measures that fall over.
-pub const DEFAULT_GUARD_WINDOW: Duration = Duration::from_secs(10);
+///
+/// Two minutes (was ten seconds): the incident's shape — ninety-plus
+/// gibibytes in twenty seconds — crosses the twelve gibibyte line inside a
+/// two minute window long before the box is gone, and a window this long
+/// is not fooled by the box reclaiming what it just released, which a ten
+/// second window counted as a fall. The director ran the live daemon with
+/// `--guard-drop 12G --guard-window-secs 120` after the second hang of
+/// 2026-11-01, and this makes that the default.
+pub const DEFAULT_GUARD_WINDOW: Duration = Duration::from_secs(120);
 /// The default interval between the guard's looks at the box.
 pub const DEFAULT_GUARD_INTERVAL: Duration = Duration::from_secs(2);
 /// The default grace a client's silence gets before the daemon acts: six
@@ -697,6 +722,20 @@ struct GuardAction {
     at: Instant,
 }
 
+/// How long the driver's per-process view may go quiet before the daemon
+/// treats it as stale and asks again, one-shot and bounded.
+///
+/// The `nvidia-smi -l 2` child prints every two seconds; ten seconds is
+/// five missed prints, which a slow box does not do and a hung driver
+/// does. The last view is **kept** while the refresh fails — a stale
+/// ranking is still a ranking, and the one the driver gave last time is
+/// better than none — but the daemon says so in its log, because the
+/// 2026-11-01 16:10 hang is the case where the driver's view went quiet
+/// in the middle of the trouble and nobody could tell afterwards.
+pub const GPU_VIEW_STALE: Duration = Duration::from_secs(10);
+/// How often the daemon may say, in a row, that the driver's view is stale.
+pub const GPU_STALE_LOG_GAP: Duration = Duration::from_secs(60);
+
 /// A child process that keeps printing the GPU's view.
 ///
 /// Asking `nvidia-smi` afresh every couple of seconds costs the daemon
@@ -707,6 +746,12 @@ struct GuardAction {
 struct GpuWatch {
     sample: Arc<Mutex<GpuSample>>,
     source: String,
+    /// When this watch last printed the per-process view, in unix
+    /// nanoseconds — the freshness mark the main loop checks, and the thing
+    /// that turns "the child stopped printing" (a hung driver) from
+    /// invisible into a log line. It starts at the moment the child is
+    /// spawned, so a child that prints **nothing** goes stale too.
+    per_process_at: Arc<std::sync::atomic::AtomicU64>,
     /// Kept alive: when it is dropped, the child is killed.
     _child: Arc<Mutex<std::process::Child>>,
 }
@@ -724,6 +769,11 @@ pub struct Daemon {
     listener: Mutex<Option<UnixListener>>,
     /// The GPU's views, kept fresh by children that keep printing them.
     gpu_watch: Mutex<Vec<GpuWatch>>,
+    /// The driver's view of the box, when the daemon has found it stale:
+    /// when it last said so, and when it last re-asked (the re-ask is
+    /// bounded by `timeout(1)`, but it still takes time the watchdog would
+    /// rather have, so it is not run on every sample).
+    gpu_stale: Mutex<(Option<Instant>, Option<Instant>)>,
     /// The daemon's own log. It has its own lock so that a log line can be
     /// written while the state lock is held.
     log: Mutex<Option<std::fs::File>>,
@@ -857,6 +907,7 @@ impl Daemon {
             listener: Mutex::new(Some(listener)),
             log: Mutex::new(log),
             gpu_watch: Mutex::new(Vec::new()),
+            gpu_stale: Mutex::new((None, None)),
             socket_lock,
         }))
     }
@@ -1207,6 +1258,7 @@ impl Daemon {
             state.gpu = merged;
             state.gpu_source = sources;
         }
+        self.refresh_stale_gpu_view(&self.gpu_watch);
         // The flow signal, when a publisher is speaking: read only when the
         // file changed, recorded only — the numbers are the publisher's and
         // so is any decision made from them.
@@ -3576,7 +3628,9 @@ impl Daemon {
         let mut child = command.spawn().ok()?;
         let stdout = child.stdout.take()?;
         let sample = Arc::new(Mutex::new(GpuSample::default()));
+        let per_process_at = Arc::new(std::sync::atomic::AtomicU64::new(now_unix_nanos()));
         let writer = Arc::clone(&sample);
+        let fresh = Arc::clone(&per_process_at);
         std::thread::Builder::new()
             .name("thor-admit-gpu".to_string())
             .spawn(move || {
@@ -3586,6 +3640,7 @@ impl Daemon {
                     if !per_process.is_empty() {
                         let mut guard = writer.lock().unwrap();
                         guard.per_process = per_process;
+                        fresh.store(now_unix_nanos(), std::sync::atomic::Ordering::Relaxed);
                     }
                 }
             })
@@ -3593,6 +3648,7 @@ impl Daemon {
         Some(GpuWatch {
             sample,
             source: "nvidia-smi".to_string(),
+            per_process_at,
             _child: Arc::new(Mutex::new(child)),
         })
     }
@@ -3622,7 +3678,7 @@ impl Daemon {
                         let mut guard = writer.lock().unwrap();
                         guard.busy_pct = parsed.busy_pct;
                         guard.power_mw = parsed.power_mw;
-                        guard.power_source = parsed.power_source;
+                        guard.power_source = parsed.power_source.clone();
                     }
                 }
             })
@@ -3630,6 +3686,7 @@ impl Daemon {
         Some(GpuWatch {
             sample,
             source: "nvidia-smi:gpu".to_string(),
+            per_process_at: Arc::new(std::sync::atomic::AtomicU64::new(0)),
             _child: Arc::new(Mutex::new(child)),
         })
     }
@@ -3678,8 +3735,81 @@ impl Daemon {
         Some(GpuWatch {
             sample,
             source: "tegrastats".to_string(),
+            per_process_at: Arc::new(std::sync::atomic::AtomicU64::new(0)),
             _child: Arc::new(Mutex::new(child)),
         })
+    }
+
+    /// The driver's per-process view, kept honest by a bounded re-ask.
+    ///
+    /// The `nvidia-smi -l 2` child is the fast path, and it is also the one
+    /// that hangs when the driver is in trouble: on 2026-11-01 the driver
+    /// began failing with `NVRM: … Out of memory` at 15:33 and queries to
+    /// it stopped answering, while the box it was supposed to be watched
+    /// died by 16:10. A child that stops printing leaves the daemon with a
+    /// view it cannot tell is stale, so the daemon checks the freshness
+    /// mark and, when the view is old, asks one-shot through `timeout(1)`.
+    ///
+    /// When the re-ask fails too, the last view is **kept** — a stale
+    /// ranking is still a ranking, and the one the driver gave last time
+    /// is better than none — and the daemon says so in its log, throttled,
+    /// so afterwards the log can say "the driver was silent" instead of
+    /// saying nothing at all.
+    fn refresh_stale_gpu_view(&self, watches: &Mutex<Vec<GpuWatch>>) {
+        let (sample, fresh_at) = {
+            let watches = watches.lock().unwrap();
+            let watch = watches.iter().find(|watch| watch.source == "nvidia-smi");
+            match watch {
+                Some(watch) => (
+                    Arc::clone(&watch.sample),
+                    Arc::clone(&watch.per_process_at),
+                ),
+                None => return,
+            }
+        };
+        let now = now_unix_nanos();
+        let seen_at = fresh_at.load(std::sync::atomic::Ordering::Relaxed);
+        if now.saturating_sub(seen_at) <= GPU_VIEW_STALE.as_nanos() as u64 {
+            return;
+        }
+        let mut staleness = self.gpu_stale.lock().unwrap();
+        // The re-ask costs up to `timeout`'s bound of the main loop's time,
+        // and the loop is the watchdog's clock, so it is not run on every
+        // sample: one bounded re-ask per gap, and a log line per gap.
+        let attempt_due = staleness
+            .1
+            .map(|at| at.elapsed() >= GPU_STALE_LOG_GAP)
+            .unwrap_or(true);
+        if !attempt_due {
+            return;
+        }
+        staleness.1 = Some(Instant::now());
+        let asked = Instant::now();
+        match crate::gpu::query_nvidia_processes() {
+            Some(per_process) => {
+                fresh_at.store(now, std::sync::atomic::Ordering::Relaxed);
+                let mut guard = sample.lock().unwrap();
+                guard.per_process = per_process;
+            }
+            None => {
+                if staleness
+                    .0
+                    .map(|at| at.elapsed() >= GPU_STALE_LOG_GAP)
+                    .unwrap_or(true)
+                {
+                    staleness.0 = Some(asked);
+                    drop(staleness);
+                    self.log_event(
+                        "daemon.gpu_stale",
+                        json!({
+                            "source": "nvidia-smi",
+                            "stale_for_ms": (now.saturating_sub(seen_at) / 1_000_000) as u64,
+                            "query_timeout_secs": crate::gpu::NVIDIA_QUERY_TIMEOUT_SECS,
+                        }),
+                    );
+                }
+            }
+        }
     }
 
     /// Write one line to the daemon's log.
@@ -3780,6 +3910,15 @@ fn merge_gpu_samples(watches: &[GpuWatch]) -> (GpuSample, String) {
         }
     }
     (merged, sources.join(","))
+}
+
+/// The kernel's notion of now, in unix nanoseconds: the unit the GPU
+/// watches' freshness marks are kept in.
+fn now_unix_nanos() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|since| since.as_nanos() as u64)
+        .unwrap_or(0)
 }
 
 /// Signal a lease's target. A group is signalled with a negative pid.

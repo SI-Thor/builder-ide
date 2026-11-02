@@ -155,9 +155,11 @@ The tiers, most urgent first:
 
 Daemon options (all have defaults):
   --floor <size>            the floor a lease must clear      (default 25G)
-  --emergency-floor <size>  below this, the watchdog acts     (default 8G)
+  --emergency-floor <size>  below this, the watchdog acts     (default 16G)
   --gpu-floor <size>        the least the GPU's own allocation pool must
-                            keep free (tegrastats' lfb; default 2G)
+                            keep free (tegrastats' lfb; default 0, since on
+                            this box lfb is a contiguous-block figure, not
+                            the GPU's headroom)
   --sample-interval-ms <n>  how often the box is sampled      (default 250)
   --scan-interval-ms <n>    how often the processes' memory is read (default 1000)
   --stop-grace-samples <n>  samples a watchdog-terminated lease is given
@@ -194,8 +196,8 @@ Daemon options (all have defaults):
   --guard-min-rss <size>    the smallest unleased process the guard will
                             touch (default 4G)
   --guard-drop <size>       the fall in free memory that counts as a runaway
-                            (default 8G inside the window)
-  --guard-window-secs <n>   the window the fall is measured over (default 10)
+                            (default 12G inside the window)
+  --guard-window-secs <n>   the window the fall is measured over (default 120)
   --guard-interval-ms <n>  how often the guard looks at the box (default 2000)
   --guard-protected-file <path>
                             the operator's list of command lines the guard

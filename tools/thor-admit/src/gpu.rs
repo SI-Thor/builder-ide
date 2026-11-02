@@ -238,15 +238,36 @@ pub fn parse_nvidia_gpu_line(line: &str) -> Option<GpuSample> {
     Some(sample)
 }
 
+/// How long a one-shot `nvidia-smi` query may take before the daemon gives
+/// up on it, in seconds.
+///
+/// On the Thor `nvidia-smi` hangs intermittently — the 2026-11-01 16:10
+/// hang began with `NVRM: … Out of memory` errors from the driver, and a
+/// query that never answers is a query that holds its caller. The daemon's
+/// GPU children keep printing on their own, so the one-shot form is only
+/// the fallback for when a child has gone quiet, and it is bounded: a query
+/// that takes longer than the driver's own trouble is worth is a query that
+/// is part of the trouble.
+pub const NVIDIA_QUERY_TIMEOUT_SECS: u64 = 5;
+
 /// Ask `nvidia-smi` for the GPU bytes of every process that has a context.
+///
+/// Bounded with `timeout(1)`: the driver's own query can hang while the
+/// driver is in trouble, and a hanging query is worse than no answer.
 pub fn query_nvidia_processes() -> Option<HashMap<i32, u64>> {
-    let output = Command::new("nvidia-smi")
+    let output = Command::new("timeout")
         .args([
+            "-s",
+            "KILL",
+            &NVIDIA_QUERY_TIMEOUT_SECS.to_string(),
+            "nvidia-smi",
             "--query-compute-apps=pid,used_memory",
             "--format=csv,noheader,nounits",
         ])
         .output()
         .ok()?;
+    // `timeout` kills a hung query with a non-success status, and so does a
+    // driver that answers "error" instead of a table.
     if !output.status.success() {
         return None;
     }
