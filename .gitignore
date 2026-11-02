@@ -1,0 +1,4 @@
+/target
+# Scratch ledgers from rebuilds; the canonical ledger is ledger.jsonl
+ledger.new.jsonl
+ledger.jsonl.old

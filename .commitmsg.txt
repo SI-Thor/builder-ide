@@ -1,0 +1,37 @@
+gc v1: a hash-chained ledger for subcontracting seats to jobs
+
+The general contractor writes a job, awards it to a seat, watches the burn
+against the bid, and closes the job with the numbers. Everything lives in one
+append-only JSONL ledger (ledger.jsonl) where every row carries the hash of
+the row before it, so a changed row fails gc verify.
+
+What is in this commit:
+
+- src/: the binary. std only, no crates, no network at build time. json.rs
+  (canonical writer + parser), sha256.rs (written for this, checked against
+  the FIPS vectors), ledger.rs (append + chain), model.rs (replay),
+  calib.rs (the factor, the reputation, the award score), accounting.rs
+  (overrun, penalty, debt, repayment), brief.rs, report.rs, seed.rs, cli.rs.
+- Subcommands: job new/list, bid, award, checkpoint, close, change-order,
+  cancel, retool, report, brief, verify, seed import.
+- The stop rule: at 80% of the bid without the goal line, the ledger refuses
+  more burn until the general contractor re-scopes, extends or cancels.
+- Debt: an overrun plus late penalties is debt the seat carries; an underrun
+  repays it; 120 crew-minutes of debt blocks hiring on that class until a
+  retooling is recorded.
+- The track record is seeded from the real lanes of 2026-11-01..02: 50 lanes
+  (41 finished, 7 quota stops, 2 failed), 31 of them clean enough to
+  calibrate a bid. Every seeded row is marked reconstructed: true.
+- tools/extract-lanes.py rebuilds that seed from the board history, the seat
+  output files and the queue. It runs on the ProArt and pulls the Thor's
+  facts over ssh.
+- tests/: 27 tests, all passing on the Thor (20 unit, 7 through the binary).
+  The ledger chain catches a changed byte; the calibrated bid for a seat
+  with clean runs of 40, 50 and 60 minutes over a 100-minute estimate is
+  117 crew-minutes; an overrun of 30 plus a one-day penalty of 30 is 60 of
+  debt and an underrun of 20 repays 20 of it; the stop rule refuses more
+  burn until a change order lifts it; the same commands with a fixed clock
+  write byte-identical ledgers.
+
+The model, the measurement of crew-time and what the history does not
+contain are in docs/model.md and NOTES.md.
