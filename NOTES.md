@@ -2107,3 +2107,53 @@ night would go on to its morning — was wrong, and the night proved it.
 is evidence too — and the night runs again from the one command, with the
 export bound at 4 h and a timeout that is a recorded gap rather than a dead
 night.
+
+## 2026-11-02 00:35 — the third seat picks the run up
+
+**What I found.** The relaunched night (23:48:44, pid 2764483) is running
+with the finisher beside it (pid 2764547). By 00:32 it had 37 of wave 1's
+38 jobs done (550 ledger rows, 251 judge.verdict), the box at load1 23.8
+(other seats working too), 83.9 GB MemAvailable, 19.1 GiB GPU used — below
+the 48 GiB bar, so no mesh waits. The prior fit for tonight: 48 reference
+members, 2 groups (smallest 10 = the library's crates, largest 38), gate
+live — the ghost gate can fire for the first time.
+
+**What the desk holds.** The previous seat left the lab doc drafted on the
+ProArt (`night-v5-desk/work/`: sections 1-4 written from tonight's start,
+the stage table with placeholders for the re-run's numbers, an assembler,
+and a status script — pushed to the Thor's /tmp for the checks).
+
+**What I decided next.** Monitor at 10-minute cadence with one blocking
+sleep per check; when the morning lands, fill the stage table from the
+ledger and measurements, verify the letter (<=150 words, one question),
+assemble docs/lab/night-v5.md, and commit. Nothing else runs on the box
+from this seat.
+
+## 2026-11-02 04:50 — the night finished; the doc and the letter
+
+**What happened.** The night (23:48:39 → 04:37:13, 288.57 min) ended
+**"ran as planned — nothing failed"**, the first integrated night to
+finish since run D. 39 jobs in 46.0 job-min; 14.66 GPU-min of the
+60-min rail; three leases at honest peaks (6G/6G/40G — only the heavy
+above 30 GB), waits 0.0/0.1/0.1 s; the heavy lease phased 40G → 8G at
+00:37:13 (0.02 s, 90.7 GB free); 251 decisions (245 on the local d1-3B,
+mean 0.0481 s); 3 props kept (crate_r1_v3 1.00, lantern_r2_v1 0.94,
+anvil_r1_v1 0.94), 15 rejected. **The ghost gate fired for the first
+time**: lantern_r2_v3 at plausibility 0.0385 — a solid block (occupied
+volume 1.004) the scripted critic had scored 0.939. The delegate
+answered 18 of 18 pictures (~1.1 s each; 10 fired `holes`). The bar and
+the wedge restart were armed and never fired (0 rows each). The export
+ran to its 4 h bound and was killed still mid-walk (scene.blend
+145.7 MB, no source.glb) — the gap was recorded and the night wrote its
+morning, report and letter (104 words, one question: what to do with a
+ghost). The finisher wrote measurements.txt/json unaided.
+
+**What I did.** Filled the stage table and sections 5-9 of
+docs/lab/night-v5.md from the run's own ledger and measurements,
+assembled on the ProArt, and copied it here. Committed with a full
+message.
+
+**What is left.** The export bound is still shorter than the work on a
+loaded box (240 min at 100% of one core, killed mid-walk) — the
+live-view seam has never produced a glb inside a night; the bar and the
+wedge restart have never fired in anger. All three are in the doc's §9.
