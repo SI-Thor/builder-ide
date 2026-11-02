@@ -1,0 +1,11 @@
+thor-admit: "refit-drift.exp2" admitted after 0.000s (peak 2.0G, floor 25.0G)
+  per_skill_heads  seed 0  newest 0.442 (peak 0.442)  old mean 0.458  overall 0.468  env nan  340s
+  per_skill_heads  seed 1  newest 0.429 (peak 0.435)  old mean 0.476  overall 0.510  env nan  338s
+  per_skill_heads  seed 2  newest 0.433 (peak 0.449)  old mean 0.462  overall 0.490  env nan  386s
+
+3 runs -> results/watching_teachers_heads.json
+load 14.47, 14.13, 15.97| NV Power Mode: MAXN| gpu-util 0%| gpu-clk 414 MHz| mem avail 99263 MiB
+  contender pid 1049394: /home/caseydigennaro/ml/.venv/bin/python /home/caseydigennaro/ml/.venv/bin/uvicorn server:app --host 0.0.0.0 -
+  contender pid 2313135: /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/lm-wt/scenebloom-eva
+  contender pid 2534191: /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q
+thor-admit: "refit-drift.exp2" finished with code 0 (peak RSS 1.5G)

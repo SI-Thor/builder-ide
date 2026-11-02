@@ -6,7 +6,7 @@ over a growing log drift the old contexts' value estimates — measured with
 `core/tiles/ope.py` on the six tiles the real nights authored; (2) the
 watching-teachers question from `docs/design/watching-teachers.md`: when one
 policy is fine-tuned on all the demonstrations, does the newest skill survive
-and do the old ones degrade. Part 2 is running; the numbers land in
+and do the old ones degrade, reported in
 [section 7](#7-the-watching-teachers-question-one-policy-many-demonstrations).*
 
 **The verdict in one paragraph (part 1).** The whole-log refit does **not**
@@ -32,6 +32,21 @@ and it costs the old contexts nothing; **version the context definition** —
 changing one is a migration, not a config edit; and **watch the prior** —
 when the library churns, old contexts are being served by tiles the prior
 alone has endorsed.
+
+**The verdict in one paragraph (part 2).** On crafter-lab's real teacher
+frames (six skills, 3 seeds), sequential fine-tuning on the new
+demonstrations is where the old skills die: the newest skill survives
+(0.392) while the old five end at 0.318 on mean, down 0.029-0.059 from
+their stage peaks, earliest-taught worst (0.11-0.14 for the second skill).
+Half the stage budget replaying the old skills buys them back (old mean
+0.428, per-skill loss <= 0.027) at no cost to the newest (0.411). Refitting
+on the **whole** log at once - what the nightly refit actually does - shows
+no forgetting at all and is the best student in the run (newest 0.457, old
+0.495, overall 0.514, against 0.530 for crafter-lab's own well-trained
+student). Per-skill heads isolate the skills perfectly but cost the single
+policy. **Keep the whole-log refit**; stage with replay if the log ever
+grows too big to hold; hold the heads as the fallback for a skill the
+shared trunk provably cannot keep.
 
 ---
 
@@ -205,8 +220,106 @@ the largest weight is ten.
 
 ## 7. The watching-teachers question: one policy, many demonstrations
 
-*(running — see the NOTES.md entry; the numbers land here when the run
-finishes.)*
+**The question (BRIEF part 2).** The design's weights path is "the
+student's policy fine-tuned on the demonstrations" - one policy, many
+demonstrations, arriving skill by skill. When the newest skill's
+demonstrations are trained in, does the newest skill survive and do the old
+ones degrade? Measured on the real data the brief named: crafter-lab's
+recorded teacher frames.
+
+**Setup.** The six skills with the most demonstrations, in the order the
+teacher taught them - `collect_drink`, `collect_wood`, `collect_sapling`,
+`collect_stone`, `eat_cow`, and newest `defeat_zombie` (969, 817, 186, 303,
+232, 328 demonstrations); a fixed split (seed 20261101; per-skill held-out
+eval capped at 1000 frames, a 2000-frame whole-trajectory sample); 3 seeds;
+262144 gradient passes per stage; the repo's SB3 student on CPU. The metric
+is student-teacher agreement on held-out frames, with the env-achievements
+score (four 1000-frame episodes) beside it. Four arms:
+
+| arm | what is trained |
+|---|---|
+| `seq` | skill by skill in teaching order, no replay - "fine-tune on the new demos" as it stands |
+| `seq_replay` | same, but half of each stage's budget replays earlier skills' demos |
+| `whole` | one training pass over **all** the demonstrations - what the nightly whole-log refit does |
+| `per_skill_heads` | a shared trunk on all the demos (half the budget, then frozen) plus one linear head per skill on that skill's demos only |
+
+**Calibration, so the agreement can be read** (`_diag_calib.py`, table in
+`results/calib_budget.log`): the *untrained* policy agrees at 0.104-0.197
+(overall 0.192) - at or **below** the constant-action baseline (0.208-0.323
+per skill); crafter-lab's own well-trained student B agrees at 0.352-0.443
+(overall 0.530). `_diag_budget.py`: at our per-stage budget a single-skill
+student scores 0.382 on wood (0.260 at 16384 passes, its constant
+baseline). Every arm in the table is a weak student between those two
+references; a 1000-frame eval carries about 1.5 points of standard error.
+
+**The result** (final per-skill agreement, 3 seeds each; min-max (mean)):
+
+| arm | newest (`defeat_zombie`) | old mean | overall (trajectory) | old-skills forgetting | env achievements |
+|---|---|---|---|---|---|
+| `seq` | 0.382-0.405 (0.392) | 0.311-0.324 (0.318) | 0.324-0.344 (0.333) | 0.029-0.059 (0.044) | 2.00-3.00 |
+| `seq_replay` | 0.386-0.431 (0.411) | 0.424-0.434 (0.428) | 0.450-0.462 (0.456) | 0.007-0.013 (0.010) | 1.00-2.75 |
+| `whole` | 0.455-0.459 (0.457) | 0.489-0.502 (0.495) | 0.510-0.521 (0.514) | 0 (one batch) | 1.50-3.00 |
+| `per_skill_heads` | 0.429-0.442 (0.435) | 0.458-0.476 (0.465) | 0.468-0.510 (0.489) † | 0.006-0.011 (0.009) † | - (no single policy) |
+
+† the heads arm has no single policy. "Overall" is the shared base
+policy on the trajectory, not the heads; "forgetting" compares each head
+with the trunk-stage reading of the same skill (the heads are never
+retrained, so nothing later writes them - the isolation is by
+construction); the env score is unmeasurable because the design does not
+name which head answers the environment. The script records that rather
+than papering over it. Env ranges pool the three attempts: the env
+episodes are not deterministic, the agreement numbers are, and every
+attempt reproduced them bit for bit.
+
+Per-skill finals in `seq`, where the forgetting is visible (3-seed means),
+against each skill's stage peak: drink 0.316 (peak 0.33), sapling 0.371
+(0.40), stone 0.286 (0.33), wood 0.265 (0.39), eat_cow 0.354 (0.36), and
+the newest, zombie, 0.392. Wood, the second skill taught, loses
+0.108-0.139 - the largest single loss in the run.
+
+**What each arm says.**
+
+1. *`seq` - the newest skill survives; the old ones degrade, earliest
+   worst.* The skill trained last ends above every old skill's final value
+   while the old five drop 0.029-0.059 on mean from their peaks. Last
+   writer wins on a shared substrate; nothing in the loop writes the old
+   behaviour back.
+2. *`seq_replay` - half the budget replaying the old demos buys them
+   back.* Old mean 0.318 to 0.428, per-skill forgetting <= 0.027, newest
+   0.392 to 0.411, overall 0.333 to 0.456. The cheapest insurance a staged
+   pipeline can buy.
+3. *`whole` - no forgetting, and the best student in the run.* One pass
+   over everything: every skill at its best per-skill value (0.457-0.537)
+   and within 2 points of crafter-lab's own student B on the overall
+   measure.
+4. *`per_skill_heads` - zero interference, zero single policy.* Each head
+   keeps 0.428-0.507 and is never touched again, and every head lands
+   within 3 points of the trunk's own reading of its skill, mostly a hair
+   below; but no policy can act in the environment, routing is the design's
+   open question, and the partition is not a policy.
+
+**Recommendation (part 2).** **Keep the whole-log refit.** The nightly
+refit that retrains on the entire log is the `whole` arm; it is the best
+student measured and it has nothing to forget - the same verdict as part
+1's, since the refit *is* the replay arm the toy said we need. Sequential
+fine-tuning on the new demonstrations is the arm that loses the old skills;
+if the log ever grows too big to refit whole, stage it **with replay** -
+`seq_replay` is the measured fix and it cost the newest skill nothing
+here. Per-skill heads are the fallback for a skill the shared trunk
+provably cannot hold; this measurement did not need that fallback, and the
+price - the single policy, and with it the "task success with the student
+alone" score - is real.
+
+**The run.** 12 runs (4 arms x 3 seeds), 6-10 min each, CPU torch under a
+2 GiB thor-admit practice lease: the heads arm 00:41-00:59 AKST, the three
+policy arms 01:24-02:47 AKST, 2026-11-02; box at start: load
+5.6/12.1/19.7, 97 GiB available of 122.8, 14 cores, GPU 0 % for the job
+(three other seats' llama servers idle on the GPU, ~12 GiB). The first two
+attempts both crashed in `per_skill_heads` (NOTES.md, 21:58 and 00:40
+entries) and lost their end-of-run JSONs; the agreement numbers are
+deterministic and reproduced bit-identically across attempts, and the
+scripts now save the JSON after every run, so the two recorded JSONs plus
+the per-seed summary lines in the four logs are the complete record.
 
 ## 8. What was not verified
 
@@ -219,6 +332,22 @@ measured (fold, prior, re-bucketing) is the one every rung shares through
 cannot. The contexts are 4 of 12 buckets per night, and the cloud author is
 scripted. The truth is closed-form **because** the outcome model is known;
 that is the strength of the measurement and its limit.
+
+Part 2's unverified parts. The students are weak by calibration: the
+agreements of 0.32-0.52 sit between the untrained policy (0.19 overall, at
+or below the constant-action baseline) and crafter-lab's student B (0.53
+overall), so the per-arm gaps are directionally robust but the last point
+is not. The env score is four 1000-frame episodes and it is not
+deterministic (1.00-3.00 achievements across three attempts of the same
+arm) - a coarse instrument, reported beside the agreement, not instead of
+it. The `whole` arm is one batch over all the demonstrations, which is the
+nightly refit's job, but it is not a growing-log time series: it measures
+what retraining on everything achieves, not how the estimates move night by
+night (part 1 measures that, for the tiles). The `per_skill_heads` arm has
+no environment score because the design does not name which head answers
+the environment - a cost of the design, recorded. One teacher, one
+environment, 3 seeds, and the reference is the teacher's own play, so a
+student matching it may still be off from optimal play.
 
 ## 9. Reproduce
 
@@ -239,3 +368,25 @@ GPU at 0 % for this job (one other seat's server on the GPU, 2.7 GiB).
 The recorded run, every row, is
 `docs/lab/refit-drift-scripts/results/refit_drift.json`; the box state is in
 it.
+
+Part 2 needs the crafter-lab venv and its teacher frames (about 90 min for
+the three policy arms, about 20 min for the heads arm; run under a
+thor-admit lease):
+
+```bash
+cd ~/lm-wt/refit-drift/docs/lab/refit-drift-scripts
+PY=/home/caseydigennaro/lm-wt/crafter-lab/.venv/bin/python
+$PY exp_watching_teachers.py --seeds 3 --passes-per-stage 262144 \
+  --arms seq,seq_replay,whole --out results/watching_teachers.json
+$PY exp_watching_teachers.py --seeds 3 --passes-per-stage 262144 \
+  --arms per_skill_heads --out results/watching_teachers_heads.json
+$PY _diag_calib.py   > results/calib_budget.log
+$PY _diag_budget.py >> results/calib_budget.log
+```
+
+Recorded: `results/watching_teachers.json` (the three policy arms),
+`results/watching_teachers_heads.json` (the heads arm),
+`results/calib_budget.log` (the calibration table), and the four summary
+logs `watching_teachers.log`, `.run2.log`, `.run3.log`, `.run4.log`. The
+box state is inside each JSON. See the directory's README for the crash
+history and why the first two attempts are summary lines, not JSONs.

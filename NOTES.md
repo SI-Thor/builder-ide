@@ -1137,3 +1137,39 @@ seq_replay keeps both middling.
 **Decided next.** When the heads arm lands: `_diag_calib.py` +
 `_diag_budget.py` (calibration), section 7 of `docs/lab/exp-refit-drift.md`,
 scripts README, commit.
+
+
+## 2026-11-02 03:10 — brief done: part 2 measured, reported, committed
+
+**What happened.** Run 3 (per_skill_heads, 00:41-00:59) and run 4
+(seq/seq_replay/whole, 01:24-02:47) completed the record; the calibration
+scripts ran 01:05-01:16 (`results/calib_budget.log`): the untrained policy
+agrees at 0.192 overall (at or below the 0.208-0.323 constant baselines),
+crafter-lab's student B at 0.530, and at our per-stage budget a
+single-skill student scores 0.382 on wood (0.260 at 16384 passes = its
+constant baseline).
+
+**What was done.** Section 7 of `docs/lab/exp-refit-drift.md` is written
+(setup, calibration, the result table, the per-arm readings, the
+recommendation), sections 8-9 extended for part 2, the scripts README added
+(it was missing), and the recorded JSONs and logs committed.
+
+**The answer to the question.** On crafter-lab's real teacher frames
+(six skills, newest = defeat_zombie, 3 seeds): the newest skill survives
+in every arm. In plain sequential fine-tuning the old five end at 0.318
+on mean, down 0.029-0.059 from their stage peaks, earliest-taught worst
+(wood, the second skill, loses 0.108-0.139). Half the stage budget
+replaying the old demos buys them back (old mean 0.428, per-skill loss
+<= 0.027) at no cost to the newest (0.411). Refitting on the whole log
+at once - the nightly refit's shape - shows no forgetting and is the best
+student measured (newest 0.457, old 0.495, overall 0.514). Per-skill
+heads isolate the skills exactly but cost the single policy (no env
+score; every head within 3 points of, mostly below, the trunk's own
+reading). **Recommendation: keep the whole-log refit; stage with replay
+if the log ever outgrows it; hold the heads as the fallback.**
+
+**What is left.** Nothing the brief asked for. Standing caveats: 3 seeds;
+the env score is four 1000-frame episodes and is not deterministic; the
+students are weak by calibration, so gaps are directional; the first two
+attempts' 9-arm detail survives as summary lines (the agreement numbers
+are deterministic and agree across all three attempts).

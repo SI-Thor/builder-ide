@@ -1,0 +1,17 @@
+thor-admit: "refit-drift.exp2" admitted after 0.000s (peak 2.0G, floor 25.0G)
+  seq              seed 0  newest 0.405 (peak 0.405)  old mean 0.311  overall 0.330  env 2.25  550s
+  seq              seed 1  newest 0.388 (peak 0.388)  old mean 0.320  overall 0.344  env 2.25  558s
+  seq              seed 2  newest 0.382 (peak 0.382)  old mean 0.324  overall 0.324  env 2.75  526s
+  seq_replay       seed 0  newest 0.417 (peak 0.417)  old mean 0.424  overall 0.462  env 2.00  553s
+  seq_replay       seed 1  newest 0.431 (peak 0.431)  old mean 0.434  overall 0.456  env 1.25  577s
+  seq_replay       seed 2  newest 0.386 (peak 0.386)  old mean 0.427  overall 0.450  env 2.75  551s
+  whole            seed 0  newest 0.455 (peak 0.455)  old mean 0.502  overall 0.510  env 2.75  555s
+  whole            seed 1  newest 0.456 (peak 0.456)  old mean 0.496  overall 0.521  env 1.50  552s
+  whole            seed 2  newest 0.459 (peak 0.459)  old mean 0.489  overall 0.511  env 1.50  553s
+
+9 runs -> results/watching_teachers.json
+load 13.33, 14.23, 14.11| NV Power Mode: MAXN| gpu-util 1%| gpu-clk 1170 MHz| mem avail 99145 MiB
+  contender pid 1049394: /home/caseydigennaro/ml/.venv/bin/python /home/caseydigennaro/ml/.venv/bin/uvicorn server:app --host 0.0.0.0 -
+  contender pid 2313135: /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/lm-wt/scenebloom-eva
+  contender pid 2534191: /home/caseydigennaro/llama.cpp-upstream/build-up/bin/llama-server -m /home/caseydigennaro/models/d1-2B/d1-2B-Q
+thor-admit: "refit-drift.exp2" finished with code 0 (peak RSS 1.5G)

@@ -1,0 +1,26 @@
+thor-admit: "refit-drift.exp2" waited 607.2s for room (it was 2 of 2 in the queue)
+thor-admit: "refit-drift.exp2" admitted after 607.173s (peak 2.0G, floor 25.0G)
+  seq              seed 0  newest 0.405 (peak 0.405)  old mean 0.311  overall 0.330  env 2.00  681s
+  seq              seed 1  newest 0.388 (peak 0.388)  old mean 0.320  overall 0.344  env 2.50  651s
+  seq              seed 2  newest 0.382 (peak 0.382)  old mean 0.324  overall 0.324  env 2.00  1131s
+  seq_replay       seed 0  newest 0.417 (peak 0.417)  old mean 0.424  overall 0.462  env 2.25  950s
+  seq_replay       seed 1  newest 0.431 (peak 0.431)  old mean 0.434  overall 0.456  env 1.50  781s
+  seq_replay       seed 2  newest 0.386 (peak 0.386)  old mean 0.427  overall 0.450  env 2.50  624s
+  whole            seed 0  newest 0.455 (peak 0.455)  old mean 0.502  overall 0.510  env 3.00  585s
+  whole            seed 1  newest 0.456 (peak 0.456)  old mean 0.496  overall 0.521  env 1.75  535s
+  whole            seed 2  newest 0.459 (peak 0.459)  old mean 0.489  overall 0.511  env 2.00  1317s
+Traceback (most recent call last):
+  File "/home/caseydigennaro/lm-wt/refit-drift/docs/lab/refit-drift-scripts/exp_watching_teachers.py", line 622, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/home/caseydigennaro/lm-wt/refit-drift/docs/lab/refit-drift-scripts/exp_watching_teachers.py", line 577, in main
+    run = run_arm(arm, config, seed, frames, splits, names, order, trajectory)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/caseydigennaro/lm-wt/refit-drift/docs/lab/refit-drift-scripts/exp_watching_teachers.py", line 412, in run_arm
+    "agreement": agreement_table(
+                 ^^^^^^^^^^^^^^^^
+  File "/home/caseydigennaro/lm-wt/refit-drift/docs/lab/refit-drift-scripts/exp_watching_teachers.py", line 251, in agreement_table
+    head = heads[name]
+           ~~~~~^^^^^^
+KeyError: 'collect_wood'
+thor-admit: "refit-drift.exp2" finished with code 1 (peak RSS 1.5G)

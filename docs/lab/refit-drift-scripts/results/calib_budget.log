@@ -1,0 +1,24 @@
+thor-admit: "refit-drift.calib" admitted after 0.012s (peak 2.0G, floor 25.0G)
+=== _diag_calib.py ===
+UNTRAINED policy
+   collect_drink          agreement=0.183  constant-baseline=0.208
+   collect_wood           agreement=0.156  constant-baseline=0.260
+   collect_sapling        agreement=0.104  constant-baseline=0.323
+   collect_stone          agreement=0.129  constant-baseline=0.268
+   eat_cow                agreement=0.197  constant-baseline=0.223
+   defeat_zombie          agreement=0.197  constant-baseline=0.297
+   overall(trajectory) = 0.192
+crafter-lab student B (final)
+   collect_drink          agreement=0.443  constant-baseline=0.208
+   collect_wood           agreement=0.429  constant-baseline=0.260
+   collect_sapling        agreement=0.423  constant-baseline=0.323
+   collect_stone          agreement=0.352  constant-baseline=0.268
+   eat_cow                agreement=0.364  constant-baseline=0.223
+   defeat_zombie          agreement=0.374  constant-baseline=0.297
+   overall(trajectory) = 0.530
+=== _diag_budget.py ===
+collect_wood: constant-baseline=0.260  n_train=3660
+  passes=  16384 (    5s)  skill_agreement=0.260  overall=0.238 distinct_actions_used=0.06
+  passes=  65536 (   20s)  skill_agreement=0.270  overall=0.244 distinct_actions_used=0.12
+  passes= 262144 (   84s)  skill_agreement=0.382  overall=0.264 distinct_actions_used=0.53
+thor-admit: "refit-drift.calib" finished with code 0 (peak RSS 1.8G)
