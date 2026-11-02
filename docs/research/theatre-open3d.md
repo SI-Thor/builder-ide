@@ -24,3 +24,6 @@ Casey: "Open3D cinematic tools / pipelines and theatre-js/theatre have tools we 
 ## Next (queued)
 - **Theatre.js, after agent-world's playable round:** add `@theatre/core` to the agent-world viewer, with one authored "establishing shot → follow a builder → depot" sequence, triggered from the world's events. Verify in Playwright. Studio stays a local authoring tool only.
 - **Open3D:** a small evaluation in the critic: occupancy, watertightness and simplification against the current tools, for speed and agreement, on the SimReady sample and the critic's reference set.
+
+## Also queued: topview-3d-builder (2026-11-01)
+https://github.com/topviewai/topview-3d-builder (Apache-2.0, TypeScript, created 2026-09-24): an agent plugin that builds a 3D scene from an idea, places cameras, plans a camera move in its "Studio", and renders an animated video. It is our B2 pattern (the agent writes the scene; local tools render) with a camera planner, so it is the natural companion to the Theatre.js work above. **Evaluate it in an isolated worktree;** its README asks agents to install it as a plugin into themselves, which we do not do without Casey's explicit OK.
