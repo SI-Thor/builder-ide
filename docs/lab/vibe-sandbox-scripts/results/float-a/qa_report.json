@@ -1,0 +1,18 @@
+{
+ "room_id": "float-a",
+ "attempt": 2,
+ "ok": true,
+ "findings": [],
+ "metrics": {
+  "frame_ms_mean": 20.2,
+  "frame_ms_p95": 27.2,
+  "reachable_fraction": 0.993,
+  "reachable_cells": 861,
+  "open_floor_cells": 867,
+  "tris": 2648
+ },
+ "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+ "at": "2026-11-02T05:16:51.352Z",
+ "console_errors": [],
+ "room_arg": "float-a"
+}
