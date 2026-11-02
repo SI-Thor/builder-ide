@@ -1,0 +1,217 @@
+"""Env steps/s for the batched simulator, with the box state beside it.
+
+This is the measurement the design asks for
+(`docs/design/batched-sim.md` §5, build 1): env steps/s at batch 128 / 1024 /
+4096, against the Python/CPU reference.
+
+Two variants are timed, the way the Stratego port's own bench did it:
+
+  - **step**: the environment alone -- `apply_actions`;
+  - **step+obs**: the same plus the observation planes, which is what the
+    policy actually consumes.
+
+Every number is the median of `--reps` repetitions of `--steps` steps, and
+the box state (load average, free memory, the GPU pool's largest free block)
+is recorded before and after, because this box's GPU memory is its system
+memory and a number without the box beside it is not a measurement.
+
+Usage:
+
+    .venv/bin/python docs/lab/batched-sim-scripts/bench_env.py \\
+        --batches 128 1024 4096 --steps 2000 --reps 7 --device cuda
+
+The script refuses to run a GPU workload that does not fit: it reads the
+GPU pool's largest free block and sizes the batch against it.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import statistics
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+
+REPO = Path(__file__).resolve().parents[2]
+if str(REPO) not in sys.path:
+    sys.path.insert(0, str(REPO))
+
+from core.sim import make_batch  # noqa: E402
+
+
+def load_average() -> list[float]:
+    try:
+        with open("/proc/loadavg") as handle:
+            return [float(x) for x in handle.readline().split()[:3]]
+    except OSError:
+        return []
+
+
+def memory_free_bytes() -> int:
+    try:
+        with open("/proc/meminfo") as handle:
+            for line in handle:
+                if line.startswith("MemAvailable:"):
+                    return int(line.split()[1]) * 1024
+    except OSError:
+        pass
+    return 0
+
+
+def thor_status() -> dict:
+    """The admission daemon's view of the box."""
+    try:
+        done = subprocess.run(
+            [os.path.expanduser("~/lm-tools/thor-admit"), "status", "--json"],
+            capture_output=True, text=True, timeout=30,
+        )
+        if done.returncode == 0:
+            return json.loads(done.stdout)
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        pass
+    return {}
+
+
+def box_state() -> dict:
+    status = thor_status()
+    return {
+        "load_average": load_average(),
+        "mem_available_bytes": memory_free_bytes(),
+        "gpu_largest_free_block_bytes": status.get("gpu_largest_free_block_bytes"),
+        "gpu_box_used_bytes": status.get("gpu_box_used_bytes"),
+        "leases": [
+            {"label": lease.get("label"), "peak_bytes": lease.get("peak_bytes"),
+             "current_rss_bytes": lease.get("current_rss_bytes")}
+            for lease in status.get("leases", [])
+        ],
+    }
+
+
+def time_steps(batch, actions, steps: int) -> float:
+    """The seconds for `steps` steps of the whole batch."""
+    start = time.perf_counter()
+    for index in range(steps):
+        batch.apply_actions(actions[index % len(actions)])
+    return time.perf_counter() - start
+
+
+def time_steps_with_obs(batch, actions, steps: int) -> float:
+    start = time.perf_counter()
+    for index in range(steps):
+        batch.obs()
+        batch.apply_actions(actions[index % len(actions)])
+    return time.perf_counter() - start
+
+
+def bench_one(device: str, batch_size: int, steps: int, reps: int, params: dict) -> dict:
+    batch = make_batch(
+        "beacons", num_envs=batch_size, rows=1, device=device, seed=0, params=params
+    )
+    rng = np.random.default_rng(1234)
+    actions = [
+        rng.integers(0, batch.spec["num_actions"], size=batch_size, dtype=np.int32)
+        for _ in range(64)
+    ]
+    # The first repetition pays for the warm-up (the first touch of every
+    # buffer), so it is measured separately and not counted in the median.
+    time_steps(batch, actions, min(steps, 64))
+    step_times = [time_steps(batch, actions, steps) for _ in range(reps)]
+    obs_times = [time_steps_with_obs(batch, actions, steps) for _ in range(reps)]
+
+    def report(times: list[float]) -> dict:
+        median = statistics.median(times)
+        return {
+            "seconds_median": median,
+            "seconds_min": min(times),
+            "seconds_max": max(times),
+            "env_steps_per_s": batch_size * steps / median,
+            "us_per_env_step": 1e6 * median / (batch_size * steps),
+        }
+
+    return {
+        "device": device,
+        "num_envs": batch_size,
+        "steps": steps,
+        "reps": reps,
+        "params": params,
+        "step": report(step_times),
+        "step_obs": report(obs_times),
+    }
+
+
+def require_gpu_room(need_bytes: int) -> None:
+    """Refuse to start a GPU workload the box cannot hold.
+
+    On the Thor a CUDA allocation that does not fit the pool **blocks in the
+    kernel rather than failing**, and the process ends up in uninterruptible
+    sleep. The box's own advice is to size a GPU workload against the pool's
+    largest free block, so that is what this checks.
+    """
+    status = thor_status()
+    block = status.get("gpu_largest_free_block_bytes")
+    if block is None:
+        print("no GPU view from the admission daemon; the run is not started")
+        raise SystemExit(2)
+    if block < need_bytes:
+        print(
+            f"the GPU pool's largest free block is {block / 1e6:.1f} MB; "
+            f"this run needs {need_bytes / 1e6:.1f} MB. The run is not started."
+        )
+        raise SystemExit(2)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--batches", type=int, nargs="+", default=[128, 1024, 4096])
+    parser.add_argument("--steps", type=int, default=2000)
+    parser.add_argument("--reps", type=int, default=7)
+    parser.add_argument("--device", default="cuda")
+    parser.add_argument("--world", type=int, default=128, help="the world's edge in cells")
+    parser.add_argument("--out", default="")
+    args = parser.parse_args()
+
+    params = {"world_w": args.world, "world_h": args.world}
+    if args.device in ("cuda", "gpu"):
+        # The batch's own footprint: the state, the world, the mask and the
+        # observation planes, at the largest batch asked for.
+        largest = max(args.batches)
+        need = largest * (6 * args.world * args.world * 4 + 16_448 + 480)
+        require_gpu_room(need)
+    result = {
+        "box_before": box_state(),
+        "device": args.device,
+        "world": args.world,
+        "results": [],
+    }
+    for batch_size in args.batches:
+        print(f"== batch {batch_size} ({args.device}, {args.world}x{args.world}) ==",
+              flush=True)
+        entry = bench_one(args.device, batch_size, args.steps, args.reps, params)
+        result["results"].append(entry)
+        print(
+            f"   step      {entry['step']['env_steps_per_s']:>12,.0f} env-steps/s "
+            f"({entry['step']['us_per_env_step']:.3f} us/env-step)",
+            flush=True,
+        )
+        print(
+            f"   step+obs  {entry['step_obs']['env_steps_per_s']:>12,.0f} env-steps/s "
+            f"({entry['step_obs']['us_per_env_step']:.3f} us/env-step)",
+            flush=True,
+        )
+    result["box_after"] = box_state()
+
+    text = json.dumps(result, indent=2)
+    print(text)
+    if args.out:
+        Path(args.out).write_text(text + "\n")
+        print(f"wrote {args.out}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

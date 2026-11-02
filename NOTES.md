@@ -3950,3 +3950,41 @@ yet proven: torch is **not** installed on this box, so the binding speaks
 numpy and the Python wrapper offers a `torch.from_numpy` conversion; and the
 observation is not stored per rollout row for Beacons (200 rows of a
 128×128×6-plane observation is 322 GB at batch 4096).
+
+## 2026-11-02 07:55 — batched-sim: the interface, the Beacons port, and the CPU half of the equality gate
+
+**What I tried.** Built `core/sim/` (the general batched-simulator interface)
+and ported **last-mile's Beacons ruleset** onto it: the first ranked item of
+`docs/design/batched-sim.md` §5. The rules are written **once**, in
+`core/sim/systems/beacons/rules.cuh`, compiled by g++ for the CPU backend
+and by nvcc for the CUDA backend — so "the GPU agrees with the CPU" is a
+property of the backend, not of a second implementation that might drift. A
+third, independent Python implementation (`reference.py`) is the ground
+truth, written from the Rust rather than from the C++.
+
+**What happened.**
+- The module builds: `_pysim.so`, sm_110, no `-DNDEBUG` (the device-side
+  asserts stay in, the way the Stratego port did it).
+- The **CPU backend works end to end**: the mask is `(num_envs, 9)`, the
+  observation is `(num_envs, 6, 128, 128)`, the state bytes and the world
+  bytes are canonical and little-endian.
+- **25 rule tests pass** (`tests/sim/test_beacons_rules.py`), written from
+  last-mile's Rust tests: the tag and the respawn, the contested beacon, the
+  tie, the line of sight and its symmetry, the generator's determinism and
+  point symmetry, the motor's axis order and speed budget.
+- The C++ world generator and the Python one agree byte for byte on a
+  32x32 world (beacons, spawns, initiative, walls, cover).
+- **The GPU is wedged on the box.** The pool's largest free block is
+  **197 MB** (it was 1035 MB when this seat started), and a trivial CUDA
+  program that ran at the start of the session now hangs. The wedged
+  process sits in uninterruptible sleep (`D` state), where a timeout cannot
+  reap it — exactly the failure `docs/lab/exp-stratego.md` §0 describes.
+  So the CUDA half of the equality gate is **guarded by the pool's free
+  block**: it is skipped when the box has no room, not attempted.
+
+**What I decided next.** Size every GPU allocation against the pool's
+largest free block, never against the free system memory. Wait for the
+pool. Meanwhile the CPU half of the gate and the docs are done.
+
+**What is left.** The CUDA half of the byte-for-byte gate, and the
+measurements (env steps/s at 128 / 1024 / 4096). Both need the GPU.

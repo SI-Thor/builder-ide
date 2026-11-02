@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "system": "beacons",
+  "planes": [
+    {"name": "visible", "shape": [1], "dtype": "float32", "rule": "view.visible"},
+    {"name": "terrain", "shape": [1], "dtype": "float32", "rule": "grid.cell_kind"},
+    {"name": "beacon", "shape": [1], "dtype": "float32", "rule": "rules.holder"},
+    {"name": "self", "shape": [1], "dtype": "float32", "rule": "agent.self"},
+    {"name": "ally", "shape": [1], "dtype": "float32", "rule": "agent.ally"},
+    {"name": "enemy", "shape": [1], "dtype": "float32", "rule": "agent.enemy"}
+  ],
+  "actions": [
+    "hold",
+    "north",
+    "north_east",
+    "east",
+    "south_east",
+    "south",
+    "south_west",
+    "west",
+    "north_west"
+  ],
+  "notes": [
+    "terrain: 0 unknown, 1 floor, 2 wall, 3 cover.",
+    "beacon: 0 no beacon, 1 a beacon nobody holds, 2 + squad the holder.",
+    "The agent planes are masked by the visibility, so an enemy in an unseen cell is not leaked by its own plane.",
+    "A rule change that does not change this manifest does not change the network; one that does bumps the version."
+  ]
+}

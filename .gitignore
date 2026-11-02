@@ -102,3 +102,7 @@ docs/lab/voyager-port-scripts/results/bodies/
 docs/lab/voyager-port-scripts/results/*.crashed-run
 docs/lab/voyager-port-scripts/results/bodies.crashed-run/
 docs/lab/voyager-port-scripts/results/pilot-*/
+
+# The batched simulator's compiled module: it is built by core/sim/build.sh
+# into the package, so the package can import it, and it is not committed.
+core/sim/_pysim*.so
