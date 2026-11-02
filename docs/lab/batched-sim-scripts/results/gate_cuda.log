@@ -1,79 +1,11 @@
-thor-admit: "batched-sim.gate" admitted after 0.000s (peak 2.0G, floor 25.0G)
-.F.F..                                                                   [100%]
-=================================== FAILURES ===================================
-_____________________ test_the_states_agree_byte_for_byte ______________________
-
-    def test_the_states_agree_byte_for_byte():
-        """The states: Python, CPU and CUDA, after every step."""
-        world = 32
-        steps = 24
-        num_envs = 3
-        params = params_for(world)
-        rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
-        actions = action_sequence(99, steps, num_envs)
-    
-        for device in DEVICES:
-            batch = make_batch(
-                "beacons", num_envs=num_envs, rows=1, device=device, seed=0,
-                params={"world_w": world, "world_h": world},
-            )
-            batch.reset(np.arange(1, num_envs + 1, dtype=np.uint64))
-            for step in range(steps):
-                for index, round_ in enumerate(rounds):
-                    round_.step(actions[step][index])
-                batch.apply_actions(np.array(actions[step], dtype=np.int32))
-                encoded = batch.state_bytes()
-                for index, round_ in enumerate(rounds):
->                   assert encoded[index].tobytes() == round_.state_bytes(), (
-                        f"[{device}] the state of world {index} differs at step {step}"
-                    )
-E                   AssertionError: [cuda] the state of world 0 differs at step 0
-E                   assert b'\x00\x00\x0...0\x00\x00\x00' == b'\x03\x00\x0...0\x00\x00\x00'
-E                     
-E                     At index 0 diff: b'\x00' != b'\x03'
-E                     Use -v to get more diff
-
-tests/sim/test_beacons_equivalence.py:200: AssertionError
-_________________________ test_the_observations_agree __________________________
-
-    def test_the_observations_agree():
-        """The observation planes: the same floats, on every backend."""
-        world = 32
-        steps = 6
-        num_envs = 2
-        params = params_for(world)
-        rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
-        actions = action_sequence(13, steps, num_envs)
-    
-        for device in DEVICES:
-            batch = make_batch(
-                "beacons", num_envs=num_envs, rows=1, device=device, seed=0,
-                params={"world_w": world, "world_h": world},
-            )
-            batch.reset(np.arange(1, num_envs + 1, dtype=np.uint64))
-            for step in range(steps):
-                obs = batch.obs()
-                for index, round_ in enumerate(rounds):
-                    want = np.array(round_.obs(), dtype=np.float32).reshape(
-                        obs.shape[1:]
-                    )
->                   assert np.array_equal(obs[index], want), (
-                        f"[{device}] the observation of world {index} differs at step {step}"
-                    )
-E                   AssertionError: [cuda] the observation of world 0 differs at step 0
-E                   assert False
-E                    +  where False = <function array_equal at 0xffff7e8d69f0>(array([[[1., 1., 1., ..., 0., 0., 0.],\n        [1., 1., 1., ..., 0., 0., 0.],\n        [1., 1., 1., ..., 0., 0., 0.],\n ... 0.],\n        [0., 0., 0., ..., 0., 0., 0.],\n        [0., 0., 0., ..., 0., 0., 0.]]], shape=(6, 32, 32), dtype=float32), array([[[0., 0., 0., ..., 0., 0., 0.],\n        [0., 0., 0., ..., 0., 0., 0.],\n        [0., 0., 0., ..., 0., 0., 0.],\n ... 0.],\n        [0., 0., 0., ..., 0., 0., 0.],\n        [0., 0., 0., ..., 0., 0., 0.]]], shape=(6, 32, 32), dtype=float32))
-E                    +    where <function array_equal at 0xffff7e8d69f0> = np.array_equal
-
-tests/sim/test_beacons_equivalence.py:252: AssertionError
+thor-admit: "batched-sim.gate" waited 125.9s for room (it was 2 of 2 in the queue)
+thor-admit: "batched-sim.gate" admitted after 125.925s (peak 2.0G, floor 25.0G)
+.......                                                                  [100%]
 =============================== warnings summary ===============================
 .venv/lib/python3.12/site-packages/fastapi/testclient.py:1
   /home/caseydigennaro/lm-wt/batched-sim/.venv/lib/python3.12/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
     from starlette.testclient import TestClient as TestClient  # noqa
 
 -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
-=========================== short test summary info ============================
-FAILED tests/sim/test_beacons_equivalence.py::test_the_states_agree_byte_for_byte
-FAILED tests/sim/test_beacons_equivalence.py::test_the_observations_agree - A...
-2 failed, 4 passed, 1 warning in 1.03s
-thor-admit: "batched-sim.gate" finished with code 1 (peak RSS 142.0M)
+7 passed, 1 warning in 1.09s
+thor-admit: "batched-sim.gate" finished with code 0 (peak RSS 140.1M)

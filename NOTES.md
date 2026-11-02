@@ -3988,3 +3988,56 @@ pool. Meanwhile the CPU half of the gate and the docs are done.
 
 **What is left.** The CUDA half of the byte-for-byte gate, and the
 measurements (env steps/s at 128 / 1024 / 4096). Both need the GPU.
+
+## 2026-11-02 10:15 — batched-sim: the CUDA half of the gate passes, and the first measurement
+
+**What I tried.** The CUDA half of the byte-for-byte gate, under a lease
+(`thor-admit run --tier live --peak 2G --label batched-sim.gate`), and the
+first throughput measurement of the GPU backend.
+
+**What happened.**
+
+- **The CUDA half of the gate passes**: 7 passed in 1.09 s. The GPU and the
+  CPU produce the same state bytes, the same world bytes, the same mask, the
+  same observation and the same reward from the same seeds and the same
+  actions. The log is `docs/lab/batched-sim-scripts/results/gate_cuda.log`.
+  The earlier `gate exit: 1` in `/tmp/watch_gpu.log` was the watcher running
+  the *pre-fix* test file; the committed test file passes.
+- **The GPU backend, batch 128 on the game's own 128x128 world**
+  (`results/bench_cuda_128_w128.json`, 2000 steps, 7 repetitions, median):
+  - the rule step alone: **2,399,051 env-steps/s**, 0.417 us an env-step;
+  - the step plus the observation: **5,448 env-steps/s**, 183.544 us an
+    env-step.
+  So the observation is about **440x** the cost of the rules themselves, and
+  it is the only thing worth optimising next. It is not optimised here.
+  - Box before: load 10.55 / 10.90 / 10.45, 101.0 GB free, the GPU pool's
+    largest free block **1648.4 MB**. Box after: load 9.03 / 8.67 / 9.51,
+    111.8 GB free, **2948.6 MB**.
+
+**Two dead ends, recorded so nobody retries them.**
+
+- `cudaMallocManaged` wedges this box at about 184 MB of free block, where
+  `cudaMalloc` (what the simulator uses) runs at 125 MB. The benchmark's
+  guard threshold is 64 MB for the same reason: managed memory is what
+  wedges, and a benchmark that wedges is worse than one that refuses.
+- The admission daemon will not grant a lease while another lease is
+  over-reserved (`over_reserved: true` in the status), and the GPU pool's
+  largest free block fell to **12.6 MB** while the night-v6 jobs queued
+  behind this seat's own small lease. The measurements therefore wait for
+  room instead of being taken.
+
+**A bug in the benchmark script, found and fixed.** The `step+obs` rate was
+computed with the *rule* step count rather than the observation step count,
+so it would have been reported 10x too high for the runs that use fewer
+observation steps. Fixed before the later runs; the run quoted above is
+unaffected (its observation ran the same 2000 steps).
+
+**What I decided next.** The pure Python reference joins the benchmark as a
+third device (`--device python`), so the report can say what the GPU is
+faster *than*. The batch 1024 / world 128 GPU run was started before the
+`--obs-steps` flag reached the box, so it will hit its own 1800 s timeout and
+write no JSON; it is re-run with 200 observation steps afterwards.
+
+**What is left.** The rest of the measurements (the GPU at 1024 and 4096, the
+CPU backend, the Python reference), the lab note's section 4, and the final
+commit.

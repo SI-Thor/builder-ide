@@ -1,0 +1,105 @@
+thor-admit: "batched-sim.bench" admitted after 0.003s (peak 3.0G, floor 25.0G)
+== batch 1024 (cuda, 128x128) ==
+   step        22,109,458 env-steps/s (0.045 us/env-step)
+   step+obs        17,860 env-steps/s (55.992 us/env-step)
+{
+  "box_before": {
+    "load_average": [
+      9.03,
+      8.67,
+      9.51
+    ],
+    "mem_available_bytes": 112031404032,
+    "gpu_largest_free_block_bytes": 2948595712,
+    "gpu_box_used_bytes": 61587062784,
+    "leases": [
+      {
+        "label": "agent-world-gym.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1539268608
+      },
+      {
+        "label": "voyager-port.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1462628352
+      },
+      {
+        "label": "batched-sim.bench",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 0
+      }
+    ]
+  },
+  "device": "cuda",
+  "world": 128,
+  "results": [
+    {
+      "device": "cuda",
+      "num_envs": 1024,
+      "steps": 2000,
+      "reps": 7,
+      "params": {
+        "world_w": 128,
+        "world_h": 128
+      },
+      "step": {
+        "seconds_median": 0.09263004300009925,
+        "seconds_min": 0.08796449500368908,
+        "seconds_max": 0.1115547359950142,
+        "env_steps_per_s": 22109457.511509582,
+        "us_per_env_step": 0.04522951318364221
+      },
+      "step_obs": {
+        "seconds_median": 114.67150070999924,
+        "seconds_min": 110.12513025500084,
+        "seconds_max": 601.2097632660007,
+        "env_steps_per_s": 17859.71219805809,
+        "us_per_env_step": 55.991943706054315
+      }
+    }
+  ],
+  "box_after": {
+    "load_average": [
+      11.78,
+      10.88,
+      9.8
+    ],
+    "mem_available_bytes": 90696372224,
+    "gpu_largest_free_block_bytes": 301989888,
+    "gpu_box_used_bytes": 83001081856,
+    "leases": [
+      {
+        "label": "agent-world-gym.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1539530752
+      },
+      {
+        "label": "voyager-port.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1509814272
+      },
+      {
+        "label": "batched-sim.bench",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 927244288
+      },
+      {
+        "label": "serve.qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 992391168
+      },
+      {
+        "label": "serve.sensenova-si-1.3-qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 892915712
+      },
+      {
+        "label": "batched-sim.bench-py",
+        "peak_bytes": 2147483648,
+        "current_rss_bytes": 116121600
+      }
+    ]
+  }
+}
+wrote /home/caseydigennaro/lm-wt/batched-sim/docs/lab/batched-sim-scripts/results/bench_cuda_1024_w128.json
+thor-admit: "batched-sim.bench" finished with code 0 (peak RSS 885.8M)

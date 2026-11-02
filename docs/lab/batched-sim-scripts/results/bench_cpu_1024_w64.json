@@ -1,0 +1,115 @@
+{
+  "box_before": {
+    "load_average": [
+      7.17,
+      7.62,
+      8.62
+    ],
+    "mem_available_bytes": 93351620608,
+    "gpu_largest_free_block_bytes": 121634816,
+    "gpu_box_used_bytes": 84155564032,
+    "leases": [
+      {
+        "label": "agent-world-gym.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1539661824
+      },
+      {
+        "label": "voyager-port.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1544810496
+      },
+      {
+        "label": "serve.qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 992391168
+      },
+      {
+        "label": "serve.sensenova-si-1.3-qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 892915712
+      },
+      {
+        "label": "scenebloom-eval.bedroom_qwen_s1",
+        "peak_bytes": 42949672960,
+        "current_rss_bytes": 2959851520
+      },
+      {
+        "label": "batched-sim.bench-cpu",
+        "peak_bytes": 2147483648,
+        "current_rss_bytes": 0
+      }
+    ]
+  },
+  "device": "cpu",
+  "world": 64,
+  "results": [
+    {
+      "device": "cpu",
+      "num_envs": 1024,
+      "steps": 200,
+      "obs_steps": 200,
+      "reps": 3,
+      "params": {
+        "world_w": 64,
+        "world_h": 64
+      },
+      "step": {
+        "seconds_median": 0.06794690500100842,
+        "seconds_min": 0.06261088699829997,
+        "seconds_max": 0.07249740499537438,
+        "env_steps_per_s": 3014118.1558889328,
+        "us_per_env_step": 0.3317719970752364
+      },
+      "step_obs": {
+        "seconds_median": 1.8936290280034882,
+        "seconds_min": 1.8812166950010578,
+        "seconds_max": 1.8973888070031535,
+        "env_steps_per_s": 108152.12323605274,
+        "us_per_env_step": 9.246235488298282
+      }
+    }
+  ],
+  "box_after": {
+    "load_average": [
+      7.48,
+      7.68,
+      8.64
+    ],
+    "mem_available_bytes": 92445401088,
+    "gpu_largest_free_block_bytes": 130023424,
+    "gpu_box_used_bytes": 84703969280,
+    "leases": [
+      {
+        "label": "agent-world-gym.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1539661824
+      },
+      {
+        "label": "voyager-port.mc",
+        "peak_bytes": 3221225472,
+        "current_rss_bytes": 1544810496
+      },
+      {
+        "label": "serve.qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 999337984
+      },
+      {
+        "label": "serve.sensenova-si-1.3-qwen3-vl-8b",
+        "peak_bytes": 10737418240,
+        "current_rss_bytes": 892915712
+      },
+      {
+        "label": "scenebloom-eval.bedroom_qwen_s1",
+        "peak_bytes": 42949672960,
+        "current_rss_bytes": 3626483712
+      },
+      {
+        "label": "batched-sim.bench-cpu",
+        "peak_bytes": 2147483648,
+        "current_rss_bytes": 256389120
+      }
+    ]
+  }
+}
