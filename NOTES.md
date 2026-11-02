@@ -662,3 +662,84 @@ green, so the night is one command away when the box is back:
 
 The crashed attempt's artifacts are kept, not deleted: a night that started
 and then lost the box is evidence too.
+
+## 2026-11-01 16:33-16:55 — the third attempt, and what killed it
+
+The third attempt started at 16:33:07 and died at 16:33:37. The daemon
+(pid 18981 — the `agent-world` seat's daemon, which had replaced mine at
+16:32:59) granted the night's lease at once and then, 30.13 s later:
+
+    {"event":"lease.client_gone","lease":1,"reason":"the client never took the lock"}
+    {"event":"lease.orphan_stopped","lease":1,"signalled":true}
+    {"event":"lease.granted_not_run","granted_s":30.130953071,"reason":"client-gone"}
+
+The night process was gone with no traceback and no line in `run.log` after
+"queueing for a thor-admit lease (night-v4.d1 …)".
+
+**The cause, from the daemon's own log and the kernel's own record.**
+
+- The daemon names a lease's lock file after the lease's *number*:
+  `~/.local/state/thor-admit/leases/<number>.lock` (`daemon.rs:1865`,
+  `grant_waiter`). The numbers start again at 1 when the daemon restarts.
+- At 16:26:32 my daemon granted lease **1** to the `agent-world` seat's
+  d1-2B server (`thor-admit serve d1-2B --port 8094 --peak 8G`, pid 7741,
+  started 16:26:28 from a tmux session). That client still holds
+  `leases/1.lock` — `/proc/locks` names it: `FLOCK ADVISORY WRITE 7741
+  103:01:58890839`, and the client's own descriptor points at
+  `…/leases/1.lock (deleted)`.
+- My daemon was replaced at 16:32:59. The new daemon's counter started at
+  1 again, so the night's lease at 16:33:07 was **lease 1** — the same
+  lock file.
+- The python shim takes the lock with no timeout
+  (`thor_admit/__init__.py:453-454`: `os.open(lock_path, O_CREAT)` then
+  `fcntl.flock(lock_fd, fcntl.LOCK_EX)`), so the night's client blocked on
+  an inode the other seat's client was holding.
+- The daemon gives a granted lease `grant_grace` (30 s) to be taken, and
+  then stops the client (`daemon.rs:2575`: "the client never took the
+  lock"). The night was stopped 30 s after it was granted, with no
+  message.
+
+So the third attempt did not fail on the box: it failed on a **lock file
+whose number the new daemon had handed out again**. The daemon removed the
+file from the disk when it released the lease at 16:33:37, which is why
+the holder's descriptor reads `(deleted)`.
+
+**What I did.** The tool is another seat's crate and its daemon is
+another seat's binary, so the fix that belongs there — naming the lock
+file after the daemon's incarnation and not after the lease's number — is
+not mine to make. The night is mine, so the night now clears the box
+before it asks:
+
+- `docs/lab/night-v4-scripts/run_night.py` gains
+  `sweep_stale_lease_locks()`: it asks the daemon (over its socket) which
+  leases it holds and how long it has been up, and unlinks every numbered
+  lock file that cannot belong to a live lease of the daemon that is
+  running now — a number the daemon does not have, and a file that is
+  older than the daemon itself. Unlinking is enough: the kernel keeps the
+  old lock on the unlinked inode, and the next client creates a new file,
+  a new inode, with nothing holding it. The live leases' files are never
+  touched, and the daemon's `presence-*.lock` files are not numbered, so
+  they are not seen.
+- The shim's flock has no timeout, so the lease is now taken under a
+  watchdog (`_take_the_lease`): 20 s, then the night says which file is
+  held and by whom. The daemon's own grace is 30 s, so the night speaks
+  before the daemon stops it.
+- The sweep's result travels in the `night.heavy_lease` row, so the ledger
+  says what was cleared and who held it.
+
+**What I proved on the box** (`docs/lab/night-v4-scripts/test_lease_lock_collision.py`):
+
+- *The failure, made on purpose.* A lock file with the number the daemon
+  was about to hand out, older than the daemon and held by a live client:
+  the client blocked and was stopped by the daemon after **30.2 s**
+  (exit -15, SIGTERM), exactly as at 16:33.
+- *The fix.* The same file put in place again (`8.lock`, held by pid
+  41499): the sweep cleared it and named the holder, and the night's own
+  lease — the same number — was taken in **0.04 s**, with the old holder
+  still holding the old inode.
+
+The sweep also cleared `75.lock`, a leftover from 08:12 that nobody held.
+
+**What I decided next.** The night runs again with the fix in it. The
+`agent-world` seat's server is left alone: it is their running work, and
+the sweep handles it without touching it.

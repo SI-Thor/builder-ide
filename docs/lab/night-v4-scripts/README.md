@@ -10,10 +10,39 @@ The runner for **night-v4**, the second integrated night
 | `run_night.py` | the night, end to end: one ledger, one runner, every layer real |
 | `courtyard_requests.json` | the three props the owner asked for |
 | `write_letter.py` | reads `morning.json`, writes `letter.md` (at most 150 words) |
+| `measure.py` | the night's own numbers and the diff against run D |
+| `test_lease_lock_collision.py` | the 16:33 kill, made on purpose, and the sweep that stops it |
 
 `run_night.py` is the night-v3 runner with the four changes the brief
-asked for. The diff against `docs/lab/night-v3-scripts/run_night.py` is the
-change, and nothing else.
+asked for, and with the lease-lock sweep the third attempt needed. The
+diff against `docs/lab/night-v3-scripts/run_night.py` is the change, and
+nothing else.
+
+## The lease-lock sweep
+
+The daemon names a lease's lock file after the lease's *number*, and the
+numbers start again at 1 when the daemon restarts. A client that is still
+alive from before the restart still holds the old file, so a new lease
+with the same number blocks in the shim's `flock` — and the daemon stops
+the client after its 30 s grace ("the client never took the lock"). That
+is what killed the third attempt on 2026-11-01 at 16:33.
+
+Before it asks for a lease, the night asks the daemon which leases it
+holds and how long it has been up, and unlinks every numbered lock file
+that cannot belong to a live lease of the daemon that is running now. The
+result travels in the `night.heavy_lease` row.
+
+The proof is a script:
+
+```bash
+cd ~/lm-wt/night-v4
+PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
+    docs/lab/night-v4-scripts/test_lease_lock_collision.py
+```
+
+It makes the collision on purpose (the client is stopped after 30.2 s),
+then makes it again and shows the sweep clearing it (the lease is taken
+in 0.04 s).
 
 ## How to run it
 

@@ -156,6 +156,22 @@ GQ = Path.home() / "lm-tools" / "gq.py"
 MIN_FREE_GB = 25.0
 NEVER_WAIT_SECONDS = 8.0
 
+#: The admission daemon's state directory, and the lock files in it. The
+#: daemon names a lease's lock file after the lease's number
+#: (``leases/<number>.lock``) and the client holds it with an exclusive
+#: ``flock(2)``. The night reads the directory before it asks for a lease,
+#: because a file that is still held by a client from before the daemon
+#: restarted stops the night where it stands (see
+#: :func:`sweep_stale_lease_locks`).
+THOR_ADMIT_STATE = Path(os.environ.get(
+    "THOR_ADMIT_STATE_DIR",
+    str(Path.home() / ".local" / "state" / "thor-admit")))
+THOR_ADMIT_LEASES = THOR_ADMIT_STATE / "leases"
+#: How long the night waits for a granted lease's lock before it says what
+#: is holding it. The daemon gives a grant 30 s to be taken and then stops
+#: the client, so the night has to speak before that.
+LEASE_LOCK_TIMEOUT_S = 20.0
+
 #: The generator resolution for this box, in the seam's own shape: the
 #: entry's generator name -> the v2 CLI's chain (the M1 table's way; each
 #: chain renders and traces clean — v2-thor-experiment).
@@ -218,6 +234,252 @@ def ram_free_gb() -> float:
     return 0.0
 
 
+
+def daemon_status(timeout: float = 5.0) -> dict | None:
+    """The admission daemon's own status, as JSON, or ``None``.
+
+    The night asks the daemon what it is holding before it asks for a
+    lease: the daemon's lease numbers and how long it has been up are
+    what tell a live lock file from a leftover one.
+    """
+    import socket
+
+    path = os.environ.get("THOR_ADMIT_SOCKET")
+    if not path:
+        runtime = os.environ.get("XDG_RUNTIME_DIR")
+        path = (str(Path(runtime) / "thor-admit.sock") if runtime
+                else f"/tmp/thor-admit-{os.getuid()}.sock")
+    line = b""
+    connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    connection.settimeout(timeout)
+    try:
+        try:
+            connection.connect(path)
+            stream = connection.makefile("rwb")
+            stream.write(b'{"op":"status"}\n')
+            stream.flush()
+            line = stream.readline()
+        except OSError:
+            return None
+    finally:
+        connection.close()
+    if not line:
+        return None
+    try:
+        event = json.loads(line.decode("utf-8"))
+    except ValueError:
+        return None
+    if event.get("event") != "status":
+        return None
+    return event
+
+
+def _flock_holder(path: Path) -> int | None:
+    """The pid holding ``path``'s flock, by the kernel's own record.
+
+    ``/proc/locks`` names the pid that called ``flock(2)`` for every
+    locked file on the box, with the file's device and inode.
+    """
+    try:
+        info = path.stat()
+    except OSError:
+        return None
+    try:
+        lines = Path("/proc/locks").read_text().splitlines()
+    except OSError:
+        return None
+    for line in lines:
+        fields = line.split()
+        if len(fields) < 6 or fields[1] != "FLOCK":
+            continue
+        parts = fields[5].split(":")
+        if len(parts) != 3:
+            continue
+        try:
+            major = int(parts[0], 16)
+            minor = int(parts[1], 16)
+            inode = int(parts[2])
+        except ValueError:
+            continue
+        if inode != info.st_ino or os.makedev(major, minor) != info.st_dev:
+            continue
+        try:
+            return int(fields[4])
+        except ValueError:
+            return None
+    return None
+
+
+def _pid_cmdline(pid: int | None) -> str | None:
+    """What a pid is running, for the night's diagnosis."""
+    if not pid:
+        return None
+    try:
+        raw = Path(f"/proc/{pid}/cmdline").read_bytes()
+    except OSError:
+        return None
+    parts = [part.decode("utf-8", "replace") for part in raw.split(b"\0") if part]
+    return " ".join(parts[:6]) or None
+
+
+def held_lease_locks() -> list[dict]:
+    """The numbered lease lock files that somebody holds, and who holds them.
+
+    The file may be gone from the directory — the daemon removes it when
+    it releases a lease — while the client that holds it is still alive,
+    so the held files are found in the processes' own descriptors too.
+    """
+    rows: list[dict] = []
+    seen: set[str] = set()
+    try:
+        files = sorted(THOR_ADMIT_LEASES.glob("*.lock"))
+    except OSError:
+        files = []
+    for path in files:
+        pid = _flock_holder(path)
+        if pid is None:
+            continue
+        seen.add(path.name)
+        rows.append({"file": path.name, "pid": pid, "cmd": _pid_cmdline(pid)})
+    for proc in sorted(Path("/proc").glob("[0-9]*")):
+        try:
+            descriptors = os.listdir(proc / "fd")
+        except OSError:
+            continue
+        for descriptor in descriptors:
+            try:
+                link = os.readlink(proc / "fd" / descriptor)
+            except OSError:
+                continue
+            if "thor-admit/leases/" not in link:
+                continue
+            name = link.rsplit("/", 1)[-1].split(" ")[0]
+            if name in seen:
+                continue
+            seen.add(name)
+            rows.append({"file": name, "pid": int(proc.name),
+                         "cmd": _pid_cmdline(int(proc.name)),
+                         "unlinked": link.endswith("(deleted)")})
+    return rows
+
+
+def sweep_stale_lease_locks(reason: str) -> dict:
+    """Clear the lease lock files that a client left behind.
+
+    **Why the night does this.** The daemon names a lease's lock file
+    after the lease's number, and the numbers start again at 1 when the
+    daemon is restarted. A client that is still alive from before the
+    restart still holds the old file, so the night's own lease — which
+    gets the same number — blocks forever in the shim's ``flock``, and the
+    daemon gives the night up after its 30 s grace ("the client never
+    took the lock"). That is what happened on 2026-11-01 at 16:33: the
+    ``agent-world`` seat's d1-2B server still held ``leases/1.lock`` from
+    a daemon that no longer existed, the new daemon handed the night
+    lease 1, and the night died without a traceback.
+
+    **What the sweep does.** It asks the daemon which leases it holds
+    and how long it has been up, and unlinks every numbered lock file
+    that cannot belong to a live lease of the daemon that is running now:
+    a number the daemon does not have, a file that is older than the
+    daemon itself, and a holder that is not one of the daemon's clients.
+    Unlinking is enough — the kernel keeps the old lock on the unlinked
+    inode, and the next client that asks for that number creates a new
+    file, a new inode, with nothing holding it.
+
+    The live leases' files are never touched, and the daemon's presence
+    locks (``presence-*.lock``) are not numbered, so they are not seen.
+
+    **What it does not do.** It does not touch the tool: the daemon's
+    numbering is the daemon's own business, and the fix that belongs
+    there — naming the lock file after the daemon's incarnation and not
+    after the lease's number — is another seat's crate to change.
+    """
+    row: dict[str, Any] = {"reason": reason, "checked": 0, "unlinked": [],
+                           "daemon_uptime_s": None, "live_leases": [],
+                           "ok": True, "error": None}
+    report = daemon_status()
+    if report is None:
+        row["ok"] = False
+        row["error"] = "the daemon did not answer the status request"
+        log(f"lease sweep: {row['error']} ({reason})")
+        return row
+    uptime = float(report.get("uptime_s") or 0.0)
+    row["daemon_uptime_s"] = round(uptime, 1)
+    live = {int(lease["lease"]) for lease in (report.get("leases") or [])
+            if "lease" in lease}
+    row["live_leases"] = sorted(live)
+    started = time.time() - uptime
+    try:
+        files = sorted(THOR_ADMIT_LEASES.glob("*.lock"))
+    except OSError as exc:
+        row["ok"] = False
+        row["error"] = f"{exc.__class__.__name__}: {exc}"
+        return row
+    for path in files:
+        stem = path.name[:-len(".lock")]
+        if not stem.isdigit():
+            continue
+        row["checked"] += 1
+        number = int(stem)
+        if number in live:
+            continue
+        try:
+            mtime = path.stat().st_mtime
+        except OSError:
+            continue
+        if mtime >= started:
+            # Newer than the daemon: the daemon may have granted this
+            # number since the status was read, so leave it alone.
+            continue
+        holder = _flock_holder(path)
+        row["unlinked"].append({"file": path.name, "lease": number,
+                                 "held_by": holder,
+                                 "held_by_cmd": _pid_cmdline(holder)})
+        try:
+            path.unlink()
+        except OSError as exc:
+            row["ok"] = False
+            row["error"] = f"{exc.__class__.__name__}: {exc}"
+    if row["unlinked"]:
+        log(f"lease sweep: cleared {row['unlinked']} ({reason})")
+    else:
+        log(f"lease sweep: {row['checked']} numbered lock files, none stale "
+            f"({reason})")
+    return row
+
+
+def _take_the_lease(admit_cm, label: str) -> Any:
+    """Take the lease, and say what is holding it if the lock does not come.
+
+    The shim's ``flock`` waits with no timeout, so a lock file that
+    somebody else holds stops the night where it stands. The daemon gives
+    a granted lease 30 s to be taken and then stops the client, so the
+    night has to speak first: this waits 20 s and then names the file and
+    its holder.
+    """
+    import threading
+
+    result: dict[str, Any] = {}
+
+    def take() -> None:
+        try:
+            result["lease"] = admit_cm.__enter__()
+        except BaseException as exc:  # noqa: BLE001 - reported below
+            result["error"] = exc
+
+    worker = threading.Thread(target=take, name="night-lease", daemon=True)
+    worker.start()
+    worker.join(LEASE_LOCK_TIMEOUT_S)
+    if worker.is_alive():
+        raise TimeoutError(
+            f"the lease {label} was granted but its lock was not taken in "
+            f"{LEASE_LOCK_TIMEOUT_S:.0f} s; the lock files that are held: "
+            f"{held_lease_locks()}")
+    if "error" in result:
+        raise result["error"]
+    return result["lease"]
+
+
 class Heavy:
     """The house lease, admission first (MEMORY-RULE): the box's daemon
     holds the phase to its declared peak before the work allocates; the
@@ -261,7 +523,7 @@ class Heavy:
             yield
             return
         with self._acquire(reason, label or self.label) as acquired:
-            waited, kind = acquired
+            waited, kind, sweep = acquired
             self._depth = 1
             log(f"got the {kind} lease after {waited:.0f} s ({reason})")
             if self._ledger is not None:
@@ -273,7 +535,8 @@ class Heavy:
                              "label": label or self.label,
                              "peak": HEAVY_PEAK,
                              "waited_s": round(waited, 1),
-                             "free_gb": round(ram_free_gb(), 1)},
+                             "free_gb": round(ram_free_gb(), 1),
+                             "sweep": sweep},
                 )
             try:
                 yield
@@ -327,19 +590,20 @@ class Heavy:
         daemon is gone or refuses, with the fallback named where it happens."""
         started = time.monotonic()
         admit_cm = None
+        sweep = sweep_stale_lease_locks(reason)
         if self._admit is not None:
             log(f"queueing for a thor-admit lease ({label}, peak {HEAVY_PEAK}: "
                 f"{reason})")
             try:
                 admit_cm = self._admit.lease(HEAVY_PEAK, label, tier="live")
-                self._lease = admit_cm.__enter__()
+                self._lease = _take_the_lease(admit_cm, label)
             except Exception as exc:
                 log(f"thor-admit did not grant the lease ({exc.__class__.__name__}: "
                     f"{exc}); falling back to the heavy lock")
                 admit_cm = None
         if admit_cm is not None:
             try:
-                yield (time.monotonic() - started, "thor-admit")
+                yield (time.monotonic() - started, "thor-admit", sweep)
             finally:
                 admit_cm.__exit__(None, None, None)
                 self._lease = None
@@ -353,7 +617,7 @@ class Heavy:
                 self.waits += 1
                 log("the lock is held (another seat's heavy step); waiting")
                 fcntl.flock(fh, fcntl.LOCK_EX)
-            yield (time.monotonic() - started, "flock")
+            yield (time.monotonic() - started, "flock", sweep)
         finally:
             fcntl.flock(fh, fcntl.LOCK_UN)
             fh.close()
