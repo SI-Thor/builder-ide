@@ -1,0 +1,37 @@
+[
+  {
+    "asset": "dishware_mug_a02",
+    "glb": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/dishware_mug_a02.glb",
+    "triangles": 5800,
+    "primitives": 1,
+    "seconds": 0.296
+  },
+  {
+    "asset": "vehicle_forklift_blue_a01",
+    "glb": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/vehicle_forklift_blue_a01.glb",
+    "triangles": 329976,
+    "primitives": 15,
+    "seconds": 0.812
+  },
+  {
+    "asset": "misc_golfBall_a03",
+    "glb": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/misc_golfBall_a03.glb",
+    "triangles": 12288,
+    "primitives": 1,
+    "seconds": 0.029
+  },
+  {
+    "asset": "sign_hospital_board_b01",
+    "glb": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/sign_hospital_board_b01.glb",
+    "triangles": 3282,
+    "primitives": 1,
+    "seconds": 0.012
+  },
+  {
+    "asset": "storage_shelf_basic_c01",
+    "glb": "/home/caseydigennaro/lm-wt/simready-survey/data/glb-extra/storage_shelf_basic_c01.glb",
+    "triangles": 457760,
+    "primitives": 1,
+    "seconds": 0.757
+  }
+]

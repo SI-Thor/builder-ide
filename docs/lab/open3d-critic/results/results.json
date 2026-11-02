@@ -1,0 +1,291 @@
+{
+  "meta": {
+    "started": {
+      "machine": "NVIDIA Jetson AGX Thor, aarch64, 14 Neoverse cores",
+      "kernel": "6.8.12-1021-tegra",
+      "python": "3.12.3",
+      "numpy": "2.5.4",
+      "open3d": "0.20.0",
+      "load_average": [
+        16.28,
+        32.69,
+        34.98
+      ],
+      "mem_available_gb": 109.2,
+      "mem_total_gb": 122.8
+    },
+    "ended": {
+      "machine": "NVIDIA Jetson AGX Thor, aarch64, 14 Neoverse cores",
+      "kernel": "6.8.12-1021-tegra",
+      "python": "3.12.3",
+      "numpy": "2.5.4",
+      "open3d": "0.20.0",
+      "load_average": [
+        24.49,
+        27.05,
+        31.96
+      ],
+      "mem_available_gb": 109.0,
+      "mem_total_gb": 122.8
+    },
+    "resolution": 64,
+    "simplify_to": 0.1,
+    "watertight_definitions": {
+      "ours": "every edge used by exactly two triangles (closed)",
+      "o3d": "edge-manifold, vertex-manifold and not self-intersecting (a valid solid boundary)"
+    },
+    "rss_peak_mb": 420.1,
+    "meshes": 3
+  },
+  "meshes": [
+    {
+      "name": "IV_pole_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/IV_pole_a01.glb",
+      "triangles": 458714,
+      "vertices": 230723,
+      "topology": {
+        "ours": {
+          "watertight": false,
+          "boundary_edges": 2544,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.1569
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": false,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 96.4087
+        },
+        "watertight_agrees": true
+      },
+      "volume": {
+        "ours_signed": 0.002512263910652921,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 0.8462477551536527,
+        "o3d_area": 0.8462477551536461,
+        "area_rel_diff": 7.740423304401069e-15
+      },
+      "occupancy": {
+        "box_volume": 0.74175147491537,
+        "ours_convex": 0.32045458705937335,
+        "ours_convex_seconds": 0.2166,
+        "o3d_hull": 0.320454587059373,
+        "o3d_hull_seconds": 0.0493,
+        "hull_rel_diff": 1.0393575902405068e-15,
+        "o3d_raycast_interior": 0.0013556739197054287,
+        "o3d_raycast_cells": 61,
+        "o3d_raycast_seconds": 0.1632,
+        "ours_visual": 0.0009026287860794183,
+        "ours_visual_seconds": 0.3489,
+        "o3d_grid_visual": 0.021024057836743208,
+        "o3d_grid_seconds": 0.1077,
+        "visual_rel_diff": 0.957066861540786,
+        "fill_ratio_ours": 0.4320241993397257,
+        "fill_ratio_grid_visual": 0.028343803211367993
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 93.076,
+        "ours": null
+      },
+      "simplify": {
+        "target": 45871,
+        "out_triangles": 45871,
+        "seconds": 4.939,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0172,
+        "o3d_seconds": 0.2976,
+        "ours_triangles": 458714,
+        "o3d_triangles": 458714,
+        "triangles_agree": true,
+        "o3d_vertices": 230723,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": false
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.002512263910652921,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.32045458705937335,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": false,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "bodyPart_door_front_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/bodyPart_door_front_a01.glb",
+      "triangles": 168604,
+      "vertices": 84204,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.0501
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 17.3931
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.0007904336596994502,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 3.504994238903018,
+        "o3d_area": 3.5049942389030697,
+        "area_rel_diff": 1.4697413128624514e-14
+      },
+      "occupancy": {
+        "box_volume": 0.2226551047874235,
+        "ours_convex": 0.11514926388048231,
+        "ours_convex_seconds": 0.0196,
+        "o3d_hull": 0.11514926388048217,
+        "o3d_hull_seconds": 0.0234,
+        "hull_rel_diff": 1.2051998719000693e-15,
+        "o3d_raycast_interior": 0.0007439185355489551,
+        "o3d_raycast_cells": 117,
+        "o3d_raycast_seconds": 0.0653,
+        "ours_visual": 0.09399122829773358,
+        "ours_visual_seconds": 0.1263,
+        "o3d_grid_visual": 0.10316942015228502,
+        "o3d_grid_seconds": 0.0888,
+        "visual_rel_diff": 0.08896232857569425,
+        "fill_ratio_ours": 0.5171642661883691,
+        "fill_ratio_grid_visual": 0.4633597790213901
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 16.2237,
+        "ours": null
+      },
+      "simplify": {
+        "target": 16860,
+        "out_triangles": 16860,
+        "seconds": 1.6605,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0061,
+        "o3d_seconds": 0.0582,
+        "ours_triangles": 168604,
+        "o3d_triangles": 168604,
+        "triangles_agree": true,
+        "o3d_vertices": 84204,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0007904336596994502,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.11514926388048231,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    },
+    {
+      "name": "bodyPart_trunk_lid_a01",
+      "group": "reference",
+      "path": "/home/caseydigennaro/lm-wt/simready-survey/data/glb/bodyPart_trunk_lid_a01.glb",
+      "triangles": 317648,
+      "vertices": 158686,
+      "topology": {
+        "ours": {
+          "watertight": true,
+          "boundary_edges": 0,
+          "nonmanifold_edges": 0,
+          "consistent_winding": true,
+          "degenerate_triangles": 0,
+          "seconds": 0.1003
+        },
+        "o3d": {
+          "watertight": false,
+          "edge_manifold_closed": true,
+          "vertex_manifold": true,
+          "orientable": true,
+          "seconds": 57.4102
+        },
+        "watertight_agrees": false
+      },
+      "volume": {
+        "ours_signed": 0.0015045258198050939,
+        "o3d_get_volume": null,
+        "rel_diff": null,
+        "ours_area": 3.8026268701263906,
+        "o3d_area": 3.8026268701263897,
+        "area_rel_diff": 2.335697006397591e-16
+      },
+      "occupancy": {
+        "box_volume": 0.28162284618202904,
+        "ours_convex": 0.12781518410288853,
+        "ours_convex_seconds": 0.0352,
+        "o3d_hull": 0.12781518410288822,
+        "o3d_hull_seconds": 0.0498,
+        "hull_rel_diff": 2.388693752740276e-15,
+        "o3d_raycast_interior": 0.0013583675456594392,
+        "o3d_raycast_cells": 200,
+        "o3d_raycast_seconds": 0.1103,
+        "ours_visual": 0.08354232410621379,
+        "ours_visual_seconds": 0.2484,
+        "o3d_grid_visual": 0.11101937950674595,
+        "o3d_grid_seconds": 0.1388,
+        "visual_rel_diff": 0.24749782896113695,
+        "fill_ratio_ours": 0.45385232709520384,
+        "fill_ratio_grid_visual": 0.3942129731725946
+      },
+      "self_intersection": {
+        "o3d": true,
+        "o3d_seconds": 55.0081,
+        "ours": null
+      },
+      "simplify": {
+        "target": 31765,
+        "out_triangles": 31764,
+        "seconds": 3.2118,
+        "watertight_after": false,
+        "volume_after": null,
+        "volume_rel_drift": null
+      },
+      "read": {
+        "ours_seconds": 0.0103,
+        "o3d_seconds": 0.1574,
+        "ours_triangles": 317648,
+        "o3d_triangles": 317648,
+        "triangles_agree": true,
+        "o3d_vertices": 158686,
+        "bbox_max_gap": 0.0,
+        "o3d_reader_watertight": false,
+        "ours_reader_watertight": true
+      },
+      "reference_agreement": {
+        "recorded_signed_volume": 0.0015045258198050939,
+        "signed_rel_diff": 0.0,
+        "recorded_occupied_volume": 0.12781518410288853,
+        "occupied_rel_diff": 0.0,
+        "recorded_watertight": true,
+        "watertight_agrees": true
+      }
+    }
+  ]
+}

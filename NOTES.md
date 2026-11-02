@@ -462,3 +462,76 @@ Checked on the real box with the staged binary:
 The staged binary also reads the **live round-11 daemon's** status without
 trouble (`guard.enabled: false`, the rest defaulted), so a new client
 against an old daemon works — which is the swap window.
+
+## 2026-11-01 17:30 — open3d-critic starts: the aarch64 wheel exists and imports
+
+The brief (this worktree, 17:13) asks for Open3D evaluated against the critic's
+geometry checks. Step 1 — the wheel:
+
+- **`open3d 0.20.0` ships `cp312-cp312-manylinux_2_35_aarch64`** (PyPI's own
+  file list; 0.17/0.18's aarch64 wheels stop at cp310/cp311, so 0.20.0 is the
+  only version with a cp312 aarch64 wheel). The Thor's glibc is **2.39**, so
+  `manylinux_2_35` is in range. (`uv pip download` does not exist in uv
+  0.13.5; the PyPI JSON file list answered instead.)
+- Installed with `uv venv` + `uv pip install open3d numpy scipy` into this
+  worktree's `.venv` (gitignored; uv's shared cache). open3d **0.20.0**,
+  numpy **2.5.4**, scipy **1.18.1**, pydantic 2.14.2 — same versions the
+  critic-shells run used (`~/lm-wt/mesh-repair/.venv`).
+- Smoke test on the box: import ok; `is_watertight` True and `get_volume`
+  0.16666… on a tetrahedron (exact: 1/6); `simplify_quadric_decimation`
+  runs. The API the brief names is all there: `is_self_intersecting`,
+  `get_self_intersecting_triangles`, `compute_convex_hull`,
+  `simplify_quadric_decimation`, `get_volume`.
+- First look at the multi-primitive trap: on the 32-primitive forklift
+  (`vehicle_forklift_blue_c01.glb`, 997 893 triangles), Open3D's **own GLB
+  reader returns the same 997 893 triangles** as our `Glb.asset` whole-object
+  reader (527 858 vertices against our 528 487 — it deduplicates 629).
+
+Box at the start: load 5.41, 115 GB available. Decided next: fetch 5 fresh
+SimReady packages (the survey's own HTTP fetcher + pxr USD converter), then
+the per-mesh comparison script.
+
+## 2026-11-01 18:30 — the five fresh samples, and three semantics pinned before the sweep
+
+`fetch_extra_samples.py` (docs/lab/open3d-critic/) picked and fetched 5
+SimReady packages the prior never saw — five categories chosen to span the
+kinds the critic must tell apart (a shell `dishware_mug_a02`, a multi-part
+vehicle `vehicle_forklift_blue_a01` — 15 primitives, 329 976 tris, a
+near-convex `misc_golfBall_a03`, a thin plate `sign_hospital_board_b01`,
+a sparse frame `storage_shelf_basic_c01` — 457 760 tris), each the
+unsampled asset closest to its category's median payload (the survey's own
+rule). 183 files, 379 MB, 90 s, 0 failures, to `~/lm-cold/simready-extra`;
+converted to GLB by the survey's own pxr loader (2 s total) into
+`~/lm-wt/simready-survey/data/glb-extra/`.
+
+Three things had to be pinned before the numbers could be believed:
+
+1. **Open3D's `is_watertight` is not our watertight.** Ours asks "is every
+   edge used exactly twice" (closed); Open3D demands edge-manifold ∧
+   vertex-manifold ∧ **no self-intersections** — verified on
+   `bodyPart_door_front_a01` (closed by our census, self-intersecting:
+   Open3D says False, the formula reproduces its False). Both defensible;
+   the disagreement rows in the table are this difference, not a bug.
+2. **Open3D's rasteriser gives two volumes that are NOT the critic's
+   envelope.** Ray parity (`count_intersections`) is a winding-free
+   *enclosed solid* — on the hollow mug it reads 0.000128 (the ceramic,
+   analytic 0.000119) not the 0.000452 cylinder the critic wants; on a
+   thin door skin it reads 0.33 % of the box. Reachability of the surface
+   voxel grid (flood from outside) gives *sealed regions* — a mug's cup is
+   open to the sky, so the real mug reads **−53 %** (0.000214 vs
+   0.000452). Dead end, recorded; the comparison instead measures the
+   visual-hull semantic on Open3D's voxel grid (intersection of the three
+   axis projections) against our `visual`.
+3. **The self-intersection test is the cost centre**: ~80 s on a 300
+   k-triangle mesh at load ~25 (another seat is compiling); `is_watertight`
+   and `get_volume` each re-run it inside. The script computes it once and
+   derives the flag from the verified formula; `get_volume` is called only
+   on derived-closed meshes.
+
+Also fixed on the way: Open3D's VoxelGrid reports a sample exactly on the
+max bound one cell past the grid (clipped back, or the face's silhouette
+is a cell short — a unit cube read 0.046 instead of 1.0 before the clip).
+
+Quick pass (3 reference meshes, load 24–32): peak RSS 420 MB; hull
+agreement with scipy 0.00 % on all three; simplification 1.7–4.9 s.
+Decided next: the full 43-mesh sweep, detached.
