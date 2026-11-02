@@ -49,6 +49,14 @@ time of its own, so a trace replays to the same answer.
   measured, a four-second dwell on a signal that changes every few seconds
   never moves the state at all.
 
+**One more door (2026-11-01, added for `core/drift`):** `reset_pending()`
+drops a pending transition and keeps the committed state. A gate that is
+fed *no reading* should not carry a pending transition across the gap —
+the dwell says the target has to want to happen continuously, and a
+window with no reading is a window in which it did not. `core/drift`'s
+gates call it when a signal is undefined for a window, which is how an
+undefined signal stays "no evidence" rather than becoming "bad".
+
 ## Running it
 
 ```bash
