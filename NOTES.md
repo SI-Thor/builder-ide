@@ -1938,3 +1938,26 @@ standing suspect. The box runs auditd with logs under `/var/log/audit/`,
 but it has no rules (checked 03:48Z: `auditctl -l` is empty), so there is
 no standing way on the box to attribute a userspace `kill`; adding one is
 the standing recommendation, left to the operator.
+
+## 2026-11-01 20:15-20:30 — the v5 runner is built
+
+**What I built.** run_night.py (from v4) with the four changes: the
+GPU-pool bar (lfb >= 4 GB before every mesh prompt, 45-min bound, a row
+per real wait), the wedge restart (stop, keep the log, start again,
+re-run the one prompt, max two), honest peaks (6G server-start leases,
+the 40G heavy lease the only one above 30 GB, held alone) and the
+library (ten measured crates as one labeled kind). build_library.py
+reconstructs the ten from run F crate picture crate_s102_00004_.png at
+seeds 9000-9009, repaired and measured exactly as the executor does.
+The dry run passes (20:27, one second).
+
+**What happened with the probes.** The fixed under-load probe: night
+flags 3.33/2.63 GiB GPU, shrunk 3.09/2.39 GiB; the delegate answers in
+2.00 s shrunk vs 3.56 s — the shrunk flags are adopted. /completion is
+501 on this llama-server build (it is a System One decision server), so
+the night request shapes are the only shapes.
+
+**What I decided next.** Build the library first (25-40 min), then the
+night. The box is busy tonight (load1 14 at 20:27, other seats leases
+up), so the bar may hold the meshes — that is the design working, not
+failing; the rows will say.
