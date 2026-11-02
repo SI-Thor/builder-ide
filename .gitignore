@@ -79,3 +79,8 @@ third_party/
 docs/lab/stratego-scripts/results/rl_128/*.pthm
 docs/lab/stratego-scripts/results/rl_128/*.pthw
 docs/lab/stratego-scripts/results/rl_128/*.ptho
+
+# The private world: the server copy, its world, its snapshots and its
+# logs. It is runtime state on this box, not source — the tool that makes
+# it is in tools/mcsnap/.
+mc-snap/

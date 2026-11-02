@@ -3082,3 +3082,183 @@ from this session are worth carrying forward: the GPU pool's largest free block
 is the number to size a workload against on this box (not the free system
 memory), and `nvidia-smi` can block in uninterruptible sleep here, so nothing
 that runs on the Thor should depend on it.
+
+---
+
+## 2026-11-01 21:30 — build #1: the snapshot tool, and the join to the ledger
+
+**Tried:** the primitive the design note calls missing (§6.1 row 6): a tool
+that takes a world apart with a manifest and puts it back. The note's
+measured numbers say the world is 20 MB and `level.dat` is 467 B, so the
+cost was never the question — the question was whether a *live* Paper
+server could be copied at all.
+
+**Happened:** `tools/mcsnap/python/mcsnap/` — eleven modules, no
+dependencies outside the standard library:
+
+* `nbt.py` — a small NBT reader, enough to read `level.dat` (the seed, the
+  tick, the time of day, the data version);
+* `world.py` — what a snapshot copies: the regions, the entities, the
+  points of interest, each dimension's data, the world's own data
+  (scoreboard, stopwatches, boss events), the datapacks, the players' own
+  data, and the Paper settings — and what it leaves behind (`session.lock`,
+  `level.dat_old`), each with the reason;
+* `manifest.py` — the manifest: a file list with sizes and sha256s, the
+  server version, the world's tick and seed, the ledger row the moment
+  sits behind, the per-section totals, and the timings; plus the
+  verification that checks a restored tree **by content**;
+* `rcon.py` — the server's own console: `save-off`, `save-all flush`,
+  `save-on`;
+* `snapshot.py` — the snapshot: stop the writing, flush, copy, hash,
+  manifest, and give the writing back even if the copy failed;
+* `restore.py` — the restore: stop, **move the old world aside (never
+  delete it)**, copy the snapshot in, verify every file by hash, start;
+* `server.py` — the private server: its own port, its own loopback, its
+  own honest `thor-admit` lease;
+* `ledger.py` — the ledger's head, read read-only;
+* `cli.py` — `snapshot`, `restore`, `verify`, `list`, `server`, `rewind`.
+
+And `core/rewind/snapshot.py` — the join. A rewind point on the world
+ledger is a *row*; a snapshot is a *state*; the two meet at the ledger's
+`seq`. The plan says which of the kept work between the snapshot and the
+point can be put back (**a block placement, which mineflayer can make
+again**), which is only a **record** the ledger already keeps (a judge's
+verdict), and which is **lost** (a mined block, a killed mob, the time of
+day moving on). The coordinates come from a **placement journal** — the
+world mutations the bots recorded — because the ledger's rows do not carry
+them: a `tile.played` row says which skill ran on which bot, not what it
+did to the world.
+
+**Box state:** the Thor, 14 CPUs. The tool is CPU-only and needs no GPU
+and no model. The private server has not been started yet.
+
+**Decided next:** start the private server on 127.0.0.1:25610 under
+`thor-admit`, take a snapshot at idle, and measure.
+
+
+---
+
+## 2026-11-01 22:12 — the private server, the bots, the tests, and the box's queue
+
+**Tried:** the measurement harness: a private Paper server on 127.0.0.1:25610
+with its own world grown from the same seed, three mineflayer builders that
+put blocks into it, and a script that runs the whole loop and writes its
+numbers to JSON.
+
+**Happened:**
+
+* the private server runs **the live world's own build** — Paper
+  26.1.2-74, read from the live server's `version_history.json`, never
+  downloaded — on 127.0.0.1:25610, offline, with its own world directory
+  and its own RCON port. Geyser and Floodgate were moved out of the copy's
+  `plugins/`: the live server already owns the Bedrock port.
+* three builders (`tools/mcsnap/bots/builder.js`) place blocks and record
+  two things: the **placement journal** (the coordinates, one JSON line per
+  placement) and the **world ledger** (a row per placement in the live
+  world's own `audit` schema, written live with `node:sqlite`). A fourth
+  script (`bots/replay.js`) puts the kept placements back.
+* the measurement script
+  (`docs/lab/world-snapshot-scripts/exp_world_snapshot.py`) runs the phases
+  — build, snapshot at idle, snapshot while building, the plan, the restore,
+  the replay — and writes its numbers to JSON as it goes.
+* **69 tests** (`tests/mcsnap/`, `tests/rewind/test_world_snapshot.py`),
+  all passing; the four Bevy ones are skipped because the `lm` tool is not
+  on this box.
+
+Three things the measurement found, before it found any numbers:
+
+1. **The RCON response carries a packet-type field that the protocol's own
+   description leaves out.** A reader that believes the description reads
+   the *type* as the payload, and gets an empty string back for every
+   command. Paper's own `version` answer ("This server is running Paper
+   version ...") is what showed it.
+2. **The runtime holds two Paper jars, and the newest one by timestamp is
+   not the one the world runs.** 1.21.11 was fetched after 26.1.2, and the
+   world's own version is 26.1.2. The private server had been started on
+   the wrong jar; it now reads the live server's `version_history.json`.
+   The world the wrong build grew is kept at
+   `mc-snap/world.grown-by-1.21.11`.
+3. **The lease queue is gated by *reserved* peaks, not by actual use.**
+   Another seat holds a 40 GB reservation while touching 7 GB — the daemon
+   says so itself ("over-reserved, would fit 8.7G") — and a 3 GB lease
+   waits behind it with 65 GB free on the box. A private world of the
+   world's own size is a small ask that the box's accounting makes large.
+
+**Box state:** the Thor, 14 CPUs, load average **18.21 / 15.06 / 15.75**,
+**68,135,200 kB** (≈65.0 GiB) available, thor-admit's floor at 25 GB. The
+private server's own lease: 3 GB reserved, 1.4 GB in use.
+
+**Decided next:** the measurement, as soon as the lease is granted; then the
+lab note, the commit, and the report.
+
+## 2026-11-02 23:55 — the measurement, measured
+
+**Tried:** ran the whole loop on the private world (127.0.0.1:25610) with
+three builders, took an idle snapshot and a snapshot while the bots built,
+restored the building snapshot, read the world back, and replayed the kept
+work on top of the restored world.
+
+**Happened (numbers):**
+
+| | |
+|---|---|
+| idle snapshot | 112 files, 12,381,679 B, ledger seq 6, tick 88,754, **0.481 s** |
+| building snapshot | 112 files, 12,381,708 B, ledger seq 7, tick 88,941, **0.126 s** |
+| restore | verified, no problems, **11.068 s** (stop 1.005, move aside 0.0006, copy 0.028, verify 0.016, **start 10.017**) |
+| blocks the restore removed / kept | **5 removed, 6 kept** |
+| the ledger's prediction | 7 in the snapshot, 5 after — **it agrees with the world** |
+| the replay | 5 placements replayed, **5 read back as the expected block** |
+
+**Box state:** the Thor, load average **13.62 / 14.32 / 16.50** at the
+start and **13.89 / 14.32 / 16.27** at the end, **99.58 GB → 99.27 GB**
+available. The private server's lease: 3 GB reserved, 1.5 GB in use.
+
+**Four bugs the measurement found, and what they were:**
+
+1. **The join picked the wrong block.** The ledger's rows are stamped with
+   second resolution and the journal with milliseconds, so a row can sit
+   up to a second *before* the placement it records — and then the
+   *nearest* journal entry is the previous block. The plan replayed y=85,
+   87, 87, 89, 89 where the journal said 86, 87, 88, 89, 90. Fixed: a
+   journal entry that carries the ledger row's own `seq` is joined
+   **exactly**, and the time-based join now prefers an entry at or after
+   the row's time. Two tests added.
+2. **The bots lost their operator across the restore.** A restore restarts
+   the server, and a server that starts reads its operators from
+   `ops.json`, so the operator given at runtime was gone with the old
+   server. The bot's `/tp` did nothing, it stood where it spawned, and
+   every placement was 11 blocks away — which the server refuses without
+   answering, so the placement timed out with *"Server did not answer the
+   placement"*. Fixed: the experiment re-ops the bots **after** the
+   restore, and the replayer reports how far it is standing from the block
+   it is about to place.
+3. **The probe called an unknown block an empty one.** A block the client
+   has not been told about reads as *unknown*, and "air" says a block is
+   missing when the client simply has not seen it yet. Fixed: the probe
+   waits for the block to become known before it reads it.
+4. **`level.dat` is gzipped NBT**, and the state reader parsed it as raw
+   NBT, so every level fact came back empty. Fixed: `read_nbt`, not
+   `parse_nbt`.
+
+**Also fixed:** the manifest's ledger `seq` is now read **between the
+flush and the copy** — the flush is the moment the world stops moving, and
+reading the head after the copy could count a row whose block is not in
+the snapshot.
+
+**What the numbers do not say (and the lab note says so too):**
+
+* "three bots building" was measured with **one** bot placing. The other
+  two stood where no neighbouring column was clear, and the builder
+  refuses to build on an occupied column (a placement there would be a
+  no-op, and the journal would lie). The clear-column rule is in
+  `tools/mcsnap/bots/builder.js`.
+* **No placement landed inside the snapshot's own 0.126 s window.** The
+  builders place every 1.5 s, so that window had about a one-in-twelve
+  chance of catching one, and it did not.
+* The restore is **11 s because the server has to start again** (10.0 s
+  of it). The world work itself is 45 ms.
+* The **time of day does not come back**: it is a server-side timeline in
+  this Paper version, never in the files.
+
+**Decided next:** commit the measurement, the fixes, the bots, the probe
+and the lab note on `world-snapshot` (no push), and report.

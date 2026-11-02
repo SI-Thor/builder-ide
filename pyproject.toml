@@ -67,8 +67,8 @@ builder-usd = "builder_usd.cli:main"
 # compiled-scene backbone (core/usd/src). `thor_admit` is the Python shim for
 # the memory-admission daemon (tools/thor-admit/python).
 [tool.setuptools.packages.find]
-where = [".", "core/usd/src", "tools/thor-admit/python"]
-include = ["core*", "builder_usd*", "thor_admit*"]
+where = [".", "core/usd/src", "tools/thor-admit/python", "tools/mcsnap/python"]
+include = ["core*", "builder_usd*", "thor_admit*", "mcsnap*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
@@ -77,7 +77,7 @@ testpaths = ["tests"]
 # USD backbone's own root, so one pytest run covers every seat without
 # touching any seat's own pyproject; "tools/thor-admit/python" is the
 # admission daemon's Python shim.
-pythonpath = [".", "core/usd/src", "tools/thor-admit/python"]
+pythonpath = [".", "core/usd/src", "tools/thor-admit/python", "tools/mcsnap/python"]
 # The real-engine acceptance run is opt-in: its render steps drive Infinigen
 # 2.0 through the v2 venv (minutes of Cycles on the Thor, and the venv must
 # be on the box). The default run deselects it; `-m engine` selects only it.

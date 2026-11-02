@@ -60,6 +60,16 @@ from .replay import (
     events_to_ledger,
     replay_kept,
 )
+from .snapshot import (
+    Placement,
+    ReappliableOp,
+    RewindPlan,
+    nearest_snapshot_at_or_before,
+    read_manifests,
+    read_placements,
+    rewind_plan,
+    rewind_plan_from_store,
+)
 from .selection import (
     FIELDS,
     NUMERIC_FIELDS,
@@ -85,6 +95,7 @@ __all__ = [
     "Outcome",
     "Parked",
     "ReplayResult",
+    "RewindPlan",
     "RewindPoint",
     "RewindReport",
     "Selection",
@@ -103,6 +114,13 @@ __all__ = [
     "read_bevy_dump",
     "read_bevy_header",
     "read_core_ledger",
+    "Placement",
+    "ReappliableOp",
+    "nearest_snapshot_at_or_before",
+    "read_manifests",
+    "read_placements",
+    "rewind_plan",
+    "rewind_plan_from_store",
     "read_world_ledger",
     "replay_kept",
     "select",

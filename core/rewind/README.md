@@ -119,3 +119,30 @@ export PATH=$HOME/last-mile/target/release:$PATH
 The environment is `uv venv` + `uv pip install -e ".[dev]"`; the package
 itself needs only `pydantic` (through `core.records`) and the standard
 library.
+
+## The world snapshot: a rewind for a world that cannot be forked
+
+The Bevy world is rewound by forking at a tick. A live Paper server cannot
+be: there is no second implementation of a Paper world to compare against,
+so a rewind there has to be **snapshot-based** — put the world's files
+back, then put back the work that came after.
+
+`core/rewind/snapshot.py` is that join. A rewind point on the world ledger
+maps to the nearest snapshot at or before it (by the snapshot's recorded
+ledger `seq`), and the work between them is classified:
+
+| kind | what it is | what happens to it |
+|---|---|---|
+| **re-appliable** | a block placement by a bot | put back with mineflayer, given the coordinates and the block name |
+| **recorded** | a row the ledger already keeps and the world does not hold (a judge's verdict, a skill authored or retired) | nothing to replay — the ledger *is* the record |
+| **lost** | a mined block, a killed mob, an item that despawned, the time of day moving on | the restore takes it away and nothing puts it back |
+
+The coordinates come from a **placement journal** — the world mutations the
+bots recorded, with their coordinates — because the ledger's rows do not
+carry them: a `tile.played` row says which skill ran on which bot, not
+what it did to the world. A journal entry that records the ledger row's
+own `seq` is joined **exactly**; a journal without one is joined by time.
+
+The tool that takes and puts back the snapshots is
+[`tools/mcsnap/`](../../tools/mcsnap/); the measurement is
+[`docs/lab/exp-world-snapshot.md`](../../docs/lab/exp-world-snapshot.md).

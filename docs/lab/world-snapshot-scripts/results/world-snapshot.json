@@ -1,0 +1,1179 @@
+{
+  "started_at": "2026-11-02T08:40:03Z",
+  "server": {
+    "dir": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap",
+    "port": 25610,
+    "rcon": 25611
+  },
+  "box_at_start": {
+    "load_average": [
+      13.62,
+      14.32,
+      16.5
+    ],
+    "mem_available_kb": 99579428
+  },
+  "server_version": "\u00a7fThis server is running Paper version 26.1.2-74-ver/26.1.2@e4e17fc (2026-07-06T16:51:09Z) (Implementing API version 26.1.2.build.74-stable)\u00a7r\n\u00a7aYou are running the latest version\u00a7r\n\u00a77\u00a7oPrevious version: 1.21.11-132-c5eb079 (MC: 1.21.11)",
+  "server_before": {
+    "running": true,
+    "pid": 2733054,
+    "rcon": {
+      "host": "127.0.0.1",
+      "port": 25611
+    },
+    "listening": true,
+    "version": "\u00a7fThis server is running Paper version 26.1.2-74-ver/26.1.2@e4e17fc (2026-07-06T16:51:09Z) (Implementing API version 26.1.2.build.74-stable)\u00a7r\n\u00a7aYou are running the latest version\u00a7r\n\u00a77\u00a7oPrevious version: 1.21.11-132-c5eb079 (MC: 1.21.11)",
+    "world_dir": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/world",
+    "log": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/logs/console.log"
+  },
+  "build_a": {
+    "started": true,
+    "seconds": 21.319,
+    "placed": 6,
+    "output": [
+      "building from (-5.5, 73, -5.5)\nno column beside the bot to build on\nbot ended\n",
+      "building from (8.5, 75, 9.5)\nplaced stone at 7,75,10 (ledger seq 1, read back stone)\nplaced stone at 7,76,10 (ledger seq 2, read back stone)\nplaced stone at 7,77,10 (ledger seq 3, read back stone)\nplaced stone at 7,78,10 (ledger seq 4, read back stone)\nplaced stone at 7,79,10 (ledger seq 5, read back stone)\nplaced stone at 7,80,10 (ledger seq 6, read back stone)\ndone: 6 placements\nbot ended\n",
+      "/home/caseydigennaro/lm-wt/world-snapshot/tools/mcsnap/bots/builder.js:82\nledger.exec(`\n       ^\n\nError: database is locked\n    at Object.<anonymous> (/home/caseydigennaro/lm-wt/world-snapshot/tools/mcsnap/bots/builder.js:82:8)\n    at Module._compile (node:internal/modules/cjs/loader:1929:14)\n    at Object..js (node:internal/modules/cjs/loader:2060:10)\n    at Module.load (node:internal/modules/cjs/loader:1651:32)\n    at Module._load (node:internal/modules/cjs/loader:1443:12)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)\n    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)\n    at node:internal/main/run_main_module:33:47 {\n  code: 'ERR_SQLITE_ERROR',\n  errcode: 5,\n  errstr: 'database is locked'\n}\n\nNode.js v24.22.2\n"
+    ]
+  },
+  "box_after_build_a": {
+    "load_average": [
+      14.6,
+      14.5,
+      16.51
+    ],
+    "mem_available_kb": 99439636
+  },
+  "snapshot_idle": {
+    "snapshot_id": "snap-20261102T084024Z-6e938e93",
+    "directory": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/snapshots/snap-20261102T084024Z-6e938e93",
+    "files": 112,
+    "bytes": 12381679,
+    "ledger_seq": 6,
+    "tick": 88754,
+    "day_time": 16760,
+    "timings": {
+      "save_off": 0.003699670000059996,
+      "save_flush": 0.4222061479995318,
+      "copy": 0.016793445000075735,
+      "hash": 0.020606001999112777,
+      "manifest": 0.0007878379983594641
+    },
+    "label": "idle",
+    "wall_seconds": 0.481
+  },
+  "placements_during_the_idle_snapshot": 0,
+  "box_after_idle_snapshot": {
+    "load_average": [
+      14.6,
+      14.5,
+      16.51
+    ],
+    "mem_available_kb": 99510412
+  },
+  "journal_lines_at_building_snapshot": 7,
+  "placements_during_the_building_snapshot": 0,
+  "snapshot_building": {
+    "snapshot_id": "snap-20261102T084034Z-7bf50fc9",
+    "directory": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/snapshots/snap-20261102T084034Z-7bf50fc9",
+    "files": 112,
+    "bytes": 12381708,
+    "ledger_seq": 7,
+    "tick": 88941,
+    "day_time": 16943,
+    "timings": {
+      "save_off": 0.00782438500027638,
+      "save_flush": 0.06171381400054088,
+      "copy": 0.01637890300116851,
+      "hash": 0.02359451400116086,
+      "manifest": 0.0008564660020056181
+    },
+    "label": "building",
+    "wall_seconds": 0.126
+  },
+  "box_after_building_snapshot": {
+    "load_average": [
+      13.66,
+      14.29,
+      16.39
+    ],
+    "mem_available_kb": 99361140
+  },
+  "probe_before_restore": [
+    {
+      "x": 7,
+      "y": 75,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 76,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 77,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 78,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 79,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 80,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 75,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 76,
+      "z": 9,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 77,
+      "z": 9,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 78,
+      "z": 9,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 79,
+      "z": 9,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 80,
+      "z": 9,
+      "block": "stone",
+      "expect": "stone"
+    }
+  ],
+  "ledger": {
+    "path": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/ledger.sqlite3",
+    "rows": 12,
+    "head_seq": 12
+  },
+  "plan_keep_everything": {
+    "point_seq": 12,
+    "snapshot_id": "snap-20261102T084034Z-7bf50fc9",
+    "snapshot_seq": 7,
+    "snapshot_dir": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/snap-20261102T084034Z-7bf50fc9",
+    "kept": 5,
+    "reappliable": [
+      {
+        "seq": 8,
+        "at": 1793608835.0,
+        "actor": "Builder2",
+        "op": "place",
+        "block": "stone",
+        "x": 9,
+        "y": 76,
+        "z": 9,
+        "skill": "skill_mcsnap_place",
+        "source": "placement journal"
+      },
+      {
+        "seq": 9,
+        "at": 1793608837.0,
+        "actor": "Builder2",
+        "op": "place",
+        "block": "stone",
+        "x": 9,
+        "y": 77,
+        "z": 9,
+        "skill": "skill_mcsnap_place",
+        "source": "placement journal"
+      },
+      {
+        "seq": 10,
+        "at": 1793608838.0,
+        "actor": "Builder2",
+        "op": "place",
+        "block": "stone",
+        "x": 9,
+        "y": 78,
+        "z": 9,
+        "skill": "skill_mcsnap_place",
+        "source": "placement journal"
+      },
+      {
+        "seq": 11,
+        "at": 1793608840.0,
+        "actor": "Builder2",
+        "op": "place",
+        "block": "stone",
+        "x": 9,
+        "y": 79,
+        "z": 9,
+        "skill": "skill_mcsnap_place",
+        "source": "placement journal"
+      },
+      {
+        "seq": 12,
+        "at": 1793608841.0,
+        "actor": "Builder2",
+        "op": "place",
+        "block": "stone",
+        "x": 9,
+        "y": 80,
+        "z": 9,
+        "skill": "skill_mcsnap_place",
+        "source": "placement journal"
+      }
+    ],
+    "recorded": [],
+    "lost": [],
+    "dropped": [],
+    "after_point": 0,
+    "window_seconds": 10.0,
+    "note": "the ledger is append-only and is not touched: the rows after the point stay in the ledger, but the world goes back before them"
+  },
+  "plan_keep_one_bot": {
+    "point_seq": 12,
+    "snapshot_id": "snap-20261102T084034Z-7bf50fc9",
+    "snapshot_seq": 7,
+    "snapshot_dir": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/snap-20261102T084034Z-7bf50fc9",
+    "kept": 0,
+    "reappliable": [],
+    "recorded": [],
+    "lost": [],
+    "dropped": [
+      {
+        "seq": 8,
+        "kind": "tile.played",
+        "actor": "Builder2",
+        "reason": "actor ('Builder2') is not 'Builder1'"
+      },
+      {
+        "seq": 9,
+        "kind": "tile.played",
+        "actor": "Builder2",
+        "reason": "actor ('Builder2') is not 'Builder1'"
+      },
+      {
+        "seq": 10,
+        "kind": "tile.played",
+        "actor": "Builder2",
+        "reason": "actor ('Builder2') is not 'Builder1'"
+      },
+      {
+        "seq": 11,
+        "kind": "tile.played",
+        "actor": "Builder2",
+        "reason": "actor ('Builder2') is not 'Builder1'"
+      },
+      {
+        "seq": 12,
+        "kind": "tile.played",
+        "actor": "Builder2",
+        "reason": "actor ('Builder2') is not 'Builder1'"
+      }
+    ],
+    "after_point": 0,
+    "window_seconds": 10.0,
+    "note": "the ledger is append-only and is not touched: the rows after the point stay in the ledger, but the world goes back before them"
+  },
+  "state_before_restore": {
+    "level": {
+      "seed": null,
+      "tick": 88941,
+      "day_time": 0,
+      "data_version": 4790,
+      "last_played": 1793608834415,
+      "level_name": "world",
+      "spawn": {
+        "x": 0,
+        "y": 70,
+        "z": 0,
+        "dimension": "minecraft:overworld"
+      },
+      "server_version": "Paper/26.1.2-74-e4e17fc (MC: 26.1.2)/26.1.2.build.74-stable"
+    },
+    "entities": {
+      "minecraft/overworld": 0
+    },
+    "players": {
+      "0d3214da-0cab-3a46-8ffd-470d2bef9d55": {
+        "position": [
+          1.5,
+          67.0,
+          -0.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "2c500869-022c-3d18-99d9-6ef4f9f693a9": {
+        "position": [
+          -2.5,
+          85.0,
+          10.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "35deb110-752a-3928-95c4-cc89250ce08e": {
+        "position": [
+          -6.5,
+          66.0,
+          9.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "3f0ca0c8-9f16-3b87-92fb-b626b9a1bb99": {
+        "position": [
+          10.5,
+          71.0,
+          6.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "612b26cc-6623-386c-8b05-2d8ac19aa42e": {
+        "position": [
+          9.5,
+          76.85489329934836,
+          10.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "625ade46-e1fa-3006-9151-8ad41a345a15": {
+        "position": [
+          -9.5,
+          66.0,
+          9.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "631d5ac2-e8ce-312c-94a0-7861fe33a662": {
+        "position": [
+          8.5,
+          75.0,
+          9.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "6742cc31-c443-3a85-adae-b8419d266e40": {
+        "position": [
+          -7.5,
+          65.0,
+          7.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "94f87fd5-4f42-3afe-9bf1-9ffea49acce6": {
+        "position": [
+          3.5,
+          65.0,
+          4.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "98dc2265-4709-386d-bc07-f85bc23dd980": {
+        "position": [
+          -5.5,
+          73.0,
+          -5.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "9a63a993-1cda-398e-9d38-44799b7a063f": {
+        "position": [
+          0.5,
+          83.0,
+          10.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "9e545d21-531a-3f99-b054-df7f256227d4": {
+        "position": [
+          5.5,
+          69.0,
+          -3.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "b572b886-b31e-3bc4-b065-2b35c7e5c522": {
+        "position": [
+          -9.5,
+          82.0,
+          -9.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "f30281c1-3d80-3d66-8044-5cddd0686920": {
+        "position": [
+          4.5,
+          69.0,
+          -3.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      }
+    }
+  },
+  "restore": {
+    "snapshot_id": "snap-20261102T084034Z-7bf50fc9",
+    "new_world": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/world",
+    "previous_world": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/world.replaced-20261102T084058Z",
+    "verified": true,
+    "problems": [],
+    "stopped": true,
+    "started": true,
+    "siblings_moved": [
+      "world_nether.stale-20261102T072535Z.replaced-20261102T080127Z.replaced-20261102T082756Z",
+      "world_the_end.stale-20261102T072535Z.replaced-20261102T080127Z.replaced-20261102T082756Z"
+    ],
+    "timings": {
+      "stop": 1.0051585670007626,
+      "move_aside": 0.0005884130005142651,
+      "copy": 0.02810964400123339,
+      "verify": 0.016329427999153268,
+      "start": 10.017432392000046
+    },
+    "wall_seconds": 11.068
+  },
+  "state_after_restore": {
+    "level": {
+      "seed": null,
+      "tick": 88941,
+      "day_time": 0,
+      "data_version": 4790,
+      "last_played": 1793608867652,
+      "level_name": "world",
+      "spawn": {
+        "x": 0,
+        "y": 70,
+        "z": 0,
+        "dimension": "minecraft:overworld"
+      },
+      "server_version": "Paper/26.1.2-74-e4e17fc (MC: 26.1.2)/26.1.2.build.74-stable"
+    },
+    "entities": {
+      "minecraft/overworld": 0
+    },
+    "players": {
+      "0d3214da-0cab-3a46-8ffd-470d2bef9d55": {
+        "position": [
+          1.5,
+          67.0,
+          -0.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "2c500869-022c-3d18-99d9-6ef4f9f693a9": {
+        "position": [
+          -2.5,
+          85.0,
+          10.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "35deb110-752a-3928-95c4-cc89250ce08e": {
+        "position": [
+          -6.5,
+          66.0,
+          9.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "3f0ca0c8-9f16-3b87-92fb-b626b9a1bb99": {
+        "position": [
+          10.5,
+          71.0,
+          6.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "612b26cc-6623-386c-8b05-2d8ac19aa42e": {
+        "position": [
+          0.5,
+          83.0,
+          10.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 12.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "625ade46-e1fa-3006-9151-8ad41a345a15": {
+        "position": [
+          -9.5,
+          66.0,
+          9.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "631d5ac2-e8ce-312c-94a0-7861fe33a662": {
+        "position": [
+          8.5,
+          75.0,
+          9.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "6742cc31-c443-3a85-adae-b8419d266e40": {
+        "position": [
+          -7.5,
+          65.0,
+          7.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "94f87fd5-4f42-3afe-9bf1-9ffea49acce6": {
+        "position": [
+          3.5,
+          65.0,
+          4.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "98dc2265-4709-386d-bc07-f85bc23dd980": {
+        "position": [
+          -5.5,
+          73.0,
+          -5.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "9a63a993-1cda-398e-9d38-44799b7a063f": {
+        "position": [
+          0.5,
+          83.0,
+          10.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "9e545d21-531a-3f99-b054-df7f256227d4": {
+        "position": [
+          5.5,
+          69.0,
+          -3.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [],
+        "inventory_size": 0
+      },
+      "b572b886-b31e-3bc4-b065-2b35c7e5c522": {
+        "position": [
+          -9.5,
+          82.0,
+          -9.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      },
+      "f30281c1-3d80-3d66-8044-5cddd0686920": {
+        "position": [
+          4.5,
+          69.0,
+          -3.5
+        ],
+        "dimension": "minecraft:overworld",
+        "health": 20.0,
+        "food": 20,
+        "inventory": [
+          {
+            "slot": 0,
+            "id": "minecraft:stone",
+            "count": null
+          }
+        ],
+        "inventory_size": 0
+      }
+    }
+  },
+  "region_hashes_after_restore": {
+    "dimensions/minecraft/overworld/region/r.-1.-1.mca": "aadcb3692cd2c13f7cb850de817b676ddf808b5b47e8e9ef2922b8a04b8aea0f",
+    "dimensions/minecraft/overworld/region/r.-1.0.mca": "f42a9d35ce863ed4e3dc341121b5f2763b7443a5425b82833a7f75414ac7e38c",
+    "dimensions/minecraft/overworld/region/r.0.-1.mca": "c57366062666bd4242c208dd2b620ec318f4ae35096313363b4a48da2a936d59",
+    "dimensions/minecraft/overworld/region/r.0.0.mca": "b8ef98d61f1d7a0c5c99cf649ff99f52f03ffca1b1d6e68fbf5b649dad670633",
+    "dimensions/minecraft/the_end/region/r.-1.-1.mca": "044fbb232af7107880af50840531c97c0aa3bf215662e438eadb353e3e4fca47",
+    "dimensions/minecraft/the_end/region/r.-1.0.mca": "d2eac507fdd522e49ea81a5066cef55c3c05b6d1f92d4a5578803660b758bd1f",
+    "dimensions/minecraft/the_end/region/r.0.-1.mca": "0d142f24f4ce66446d58f21f718d3178ed0a96102111c61f585b12f0fbf26ab4",
+    "dimensions/minecraft/the_end/region/r.0.0.mca": "f8e420a13ce78e85099e221fe7333212044d9480e6f03c7d3d780ce7c073cb74",
+    "dimensions/minecraft/the_nether/region/r.-1.-1.mca": "7cecd873fecb530adfb51a1940f2a1be913af3eca6b031922ecf431c61bcf1f4",
+    "dimensions/minecraft/the_nether/region/r.-1.0.mca": "f2bfbb3a5069ebddbe3bec6705ba5be6a47b8ecc18f059bebe42d03de64aca76",
+    "dimensions/minecraft/the_nether/region/r.0.-1.mca": "418ab8fb0db5c7ca43e3baa0f0dcc429ffccda6dd288323674850c14911ae5ee",
+    "dimensions/minecraft/the_nether/region/r.0.0.mca": "2854a99e11a137d7144fa88c418c6129945f758a5684fb1d51d6edc9a3e46b7f"
+  },
+  "probe_after_restore": [
+    {
+      "x": 7,
+      "y": 75,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 76,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 77,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 78,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 79,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 80,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 75,
+      "z": 9,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 76,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 77,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 78,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 79,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 80,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    }
+  ],
+  "box_after_restore": {
+    "load_average": [
+      14.59,
+      14.45,
+      16.36
+    ],
+    "mem_available_kb": 99405040
+  },
+  "replay": {
+    "seconds": 13.17,
+    "returncode": 1,
+    "output": "replaying 5 placements\nreplay failed at 9,76,9: Server did not answer the placement at (9, 76, 9): Event blockUpdate:(9, 76, 9) did not fire within timeout of 5000ms\nno reference under 9,77,9\nno reference under 9,78,9\nno reference under 9,79,9\nno reference under 9,80,9\ndone: 0 replayed, 0 already there, 5 failed, 0 read back as the expected block\nbot ended\n"
+  },
+  "snapshot_after_replay": {
+    "snapshot_id": "snap-20261102T084134Z-cede77cf",
+    "directory": "/home/caseydigennaro/lm-wt/world-snapshot/mc-snap/snapshots/snap-20261102T084134Z-cede77cf",
+    "files": 112,
+    "bytes": 12381737,
+    "ledger_seq": 12,
+    "tick": 89472,
+    "day_time": 17479,
+    "timings": {
+      "save_off": 0.005461617001856212,
+      "save_flush": 0.4571408280025935,
+      "copy": 0.02342880599826458,
+      "hash": 0.032947881998552475,
+      "manifest": 0.0008556889988540206
+    },
+    "label": "after-replay",
+    "wall_seconds": 0.547
+  },
+  "region_comparison_after_replay": {
+    "same_as_snapshot": [
+      "dimensions/minecraft/the_end/region/r.-1.-1.mca",
+      "dimensions/minecraft/the_end/region/r.-1.0.mca",
+      "dimensions/minecraft/the_end/region/r.0.-1.mca",
+      "dimensions/minecraft/the_end/region/r.0.0.mca",
+      "dimensions/minecraft/the_nether/region/r.-1.-1.mca",
+      "dimensions/minecraft/the_nether/region/r.-1.0.mca",
+      "dimensions/minecraft/the_nether/region/r.0.-1.mca",
+      "dimensions/minecraft/the_nether/region/r.0.0.mca"
+    ],
+    "different_from_snapshot": [
+      "dimensions/minecraft/overworld/region/r.-1.-1.mca",
+      "dimensions/minecraft/overworld/region/r.-1.0.mca",
+      "dimensions/minecraft/overworld/region/r.0.-1.mca",
+      "dimensions/minecraft/overworld/region/r.0.0.mca"
+    ],
+    "missing_after_replay": [],
+    "note": "a region file hashes the same only if every block in it came back exactly; the ones that differ are the chunks the replay did not restore"
+  },
+  "probe_after_replay": [
+    {
+      "x": 7,
+      "y": 75,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 76,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 77,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 78,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 79,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 7,
+      "y": 80,
+      "z": 10,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 75,
+      "z": 9,
+      "block": "stone",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 76,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 77,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 78,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 79,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    },
+    {
+      "x": 9,
+      "y": 80,
+      "z": 9,
+      "block": "air",
+      "expect": "stone"
+    }
+  ],
+  "block_table": [
+    {
+      "x": 7,
+      "y": 75,
+      "z": 10,
+      "block": "stone",
+      "seq": 1,
+      "in_snapshot": true,
+      "before_restore": "stone",
+      "after_restore": "stone",
+      "after_replay": "stone"
+    },
+    {
+      "x": 7,
+      "y": 76,
+      "z": 10,
+      "block": "stone",
+      "seq": 2,
+      "in_snapshot": true,
+      "before_restore": "stone",
+      "after_restore": "stone",
+      "after_replay": "stone"
+    },
+    {
+      "x": 7,
+      "y": 77,
+      "z": 10,
+      "block": "stone",
+      "seq": 3,
+      "in_snapshot": true,
+      "before_restore": "stone",
+      "after_restore": "stone",
+      "after_replay": "stone"
+    },
+    {
+      "x": 7,
+      "y": 78,
+      "z": 10,
+      "block": "stone",
+      "seq": 4,
+      "in_snapshot": true,
+      "before_restore": "stone",
+      "after_restore": "stone",
+      "after_replay": "stone"
+    },
+    {
+      "x": 7,
+      "y": 79,
+      "z": 10,
+      "block": "stone",
+      "seq": 5,
+      "in_snapshot": true,
+      "before_restore": "stone",
+      "after_restore": "stone",
+      "after_replay": "stone"
+    },
+    {
+      "x": 7,
+      "y": 80,
+      "z": 10,
+      "block": "stone",
+      "seq": 6,
+      "in_snapshot": true,
+      "before_restore": "stone",
+      "after_restore": "stone",
+      "after_replay": "stone"
+    },
+    {
+      "x": 9,
+      "y": 75,
+      "z": 9,
+      "block": "stone",
+      "seq": 7,
+      "in_snapshot": true,
+      "before_restore": "air",
+      "after_restore": "stone",
+      "after_replay": "stone"
+    },
+    {
+      "x": 9,
+      "y": 76,
+      "z": 9,
+      "block": "stone",
+      "seq": 8,
+      "in_snapshot": false,
+      "before_restore": "stone",
+      "after_restore": "air",
+      "after_replay": "air"
+    },
+    {
+      "x": 9,
+      "y": 77,
+      "z": 9,
+      "block": "stone",
+      "seq": 9,
+      "in_snapshot": false,
+      "before_restore": "stone",
+      "after_restore": "air",
+      "after_replay": "air"
+    },
+    {
+      "x": 9,
+      "y": 78,
+      "z": 9,
+      "block": "stone",
+      "seq": 10,
+      "in_snapshot": false,
+      "before_restore": "stone",
+      "after_restore": "air",
+      "after_replay": "air"
+    },
+    {
+      "x": 9,
+      "y": 79,
+      "z": 9,
+      "block": "stone",
+      "seq": 11,
+      "in_snapshot": false,
+      "before_restore": "stone",
+      "after_restore": "air",
+      "after_replay": "air"
+    },
+    {
+      "x": 9,
+      "y": 80,
+      "z": 9,
+      "block": "stone",
+      "seq": 12,
+      "in_snapshot": false,
+      "before_restore": "stone",
+      "after_restore": "air",
+      "after_replay": "air"
+    }
+  ],
+  "block_table_summary": {
+    "placements_journalled": 12,
+    "blocks_present_before_the_restore": 11,
+    "blocks_removed_by_the_restore": 5,
+    "blocks_kept_by_the_restore": 6,
+    "blocks_put_back_by_the_replay": 0,
+    "still_missing_after_the_replay": 5,
+    "predicted_by_the_ledger": {
+      "in_the_snapshot": 7,
+      "after_the_snapshot": 5
+    },
+    "note": "the counts are read out of the running world with the probe bot; the ledger's own prediction is in 'predicted_by_the_ledger'"
+  },
+  "box_at_end": {
+    "load_average": [
+      13.89,
+      14.32,
+      16.27
+    ],
+    "mem_available_kb": 99267828
+  },
+  "finished_at": "2026-11-02T08:41:46Z"
+}

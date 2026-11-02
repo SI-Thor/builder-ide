@@ -1,0 +1,86 @@
+[
+  {
+    "x": 7,
+    "y": 75,
+    "z": 10,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 7,
+    "y": 76,
+    "z": 10,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 7,
+    "y": 77,
+    "z": 10,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 7,
+    "y": 78,
+    "z": 10,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 7,
+    "y": 79,
+    "z": 10,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 7,
+    "y": 80,
+    "z": 10,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 9,
+    "y": 75,
+    "z": 9,
+    "block": "air",
+    "expect": "stone"
+  },
+  {
+    "x": 9,
+    "y": 76,
+    "z": 9,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 9,
+    "y": 77,
+    "z": 9,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 9,
+    "y": 78,
+    "z": 9,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 9,
+    "y": 79,
+    "z": 9,
+    "block": "stone",
+    "expect": "stone"
+  },
+  {
+    "x": 9,
+    "y": 80,
+    "z": 9,
+    "block": "stone",
+    "expect": "stone"
+  }
+]
