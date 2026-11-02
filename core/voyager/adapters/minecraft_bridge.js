@@ -880,8 +880,23 @@ function plainValue (value) {
   }
 }
 
+// The coder drifted into wrapping whole programs in their own async
+// IIFE (24 of 91 programs in the round-2 control run, 59 of 59 in
+// mc160-a2). The sandbox wraps the code again, so the inner IIFE was
+// an un-awaited expression statement: the wrapper completed with
+// undefined at the first inner await and every such program
+// "succeeded" in milliseconds with an empty log while the bot did
+// nothing. One redundant wrapper is unwrapped here; the sandbox's own
+// wrapper is the only one a program needs.
+function unwrapRedundantIife (code) {
+  const trimmed = code.trim()
+  const match = trimmed.match(/^\(async\s*\(\s*\)\s*=>\s*\{([\s\S]*)\}\)\s*\(\s*\)\s*;?$/)
+  return match ? match[1] : code
+}
+
 async function runInSandbox (code, timeoutMs) {
   if (!bot) throw new Error('the bot is not connected')
+  code = unwrapRedundantIife(code)
   const captured = []
   const consoleShim = {
     log: (...args) => { captured.push(args.map(String).join(' ')) },
@@ -911,7 +926,17 @@ async function runInSandbox (code, timeoutMs) {
     // treats that as fatal: the bridge dies and the run ends with it.
     // The catch marks it handled; the race is what reports the failure.
     if (running && typeof running.catch === 'function') running.catch(() => {})
-    const value = await Promise.race([running, clock])
+    let value = await Promise.race([running, clock])
+    // A program that wraps itself in an async IIFE returns a promise
+    // as its completion value — a habit the coder drifted into during
+    // round 2 (24 of 91 programs in the control run, 59 of 59 in
+    // mc160-a2). Without this await the wrapper is fire-and-forget:
+    // it resolves at the first inner await, the program "succeeds" in
+    // milliseconds with an empty log, and the bot does nothing while
+    // its walk dies with the next program's cleanup.
+    if (value && typeof value.then === 'function') {
+      value = await Promise.race([value, clock])
+    }
     return { value, log: captured }
   } catch (err) {
     // The program may still be walking or digging: stop it, so the next

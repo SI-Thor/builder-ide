@@ -2385,3 +2385,38 @@ Decided next: the three-seed measurement runs with the repaired
 facts — same seed as round 1 (`mc160-a2`), then `voyager-port-r2b`
 (`mc160-b`) and `voyager-port-r2c` (`mc160-c`); `mc160-a` is kept as
 the honest control (the lever pulled but inert).
+
+## 2026-11-02 07:50 — round 2: a2's eyes worked; the legs never moved — and then b's programs never ran
+
+a2 (seed `voyager-port`, fresh world, fixed facts): **59 steps,
+775,031 tokens, 0 milestones** — but the facts now see: 59/59 steps
+non-empty `nearby`, oak_log in 58 (pinned at 87.4; the coder even
+hardcoded the scan's own tree coordinates into its programs). The
+bottleneck moved to execution, and the replay of a2's own step-4
+program pinned it: the code completed ok in 0.02 s with an empty log
+— impossible for a program whose tail always logs. **The coder
+drifted into wrapping programs in their own async IIFE** (0/51 in
+round 1's run, 24/91 in the control run, 59/59 in a2 — it spreads
+through the coder's previous_code), and the sandbox wraps every
+program again, so the inner IIFE was an un-awaited expression
+statement: vacuous "success" in milliseconds, empty log, bot
+untouched. A 5.3-block walk driven by hand works (probe_move_to_block:
+2302 ms, why=complete); far goals burn their caller's clock
+(20/60/90-block moves: three 30 s timeouts, thrown honestly).
+
+Fix (committed): the bridge unwraps one redundant IIFE and awaits a
+thenable completion value under the same clock. Replayed, the a2
+program now runs to its wall instead of returning instantly. The b
+run — 10 steps in on the broken executor — was stopped and re-launched
+from a fresh world on the fixed bridge; a2 and the control stand as
+measured, payloads naming the mechanism. The crafter run finished
+before all this and shares none of it: **152 steps, 4.176
+achievements/episode over 17 episodes** (teacher 9.625 privileged;
+students 1.125/0.875/1.375), 3 skills admitted (collect_wood step 5
+/ 25,927 tokens; make_wood_pickaxe step 99 / 734,728; collect_stone
+step 103 / 763,975), 1,230,853 tokens, 10 achievements incl.
+defeat_zombie x151.
+
+Decided next: b (r2b) and c (r2c) on the fixed bridge, 2 h each,
+fresh worlds; the report then carries the correction chain and the
+three-seed numbers.
