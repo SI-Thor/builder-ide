@@ -1,0 +1,17 @@
+Test project /home/caseydigennaro/lm-wt/stratego/third_party/stratego/build
+      Start  1: test_tensor_size
+      Start  2: test_action_transforms
+      Start  3: test_alt_log_loss
+      Start  4: test_arrangement_distribution_behavior
+ 1/45 Test  #3: test_alt_log_loss ........................   Passed    2.02 sec
+      Start  5: test_attack_planes
+ 2/45 Test  #2: test_action_transforms ...................   Passed    3.06 sec
+      Start  6: test_battle_planes
+ 3/45 Test  #1: test_tensor_size .........................   Passed    3.74 sec
+      Start  7: test_belief_mask
+ 4/45 Test  #4: test_arrangement_distribution_behavior ...   Passed   20.23 sec
+      Start  8: test_chan_last
+ 5/45 Test  #8: test_chan_last ...........................   Passed   34.56 sec
+      Start  9: test_circular_buffer
+ 6/45 Test  #9: test_circular_buffer .....................   Passed    3.93 sec
+      Start 10: test_cemetery

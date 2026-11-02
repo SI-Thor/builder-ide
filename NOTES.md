@@ -2148,3 +2148,66 @@ The open question the doc leaves for the director: 6 of the 9
 over-cap meshes sit between 306k and 1 M triangles where nobody has
 measured the check's cost — whether the cap should rise is a separate
 cost measurement.
+
+## 2026-11-01 21:20 — stratego: the study, and the port to CUDA 13.2 / sm_110
+
+What changed — three things, in this order. (1) The upstream
+AtaraxosAI/stratego checkout (MIT) is cloned into
+`third_party/stratego/` (gitignored; the port itself is tracked, the upstream
+tree is not) at commit `92db29e`. (2) `docs/research/stratego.md` — the study:
+how the environment is batched on the GPU (a fixed-size POD state per game, one
+contiguous array, one kernel per rule, the legal-move mask computed by the
+rules engine), how the belief model is trained (cross-entropy on the hidden
+pieces' true types, with the KL to two uniform references as the diagnostic),
+how the search uses sampled beliefs (the belief samples *are* the search's
+branching factor), and how the arrangement model works (autoregressive over
+the 40 setup cells, trained on the rewards of the games its setups produced,
+with a forced handedness to halve the sample cost). Every claim cites the
+upstream file and line. (3) `docs/design/batched-sim.md` — the design for our
+own rule systems: one `core/sim/` interface (fixed-size state, a batch that is
+one contiguous array, the mask in the rules engine, a plane manifest that both
+sides read), where the belief model helps (the drift detector's stuck-vs-
+waiting and the screen watcher's, which is the same latent variable with a
+different sensor), sampled-belief search as the third tier of the vibecode
+pre-flight, and the arrangement model as a learned room seeder anchored by the
+critic with the human's verdicts held out (the anti-GAN part). The three first
+builds are ranked: the drift simulator, the pre-flight simulator, the room
+seeder.
+
+The port — seven changes, all in `docs/lab/stratego-port/apply_port.py`, which
+applies them as exact string replacements and refuses to continue on a missing
+anchor. Upstream builds with CUDA 11.8 on x86_64 against PyTorch 2.5.1; the
+Thor has CUDA 13.2, an sm_110 GPU on aarch64, and PyTorch 2.15.0+cu132 (the
+wheel already in the box's uv cache — nothing downloaded twice, and no model
+re-downloaded). The changes: (1) the libstdc++ ABI is now read from the
+installed PyTorch instead of the hardcoded `-D_GLIBCXX_USE_CXX11_ABI=0`, which
+matched PyTorch 2.5.1's old-ABI wheels and would have mismatched every
+`std::string` argument against libtorch 2.15's CXX11 ABI; (2) the CUDA 13.2
+toolkit is located explicitly (`nvcc` is not on PATH on this box, and CUDA 13
+dropped the `sm_52` target nvcc used to default to) and the architecture is
+set to `sm_110`; (3) `CUDNN_ROOT` points at the cuDNN bundled in the PyTorch
+wheel; (4) `get_pybind_flags.py` no longer crashes — PyTorch ≥ 2.6 removed the
+`_PYBIND11_*` attributes it reads, and the crash left `PYBIND_FLAGS` empty,
+which then aborted the configure with "message called with incorrect number
+of arguments"; (5) the `message()` calls quote their argument so an empty
+value cannot abort cmake; (6) C++20 for both g++ and nvcc — PyTorch ≥ 2.6
+refuses anything older (`#error C++20 or later compatible compiler is
+required to use PyTorch`); (7) `--expt-relaxed-constexpr` is restored for nvcc,
+because upstream deliberately wipes Torch's CUDA flags and PyTorch 2.15's
+bundled CUB calls constexpr host functions from device code.
+
+What happened — the extension builds: `pystratego.cpython-312-aarch64-linux-gnu.so`,
+10.9 MB, 0 errors, sm_110 code (`-gencode arch=compute_110,code=sm_110`).
+The smoke test (`docs/lab/stratego-scripts/smoke_test.py`) passes: the module
+loads, `NUM_ACTIONS=1800` and `NUM_BOARD_STATE_CHANNELS=355` are the expected
+constants, a batch of 8 games resets, takes 5 steps, and produces 8-19 legal
+actions per game with a legal 40-piece-per-side board. Two aborts along the
+way were *ours*, not the port's: a 64-row buffer is too small for the
+continuous chasing rule (the env says so, and correctly), and the legal-action
+mask is filled in by `compute_legal_action_mask`, not by a step.
+
+Decided next — the upstream ctest suite (45 cases over the rules engine) is
+running detached as the port's correctness gate; then the three measurements
+the brief asks for: one RL iteration at `--num_envs 128` against upstream's
+"10-20 seconds on an RTX A6000", the pretrained model against a random
+baseline over N games, and env steps/s at batch 128/1024/4096.

@@ -58,3 +58,8 @@ docs/lab/critic-delegate-scripts/results/*-edited.png
 
 # The pose stream crate's build output (tools/posestream is a standalone crate).
 tools/posestream/target/
+
+# The upstream AtaraxosAI/stratego checkout (MIT). Cloned, ported and built
+# here; the port itself lives in docs/lab/stratego-port/, so the upstream tree
+# is not tracked.
+third_party/
