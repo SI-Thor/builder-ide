@@ -1947,4 +1947,87 @@ with fov; omit position, rotation, distance and subjectNodeId"); `view.mode`
 "orbit" -> `CAMERA_SUBJECT_REQUIRES_CHARACTER` (a camera subject must be a
 *character* node). The resting shape is `update` on the `cam-main` the project
 init already creates, with `{name, fov, view: {mode: world, position, target}}`.
-Every rejection ended in "nothing was written": the batch is atomic.
+Every rejection ended in "nothing was written": the batch is atomic.## 2026-11-01 21:10 - 2026-11-02 00:50 — ingame-phase2 tasks 2-3: the kit, the redteam, the transactions
+
+The phase-2 run in full: one day per shortlisted tool, hands-on, numbers or it
+didn't happen. Task 1 (topview) is the entry above; this one closes the brief.
+Full write-up: `docs/lab/exp-ingame-phase2.md`. All recipes +
+`results/` under `docs/lab/ingame-phase2-scripts/`. Every long run under
+`thor-admit run --tier live --peak 2G..3G`, logs `/tmp/ingame-phase2-*.log`
+(local, uncommitted; the numbers below are the committed ones).
+
+**Task 2a — build-world kit with our assets (`run_bw_glb.sh`, raw
+`results/bw-glb/`).** The kit editor has NO gizmos, NO selection, NO undo, NO
+placement ('undo' hits only its bundled Unreal docs) — phase 1's hunch right:
+its value is capture + gates. It loaded our box (4,924 tris) and our
+`books_room.glb` (132 meshes / **5,799,560 tris**) in 610 ms; 134 draw calls /
+104 textures at the shutter. Pixel gate on our scene:
+**run 1 vs run 2 bit-identical** (`identical: true`, 0 px, `maxDelta 0`);
+`?lightdim=1` deliberate change: **88.54 % / 92.06 %** px, `maxDelta` 60/63
+(gate threshold is `changedPct < 0.05` + `maxDelta <= 2`). Framecost
+(`bw-glb-scene/framecost.mjs`): 0.6-2 ms per render frame at 5.8 M tris — and
+the *shutter* is 43 ms with a 5-frame pump but >30 s after 48 pumped frames
+(`capture.mjs` times out, both 24- and 90-settle, `exits.txt`: `capture exit=1`;
+baseline screenshots fine). Software-GL lesson, confirmed by the page's own
+`GPU stall due to ReadPixels`: **pump depth is part of the shutter cost**; it
+is not "the frame is slow".
+
+**Task 2b — the contract on the live viewer (
+`aw-viewer-gate/`, raw `results/aw-viewer-gate/`).** The bundle exposes
+*nothing* but `window.__THREE__` = the REVISION **string**; no namespace to
+wrap `WebGLRenderer.prototype.render` on. So the shim pivots to the public
+seams: WebGL-context instrumentation (draw calls / triangles / programs /
+buffers) + `requestAnimationFrame` wrap for frame bounds + the viewer's
+**OrbitControls input** for posing shots (no damping, no pointer capture; a
+drag lands on an exact pose one frame later; shots store absolute deltas so
+`__APPLY_SHOT__` is idempotent). Three runs taught three things:
+(1) free-running loop → 93.9 % run-vs-run drift on the streamed-world shot
+(the kit's lockstep lesson, in our teeth); (2) lockstep + quiet barrier →
+0.14-0.15 % on settled shots, 26.4 % on the far-chunk shot (buffer totals
+3756…4370+ across pages: the world streams and wall-clock quiet does not fix
+its manifest); (3) the viewer's own DOM banner FADES with wall time and lives
+in the page screenshot — `?capture=1` hides all non-canvas DOM;
+`settleWorld` needs 30 quiet frames AND 8 s of clock. Final gates:
+run-vs-run drift **0.034 / 0.313 / 0.373 %** (bbox'd, localized) vs the
+deliberate `?tilt=1` change at **98.9 / 99.2 / 99.3 %** — a ~300x separation,
+and the residual is exactly the streamed/animated world pixels. Not a verdict
+on the world; a verdict on the contract.
+
+**Task 3 — Vibe3DScene transactions (`run_vibe_transactions.py`, raw
+`results/vibe-transactions/records.json`).** Headless Blender 4.0.2 +
+`blender-mcp-vision` addon (**MIT**; the Vibe3DScene tree is **Apache-2.0**).
+Six edits, each a designed outcome: `clean-edit` ok/committed (guard:
+object 2→3, bbox 2.0→3.0 m, outliers 0, thresholds IN the record,
+snapshot `snapshot_000001.blend`, 0.003 s); `guard-violation-rollback`
+(teleport x=9999 → `object_location_outlier: crate`, **state_restored: true**);
+`exec-error-rollback` (mid-edit raise, restored); `raw-delete-refused`
+(refused up front: use hierarchy-safe delete); `guard-violation-no-rollback`
+(same guard failure, `rollback not requested` → **state_restored: false**, the
+teleport stands — the one-line argument for GC E's residualDeltas labels);
+`safe-mode-off` ok with snapshot `available: false`. Per edit 0-0.008 s.
+
+**Claim.** The kit contract (ready / pump / present / shot / RENDER_INFO +
+fresh-page baselines + imagediff gate) ports to OUR renderer at public seams
+and is what we take; its authoring side and pretence of playback are refused.
+
+**Reason.** Same frame twice = 0.03-0.37 % of pixels changed; deliberately
+changed camera = 98.9-99.3 %; deliberately changed key light = 88.5-92.1 %
+(ours) with a bit-identical control on our own GLBs. The gate's separation is
+measured, not asserted.
+
+**Failure story (kept since it is how the seam actually works).** The first
+shim waited for `window.__THREE__`'s namespace, hit the 90 s
+`page.waitForFunction` wall, and only the page's own answer of
+`window.__THREE__ = 'REVISION-string'` (`shim-diag.json`) explained why; the
+second shim's `__PRESENT__` mismatch (`window.__PRESENT__ is not a function`)
+broke every baseline until the GLB page's `main.js` grew the compositor
+handshake the kit expects. Both numbers live in `results/` beside the fix.
+
+**Open loop with the next action (ONE step, concrete).** The residual
+0.03-0.37 % is streamed-chunk + animated-pixel noise because the world manifest
+is not pinned: build the manifest-tight fixture (the shot set on a fully
+streamed, static world) and derive scene's diff tolerance (`imagediff --tol`)
+from it — that turns `0.05 %` from a kit default into our number.
+
+*next: readonly-first sweep (gentle): fold the page contract, the pre-flight
+receipt and the residual-delta rule into the vibecode-in-world moments spec.*

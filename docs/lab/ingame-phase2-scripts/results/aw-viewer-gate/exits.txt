@@ -1,0 +1,7 @@
+shim-diag exit=0
+capture exit=0
+baselineA exit=0
+baselineB exit=0
+baselineC exit=0
+diff-run1-run2 exit=1
+diff-tilt exit=1

@@ -1,0 +1,8 @@
+probe exit=0
+capture exit=1
+framecost exit=0
+baselineA exit=0
+baselineB exit=0
+baselineC exit=0
+diff-run1-run2 exit=0
+diff-lightdim exit=1

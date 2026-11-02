@@ -1,0 +1,53 @@
+{
+  "ok": false,
+  "outDir": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/shots",
+  "size": "960x540",
+  "settle": 24,
+  "shots": [
+    {
+      "shot": "box-wide",
+      "ok": true,
+      "file": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/shots/box-wide.png",
+      "doc": "the critic-reference box, whole object in frame",
+      "pixels": {
+        "mean": 38.3,
+        "std": 9.49,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 2,
+        "triangles": 4926,
+        "geometries": 78,
+        "textures": 104
+      },
+      "newLogs": [
+        "[warning] [.WebGL-0x2400157e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+        "[warning] [.WebGL-0x2400157e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+        "[warning] [.WebGL-0x2400157e00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)"
+      ]
+    },
+    {
+      "shot": "box-detail",
+      "ok": true,
+      "file": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/shots/box-detail.png",
+      "doc": "box corner and ground contact edge",
+      "pixels": {
+        "mean": 43,
+        "std": 16.4,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 2,
+        "triangles": 4926,
+        "geometries": 78,
+        "textures": 104
+      },
+      "newLogs": []
+    }
+  ],
+  "errors": [],
+  "fatal": "page.screenshot: Timeout 30000ms exceeded.\nCall log:\n  - taking page screenshot\n",
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)"
+}

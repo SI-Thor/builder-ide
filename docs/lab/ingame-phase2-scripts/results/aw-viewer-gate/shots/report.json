@@ -1,0 +1,87 @@
+{
+  "ok": true,
+  "outDir": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/aw-viewer-gate/shots",
+  "size": "960x540",
+  "settle": 8,
+  "shots": [
+    {
+      "shot": "watcher-wide",
+      "ok": true,
+      "file": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/aw-viewer-gate/shots/watcher-wide.png",
+      "doc": "",
+      "pixels": {
+        "mean": 64.6,
+        "std": 28.86,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 127590,
+        "triangles": 168701634,
+        "programs": 3,
+        "geometries": 4367,
+        "textures": 116,
+        "drawnFrames": 358,
+        "frames": 425,
+        "locked": false,
+        "tilt": 0,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "newLogs": []
+    },
+    {
+      "shot": "watcher-detail",
+      "ok": true,
+      "file": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/aw-viewer-gate/shots/watcher-detail.png",
+      "doc": "",
+      "pixels": {
+        "mean": 66.4,
+        "std": 29.86,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 703489,
+        "triangles": 815757184,
+        "programs": 3,
+        "geometries": 6593,
+        "textures": 343,
+        "drawnFrames": 1879,
+        "frames": 1946,
+        "locked": false,
+        "tilt": 0,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "newLogs": []
+    },
+    {
+      "shot": "watcher-tilt",
+      "ok": true,
+      "file": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/aw-viewer-gate/shots/watcher-tilt.png",
+      "doc": "",
+      "pixels": {
+        "mean": 67.9,
+        "std": 33.69,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 855731,
+        "triangles": 990228202,
+        "programs": 3,
+        "geometries": 7085,
+        "textures": 397,
+        "drawnFrames": 2253,
+        "frames": 2320,
+        "locked": false,
+        "tilt": 0,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "newLogs": []
+    }
+  ],
+  "errors": []
+}

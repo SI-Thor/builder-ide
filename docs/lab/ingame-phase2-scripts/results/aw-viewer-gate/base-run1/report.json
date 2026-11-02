@@ -1,0 +1,84 @@
+{
+  "ok": true,
+  "outDir": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/aw-viewer-gate/base-run1",
+  "size": "1920x1080",
+  "isolated": true,
+  "lockstep": true,
+  "settle": 8,
+  "query": null,
+  "shots": [
+    {
+      "shot": "watcher-wide",
+      "ok": true,
+      "pixels": {
+        "mean": 64.4,
+        "std": 29.08,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 101981,
+        "triangles": 137986120,
+        "programs": 3,
+        "geometries": 4463,
+        "textures": 84,
+        "drawnFrames": 302,
+        "frames": 327,
+        "locked": true,
+        "tilt": 0,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "logs": []
+    },
+    {
+      "shot": "watcher-detail",
+      "ok": true,
+      "pixels": {
+        "mean": 65.3,
+        "std": 29.51,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 530104,
+        "triangles": 598745314,
+        "programs": 3,
+        "geometries": 5615,
+        "textures": 354,
+        "drawnFrames": 1514,
+        "frames": 1532,
+        "locked": true,
+        "tilt": 0,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "logs": []
+    },
+    {
+      "shot": "watcher-tilt",
+      "ok": true,
+      "pixels": {
+        "mean": 69.2,
+        "std": 32.38,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 597214,
+        "triangles": 702164748,
+        "programs": 3,
+        "geometries": 6058,
+        "textures": 343,
+        "drawnFrames": 1514,
+        "frames": 1562,
+        "locked": true,
+        "tilt": 0,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "logs": []
+    }
+  ],
+  "errors": []
+}

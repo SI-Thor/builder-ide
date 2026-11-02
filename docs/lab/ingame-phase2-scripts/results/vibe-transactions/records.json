@@ -1,0 +1,730 @@
+{
+ "blender": "4.0.2",
+ "argv": [
+  "--addon",
+  "third_party/blender-mcp-vision",
+  "--out",
+  "docs/lab/ingame-phase2-scripts/results/vibe-transactions/records.json",
+  "--workdir",
+  "third_party/vibe-transactions"
+ ],
+ "persistence_enabled": true,
+ "edits": [
+  {
+   "label": "clean-edit",
+   "code": "import bpy\nbpy.ops.mesh.primitive_cube_add(size=1, location=(1.5, 0.0, 0.5))\nbpy.context.active_object.name = 'crate'\nprint('crate placed')\n",
+   "options": {
+    "safe_mode": true,
+    "rollback_on_guard_fail": true,
+    "validate_scene": true
+   },
+   "state_before": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   },
+   "outcome": "ok",
+   "transaction": {
+    "executed": true,
+    "committed": true,
+    "rolled_back": false,
+    "result": "crate placed\n",
+    "safe_mode": true,
+    "rollback_on_guard_fail": true,
+    "validate_scene": true,
+    "allow_internal_object_delete": false,
+    "snapshot": {
+     "available": true,
+     "filepath": "third_party/vibe-transactions/snapshots/snapshot_000001.blend",
+     "reason": ""
+    },
+    "scene_guard": {
+     "passed": true,
+     "violations": [],
+     "metrics": {
+      "object_count_before": 2,
+      "object_count_after": 3,
+      "object_count_delta": 1,
+      "scene_bbox_max_dimension_before": 2.0,
+      "scene_bbox_max_dimension_after": 3.0,
+      "location_outlier_count": 0,
+      "dimension_outlier_count": 0,
+      "invalid_numeric_count": 0,
+      "thresholds": {
+       "max_coord_abs": 5000.0,
+       "max_dimension_abs": 2000.0,
+       "max_scene_dimension": 5000.0,
+       "max_scene_growth_ratio": 100.0,
+       "max_object_count_delta": 1000
+      }
+     }
+    }
+   },
+   "seconds": 0.003,
+   "state_after": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "state_restored": false
+  },
+  {
+   "label": "guard-violation-rollback",
+   "code": "import bpy\nbpy.data.objects['crate'].location.x = 9999.0\nprint('crate teleported')\n",
+   "options": {
+    "safe_mode": true,
+    "rollback_on_guard_fail": true,
+    "validate_scene": true
+   },
+   "state_before": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "outcome": "error",
+   "error": "Scene guard validation failed after execute_code: object_location_outlier: crate (rollback succeeded)",
+   "seconds": 0.008,
+   "state_after": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "state_restored": true
+  },
+  {
+   "label": "exec-error-rollback",
+   "code": "import bpy\nbpy.data.objects['crate'].location.x = 42.0\nraise RuntimeError('mid-edit failure')\n",
+   "options": {
+    "safe_mode": true,
+    "rollback_on_guard_fail": true,
+    "validate_scene": true
+   },
+   "state_before": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "outcome": "error",
+   "error": "Code execution error: mid-edit failure (rollback succeeded)",
+   "seconds": 0.007,
+   "state_after": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "state_restored": true
+  },
+  {
+   "label": "raw-delete-refused",
+   "code": "import bpy\nbpy.data.objects.remove(bpy.data.objects['crate'])\n",
+   "options": {
+    "safe_mode": true,
+    "rollback_on_guard_fail": true,
+    "validate_scene": true
+   },
+   "state_before": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "outcome": "error",
+   "error": "Raw object deletion via execute_code is disabled. Use delete_objects(object_names=[...], mode=...) for hierarchy-safe deletion.",
+   "seconds": 0.0,
+   "state_after": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "state_restored": true
+  },
+  {
+   "label": "guard-violation-no-rollback",
+   "code": "import bpy\nbpy.data.objects['crate'].location.x = 9999.0\n",
+   "options": {
+    "safe_mode": true,
+    "rollback_on_guard_fail": false,
+    "validate_scene": true
+   },
+   "state_before": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      1.5,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "outcome": "error",
+   "error": "Scene guard validation failed after execute_code: object_location_outlier: crate (rollback not requested)",
+   "seconds": 0.001,
+   "state_after": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      9999.0,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "state_restored": false
+  },
+  {
+   "label": "safe-mode-off",
+   "code": "import bpy\nbpy.data.objects['crate'].location.x = 8888.0\n",
+   "options": {
+    "safe_mode": false,
+    "rollback_on_guard_fail": true,
+    "validate_scene": true
+   },
+   "state_before": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      9999.0,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "outcome": "ok",
+   "transaction": {
+    "executed": true,
+    "committed": true,
+    "rolled_back": false,
+    "result": "",
+    "safe_mode": false,
+    "rollback_on_guard_fail": true,
+    "validate_scene": true,
+    "allow_internal_object_delete": false,
+    "snapshot": {
+     "available": false,
+     "filepath": null,
+     "reason": "safe_mode_disabled"
+    },
+    "scene_guard": null
+   },
+   "seconds": 0.0,
+   "state_after": {
+    "Cube": {
+     "location": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "dimensions": [
+      2.0,
+      2.0,
+      2.0
+     ]
+    },
+    "Light": {
+     "location": [
+      4.0762,
+      1.0055,
+      5.9039
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "Camera": {
+     "location": [
+      7.3589,
+      -6.9258,
+      4.9583
+     ],
+     "dimensions": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "crate": {
+     "location": [
+      8888.0,
+      0.0,
+      0.5
+     ],
+     "dimensions": [
+      1.0,
+      1.0,
+      1.0
+     ]
+    }
+   },
+   "state_restored": false
+  }
+ ]
+}
