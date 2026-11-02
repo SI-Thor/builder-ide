@@ -75,6 +75,7 @@ Options: `--poll` (default 15 s), `--timeout` (default 36000 s, 0 = never),
    │  - the seats in wt/*.out   │ ───────► │  - the seats in lm-wt   │
    │  - tmux panes, /proc, ss   │          │  - MemAvailable, swap   │
    │  - MemAvailable, swap, df  │          │  - MemAvailable, df     │
+   │                             │          │  - thor-admit leases    │
    └─────────────┬──────────────┘          └────────────┬────────────┘
                  │  JSON lines (each tagged with its box)  │
                  └───────────────┬────────────────────────┘
@@ -129,7 +130,17 @@ this engine and compares the result with the lab's own `events.json` and
 watch-all.sh's rule, unchanged: count the `EXIT <n>` lines in every `.out`
 at the start, and report the first job whose count goes up. The markers
 present at the start do not count, and a `.out` that appears later counts
-from zero. The machine is `proart` or `thor`, as in watch-all.sh.
+from zero.
+
+**The missed-DONE rule** (the 2026-11-02 tuning): while the watcher was down
+(crash, or a reinstall), a seat's EXIT line could go unreported, and the new
+run's baseline would count it as old forever. So on start, before the first
+log line of the new run, the watcher reads the previous run's log and
+reports as `DONE` any `.out` that carries an EXIT line and was written after
+the previous run's last log line. A DONE the previous run already spoke for
+is not re-reported: its `speaking:` line came after the EXIT, so the `.out`
+is older than the log's last line. The machine is `proart` or `thor`, as in
+watch-all.sh.
 
 ### QUOTA — a provider refused
 
@@ -154,6 +165,13 @@ to a seat's own signals. The progress signals are:
 | the `.out` | the file's size |
 | child-process CPU | `utime + stime` over the seat's tmux pane process tree |
 | network bytes | `bytes_sent + bytes_received` over that tree's sockets (`ss`) |
+| a scheduled wait | a `sleep`/`timeout` child under the seat's tree (the 2026-11-02
+  tuning: the director's briefs tell a seat to sleep 10-13 min between
+  checks, and that is not a stall) |
+| the seat's own leases | the leases (from `thor-admit status --json`) whose process tree is
+  under the seat's pane: a lease whose RSS or GPU high-water moves between
+  polls is a working step, so any change is progress (the 2026-11-02
+  tuning: a heavy step loading inside its own lease is not a stall) |
 
 A seat that moves none of them for **10 minutes** (the lab's window) is
 stalled. Two failure shapes the brief names are watched for as well:
@@ -174,8 +192,16 @@ exited; a seat with no window is not a stalled seat.
 
 The Thor's four conditions, all the lab's:
 
-* `memory_falling` — free memory falling faster than **3 GB/min** over
-  10 minutes (the lab's threshold);
+* `memory_falling` — the live gate's memory condition (the 2026-11-02
+  tuning): free memory falling faster than **3 GB/min** over 10 minutes
+  (the lab's threshold) **with the leases' own growth subtracted** — a
+  heavy step loading inside its own thor-admit lease takes the box's memory
+  (the daemon's `lease_growth` accounting), and that is not a box problem —
+  **or** `MemAvailable` near the floor (**25 GB**, the daemon's own floor,
+  the lab's `mem_low_gb`). The leases' own memory is the sum of their
+  current RSS and GPU high-water from `thor-admit status --json`, read on
+  the Thor every poll; a box that reports no leases falls back to the lab's
+  raw rate, which is what caught the JAX runaway 30 minutes early;
 * `disk_low` — free disk under **20 GB** (the brief);
 * `disk_falling` — free disk falling faster than **10 GB/h** over 15 minutes
   (the lab's condition; see the report for why it is here);
@@ -204,8 +230,10 @@ And the ProArt's one, the desk's MEM signal:
 
 ## The tests
 
-48 tests, 14 seconds. The fixture is the lab's recorded day — the only
-record of a day of real stalls that exists.
+62 tests, 14 seconds. The fixture is the lab's recorded day — the only
+record of a day of real stalls that exists — plus the 2026-11-02 false
+alarms (a scheduled sleep under a seat's tree, a seat's own lease loading,
+and an EXIT written while the watcher was down).
 
 ```
 python3 tools/seat-watch/test_seatwatch.py

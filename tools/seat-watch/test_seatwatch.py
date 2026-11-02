@@ -46,13 +46,15 @@ def make_watcher(params=None, **kw):
 
 
 def job(name, exits=0, quota=False, mtime=0.0, size=10, live=True,
-        cpu=0.0, net=0, notes=None, git=None, ssh=None, counter=None):
+        cpu=0.0, net=0, notes=None, git=None, ssh=None, counter=None,
+        sleepers=None, leases=None):
     """One job's facts, in the shape the collector returns."""
     out = {"size": size, "mtime": mtime, "exits": exits, "quota": quota,
            "counter": counter}
     return {"kind": "job", "machine": "proart", "t": mtime, "name": name,
             "out": out, "notes": notes, "git": git, "pane": 1 if live else 0,
-            "cpu": cpu, "net": net, "ssh": ssh or [], "live": live}
+            "cpu": cpu, "net": net, "ssh": ssh or [], "sleepers": sleepers or [],
+            "leases": leases or [], "live": live}
 
 
 # ---------------------------------------------------------------------------
@@ -142,6 +144,52 @@ class TestDoneRule(unittest.TestCase):
         w.baseline({})
         jobs = {("thor", "new"): job("new", exits=1, mtime=20)}
         self.assertEqual(w.check_done(jobs), "DONE thor new")
+
+
+# ---------------------------------------------------------------------------
+class TestMissedDone(unittest.TestCase):
+    """The brief's missed-DONE rule: an EXIT line written while the watcher
+    was restarting must be reported on start, not swallowed by the new run's
+    baseline."""
+
+    def _watcher(self, log_text):
+        tmp = tempfile.mktemp(prefix="seat-watch-log-")
+        if log_text is not None:
+            with open(tmp, "w") as fh:
+                fh.write(log_text)
+        w = make_watcher(log=tmp)
+        return w
+
+    def test_an_exit_newer_than_the_previous_log_is_reported(self):
+        w = self._watcher("2026-11-02 00:55:05  watching 208 jobs "
+                          "(proart 65, thor 143); poll 15s; window 1800s\n")
+        prev_end = w.read_prev_run_end()
+        self.assertIsNotNone(prev_end)
+        jobs = {("proart", "a"): job("a", exits=1, mtime=prev_end + 60)}
+        self.assertEqual(w.check_missed_done(jobs, prev_end), "DONE proart a")
+
+    def test_an_exit_old_enough_is_not_re_reported(self):
+        """A DONE the previous run already spoke for has its "speaking:" line
+        after the EXIT, so the .out is older than the log's last line."""
+        w = self._watcher("2026-11-02 00:55:05  watching 208 jobs\n"
+                          "2026-11-02 00:56:01  speaking: DONE proart a\n")
+        prev_end = w.read_prev_run_end()
+        jobs = {("proart", "a"): job("a", exits=1, mtime=prev_end - 30)}
+        self.assertIsNone(w.check_missed_done(jobs, prev_end))
+
+    def test_no_previous_log_reports_nothing(self):
+        """The first run has no previous run's log: the baseline rule alone.
+        """
+        w = self._watcher(None)
+        self.assertIsNone(w.read_prev_run_end())
+        jobs = {("proart", "a"): job("a", exits=1, mtime=10 ** 10)}
+        self.assertIsNone(w.check_missed_done(jobs, None))
+
+    def test_a_seat_without_an_exit_is_not_reported(self):
+        w = self._watcher("2026-11-02 00:55:05  watching 208 jobs\n")
+        prev_end = w.read_prev_run_end()
+        jobs = {("proart", "a"): job("a", exits=0, mtime=prev_end + 60)}
+        self.assertIsNone(w.check_missed_done(jobs, prev_end))
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +335,110 @@ class TestStallGate(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+class TestStallFalseAlarms2026_11_02(unittest.TestCase):
+    """Tonight's three false STALLs: seats waiting 10-13 min between checks
+    (their briefs tell them to sleep), and heavy steps loading inside their
+    own thor-admit lease.  Both are progress, not stalls."""
+
+    def _watcher(self, window=600):
+        w = make_watcher({"stall_window_s": window})
+        w.cfg["out_ages"] = {}
+        w.cfg["ssh_children"] = {}
+        return w
+
+    def test_a_scheduled_sleep_is_not_a_stall(self):
+        """A sleep/timeout child under the seat's tree, for the 10-13 min
+        the brief names, keeps the window running."""
+        w = self._watcher()
+        t = 1000.0
+
+        def rec(dt, sleeper=True):
+            sleepers = ([{"pid": 7, "age_s": dt + 5, "start": t - 5,
+                          "comm": "sleep"}] if sleeper else [])
+            return job("a", mtime=t, size=100, cpu=1.0, net=10, sleepers=sleepers)
+
+        jobs = {("proart", "a"): rec(0)}
+        w.check_stall(jobs, t)
+        # the sleep runs through 13 minutes: no stall at any point
+        for dt in range(15, 13 * 60 + 1, 15):
+            jobs[("proart", "a")] = rec(dt)
+            self.assertIsNone(w.check_stall(jobs, t + dt),
+                              "stalled after %d s of sleeping" % dt)
+        # the sleep ends and nothing else moves: now it is a stall
+        jobs[("proart", "a")] = rec(0, sleeper=False)
+        last_sleep = t + 13 * 60 + 1
+        self.assertIsNone(w.check_stall(jobs, last_sleep))
+        self.assertEqual(w.check_stall(jobs, last_sleep + 600),
+                         "STALL a no_progress")
+
+    def test_a_timeout_child_is_not_a_stall(self):
+        w = self._watcher()
+        t = 1000.0
+        jobs = {("proart", "a"): job("a", mtime=t, size=100, cpu=1.0, net=10,
+                                     sleepers=[{"pid": 9, "age_s": 60,
+                                                "start": t - 60,
+                                                "comm": "timeout"}])}
+        self.assertIsNone(w.check_stall(jobs, t))
+        self.assertIsNone(w.check_stall(jobs, t + 1000))
+
+    def test_a_lease_loading_is_not_a_stall(self):
+        """The seat's own lease (matched into its tree) has its RSS move:
+        the heavy step is working, even though nothing else moves."""
+        w = self._watcher()
+        t = 1000.0
+
+        def rec(rss):
+            return job("a", mtime=t, size=100, cpu=1.0, net=10,
+                       leases=[{"label": "seat.heavy", "rss": rss, "gpu": 0}])
+
+        jobs = {("proart", "a"): rec(10 * 10 ** 9)}
+        w.check_stall(jobs, t)
+        for i in range(1, 130):
+            jobs[("proart", "a")] = rec(10 * 10 ** 9 + i * 5 * 10 ** 7)
+            self.assertIsNone(w.check_stall(jobs, t + i * 15), i)
+
+    def test_a_lease_whose_gpu_moves_is_not_a_stall(self):
+        w = self._watcher()
+        t = 1000.0
+        jobs = {("proart", "a"): job("a", mtime=t, size=100, cpu=1.0, net=10,
+                                     leases=[{"label": "seat.jax", "rss": 2 * 10 ** 9,
+                                              "gpu": 0}])}
+        w.check_stall(jobs, t)
+        # the GPU high-water moves while the RSS stays put
+        jobs[("proart", "a")] = job("a", mtime=t, size=100, cpu=1.0, net=10,
+                                    leases=[{"label": "seat.jax", "rss": 2 * 10 ** 9,
+                                             "gpu": 40 * 10 ** 9}])
+        self.assertIsNone(w.check_stall(jobs, t + 15))
+
+    def test_a_lease_alive_but_frozen_is_a_stall(self):
+        """A lease that is alive but whose RSS and GPU stop moving is the
+        real hang: the seat waits on a step that no longer works."""
+        w = self._watcher()
+        t = 1000.0
+        rec = job("a", mtime=t, size=100, cpu=1.0, net=10,
+                  leases=[{"label": "seat.heavy", "rss": 12 * 10 ** 9,
+                           "gpu": 0}])
+        jobs = {("proart", "a"): rec}
+        w.check_stall(jobs, t)
+        # the lease was loading (rss moving) and then froze
+        for i in range(1, 41):
+            jobs[("proart", "a")] = job("a", mtime=t, size=100, cpu=1.0, net=10,
+                                        leases=[{"label": "seat.heavy",
+                                                 "rss": 10 * 10 ** 9 + i * 5 * 10 ** 7,
+                                                 "gpu": 0}])
+            self.assertIsNone(w.check_stall(jobs, t + i * 15), i)
+        frozen = job("a", mtime=t, size=100, cpu=1.0, net=10,
+                     leases=[{"label": "seat.heavy", "rss": 12 * 10 ** 9,
+                              "gpu": 0}])
+        last_move = t + 40 * 15
+        for i in range(1, 39):
+            jobs[("proart", "a")] = frozen
+            self.assertIsNone(w.check_stall(jobs, last_move + i * 15), i)
+        self.assertEqual(w.check_stall(jobs, last_move + 600),
+                         "STALL a no_progress")
+
+
+# ---------------------------------------------------------------------------
 class TestBoxConditions(unittest.TestCase):
     """The box's own state, over a series the way the live watcher feeds it."""
 
@@ -299,18 +451,18 @@ class TestBoxConditions(unittest.TestCase):
             seen.extend(e["cond"] for e in eng.step(rec["t"], which="live"))
         return seen
 
-    def test_memory_falling_fast(self):
+    def test_memory_falling_unexplained(self):
         t = 1000.0
         # 80 x 15 s = 20 min, losing 1 GB a step: 4 GB/min, over the 3 GB/min
-        samples = [{"k": "box", "t": t + i * 15, "mem": int((100 - i) * 1e9)}
+        samples = [{"k": "box", "t": t + i * 15, "mem": int((110 - i) * 1e9)}
                    for i in range(80)]
-        self.assertIn("memory_falling_fast", self._run_box(samples))
+        self.assertIn("memory_unexplained", self._run_box(samples))
 
     def test_a_steady_box_says_nothing(self):
         t = 1000.0
         samples = [{"k": "box", "t": t + i * 15, "mem": int(100e9)}
                    for i in range(80)]
-        self.assertNotIn("memory_falling_fast", self._run_box(samples))
+        self.assertNotIn("memory_unexplained", self._run_box(samples))
 
     def test_the_disk_floor(self):
         t = 1000.0
@@ -332,6 +484,88 @@ class TestBoxConditions(unittest.TestCase):
         for dt in (15, 60, 121, 160, 200):
             conds.extend(e["cond"] for e in eng.step(t + dt, which="live"))
         self.assertIn("telemetry_dark", conds)
+
+
+# ---------------------------------------------------------------------------
+class TestLeaseGrowth(unittest.TestCase):
+    """Tonight's two false BOX memory_fallings: a heavy step loading inside
+    its own thor-admit lease, with 65-72 GB still free.  The fall is the
+    seat's own work, so the live gate subtracts the leases' growth and fires
+    only when an unexplained drop remains, or MemAvailable nears the floor.
+    """
+
+    def _run(self, samples):
+        eng = Engine(DEFAULTS)
+        seen = []
+        for rec in samples:
+            eng.feed(rec)
+            seen.extend(e["cond"] for e in eng.step(rec["t"], which="live"))
+        return seen
+
+    def test_a_lease_growing_explains_the_fall(self):
+        """Mem falls 4 GB/min while the lease grows 4 GB/min: no fire.
+
+        This is the 00:14:43 case: the night-v5 heavy step loading inside
+        its own 40 G lease, 65-72 GB still free.  The series stays above the
+        floor, so only the rate clause is in play.
+        """
+        t = 1000.0
+        samples = []
+        for i in range(80):
+            samples.append({"k": "box", "t": t + i * 15,
+                            "mem": int(120e9 - i * 1e9), "m": "thor"})
+            samples.append({"k": "lease", "t": t + i * 15,
+                            "bytes": int(10e9 + i * 1e9), "m": "thor"})
+        self.assertNotIn("memory_unexplained", self._run(samples))
+
+    def test_an_unexplained_drop_still_fires(self):
+        """Same fall, no leases at all: the lab's catch (the JAX runaway)
+        is not lost to the subtraction."""
+        t = 1000.0
+        samples = [{"k": "box", "t": t + i * 15, "mem": int(110e9 - i * 1e9),
+                    "m": "thor"} for i in range(80)]
+        self.assertIn("memory_unexplained", self._run(samples))
+
+    def test_a_partially_explained_drop(self):
+        """The lease explains part of the fall: what fires is the
+        unexplained remainder, against the lab's 3 GB/min."""
+        t = 1000.0
+        # mem falls 4 GB/min, the lease explains 2 GB/min: 2 GB/min
+        # unexplained, under the threshold, so it must NOT fire
+        samples = []
+        for i in range(80):
+            samples.append({"k": "box", "t": t + i * 15,
+                            "mem": int(120e9 - i * 1e9), "m": "thor"})
+            samples.append({"k": "lease", "t": t + i * 15,
+                            "bytes": int(10e9 + i * 0.5e9), "m": "thor"})
+        self.assertNotIn("memory_unexplained", self._run(samples))
+        # the lease explains only 0.8 GB/min: 3.2 GB/min unexplained fires
+        samples = []
+        for i in range(80):
+            samples.append({"k": "box", "t": t + i * 15,
+                            "mem": int(120e9 - i * 1e9), "m": "thor"})
+            samples.append({"k": "lease", "t": t + i * 15,
+                            "bytes": int(10e9 + i * 0.2e9), "m": "thor"})
+        self.assertIn("memory_unexplained", self._run(samples))
+
+    def test_the_floor_fires_without_a_rate(self):
+        """MemAvailable near the floor (the daemon's 25 GB, the lab's
+        mem_low_gb) speaks even with no fall at all."""
+        t = 1000.0
+        samples = [{"k": "box", "t": t + i * 15, "mem": int(20e9), "m": "thor"}
+                   for i in range(20)]
+        self.assertIn("memory_unexplained", self._run(samples))
+
+    def test_a_comfortable_box_with_idle_leases_says_nothing(self):
+        """Tonight's healthy state: 65-72 GB free, leases alive and steady."""
+        t = 1000.0
+        samples = []
+        for i in range(80):
+            samples.append({"k": "box", "t": t + i * 15, "mem": int(68e9),
+                            "m": "thor"})
+            samples.append({"k": "lease", "t": t + i * 15, "bytes": int(5e9),
+                            "m": "thor"})
+        self.assertEqual(self._run(samples), [])
 
 
 # ---------------------------------------------------------------------------

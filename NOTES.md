@@ -3919,3 +3919,45 @@ message.
 loaded box (240 min at 100% of one core, killed mid-walk) — the
 live-view seam has never produced a glb inside a night; the bar and the
 wedge restart have never fired in anger. All three are in the doc's §9.
+
+## 2026-11-02 07:40 (seat-watch-tune) — the seat watcher: four false signals, and the EXIT that was missed
+
+The desk brief: last night's watcher log had 4 of 7 signals false — 3 STALLs
+(seats sleeping 10-13 min between checks, as their briefs tell them to) and 2
+BOX memory_fallings (a heavy step loading inside its own thor-admit lease,
+65-72 GB still free) — and one seat's EXIT was missed while the watcher
+restarted.
+
+Three changes to tools/seat-watch/seatwatch.py, 14 new tests (62 total,
+14.5 s, all passing; replay --verify still returns the lab's numbers one for
+one — 184/71/95/77/101/24, 8 of 13, 50.3 min, 385.3 min — because the new
+condition is live-gate-only and the lab's stream has no lease records):
+
+1. **STALL**: two more progress signals. A sleep/timeout child under the
+   seat's tree is the seat's own scheduled wait. The seat's own leases
+   (matched by pid/pgid into its tree from `thor-admit status --json` on the
+   Thor) with a moving RSS or GPU high-water is a working step. A lease
+   alive but frozen is still a stall.
+2. **BOX memory**: the live gate's `memory_falling` is now
+   `memory_unexplained`: the lab's 3 GB/min rate with the leases' own growth
+   (summed current RSS + GPU high-water, same 10-min window and contiguity)
+   subtracted — or a fire when MemAvailable is under 25 GB, the daemon's
+   floor (the lab's mem_low_gb). No lease data falls back to the raw rate,
+   so the JAX-runaway catch is preserved. Bonus: the floor clause caught a
+   real near-OOM in the board history the rate gate never saw —
+   2026-11-01 15:49:52 the board reads "Thor: 0 GB available" and the box
+   goes dark at 15:51.
+3. **Missed DONE**: on start, before this run's first log line, the watcher
+   reads the previous run's log and reports DONE for any .out with an EXIT
+   written after the previous run's last log line. An already-spoken DONE
+   is not re-reported (its speaking: line came after the EXIT).
+
+Reinstalled on the ProArt at ~/lm-ops/seat-watch.sh (byte-identical) at
+07:34; the two old instances were retired, one new one runs with
+--window 1800. The two fixes are fixture-verified, not yet live-verified:
+the first real heavy step under a lease, or a real 10-13 min sleep, is the
+next check. Docs: docs/lab/exp-seat-watch-live.md §7, the tool README.
+
+Known edge left open: the missed-DONE rule trusts the .out's mtime; an .out
+written after its EXIT line can re-report a spoken DONE at the next
+restart. Not in tonight's log; watch for it.
