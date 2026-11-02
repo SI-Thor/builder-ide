@@ -308,6 +308,8 @@ Ran 48 tests in 14.528s
 OK
 ```
 
+(As of the 2026-11-02 tuning, §7: 62 tests, 14.5 s, same run time.)
+
 The fixture is the lab's data directory: the recorded day, the lab's
 parameters, the lab's `events.json`, the lab's `RESULT.json` and the lab's
 own scorer. The headline test replays the day through the live engine and
@@ -572,7 +574,7 @@ gap in the evidence is never read as a rise.
 ```
 python3 tools/seat-watch/replay.py --verify            # the lab's recorded day
 python3 tools/seat-watch/replay.py --board-history ~/lm-ops/board-history
-python3 tools/seat-watch/test_seatwatch.py              # 48 tests
+python3 tools/seat-watch/test_seatwatch.py              # 62 tests (48 before the 2026-11-02 tuning)
 ~/lm-ops/seat-watch.sh --once                          # one live poll
 ~/lm-ops/seat-watch.sh --timeout 240                   # four minutes live
 ```
@@ -593,3 +595,137 @@ Related: `docs/lab/exp-seat-watcher.md` (the measurement this is built
 from, with two corrections), `docs/design/screen-watcher.md` (the design it
 is the first experiment of), `~/lm-ops/watch-all.sh` (the DONE rule's
 source), `~/lm-ops/board.sh` (the QUOTA markers' source).
+
+---
+
+## 7. The 2026-11-02 tuning: four false signals, and the EXIT that was missed
+
+**Question.** After a night of live use, the director's log: of 7 signals,
+4 were false — 3 `STALL` (seats waiting 10-13 min between checks, as their
+briefs tell them to) and 2 `BOX memory_falling` (a heavy step loading
+*inside its own thor-admit lease*, 65-72 GB still free) — and one seat's
+`EXIT` was missed while the watcher restarted. Can the watcher tell the
+false ones from the true ones without losing the true ones?
+
+**Answer.** Yes, with three small changes and 14 new tests (62 total).
+The replay is untouched: it still returns the lab's numbers one for one
+(184 / 71 / 95 / 77 / 101 / 24, 8 of 13, 50.3 min, 385.3 min), because the
+lab's stream carries no lease records and the new condition is not in the
+lab's gates.
+
+The false signals, from the watcher's own log (`~/lm-ops/seat-watch.log`):
+
+```
+2026-11-01 21:45:50  STALL stratego-desk ssh_child_idle
+2026-11-01 23:57:39  STALL crafter-r2 no_progress
+2026-11-02 00:24:59  STALL ingame-phase2-desk no_progress
+2026-11-01 22:06:01  BOX memory_falling  value=-4.02
+2026-11-02 00:14:43  BOX memory_falling  value=-4.23
+```
+
+### 7.1 Why the false ones were false
+
+* **`STALL` on a sleeping seat.** The progress signals are commits,
+  `NOTES.md` growth, `.out` growth, child-process CPU and network bytes. A
+  seat that sleeps between checks, as its brief instructs, moves none of
+  them for 10-13 minutes — longer than the 10-minute window — and is
+  reported `no_progress` while doing exactly what it was told to do.
+  A heavy step under its own lease is the same shape: while JAX loads,
+  the seat's tree is nearly idle, its `.out` is quiet, and the lease's
+  RSS/GPU are not among the watched signals.
+* **`BOX memory_falling` on lease growth.** The lab's memory rate is right
+  for a runaway (it caught the JAX episode 30.1 min early), but it cannot
+  tell a runaway from the box doing its job: a seat's own lease growing
+  *is* free memory falling. The admission daemon already makes this
+  distinction — its `guard.unexplained_drop` events separate
+  `lost_bytes` from `lease_growth_bytes` — the watcher did not.
+
+### 7.2 What changed
+
+1. **Two more progress signals for `STALL`** (tonight's three false
+   alarms):
+   * a `sleep` or `timeout` child under the seat's tree counts that poll as
+     progress — the seat's own scheduled wait;
+   * the seat's own leases, matched by pid/pgid into the seat's process
+     tree from `thor-admit status --json` (read on the Thor, where the
+     daemon lives): a lease whose RSS or GPU high-water moves between
+     polls is a working step, so any change is progress. A lease that is
+     alive but *frozen* is still a stall.
+2. **`BOX memory_falling` now means *unexplained*.** The live gate's memory
+   condition is `memory_unexplained`: the lab's rate with the leases' own
+   growth subtracted (their summed current RSS + GPU high-water, over the
+   same 10-minute window and contiguity rules), firing only when the
+   unexplained drop remains over **3 GB/min**, or when `MemAvailable` is
+   near the floor — **25 GB**, the daemon's own floor, the lab's
+   `mem_low_gb`. A box with no lease data falls back to the lab's raw
+   rate, so the JAX-runaway catch is structurally preserved. The lab's
+   gates never run the new condition, and the lab's stream has no lease
+   records, so `replay.py --verify` is byte-identical to before.
+3. **The missed-DONE rule.** On start — before this run writes its first
+   log line — the watcher reads the previous run's log and reports `DONE`
+   for any `.out` that carries an `EXIT` line and was written after the
+   previous run's last log line. A DONE the previous run already spoke for
+   is not re-reported: its `speaking:` line came after the EXIT, so the
+   `.out` is older than the log's last line.
+
+### 7.3 The numbers
+
+| | before | after |
+|---|---|---|
+| tests | 48 | **62** (14.5 s on the Thor) |
+| replay `--verify` | 184/71/95/77/101/24, 8 of 13 | unchanged |
+| STALL on a 13-min scheduled sleep | fired at 10 min | held, then names the real stall when the sleep ends |
+| `memory_falling` on a 4 GB/min fall that is 4 GB/min of lease growth (65-72 GB free) | fired | held |
+| `memory_falling` on the same fall with no leases | fired | fires (the JAX catch) |
+| an `EXIT` written while the watcher was down | swallowed by the new baseline | reported on start |
+
+The 14 new tests take tonight's cases as fixtures: the 13-minute sleep
+(plus `timeout`), a lease loading with its RSS moving, a lease with only
+its GPU high-water moving, a lease alive but frozen (still a stall),
+the explained / partially-explained / unexplained fall, the near-floor
+clause, and the missed `EXIT` in four shapes.
+
+The near-floor clause also caught a **real** near-OOM in the board
+history that the old rate gate never caught: on 2026-11-01 15:49:52 the
+board reads “Thor: 0 GB available” (47 GB at 15:48, spiking up and down
+as the leases fought each other), and the board's box section goes
+dark at 15:51. The replay over the grown board history (980 snapshots,
+14:58 → 07:40, 16.7 h — §2.2's run was a snapshot at 21:29) now has 12
+box conditions, the extra one being
+`2026-11-01 15:50:22 memory_unexplained "the Thor has 0.0 GB of memory
+free (near the 25 GB floor)"`. The old `memory_falling_fast` needs a
+sustained, contiguous fall; this event is a spike into zero, which only
+a level condition can see. **Box state beside the number:** the rerun
+took 46 s on the ProArt (load 0.34, 8 GB free).
+
+The 14 new tests' run and the replay `--verify` ran on the Thor at
+2026-11-02 07:35 AKST, load average 12.03 / 11.42 / 9.88 (5 leases on the
+box, ~27 GB of lease memory), 72.9 GB of memory available, 81.5 GB of
+disk free. CPU-only, 14.5 s, no lease taken.
+
+The watcher was reinstalled on the ProArt at `~/lm-ops/seat-watch.sh`
+at 07:34 on 2026-11-02, byte-identical to `seatwatch.py`, and one instance
+is running with `--window 1800` (the two old instances, which had been
+running in parallel, were retired on the swap).
+
+### 7.4 What this does not verify
+
+* **Neither fix has been exercised live yet.** The lease subtraction and
+  the lease/sleep progress signals are tested against fixtures shaped on
+  tonight's cases; the watcher has not yet been running through a real
+  heavy step under a lease, or a real scheduled sleep. The first such
+  episode is the verification.
+* **A sleeping seat is now trusted unconditionally.** A hung seat sitting
+  in a `sleep 900` loop is progress on that channel, and the `no_progress`
+  gate will not name it. The brief told the seats to sleep between checks,
+  so the brief says that shape is progress; the `ssh_child_idle` and
+  `watcher_loop` shapes are unchanged and can still name such a seat.
+* **The missed-DONE rule uses the `.out`'s mtime as the EXIT's time.** An
+  `.out` written *after* its EXIT line (trailing wrapper output) moves its
+  mtime forward and can re-report an already-spoken DONE at the next
+  restart. No such case was in tonight's log; it is the first thing to
+  watch for.
+* **The lease match is by pid/pgid membership in the seat's tree.** A lease
+  started from outside the seat's pane (a background server the seat talks
+to) is not its progress, and its growth is not subtracted per-seat — the
+  box-level subtraction still covers it, because it sums *all* leases.

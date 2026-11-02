@@ -43,6 +43,7 @@ Standard library only.  Python 3.8+.
 """
 
 import argparse
+import calendar
 import json
 import os
 import re
@@ -90,6 +91,8 @@ DEFAULTS = {
     # -- the lab's level gate (section 1.3) --------------------------------
     "mem_low_gb": 25.0,
     "disk_low_gb": 20.0,           # the brief says 20 GB; the lab used 30
+    # mem_low_gb (25 GB, the lab's) doubles as the "near the floor" clause of
+    # memory_unexplained: it is also the admission daemon's own floor (25 GB)
     # -- the brief's seat-level conditions --------------------------------
     "stall_window_s": 600,         # no progress for a window
     "ssh_child_s": 1800,           # an ssh child alive > 30 min with no output
@@ -120,6 +123,10 @@ MIN = 60
 # The exit reasons the watcher can print, and the lab condition behind each.
 BOX_REASONS = {
     "memory_falling_fast": "memory_falling",
+    # the live gate's memory condition: the lab's rate with the leases' own
+    # growth subtracted, plus the near-floor clause (the brief's fix for the
+    # false alarms of 2026-11-02: a heavy step loading inside its own lease)
+    "memory_unexplained": "memory_falling",
     "disk_falling_fast": "disk_falling",
     "box_disk_low": "disk_low",
     "telemetry_dark": "telemetry_dark",
@@ -144,6 +151,7 @@ ALL_CONDITIONS = (
     "telemetry_dark",
     "proart_memory_low",
     "proart_swap_rising",
+    "memory_unexplained",
 )
 
 # The two boxes the watcher reads.  A record with no machine tag is the
@@ -184,6 +192,26 @@ def _tz():
         except Exception:
             _TZ = None
     return _TZ
+
+
+def log_ts(line):
+    """The epoch of a log line's 'YYYY-MM-DD HH:MM:SS' prefix, or None.
+
+    The inverse of local_str for the watcher's own log: a line that carries
+    the ' UTC' suffix was written without a tz database and is read back as
+    UTC; the rest is local time (the boxes run America/Anchorage).
+    """
+    s = line.strip()
+    if len(s) < 19:
+        return None
+    is_utc = s.endswith(" UTC")
+    try:
+        tm = time.strptime(s[:19], "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
+    if is_utc:
+        return calendar.timegm(tm)
+    return time.mktime(tm)
 
 
 # ---------------------------------------------------------------------------
@@ -318,6 +346,14 @@ class BoxChannel:
                                   MEM_MIN_SPAN_S, scale=GB)
         self.disk = TrailingSlope(params["disk_rate_window_s"], DISK_GAP_S,
                                   DISK_MIN_SPAN_S, unit_s=3600.0)
+        # the box's leases' own memory: current RSS plus each lease's GPU
+        # high-water, summed.  A heavy step loading inside its own thor-admit
+        # lease takes the box's memory, so a free-memory fall that is lease
+        # growth is not a box problem (memory_unexplained subtracts this).
+        # Same window and contiguity rules as the memory channel, so the two
+        # slopes are measured over the same span.
+        self.lease = TrailingSlope(params["mem_rate_window_s"], MEM_GAP_S,
+                                   MEM_MIN_SPAN_S, scale=GB)
         self.box = []              # {"t", "mem", "swap_used", "gpu", "q", "lease"}
         self.disk_recs = []        # {"t", "gb"}
         self._box_t = []           # the times of the above, for bisect
@@ -333,6 +369,9 @@ class BoxChannel:
     def add_disk(self, t, gb):
         _insert(self._disk_t, self.disk_recs, t, {"t": t, "gb": gb})
         self.disk.add(t, gb)
+
+    def add_lease(self, t, bytes_):
+        self.lease.add(t, bytes_)
 
     def box_at(self, t):
         """The last box sample at or before t (zero-order hold)."""
@@ -365,6 +404,7 @@ class Engine:
 
         {"k": "box",  "t": ..., "mem": bytes, "q": int, "lease": int}
         {"k": "disk", "t": ..., "gb": float}
+        {"k": "lease", "t": ..., "bytes": int}   # the leases' own memory
         {"k": "wifi", "t": ..., "n": int}
         {"k": "api",  "t": ..., "s": seat, "c": class}
         {"k": "client_lost", "t": ...}
@@ -410,6 +450,8 @@ class Engine:
                        rec.get("gpu"), rec.get("q"), rec.get("lease"))
         elif k == "disk":
             self.channel(machine).add_disk(rec["t"], rec.get("gb"))
+        elif k == "lease":
+            self.channel(machine).add_lease(rec["t"], rec.get("bytes"))
         elif k == "wifi":
             _insert(self._wifi_t, self.wifi, rec["t"], (rec["t"], rec.get("n")))
         elif k == "api":
@@ -500,8 +542,12 @@ class Engine:
         if which == "abplus":
             return a + b + ("telemetry_dark",)
         if which == "live":
+            # memory_unexplained is the live gate's memory condition: the
+            # lab's rate with the leases' own growth subtracted, or
+            # MemAvailable near the floor.  The lab's raw
+            # memory_falling_fast stays in the lab's gates only.
             return ("proart_memory_low", "proart_swap_rising",
-                    "memory_falling_fast", "disk_falling_fast", "box_disk_low",
+                    "memory_unexplained", "disk_falling_fast", "box_disk_low",
                     "telemetry_dark")
         return ()
 
@@ -664,6 +710,43 @@ class Engine:
                                    "say": "the admission queue grew by %d to %s while "
                                           "%.0f GB of memory stayed free"
                                           % (grew, b["q"], headroom)})
+
+        # ---- the live gate's memory condition (the brief's fix) -----------
+        # The lab's memory rate fired twice on 2026-11-02 over a heavy step
+        # loading *inside its own thor-admit lease* (65-72 GB still free):
+        # the fall was the seat's own work.  The live condition subtracts the
+        # leases' own growth (the daemon's lease_growth accounting) and fires
+        # only when an unexplained drop remains at the lab's rate, or when
+        # MemAvailable is near the floor (the daemon's own 25 GB floor, the
+        # lab's mem_low_gb).  The lab's gates never run it, so the replay is
+        # untouched: the lab's stream carries no lease records.
+        if "memory_unexplained" in conds:
+            b = thor.box_at(t)
+            if b and b["mem"] is not None:
+                free = b["mem"] / GB
+                raw = thor.mem.slope(t)
+                growth = thor.lease.slope(t)
+                # a rising lease series is a falling free-memory series, so
+                # the lease's own growth is added back in: what remains is
+                # the drop the leases do not account for
+                un = (raw + growth) if growth is not None else raw
+                near_floor = free < p["mem_low_gb"]
+                active = near_floor or (
+                    un is not None and un < -p["mem_rate_gb_min"])
+                if self.latch("mem_unexplained").update(active, t):
+                    if near_floor:
+                        say = ("the Thor has %.1f GB of memory free (near the "
+                               "%.0f GB floor)") % (free, p["mem_low_gb"])
+                    else:
+                        say = ("the Thor's free memory is falling at %.1f "
+                               "GB/min unexplained (%.1f GB/min of lease "
+                               "growth subtracted)") % (un, growth or 0.0)
+                    events.append({"t": t, "gate": which,
+                                   "cond": "memory_unexplained",
+                                   "seat": None,
+                                   "value": round(un, 2) if un is not None else None,
+                                   "free_gb": round(free, 1),
+                                   "say": say})
         return events
 
     @staticmethod
@@ -919,8 +1002,36 @@ def main():
                     disk = int(f[3]) / (1024.0 * 1024.0)
                 except ValueError:
                     disk = None
+    # ---- the admission leases (the Thor only) -----------------------------
+    # A heavy step that loads inside its own thor-admit lease takes the box's
+    # memory, so the box's fall that is lease growth is not a box problem
+    # (memory_unexplained subtracts it), and the seat that owns the lease
+    # reads the lease as its own progress (an alive lease whose RSS or GPU
+    # moves is a working step, not a stall).
+    # $HOME/lm-tools first: the collector runs over a non-interactive ssh, so
+    # the bare name is not on the PATH.
+    lease_rows = []
+    lease_mem = None
+    if MACHINE == "thor":
+        raw = ""
+        for binpath in (os.path.expanduser("~/lm-tools/thor-admit"),
+                        "thor-admit"):
+            raw = sh(binpath + " status --json 2>/dev/null", timeout=20)
+            if raw.strip():
+                break
+        try:
+            for L in json.loads(raw).get("leases") or []:
+                lease_rows.append({"label": L.get("label"),
+                                   "pid": L.get("pid"), "pgid": L.get("pgid"),
+                                   "rss": L.get("current_rss_bytes") or 0,
+                                   "gpu": L.get("peak_gpu_bytes") or 0})
+        except ValueError:
+            lease_rows = []
+        if lease_rows:
+            lease_mem = sum(l["rss"] + l["gpu"] for l in lease_rows)
     out.append({"kind": "box", "machine": MACHINE, "t": t, "mem": mem,
-                "swap_used": swap_used, "disk_gb": disk})
+                "swap_used": swap_used, "disk_gb": disk,
+                "lease_mem_bytes": lease_mem})
 
     # ---- the jobs --------------------------------------------------------
     if MACHINE == "thor":
@@ -949,6 +1060,7 @@ def main():
                 break
         cpu = 0.0
         ssh_children = []
+        sleepers = []
         pids = tree_of(pane, pmap) if pane else set()
         for pid in pids:
             st = stat_of(pid)
@@ -958,12 +1070,22 @@ def main():
             if st[3] == "ssh":
                 ssh_children.append({"pid": pid, "age_s": max(0.0, t - st[2]),
                                      "start": st[2]})
+            elif st[3] in ("sleep", "timeout"):
+                # a sleep/timeout under the seat's tree is the seat's own
+                # scheduled wait (the director's briefs tell a seat to sleep
+                # between checks), not a stall
+                sleepers.append({"pid": pid, "age_s": max(0.0, t - st[2]),
+                                 "start": st[2], "comm": st[3]})
         netb = sum(net.get(pid, 0) for pid in pids)
+        leases_here = [{"label": l["label"], "rss": l["rss"], "gpu": l["gpu"]}
+                       for l in lease_rows
+                       if l["pid"] in pids or l["pgid"] in pids]
         sha, ct = git_head(workdir)
         out.append({"kind": "job", "machine": MACHINE, "t": t, "name": job,
                     "out": info, "notes": notes_of(workdir),
                     "git": {"sha": sha, "ct": ct}, "pane": pane,
                     "cpu": round(cpu, 2), "net": netb, "ssh": ssh_children,
+                    "sleepers": sleepers, "leases": leases_here,
                     "live": bool(pane)})
     for line in out:
         print(json.dumps(line))
@@ -1028,16 +1150,28 @@ class SeatState:
         self.fired = None             # the reason already reported
 
     def signals(self, rec):
-        """The progress signals of one poll: a dict of comparable values."""
+        """The progress signals of one poll: a dict of comparable values.
+
+        ``lease`` is the seat's own leases (the ones whose process tree is
+        under the seat's tmux pane), as a sorted set of (label, rss, gpu):
+        a lease whose RSS or GPU moves is a working step, so any change is
+        progress, like a new commit sha.
+        """
         out = rec.get("out") or {}
         notes = rec.get("notes") or {}
         git = rec.get("git") or {}
+        leases = rec.get("leases") or []
+        lease_sig = (tuple(sorted((str(l.get("label")),
+                                   int(l.get("rss") or 0),
+                                   int(l.get("gpu") or 0))
+                                 for l in leases)) if leases else None)
         return {
             "git": git.get("sha"),
             "notes": notes.get("size"),
             "out": out.get("size"),
             "cpu": rec.get("cpu"),
             "net": rec.get("net"),
+            "lease": lease_sig,
         }
 
     def update(self, rec, t):
@@ -1055,13 +1189,17 @@ class SeatState:
                 old = self.baseline.get(key)
                 if val is None or old is None:
                     continue
-                if key == "git":
+                if key in ("git", "lease"):
                     if val != old:
                         self.baseline[key] = val
                         moved = True
                 elif val > old:
                     self.baseline[key] = val
                     moved = True
+            # a sleep/timeout child under the seat's tree is the seat's own
+            # scheduled wait: progress, not a stall
+            if rec.get("sleepers"):
+                moved = True
             if moved:
                 self.last_progress = t
                 self.evidence_gap = False
@@ -1139,7 +1277,7 @@ class Watcher:
         self.quota_baseline = {}   # (machine, job) -> its mtime and marker state
         self.started = None
         self.engine = Engine(self.params, conditions=(
-            "memory_falling_fast", "disk_falling_fast", "box_disk_low",
+            "memory_unexplained", "disk_falling_fast", "box_disk_low",
             "telemetry_dark", "proart_memory_low", "proart_swap_rising"))
         self.logfile = None
 
@@ -1156,6 +1294,45 @@ class Watcher:
             pass
         sys.stderr.write(line + "\n")
         sys.stderr.flush()
+
+    # -- the missed-DONE rule (the brief's third fix) ------------------------
+
+    def read_prev_run_end(self):
+        """The timestamp of the previous run's last log line, or None.
+
+        Must be called before this run writes its first log line.  The log
+        holds every run's lines; the last line is the previous run's last
+        word (a run that speaks ends with its "speaking:" line; a run that
+        dies ends with its last poll error or its start line).
+        """
+        try:
+            with open(self.cfg["log"], "r") as fh:
+                lines = [ln for ln in fh if ln.strip()]
+        except OSError:
+            return None
+        return log_ts(lines[-1])
+
+    def check_missed_done(self, jobs, prev_end):
+        """An EXIT line written while the watcher was down.
+
+        The brief's missed-DONE rule: while the watcher was restarting, one
+        seat's EXIT went unreported, and the new run's baseline would count
+        that marker as old forever.  So on start, an .out that carries an
+        EXIT line and was written after the previous run's last log line is
+        reported as DONE.  A DONE the previous run already spoke for is not
+        re-reported: its "speaking:" line came after the EXIT, so the .out
+        is older than the previous run's last line.
+        """
+        if prev_end is None:
+            return None
+        for (machine, job), r in sorted(jobs.items()):
+            out = r.get("out") or {}
+            if out.get("exits", 0) > 0 and (out.get("mtime") or 0) > prev_end:
+                self.log("missed DONE: %s .out written %s, after the "
+                         "previous run's last log line %s"
+                         % (job, local_str(out["mtime"]), local_str(prev_end)))
+                return "DONE %s %s" % (machine, job)
+        return None
 
     # -- one poll -----------------------------------------------------------
 
@@ -1181,6 +1358,11 @@ class Watcher:
                     recs.append({"k": "box", "t": r["t"], "mem": r.get("mem"),
                                  "swap_used": r.get("swap_used"), "m": machine,
                                  "q": None, "lease": None})
+                    if machine == THOR and r.get("lease_mem_bytes") is not None:
+                        # the leases' own memory, for memory_unexplained
+                        recs.append({"k": "lease", "t": r["t"],
+                                     "bytes": r["lease_mem_bytes"],
+                                     "m": THOR})
                     if r.get("disk_gb") is not None:
                         recs.append({"k": "disk", "t": r["t"],
                                      "gb": r["disk_gb"], "m": machine})
@@ -1284,6 +1466,9 @@ class Watcher:
 
     def run(self):
         cfg = self.cfg
+        # before this run writes its first log line: where the previous run's
+        # log ends, for the missed-DONE rule
+        prev_end = self.read_prev_run_end()
         # the first poll establishes the baselines
         recs, jobs, errors = self.poll()
         for e in errors:
@@ -1296,6 +1481,13 @@ class Watcher:
                     sum(1 for k in jobs if k[0] == "proart"),
                     sum(1 for k in jobs if k[0] == "thor"),
                     cfg["params"]["poll_s"], cfg["params"]["stall_window_s"]))
+        # the missed-DONE rule: an EXIT written while the watcher was down
+        missed = self.check_missed_done(jobs, prev_end)
+        if missed:
+            self.log("speaking: %s" % missed)
+            print(missed)
+            sys.stdout.flush()
+            return 0
         deadline = cfg["started_at"] + cfg["timeout"] if cfg["timeout"] else None
         while True:
             t = now()
