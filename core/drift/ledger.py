@@ -47,6 +47,7 @@ __all__ = [
     "WorldBucket",
     "WorldSeries",
     "YIELD_TYPE",
+    "build_drift_events",
     "build_series",
     "parse_at",
     "read_plays",
@@ -270,6 +271,42 @@ def rule_violation_events(path: Path | str) -> list[dict[str, object]]:
                     "at": parse_at(at),
                     "agent": data.get("agent"),
                     "rule": data.get("rule"),
+                    "detail": data.get("detail"),
+                }
+            )
+        return events
+    finally:
+        connection.close()
+
+
+def build_drift_events(path: Path | str) -> list[dict[str, object]]:
+    """Every build-drift event in the ledger.
+
+    There are none today — the world writes no ``drift.build_drift`` row
+    yet (see ``BUILD_DRIFT_TYPE``). The query is kept, and tested, so
+    that the seam is exercised by the test suite and not only by a
+    claim. ``core/drift/signals.py``'s ``BuildDriftSignal`` scores
+    exactly these rows against the board's ``BoardManifest``.
+
+    Payload keys read: ``branch`` (whose head), ``keys`` (the scope keys
+    the head commits under), ``manifest`` (the fingerprint of the
+    manifest the head was validated against), ``detail``.
+    """
+    connection = _connect(path)
+    try:
+        rows = connection.execute(
+            "select at, payload from audit where type = ? order by seq",
+            (BUILD_DRIFT_TYPE,),
+        )
+        events: list[dict[str, object]] = []
+        for at, payload in rows:
+            data = json.loads(payload)
+            events.append(
+                {
+                    "at": parse_at(at),
+                    "branch": data.get("branch"),
+                    "keys": list(data.get("keys") or []),
+                    "manifest": data.get("manifest"),
                     "detail": data.get("detail"),
                 }
             )
