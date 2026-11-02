@@ -2099,3 +2099,52 @@ ground truth the run has, not a selection out of a larger one.
 
 Nothing new was started. The auto-pause is still computed and named but not
 wired to `thor-admit`; that is build #3 and the note already says so.
+
+## 2026-11-01 20:05 — critic-selfx: the three adoptions inside the critic
+
+The brief: adopt exp-open3d-critic.md's three Open3D uses inside the
+critic, keep open3d==0.20.0 pinned, keep the measurement path and the
+GLB reader as they are, do NOT swap the watertight flag (list the 12
+rows it would flip instead), tests for each, re-run the reference set,
+record verdict changes in docs/lab/exp-critic-selfx.md. CPU only, <4 GB.
+
+What was tried — `core/genbatch/o3d_geometry.py` (new) holds the three
+calls behind the pinned `o3d` extra; every call declines loudly
+("unchecked"/None/RuntimeError) without the wheel. (1) self-intersection
+as a critic check (weight 1.5) under a 200k cap; above the cap the
+verdict is "unchecked" with the reason — NOT decimate-then-check,
+because the diet opened 14 of 19 closed meshes in the sweep, so a
+stand-in verdict would be about a different mesh (the choice and its
+why are in the doc §1). (2) `PropRequest.diet` (DietRecipe, default
+None=off — the report does not justify on): the executor decimates the
+repaired mesh, writes it with the new `write_glb` (the fixtures'
+writer promoted into glb.py), records a "diet" file on the asset, and
+the critic measures what the night keeps. (3) ray-parity volume as the
+winding-free fallback, measured automatically when the signed volume is
+unreliable; solid_volume reads it and says so, and fails rather than
+grade an untrusted number when no fallback exists.
+
+What happened — genbatch suite 159 passed in 14 s (open3d 0.20.0,
+numpy 2.5.4, scipy 1.18.1; load ~13); full suite minus physag (mujoco
+is that seat's env) 1885 passed, 17 skipped, 2 min 26 s. Two test
+rounds: the first caught a real semantics mistake — my overlapping-
+cubes fixture had coincident top faces, and parity read the union
+(1.24) where distinct faces read the symmetric difference (0.875,
+measured); the fixed test asserts the does-not-inflate property. The
+reference re-run (38 meshes, detached, load 24.9, 102.7 GB free):
+147 s, peak RSS 710 MB — 25 self-intersecting under the cap + 9
+over-cap unchecked (= the sweep's 34) + 4 clean. Verdict changes: 8
+closed meshes flagged (score −0.10..−0.13, signed volume untrusted);
+2 open meshes flagged; 20 open meshes flipped solid_volume fail→pass
+(their old verdicts graded unsupported partial sums — the filing
+cabinet read 0.4 % of its box, parity reads 53 %). The sweep's worst
+inflation (shelf a01, 3.91×) sits over the cap — the price of the cap,
+paid knowingly and named in the doc. The 12 watertight-flip rows are
+tabulated in exp-critic-selfx.md §3; the flag itself is untouched.
+
+Decided next — nothing running was left behind; the branch is
+committed (adoptions + tests, then the re-run, the doc and this note).
+The open question the doc leaves for the director: 6 of the 9
+over-cap meshes sit between 306k and 1 M triangles where nobody has
+measured the check's cost — whether the cap should rise is a separate
+cost measurement.

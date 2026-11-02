@@ -29,13 +29,24 @@ disagree wildly on a shell: a real mug is 43 cm³ of ceramic inside a
 by :mod:`core.genbatch.occupancy` and carried here when it was asked for,
 so that the plausibility features can be read off the object rather than
 off its wall.
+
+**Two signals need Open3D** (:mod:`core.genbatch.o3d_geometry`, the ``o3d``
+extra): the **self-intersection** verdict — two triangles can occupy the
+same space with every edge still used exactly twice, and only that check
+sees it — and the **ray-parity volume**, the winding-free fallback that is
+measured when the signed volume cannot be trusted. Both answer
+"unchecked"/``None`` when the wheel is absent, so a box without the extra
+measures everything it always did and says what it did not.
 """
 
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
 from pydantic import BaseModel, Field
 
+from core.genbatch import o3d_geometry
 from core.genbatch.glb import Mesh
 from core.genbatch.occupancy import FillMethod, occupied
 
@@ -57,11 +68,28 @@ class MeshReport(BaseModel):
     nonmanifold_edges: int = 0
     #: Triangles with no area.
     degenerate_triangles: int = 0
+    #: The self-intersection verdict: "clean", "self_intersecting", or
+    #: "unchecked" — the Open3D wheel absent, the mesh over the triangle
+    #: cap, or no triangles at all. Reports written before the check
+    #: existed read back as "unchecked", which is what they are.
+    self_intersection: Literal["clean", "self_intersecting", "unchecked"] = (
+        "unchecked"
+    )
+    #: How many pairs of crossing triangles were found (only counted when
+    #: there are any).
+    self_intersection_pairs: int = 0
+    #: Why the check declined, when it declined.
+    self_intersection_reason: str = ""
     bbox_min: tuple[float, float, float] = (0.0, 0.0, 0.0)
     bbox_max: tuple[float, float, float] = (0.0, 0.0, 0.0)
     extent: tuple[float, float, float] = (0.0, 0.0, 0.0)
     #: The signed volume: positive when the mesh is closed and outward-wound.
     volume: float = 0.0
+    #: The winding-free enclosed volume by ray parity — the fallback the
+    #: volume checks read when the signed volume cannot be trusted.
+    #: ``None`` when the signed volume is reliable, or the ``o3d`` extra is
+    #: absent.
+    parity_volume: float | None = None
     #: The volume of the space the object **occupies** — the envelope of a
     #: shell, not the material in it. ``None`` when it was not measured;
     #: the signed volume is then the only volume there is.
@@ -80,12 +108,33 @@ class MeshReport(BaseModel):
     def as_dict(self) -> dict:
         return self.model_dump()
 
+    @property
+    def volume_reliable(self) -> bool:
+        """Can the signed volume be trusted as *the* volume?
+
+        The divergence theorem needs a closed, consistently wound surface
+        with positive orientation **and** no self-intersection: overlapping
+        triangles count their overlap twice (the reference set's storage
+        shelf reads 3.9x its ray-parity volume). An "unchecked"
+        self-intersection verdict does not clear the mesh — it says the
+        question was not asked — so there the volume stays trusted exactly
+        as it was before the check existed.
+        """
+        return (
+            self.watertight
+            and self.consistent_winding
+            and self.volume > 0
+            and self.self_intersection != "self_intersecting"
+        )
+
 
 def measure_mesh(
     mesh: Mesh,
     *,
     fill_method: FillMethod | str | None = None,
     fill_resolution: int = 64,
+    selfx: bool | int | None = True,
+    parity_fallback: bool = True,
 ) -> MeshReport:
     """Measure a mesh: topology, size, and the three solid quantities.
 
@@ -94,11 +143,37 @@ def measure_mesh(
     up, which is not the same number as the volume of the material in it.
     Without it the report carries the signed volume alone, and the cost of
     the measurement is what it was.
+
+    ``selfx`` is the self-intersection check: ``True`` runs it under the
+    measured triangle cap, an ``int`` runs it under that cap instead,
+    ``False``/``None`` turns it off (the pre-Open3D measurement).
+    ``parity_fallback`` measures the ray-parity volume — on the same grid
+    as ``fill_resolution`` — when the signed volume turns out not to be
+    trustworthy, so the volume checks have something honest to read. Both
+    decline to "unchecked"/``None`` when the ``o3d`` extra is absent.
     """
     positions = np.asarray(mesh.positions, dtype=np.float64)
     indices = np.asarray(mesh.indices, dtype=np.int64)
+    selfx_report = (
+        o3d_geometry.self_intersection(mesh, cap=None)
+        if selfx is False or selfx is None
+        else o3d_geometry.self_intersection(
+            mesh,
+            cap=(
+                o3d_geometry.SELF_INTERSECTION_CAP
+                if selfx is True
+                else int(selfx)
+            ),
+        )
+    )
     if indices.size == 0:
-        empty = MeshReport(triangles=0, vertices=int(positions.shape[0]))
+        empty = MeshReport(
+            triangles=0,
+            vertices=int(positions.shape[0]),
+            self_intersection=selfx_report.state,
+            self_intersection_pairs=selfx_report.pairs,
+            self_intersection_reason=selfx_report.reason,
+        )
         return empty
 
     a = positions[indices[:, 0]]
@@ -141,7 +216,7 @@ def measure_mesh(
         occupied_centre = occupancy.centre
         occupied_method = occupancy.method
 
-    return MeshReport(
+    report = MeshReport(
         triangles=int(indices.shape[0]),
         vertices=int(positions.shape[0]),
         watertight=boundary == 0 and nonmanifold == 0,
@@ -149,6 +224,9 @@ def measure_mesh(
         boundary_edges=boundary,
         nonmanifold_edges=nonmanifold,
         degenerate_triangles=degenerate,
+        self_intersection=selfx_report.state,
+        self_intersection_pairs=selfx_report.pairs,
+        self_intersection_reason=selfx_report.reason,
         bbox_min=tuple(float(x) for x in bbox_min),
         bbox_max=tuple(float(x) for x in bbox_max),
         extent=tuple(float(x) for x in extent),
@@ -160,6 +238,13 @@ def measure_mesh(
         centre_of_mass=tuple(float(x) for x in com),
         diagonal=diagonal,
     )
+    # The ray-parity fallback is measured only when it is needed: it costs
+    # a median 18 ms and answers what the signed volume cannot.
+    if parity_fallback and not report.volume_reliable:
+        report.parity_volume = o3d_geometry.parity_volume(
+            mesh, resolution=fill_resolution
+        )
+    return report
 
 
 def _edge_report(indices: np.ndarray, vertex_count: int) -> tuple[int, int, bool]:

@@ -20,6 +20,7 @@ say "one load" and mean it.
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -30,11 +31,18 @@ from core.records import Task
 
 from core.genbatch.assets import build_asset
 from core.genbatch.comfy import PromptResult
-from core.genbatch.glb import GlbError, read_glb
+from core.genbatch.glb import GlbError, Mesh, read_glb, write_glb
 from core.genbatch.images import ImageError, png_dimensions
 from core.genbatch.licences import licence_for
 from core.genbatch.mesh import measure_mesh
-from core.genbatch.models import ImageResult, PropRequest, PromptRecord, StageKind
+from core.genbatch.models import (
+    DietRecipe,
+    ImageResult,
+    PropRequest,
+    PromptRecord,
+    StageKind,
+)
+from core.genbatch.o3d_geometry import quadric_diet
 from core.genbatch.occupancy import occupied
 from core.genbatch.repair import RepairResult, repair_mesh
 from core.genbatch.schedule import MESH_MODEL, NightPlan
@@ -231,10 +239,25 @@ class PropExecutor:
             return ExecutionPlan(outcome="failed", reason=str(exc))
         # The repair stage: between the generator and the critic. TRELLIS.2
         # hands over a mesh whose vertices are split at the UV seams, and the
-        # critic's watertightness check cannot tell a closed solid from an
+        # critic's watertightness check cannot tell a closed solid from a
         # open one until those seams are welded (docs/lab/exp-mesh-repair.md).
         repair = repair_mesh(mesh, request.repair)
-        report = repair.report.after or measure_mesh(repair.mesh)
+        # The diet stage, when the recipe asks for one: quadric decimation
+        # of what the night keeps. The critic then measures the dieted mesh
+        # — the prop the night ships is the prop the night judged.
+        artifact = str(glb)
+        diet_stats: dict[str, Any] | None = None
+        if request.diet is None:
+            report = repair.report.after or measure_mesh(repair.mesh)
+            shipped_mesh = repair.mesh
+        else:
+            try:
+                dieted, diet_stats = self._diet(repair.mesh, request.diet)
+                artifact = str(write_glb(self._diet_path(glb), dieted))
+                report = measure_mesh(dieted)
+                shipped_mesh = dieted
+            except (RuntimeError, GlbError, OSError) as exc:
+                return ExecutionPlan(outcome="failed", reason=f"the diet stage: {exc}")
         # What the object **occupies**, not the material in it. The
         # plausibility prior reads this number (critic-shells), and the
         # signed volume is the wrong one for a shell: a real mug is a
@@ -244,7 +267,7 @@ class PropExecutor:
         # object, which is the safe direction — an object reads as fuller
         # than it is, and is judged more ordinary rather than less.
         if report.occupied_volume is None:
-            occ = occupied(repair.mesh, "convex")
+            occ = occupied(shipped_mesh, "convex")
             report.occupied_volume = occ.volume
             report.occupied_centre = occ.centre
             report.occupied_method = occ.method
@@ -253,10 +276,11 @@ class PropExecutor:
             request=request,
             variant_id=variant_id,
             glb_path=glb,
-            generator=self._recipe(request, seed, seeds, repair),
+            generator=self._recipe(request, seed, seeds, repair, diet_stats),
             licence=licence_for(MESH_MODEL).licence,
             source_image=None,
             critic=None,
+            diet_path=Path(artifact) if diet_stats is not None else None,
         )
         self._store.record_mesh(
             task.id,
@@ -272,8 +296,29 @@ class PropExecutor:
         return ExecutionPlan(
             gpu_minutes=result.split.gpu_seconds / 60.0,
             wall_minutes=result.wall_seconds / 60.0,
-            artifact=str(glb),
+            artifact=artifact,
         )
+
+    @staticmethod
+    def _diet_path(glb: str | Path) -> Path:
+        """Where the dieted mesh lands: beside the generator's own GLB."""
+        source = Path(glb)
+        return source.with_name(f"{source.stem}_diet.glb")
+
+    def _diet(self, mesh: Mesh, recipe: DietRecipe) -> tuple[Mesh, dict[str, Any]]:
+        """Decimate the mesh by quadric error, and say what it cost."""
+        started = time.perf_counter()
+        dieted = quadric_diet(
+            mesh, fraction=recipe.fraction, min_triangles=recipe.min_triangles
+        )
+        stats = {
+            "fraction": recipe.fraction,
+            "min_triangles": recipe.min_triangles,
+            "triangles_before": mesh.triangles,
+            "triangles_after": dieted.triangles,
+            "seconds": round(time.perf_counter() - started, 3),
+        }
+        return dieted, stats
 
     def _record_prompt(
         self,
@@ -311,6 +356,7 @@ class PropExecutor:
         seed: int,
         seeds: tuple[int, int, int],
         repair: RepairResult | None = None,
+        diet: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """The whole recipe, as the asset's provenance."""
         recipe: dict[str, Any] = {
@@ -354,6 +400,11 @@ class PropExecutor:
                 "ok": repair.report.ok,
                 "reason": repair.report.reason,
             }
+        if diet is not None:
+            # The diet is part of the recipe like the repair is: a dieted
+            # prop is a different prop, and the numbers say what the night
+            # kept.
+            recipe["diet"] = diet
         return recipe
 
     # -- the plumbing ------------------------------------------------------

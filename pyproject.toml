@@ -48,6 +48,15 @@ usd = [
 embed = [
     "model2vec>=0.10",
 ]
+# The prop critic's Open3D-backed geometry: the self-intersection check,
+# the ray-parity fallback volume and the quadric diet
+# (core/genbatch/o3d_geometry.py; docs/lab/exp-open3d-critic.md). The pin
+# is exact on purpose: 0.20.0 is the only release with a cp312 aarch64
+# wheel, so any other version is a build on this box. The critic runs
+# without it — every check then reports "unchecked" with the reason.
+o3d = [
+    "open3d==0.20.0",
+]
 
 [project.scripts]
 builder-usd = "builder_usd.cli:main"

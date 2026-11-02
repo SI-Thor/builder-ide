@@ -14,9 +14,10 @@ the night's output is a catalogue of props rather than a render.
 
 | module | what it owns | needs a GPU? |
 |---|---|---|
-| `glb.py` | reading a GLB: the container, and the mesh primitive in it — and `Glb.asset`, the whole object with every part placed where the scene graph puts it | no |
+| `glb.py` | reading a GLB: the container, and the mesh primitive in it — and `Glb.asset`, the whole object with every part placed where the scene graph puts it. Since the diet stage it writes one too: `write_glb`, the single-primitive inverse of the reader | no |
 | `mesh.py` | measuring a mesh: watertightness, triangles, bbox, volume, area, centre of mass | no |
 | `occupancy.py` | **what the object occupies** — the convex hull, the visual hull, or the shell's signed volume | no |
+| `o3d_geometry.py` | the Open3D-backed geometry (`o3d` extra, pinned `open3d==0.20.0`): the self-intersection check under a triangle cap, the ray-parity fallback volume, the quadric diet ([`docs/lab/exp-critic-selfx.md`](../../docs/lab/exp-critic-selfx.md)) | no |
 | `repair.py` | the repair stage: welding the seams the generator leaves, and undoing the self-crossings | no |
 | `fidelity.py` | the silhouette IoU: how much of the prop a repair left alone | no |
 | `critic.py` | the scripted critic — the judgement that picks the winner | no |
@@ -262,10 +263,11 @@ The brief's three checks, and SolidCraft's oracle set
 | check | weight | what it says |
 |---|---:|---|
 | `watertight` | 3 | closed, consistently wound, positive volume - measured on the **repaired** mesh |
+| `self_intersection` | 1.5 | no two triangles of the surface cross each other (Open3D, under a 200k-triangle cap; above it the verdict is *unchecked* with the reason, never a guess) |
 | `repair_fidelity` | 1 | the repair left the prop's outline alone (the silhouette IoU) |
 | `triangle_budget` | 2 | inside the triangle budget the request set |
 | `bbox_aspect` | 2 | the proportions are the ones asked for (only when the request states a shape) |
-| `solid_volume` | 2 | it fills its own bounding box like a solid, not like a shell |
+| `solid_volume` | 2 | it fills its own bounding box like a solid, not like a shell — reading the ray-parity volume when the signed one cannot be trusted |
 | `surface` | 1 | a closed solid cannot have less surface than a sphere of the same volume |
 | `centre_of_mass` | 1 | the mass sits inside its own box, and near the middle of it |
 | `degenerate` | 1 | no triangles of no area |
@@ -273,6 +275,16 @@ The brief's three checks, and SolidCraft's oracle set
 Every check is **graded** from 0 to 1, not passed or failed. Three props that
 all fail the same check would otherwise score zero each and the "winner"
 would be whichever the loop happened to see first.
+
+`self_intersection` needs the `o3d` extra; without it the verdict is
+*unchecked* with the reason and the check neither punishes nor vouches.
+A self-intersecting mesh's signed volume counts overlapped material
+twice, so it is flagged, not trusted, and the solid-volume check reads
+the ray-parity fallback (measured only when the signed volume is
+unreliable). The watertight flag itself is unchanged — Open3D's own
+watertight word is a different semantic, and the 12 reference rows it
+would flip are listed in
+[`docs/lab/exp-critic-selfx.md`](../../docs/lab/exp-critic-selfx.md).
 
 `bbox_aspect` only runs when the request states an `expected_aspect`,
 because TRELLIS.2 normalises a prop's size away - the largest horizontal
@@ -282,6 +294,14 @@ business and the *proportions* are the generator's.
 `repair_fidelity` only runs when the repair stage ran. A repair that did not
 succeed fails the `watertight` check outright: a prop that was not repaired
 cannot be called a solid.
+
+**The diet stage** (`PropRequest.diet`, default off) sits between the
+repair and the measurement: quadric decimation of what the night keeps,
+the dieted GLB written beside the generator's and recorded on the asset,
+and the critic measures the mesh the night keeps. It is off by default
+because the diet opens closed surfaces (14 of 19 in the sweep) — a
+dieted prop measures differently from the prop the generator handed
+over. See [`docs/lab/exp-critic-selfx.md`](../../docs/lab/exp-critic-selfx.md).
 
 ## The licence
 
@@ -304,7 +324,11 @@ python -m pytest tests/genbatch -q
 
 Everything that does not need a GPU is tested, including the whole night
 driven end to end against a fake ComfyUI that writes a real GLB. The tests
-never open a socket.
+never open a socket. The Open3D-backed tests (`test_o3d_geometry.py`, and
+the measured-regime tests in the mesh, critic and executor files) skip
+without the `o3d` extra — install it (`uv pip install -e ".[o3d]"`) to
+run them; the declined-regime tests run everywhere by forcing the wheel
+absent.
 
 ## The mini-night, run for real
 

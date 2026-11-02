@@ -179,3 +179,131 @@ def test_the_critic_does_not_invent_a_score_for_a_prop_it_never_measured():
 
     assert score.score == 0.0
     assert "no mesh" in score.reason.lower()
+
+
+# -- the self-intersection signal -------------------------------------------
+
+
+def test_a_self_intersecting_mesh_fails_the_new_check():
+    request = _request()
+
+    verdict = judge(
+        _report(self_intersection="self_intersecting", self_intersection_pairs=3),
+        request,
+    )
+
+    check = _checks(verdict, "self_intersection")
+    assert check.passed is False
+    assert check.score == 0.0
+    assert "3 pairs" in check.detail
+    assert "not trusted" in check.detail
+    assert verdict.score < 1.0
+
+
+def test_the_watertight_check_still_passes_on_a_self_intersecting_mesh():
+    # The flag swap the brief forbids: the edge census says closed, and it
+    # keeps saying closed. Only the new check sees the crossing.
+    request = _request()
+
+    verdict = judge(
+        _report(self_intersection="self_intersecting", self_intersection_pairs=3),
+        request,
+    )
+
+    assert _checks(verdict, "watertight").passed is True
+
+
+def test_an_unchecked_mesh_is_not_punished():
+    request = _request()
+
+    unchecked = judge(
+        _report(self_intersection="unchecked", self_intersection_reason="over the cap"),
+        request,
+    )
+    clean = judge(_report(self_intersection="clean"), request)
+
+    check = _checks(unchecked, "self_intersection")
+    assert check.passed is True
+    assert check.score == 1.0
+    assert "not checked" in check.detail
+    assert "over the cap" in check.detail
+    # A prop must not lose to a measurement that was never made.
+    assert unchecked.score == pytest.approx(clean.score)
+
+
+def test_a_clean_mesh_passes_the_check():
+    request = _request()
+
+    verdict = judge(_report(self_intersection="clean"), request)
+
+    check = _checks(verdict, "self_intersection")
+    assert check.passed is True
+    assert "no triangle pairs cross" in check.detail
+
+
+# -- the ray-parity fallback in the volume check -----------------------------
+
+
+def test_the_volume_is_read_as_is_when_it_can_be_trusted():
+    request = _request()
+
+    verdict = judge(
+        _report(self_intersection="clean", volume=1.0), request
+    )
+
+    check = _checks(verdict, "solid_volume")
+    assert check.passed is True
+    assert "ray-parity" not in check.detail
+
+
+def test_an_unreliable_volume_reads_the_ray_parity_fallback():
+    request = _request()
+
+    verdict = judge(
+        _report(
+            watertight=False,
+            boundary_edges=12,
+            volume=-0.3,
+            parity_volume=0.5,
+        ),
+        request,
+    )
+
+    check = _checks(verdict, "solid_volume")
+    assert check.passed is True
+    assert "50.0%" in check.detail
+    assert "ray-parity" in check.detail
+    assert "not closed" in check.detail
+
+
+def test_a_self_intersecting_volume_is_flagged_not_read():
+    request = _request()
+
+    verdict = judge(
+        _report(
+            self_intersection="self_intersecting",
+            volume=2.0,  # the overlap counted twice
+            parity_volume=1.0,
+        ),
+        request,
+    )
+
+    check = _checks(verdict, "solid_volume")
+    assert check.passed is True  # the honest volume is the cube's own
+    assert "ray-parity" in check.detail
+    assert "counts overlapped material twice" in check.detail
+
+
+def test_an_unreliable_volume_without_a_fallback_fails_rather_than_guess():
+    request = _request()
+
+    verdict = judge(
+        _report(watertight=False, boundary_edges=12, volume=0.02),
+        request,
+    )
+
+    check = _checks(verdict, "solid_volume")
+    assert check.passed is False
+    assert check.score == 0.0
+    assert "cannot be trusted" in check.detail
+    assert "no ray-parity fallback" in check.detail

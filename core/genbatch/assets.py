@@ -46,16 +46,21 @@ def build_asset(
     licence: Licence,
     source_image: str | Path | None = None,
     critic: dict[str, Any] | None = None,
+    diet_path: str | Path | None = None,
 ) -> Asset:
     """Record a generated prop as an asset.
 
     ``generator`` is the recipe — the prompt, the model, the weights'
     revision, the seed, the resolution. It is copied into the provenance
-    as given, so the caller decides what the recipe says.
+    as given, so the caller decides what the recipe says. ``diet_path``,
+    when the diet stage ran, records the decimated mesh beside the
+    generator's own GLB.
     """
     files = [file_ref("glb", glb_path)]
     if source_image is not None:
         files.append(file_ref("source_image", source_image))
+    if diet_path is not None:
+        files.append(file_ref("diet", diet_path))
     return Asset(
         id=f"asset_{variant_id}",
         kind="mesh",

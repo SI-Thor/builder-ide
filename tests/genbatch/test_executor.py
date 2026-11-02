@@ -16,7 +16,8 @@ import pytest
 
 from core.genbatch.comfy import PromptResult
 from core.genbatch.executor import PropExecutor, Templates
-from core.genbatch.models import LaneSplit, NodeTiming, PropRequest
+from core.genbatch.models import DietRecipe, LaneSplit, NodeTiming, PropRequest
+from core.genbatch.o3d_geometry import open3d_available
 from core.genbatch.schedule import NightPlan
 from core.genbatch.store import PropStore
 from core.genbatch.workflow import load_template
@@ -334,3 +335,67 @@ def _tmp():
     from pathlib import Path
 
     return Path(tempfile.mkdtemp())
+
+
+# -- the diet stage ----------------------------------------------------------
+
+
+def _run_a_mesh(executor, plan, seed):
+    image_task = next(t for t in plan.tasks if t.id == "img:crate")
+    executor.run(image_task, Variant(id="v0", seed=seed))
+    return executor.run(
+        next(t for t in plan.tasks if t.id == "prop:crate"),
+        Variant(id="prop:crate_r1_v1", seed=seed),
+    )
+
+
+def test_the_diet_stage_fails_loudly_without_the_wheel(tmp_path, monkeypatch):
+    from core.genbatch import o3d_geometry
+
+    monkeypatch.setattr(o3d_geometry, "_O3D", None)
+    executor, plan, store, client = _executor(
+        tmp_path, [_request(diet=DietRecipe(fraction=0.5, min_triangles=4))]
+    )
+    seed = plan.seeds("crate")[0]
+
+    result = _run_a_mesh(executor, plan, seed)
+
+    assert result.outcome == "failed"
+    assert "diet" in result.reason
+
+
+@pytest.mark.skipif(
+    not open3d_available(), reason="needs the o3d extra"
+)
+def test_the_diet_stage_keeps_the_dieted_mesh(tmp_path):
+    executor, plan, store, client = _executor(
+        tmp_path, [_request(diet=DietRecipe(fraction=0.5, min_triangles=4))]
+    )
+    seed = plan.seeds("crate")[0]
+
+    result = _run_a_mesh(executor, plan, seed)
+
+    assert result.outcome == "kept"
+    assert result.artifact is not None
+    assert result.artifact.endswith("_diet.glb")
+    # The critic measured what the night keeps: the dieted mesh.
+    report = store.mesh("prop:crate", "prop:crate_r1_v1")
+    assert report is not None
+    assert report.triangles <= 6  # 12 at half, floored at 4
+    asset = store.asset("prop:crate", "prop:crate_r1_v1")
+    assert asset is not None
+    assert {ref.role for ref in asset.files} >= {"glb", "diet"}
+
+
+def test_without_a_diet_the_pipeline_is_what_it_was(tmp_path):
+    executor, plan, store, client = _executor(tmp_path, [_request()])
+    seed = plan.seeds("crate")[0]
+
+    result = _run_a_mesh(executor, plan, seed)
+
+    assert result.outcome == "kept"
+    assert not result.artifact.endswith("_diet.glb")
+    report = store.mesh("prop:crate", "prop:crate_r1_v1")
+    assert report.triangles == 12
+    asset = store.asset("prop:crate", "prop:crate_r1_v1")
+    assert {ref.role for ref in asset.files} == {"glb"}
