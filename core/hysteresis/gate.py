@@ -149,6 +149,19 @@ class HysteresisGate:
         self._pending_since = 0.0
         self._latency = None
 
+    def reset_pending(self) -> None:
+        """Drop a pending transition, keeping the committed state.
+
+        A gate that is fed no reading should not carry a pending
+        transition across the gap: the dwell says the target has to want
+        to happen *continuously*, and a window with no reading is a
+        window in which it did not. The committed state is untouched —
+        this is not a reset.
+        """
+        self._pending = None
+        self._pending_since = 0.0
+        self._latency = None
+
     # -- the step --------------------------------------------------------------
 
     def step(self, value: float, now: float) -> Transition:
