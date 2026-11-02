@@ -16,8 +16,9 @@ ledger and two are not. The rate gate beats the level gate on the signal
 where the comparison is cleanest by **7× on alarm time** and **8× on false
 alarms**; on the combined detector it detects **6 of the 6** labelled drift
 episodes in the holdout half, where the level gate detects 4 of 6, at
-**1.63 alarms per hour of world**. The negative control fails on one third of
-its windows, and that failure is a gap in the ledger, not in the detector.
+**1.63 alarms per hour of world**. The negative control fails on five of
+its twelve windows, and that failure is a gap in the ledger, not in the
+detector.
 
 ---
 
