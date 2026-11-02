@@ -1,0 +1,81 @@
+import math
+
+log = []
+
+def say(msg):
+    log.append(str(msg))
+
+try:
+    mc.act('energy', 1)
+except Exception:
+    pass
+
+for _ in range(8):
+    try:
+        mc.act('energy', 1)
+    except Exception:
+        break
+
+for _ in range(3):
+    try:
+        mc.act('eat', 1)
+    except Exception:
+        pass
+
+for _ in range(3):
+    try:
+        mc.act('drink', 1)
+    except Exception:
+        pass
+
+chop_names = ['chop', 'chop_tree', 'hit_tree', 'break_tree', 'attack', 'mine', 'break', 'hit', 'punch', 'use', 'interact', 'collect', 'gather', 'pick', 'pickup', 'take', 'grab']
+pick_names = ['pickup', 'pick_up', 'pick', 'take', 'collect', 'gather', 'grab', 'loot', 'use', 'interact']
+
+chopped = False
+picked = False
+
+for r in range(0, 12):
+    for dx in range(-r, r + 1):
+        for dy in range(-r, r + 1):
+            if max(abs(dx), abs(dy)) != r:
+                continue
+            try:
+                mc.move('east', abs(dx))
+            except Exception:
+                pass
+            try:
+                if dy >= 0:
+                    mc.move('north', dy)
+                else:
+                    mc.move('south', -dy)
+            except Exception:
+                pass
+
+            for name in chop_names:
+                try:
+                    mc.act(name, 1)
+                except Exception:
+                    continue
+                try:
+                    mc.act('chop', 1)
+                except Exception:
+                    pass
+                chopped = True
+                break
+
+            if chopped:
+                for name in pick_names:
+                    try:
+                        mc.act(name, 1)
+                    except Exception:
+                        continue
+                    picked = True
+                    break
+                break
+        if chopped:
+            break
+    if chopped:
+        break
+
+say('energy used; chopped=' + str(chopped) + '; picked=' + str(picked))
+print(' '.join(log))

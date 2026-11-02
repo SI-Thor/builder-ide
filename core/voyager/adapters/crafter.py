@@ -158,12 +158,24 @@ def crafter_vocabulary() -> SkillVocabulary:
     times). Nothing else is reachable from a skill.
     """
     actions = list(CRAFTER_ACTIONS)
+    # The hints NAME the values. The item ids of the Minecraft world are
+    # sixteen hundred and stay behind "one of N values", but crafter's
+    # seventeen actions are few enough to say — a coder that has to
+    # guess invented 'chop' and 'eat_food' (both measured, crafter-smoke-1
+    # and -3) when 'do' was the action that collects wood all along.
+    names = ", ".join(actions)
     words: dict[str, Mapping[str, Any]] = {
         "mc.act": {
             "action": {
                 "type": "string",
                 "enum": actions,
-                "hint": "one of crafter's seventeen actions",
+                "hint": (
+                    "one of exactly these: "
+                    + names
+                    + " — 'do' interacts with what is in front of the"
+                    " player (a tree, water, a cow, a plant); collecting"
+                    " wood means facing a tree and 'do'"
+                ),
             },
             "times": {"type": "integer", "minimum": 1, "maximum": 512},
         },
@@ -171,14 +183,14 @@ def crafter_vocabulary() -> SkillVocabulary:
             "actions": {
                 "type": "array",
                 "maxItems": 512,
-                "hint": "a list of crafter action names",
+                "hint": "a list of the same action names as mc.act",
             },
         },
         "mc.move": {
             "direction": {
                 "type": "string",
                 "enum": ["left", "right", "up", "down"],
-                "hint": "which way to walk",
+                "hint": "left, right, up or down",
             },
             "steps": {"type": "integer", "minimum": 1, "maximum": 512},
         },

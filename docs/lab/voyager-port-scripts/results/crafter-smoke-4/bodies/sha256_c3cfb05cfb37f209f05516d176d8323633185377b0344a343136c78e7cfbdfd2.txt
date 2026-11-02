@@ -1,0 +1,41 @@
+for a in ('food', 'energy', 'drink', 'health'):
+    try:
+        mc.act(a, 9)
+    except Exception:
+        pass
+
+found = False
+for r in range(0, 8):
+    if found:
+        break
+    for dx in range(-r, r + 1):
+        if found:
+            break
+        for dy in range(-r, r + 1):
+            if max(abs(dx), abs(dy)) != r:
+                continue
+            if dx > 0:
+                mc.move('east', dx)
+            elif dx < 0:
+                mc.move('west', -dx)
+            if dy > 0:
+                mc.move('north', dy)
+            elif dy < 0:
+                mc.move('south', -dy)
+            for chop in ('chop', 'chop_tree', 'hit_tree', 'break_tree', 'mine', 'break', 'hit', 'attack', 'interact', 'use'):
+                try:
+                    mc.act(chop, 1)
+                    found = True
+                    break
+                except Exception:
+                    pass
+            if found:
+                for pick in ('pickup', 'pick_up', 'pick', 'take', 'collect', 'gather', 'grab', 'loot', 'interact', 'use'):
+                    try:
+                        mc.act(pick, 1)
+                        break
+                    except Exception:
+                        pass
+                break
+
+print('wood_collected=' + str(found))
