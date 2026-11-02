@@ -17,7 +17,7 @@
 #   artifacts/night-v5/letter.md           the letter (write_letter.py)
 set -uo pipefail
 
-cd "$HOME/lm-wt/night-v4"
+cd "$HOME/lm-wt/night-v5"
 NIGHT="artifacts/night-v5"
 PY="$HOME/lm-wt/propmaker-batch/.venv/bin/python"
 

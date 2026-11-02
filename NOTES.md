@@ -1981,3 +1981,26 @@ by pid); relaunch at 20:33.
 **What the build is doing.** Three of ten crates measured by 20:45
 (seeds 9000-9002, ~699k tris each, watertight, ~4 min a mesh including
 repair and measurement), 12.5 GiB GPU used, no bar waits.
+
+## 2026-11-01 21:15 — the seat resumes: the library finished on its own
+
+The WSL crash on the ProArt killed the seat at ~20:47; the library
+build it launched detached at 20:33 ran on and **finished at 21:12**:
+ten crates from run F's crate picture at seeds 9000-9009, all
+watertight (~699k tris each), repair fidelity >= 0.9998, wall 39.1 min
+(prompt seconds 109.7-382.6). `approved-crate-library.json` was the
+untracked file git status showed; committed now.
+
+Box at pickup: 100.8 GB free of 122.8 GB, queue empty, heavy.lock free;
+per-process GPU sum ~11.0 GiB (6 procs) — below the 48 GiB bar, so the
+night will not open on a wait. pgrep clean of night-v5 work (a
+refit-drift seat job, 2 GB practice lease, and agent-world's reflex
+server are other seats' work, left alone).
+
+Fixed before launch: `finish_night.sh` cd'd into `~/lm-wt/night-v4`,
+where `night-v5-scripts` does not exist — it would have died the moment
+the night ended. It now cd's into `~/lm-wt/night-v5` (the `--against`
+line still points at night-v4's artifacts, as it should).
+
+Decided next: launch the night (one command, all four seams) and the
+finisher beside it, both detached.

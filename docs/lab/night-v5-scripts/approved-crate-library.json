@@ -1,0 +1,230 @@
+{
+  "kind": "crate",
+  "member_count": 10,
+  "policy": "the library may approve ten objects of one kind (Casey, 2026-11-01, answering night-v4's letter)",
+  "built_by": {
+    "script": "docs/lab/night-v5-scripts/build_library.py",
+    "picture": "crate_s102_00004_.png",
+    "base_seed": 9000,
+    "template": "trellis2_512.api.json",
+    "repair": {
+      "method": "weld",
+      "tolerance": 1e-06,
+      "split_non_manifold": true,
+      "min_fidelity": 0.98,
+      "fidelity_samples": 1000000,
+      "fidelity_resolution": 128,
+      "fidelity_views": [
+        "+x",
+        "+y",
+        "+z"
+      ]
+    },
+    "built_at": "2026-11-02T06:12:28.545Z",
+    "wall_minutes": 39.1,
+    "prompt_seconds": [
+      251.0,
+      293.7,
+      187.1,
+      219.2,
+      265.3,
+      185.5,
+      236.5,
+      382.6,
+      169.5,
+      109.7
+    ]
+  },
+  "members_detail": [
+    {
+      "name": "crate_lib_s9000",
+      "kind": "crate",
+      "seed": 9000,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9000_00001_.glb",
+      "features": {
+        "log_volume": -0.00016711582208741828,
+        "sphericity": 6.0133798073518125,
+        "elongation": 1.000636612148947,
+        "fill_ratio": 0.9962058977417517,
+        "offcentre": 9.99785822057272e-05,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 698892,
+      "fidelity": 0.9999572978051071,
+      "wall_s": 251.0
+    },
+    {
+      "name": "crate_lib_s9001",
+      "kind": "crate",
+      "seed": 9001,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9001_00001_.glb",
+      "features": {
+        "log_volume": 0.0009374424728531992,
+        "sphericity": 6.130480657703277,
+        "elongation": 1.0002435124265743,
+        "fill_ratio": 0.9964453463854243,
+        "offcentre": 0.00010159653637318122,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699096,
+      "fidelity": 0.9999788614792737,
+      "wall_s": 293.7
+    },
+    {
+      "name": "crate_lib_s9002",
+      "kind": "crate",
+      "seed": 9002,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9002_00001_.glb",
+      "features": {
+        "log_volume": -0.8360777817018774,
+        "sphericity": 8.474621473207543,
+        "elongation": 1.5771331443842704,
+        "fill_ratio": 0.6845467974765382,
+        "offcentre": 0.02684392125488354,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699614,
+      "fidelity": 1.0,
+      "wall_s": 187.1
+    },
+    {
+      "name": "crate_lib_s9003",
+      "kind": "crate",
+      "seed": 9003,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9003_00001_.glb",
+      "features": {
+        "log_volume": -0.905463795353634,
+        "sphericity": 10.497972463765262,
+        "elongation": 1.6163005450662595,
+        "fill_ratio": 0.6553137900345553,
+        "offcentre": 0.03415350656322394,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699734,
+      "fidelity": 0.9998242829683349,
+      "wall_s": 219.2
+    },
+    {
+      "name": "crate_lib_s9004",
+      "kind": "crate",
+      "seed": 9004,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9004_00001_.glb",
+      "features": {
+        "log_volume": -0.671092913354765,
+        "sphericity": 10.645220909833387,
+        "elongation": 1.4442025230090263,
+        "fill_ratio": 0.7349603491208495,
+        "offcentre": 0.02768519329258112,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699716,
+      "fidelity": 0.9999042161931783,
+      "wall_s": 265.3
+    },
+    {
+      "name": "crate_lib_s9005",
+      "kind": "crate",
+      "seed": 9005,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9005_00001_.glb",
+      "features": {
+        "log_volume": -0.7545735758233857,
+        "sphericity": 9.516251771058638,
+        "elongation": 1.41912719063772,
+        "fill_ratio": 0.6697313964561941,
+        "offcentre": 0.03399841064853651,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699726,
+      "fidelity": 1.0,
+      "wall_s": 185.5
+    },
+    {
+      "name": "crate_lib_s9006",
+      "kind": "crate",
+      "seed": 9006,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9006_00001_.glb",
+      "features": {
+        "log_volume": -0.7993525267479406,
+        "sphericity": 10.341970143929105,
+        "elongation": 1.546620369597362,
+        "fill_ratio": 0.6968279608490657,
+        "offcentre": 0.028103972676967074,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699784,
+      "fidelity": 1.0,
+      "wall_s": 236.5
+    },
+    {
+      "name": "crate_lib_s9007",
+      "kind": "crate",
+      "seed": 9007,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9007_00001_.glb",
+      "features": {
+        "log_volume": -0.6459471171197253,
+        "sphericity": 12.259536426154433,
+        "elongation": 1.4066742859042092,
+        "fill_ratio": 0.7396770842708503,
+        "offcentre": 0.025014703692157986,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699784,
+      "fidelity": 0.9999410863673854,
+      "wall_s": 382.6
+    },
+    {
+      "name": "crate_lib_s9008",
+      "kind": "crate",
+      "seed": 9008,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9008_00001_.glb",
+      "features": {
+        "log_volume": -0.8457052275843595,
+        "sphericity": 10.253127977211202,
+        "elongation": 1.5489560379332188,
+        "fill_ratio": 0.6671035782309651,
+        "offcentre": 0.03222508996705518,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699768,
+      "fidelity": 1.0,
+      "wall_s": 169.5
+    },
+    {
+      "name": "crate_lib_s9009",
+      "kind": "crate",
+      "seed": 9009,
+      "picture": "crate_s102_00004_.png",
+      "glb": "/home/caseydigennaro/lm-wt/trellis/out/genbatch/libcrate_s9009_00001_.glb",
+      "features": {
+        "log_volume": -0.851029852296955,
+        "sphericity": 9.429186601743798,
+        "elongation": 1.6144205785586798,
+        "fill_ratio": 0.6907426275086386,
+        "offcentre": 0.0279347319825354,
+        "defect_rate": 0.0
+      },
+      "watertight": true,
+      "triangles": 699636,
+      "fidelity": 1.0,
+      "wall_s": 109.7
+    }
+  ]
+}
