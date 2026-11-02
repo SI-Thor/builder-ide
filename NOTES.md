@@ -1036,3 +1036,42 @@ skill's behaviour survive? Answerable from the recordings the design keeps.
 measurement. The measurement to take is on our side: whether the nightly refit
 over a growing log drifts the old contexts' estimates (`core/tiles/ope.py` and
 our own log).
+
+## 2026-11-01 20:25 — refit-drift: part 1 done and reported, part 2 running
+
+**What was tried.** The brief's two parts. Part 1 (does the nightly
+whole-log refit drift the old contexts' estimates) was finished by the
+earlier seat before it was stopped: `extract_real_tiles.py` read the six
+tiles out of the nights' own ledgers, and `exp_refit_drift.py` ran 24 seeds
+x 3 arms x 10 nights on the repo's own `core.tiles` code (19:38:02-19:39:06
+AKST, 64 s, load 5.41, 114.4 GiB available of 122.8, 14 cores, GPU 0 % for
+the job). Part 2 (watching-teachers: one policy fine-tuned on all the
+demonstrations) was launched detached at 19:44 AKST under a thor-admit
+practice lease (peak 2G), `--seeds 3 --passes-per-stage 262144`, four arms
+(`seq`, `seq_replay`, `whole`, `per_skill_heads`) x 3 seeds on
+crafter-lab's real teacher frames, CPU torch. The seat was stopped by quota
+while it ran; the run continued on its own.
+
+**What happened.** Resumed, checked the run was alive (pgrep: one copy,
+under the lease), and reported part 1 in
+`docs/lab/exp-refit-drift.md` while part 2 runs. The part-1 numbers: a
+bucket that received no new plays keeps its estimate **exactly** (max move
+0.0000, every night, both definition-fixed arms); touched buckets move by
+0.001-0.004, every interval over zero; choices in old contexts flip at most
+2.3 % a night; the OPE estimate checked against the closed-form truth is off
+by 0.042 -> 0.014 over the run (clip 10, effective n 89 -> 1380). The churn
+arm (`refit_grow`) does not drift the estimates (exact value drift
+0.000 +/- 0.003) but does change the **choices**: 14-25 % of old buckets
+flip and by night 3 a third of old-context picks is a tile trusted on the
+0.5 prior alone. The moved-definition arm (`refit_moved`, the substrate
+risk): on the move night, untouched buckets move up to 0.411, 45 pairs
+collapse to the prior, 79.4 % of choices flip, OPE error 0.0736; recovered
+to 0.0149 by night 10. Part-2 so far (seq arm, seeds 0-2): newest-skill
+agreement 0.382-0.388, old-skill mean 0.320-0.324, env achievements 2-3 -
+the full table comes with the run.
+
+**Decided next.** Commit part 1 (note + scripts + recorded run). Wait on
+part 2 (one line per arm/seed lands in
+`results/watching_teachers.log`; ~8.5 min per seed). When it finishes: run
+the two calibration scripts (the reference table for reading part 2), write
+section 7 of the note, commit the final state.

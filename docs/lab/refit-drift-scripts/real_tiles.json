@@ -1,0 +1,189 @@
+{
+  "ledgers": [
+    "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3/ledger.db",
+    "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3-c/ledger.db",
+    "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3-d/ledger.db",
+    "/home/caseydigennaro/lm-wt/night-v4/artifacts/night-v4/ledger.db"
+  ],
+  "note": "the tile bodies the real nights authored, read out of the night runners' own ledgers by extract_real_tiles.py",
+  "tiles": [
+    {
+      "authored_at": "2026-11-01T12:53:33Z",
+      "body": {
+        "author": {
+          "cost_cents": 0,
+          "model": "scripted/night-v3-tiles-v1",
+          "prompt_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "provider": "local",
+          "temperature": null
+        },
+        "family": "courtyard.props.harbor.crates",
+        "kind": "recipe_edit",
+        "preconditions": [],
+        "steps": [
+          {
+            "op": "set",
+            "params": {
+              "count": 3,
+              "from_library": 0,
+              "seed": 4021,
+              "style": "weathered"
+            },
+            "path": "props.harbor.crates",
+            "word": "props.harbor.crates"
+          }
+        ],
+        "title": "crates.weathered.corner"
+      },
+      "ledger": "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3/ledger.db",
+      "title": "crates.weathered.corner"
+    },
+    {
+      "authored_at": "2026-11-01T12:53:33Z",
+      "body": {
+        "author": {
+          "cost_cents": 0,
+          "model": "scripted/night-v3-tiles-v1",
+          "prompt_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "provider": "local",
+          "temperature": null
+        },
+        "family": "courtyard.props.harbor.crates",
+        "kind": "recipe_edit",
+        "preconditions": [],
+        "steps": [
+          {
+            "op": "set",
+            "params": {
+              "count": 5,
+              "from_library": 0,
+              "seed": 4022,
+              "style": "stained"
+            },
+            "path": "props.harbor.crates",
+            "word": "props.harbor.crates"
+          }
+        ],
+        "title": "crates.stained.stack"
+      },
+      "ledger": "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3/ledger.db",
+      "title": "crates.stained.stack"
+    },
+    {
+      "authored_at": "2026-11-01T12:53:33Z",
+      "body": {
+        "author": {
+          "cost_cents": 0,
+          "model": "scripted/night-v3-tiles-v1",
+          "prompt_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "provider": "local",
+          "temperature": null
+        },
+        "family": "courtyard.material.wood.weathering",
+        "kind": "recipe_edit",
+        "preconditions": [],
+        "steps": [
+          {
+            "op": "set",
+            "params": {
+              "tone": "gray",
+              "wear": 4
+            },
+            "path": "material.wood.weathering",
+            "word": "material.wood.weathering"
+          }
+        ],
+        "title": "weathering.gray.worn"
+      },
+      "ledger": "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3/ledger.db",
+      "title": "weathering.gray.worn"
+    },
+    {
+      "authored_at": "2026-11-01T12:53:33Z",
+      "body": {
+        "author": {
+          "cost_cents": 0,
+          "model": "scripted/night-v3-tiles-v1",
+          "prompt_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "provider": "local",
+          "temperature": null
+        },
+        "family": "courtyard.material.wood.weathering",
+        "kind": "recipe_edit",
+        "preconditions": [],
+        "steps": [
+          {
+            "op": "set",
+            "params": {
+              "tone": "pale",
+              "wear": 2
+            },
+            "path": "material.wood.weathering",
+            "word": "material.wood.weathering"
+          }
+        ],
+        "title": "weathering.pale.faded"
+      },
+      "ledger": "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3/ledger.db",
+      "title": "weathering.pale.faded"
+    },
+    {
+      "authored_at": "2026-11-01T12:53:33Z",
+      "body": {
+        "author": {
+          "cost_cents": 0,
+          "model": "scripted/night-v3-tiles-v1",
+          "prompt_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "provider": "local",
+          "temperature": null
+        },
+        "family": "courtyard.props.harbor.racks",
+        "kind": "recipe_edit",
+        "preconditions": [],
+        "steps": [
+          {
+            "op": "set",
+            "params": {
+              "count": 2,
+              "length_m": 1.5
+            },
+            "path": "props.harbor.racks",
+            "word": "props.harbor.racks"
+          }
+        ],
+        "title": "racks.tool.wall"
+      },
+      "ledger": "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3/ledger.db",
+      "title": "racks.tool.wall"
+    },
+    {
+      "authored_at": "2026-11-01T12:53:33Z",
+      "body": {
+        "author": {
+          "cost_cents": 0,
+          "model": "scripted/night-v3-tiles-v1",
+          "prompt_hash": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "provider": "local",
+          "temperature": null
+        },
+        "family": "courtyard.material.wood.weathering",
+        "kind": "recipe_edit",
+        "preconditions": [],
+        "steps": [
+          {
+            "op": "set",
+            "params": {
+              "tone": "dark",
+              "wear": 5
+            },
+            "path": "material.wood.weathering",
+            "word": "material.wood.weathering"
+          }
+        ],
+        "title": "weathering.dark.lived"
+      },
+      "ledger": "/home/caseydigennaro/lm-wt/night-v3/artifacts/night-v3/ledger.db",
+      "title": "weathering.dark.lived"
+    }
+  ]
+}
