@@ -133,10 +133,16 @@ class DriftConfig:
 
     #: A window with fewer scored plays than this does not get a success
     #: rate: a rate computed from two plays is noise, and noise that
-    #: fires an alarm is worse than no alarm. The lab measured this
-    #: one: at five plays the success signal's rate gate spent 150
-    #: false-alarm windows over the run, at twenty it spent 35 — the
-    #: difference was differencing a noisy rate.
+    #: fires an alarm is worse than no alarm. The lab measured the
+    #: width: at five scored plays the success signal's rate gate spent
+    #: 16.2 false-alarm windows over the nine leave-one-out folds, at
+    #: twenty 18.3, at forty 7.2 — the same 2 of 9 episodes in all
+    #: three. The width is a second-order lever; the **one-sided** rate
+    #: is the first-order one (the two-sided gate spent 35.4 and
+    #: alarmed on 7 of the 12 designed-yield windows, against 18.3 and
+    #: 5 of 12). Twenty is kept because the holdout numbers are better
+    #: there than at five, and because a rate over five plays is not a
+    #: rate.
     min_scored_plays: int = 20
 
     #: A window with fewer verdicts than this does not get an error

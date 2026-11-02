@@ -10,6 +10,7 @@ Three scripts, and the dataset they make. The lab note that cites them is
 | `extract.py` | the live world ledger → the dataset; the world's client logs and the incident notes → the labels | ~2 s |
 | `calibrate.py` | the threshold sweep, the leave-one-episode-out, the time split, the level-gate comparison | ~7 s |
 | `pauses.py` | every alarm the shipped detector raises, with the reason a human would read | ~1 s |
+| `measure_twosided.py` | the shipped one-sided rate gate against the old two-sided one, on the committed dataset | ~15 s |
 
 ## The dataset and the labels
 
@@ -43,6 +44,12 @@ python3 tools/drift/calibrate.py \
     --out docs/lab/drift-dataset/calibration.json
 
 python3 tools/drift/pauses.py
+
+# 4. the one-sided gate against the old two-sided one, on the committed
+#    dataset. It patches the gate in this process and re-runs the same
+#    calibration, so the "before" number is measured on the same data as
+#    the "after" one.
+python3 tools/drift/measure_twosided.py
 ```
 
 CPU only, seconds, no lease and no GPU.

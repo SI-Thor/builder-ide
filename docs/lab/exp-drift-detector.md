@@ -245,11 +245,43 @@ windows against 95.3, and 12.1 false-alarm windows against 44.8, at the same
 2/9 — not because the level gate is better, but because the rate gate's
 *input* is noisy. The success signal is a rate over a sample, and the gate
 differences it, so differencing a noisy rate gives a noisy rate of change.
-That is not a reason to prefer the level gate; it is a reason to widen the
-sample before differencing it. The lab measured it: at five scored plays per
-window the success signal's rate gate spent **150** false-alarm windows over
-the run; at twenty it spent **18**, at the cost of detecting fewer episodes.
-The shipped default is twenty.
+
+**A correction, in writing, of a claim this note made first.** An earlier
+draft of this section said the sample width was the lever — "at five scored
+plays per window the success signal's rate gate spent 150 false-alarm
+windows over the run; at twenty it spent 18". **That was measured against
+the two-sided gate, and it is superseded.** Measured on the committed
+dataset with the shipped one-sided gate, the sample width is a second-order
+lever and the one-sided rate is the first-order one:
+
+| the success signal's rate gate, leave-one-out | episodes | false-alarm windows |
+|---|---|---|
+| five scored plays per window | 2 / 9 | 16.2 |
+| **twenty (the default)** | 2 / 9 | 18.3 |
+| forty | 2 / 9 | 7.2 |
+
+Same episodes in all three. The default of twenty is kept because the
+*holdout* numbers are better at twenty than at five (10 false-alarm windows
+against 16) and because a rate over five plays is not a rate — but it is not
+the lever the earlier draft claimed.
+
+The lever is the **one-sided rate**, and it is measured on the committed
+dataset by `tools/drift/measure_twosided.py`, which patches the gate back to
+the old `abs(Δ)` and re-runs the same calibration:
+
+| on the committed dataset | two-sided (`abs(Δ)`) | **one-sided (shipped)** |
+|---|---|---|
+| holdout, episodes detected | 5 / 6 | **6 / 6** |
+| holdout, alarm windows | 99 | **88** |
+| holdout, false-alarm windows | 35 | **28** |
+| the success signal's rate gate, leave-one-out | 4 / 9, fw 35.4 | 2 / 9, fw 18.3 |
+| negative control (designed yield) | 7 of 12 alarmed | **5 of 12** |
+
+The one-sided gate catches one more episode on the holdout with less alarm
+time, and it is quieter on the negative control. The two-sided gate detects
+more episodes on the success signal alone, and it does it by firing on
+recoveries — which is what the earlier draft's "the success rate fell
+−0.444 below its own reference rate" alarms were.
 
 ### The negative control
 
@@ -359,7 +391,11 @@ python3 tools/drift/calibrate.py \
 #    reason a human would read.
 python3 tools/drift/pauses.py
 
-# 4. the tests
+# 4. the one-sided gate against the old two-sided one, on the committed
+#    dataset — the "before" numbers in section 5
+python3 tools/drift/measure_twosided.py
+
+# 5. the tests
 ~/lm-wt/core-api/.venv/bin/python -m pytest tests/drift -q
 ```
 
@@ -382,5 +418,6 @@ world's windows), `--min-scored-plays`, `--stall-lookback`,
 | `tools/drift/extract.py` | the ledger → the dataset, and the labels from the instruments |
 | `tools/drift/calibrate.py` | the sweep, the holdout, the comparison |
 | `tools/drift/pauses.py` | the alarm list |
+| `tools/drift/measure_twosided.py` | the one-sided gate against the old two-sided one |
 | `tests/drift/` | 46 tests |
 | `docs/lab/drift-dataset/` | the dataset, the labels, the calibration report, the pause list |
