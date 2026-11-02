@@ -31,6 +31,7 @@ and returns the alarms.
 | `signals.py` | the six signals, and which of them the ledger can carry |
 | `gate.py` | the gate: the band, the dwell, and the level-against-rate choice |
 | `detect.py` | the run, and the pause ladder |
+| `pause.py` | the ladder wired to action: the pause file the world reads, and the thor-admit presence door |
 | `config.py` | every number, with the reason it is that number |
 
 ## The six signals
@@ -43,6 +44,36 @@ and returns the alarms.
 | rule violations | per agent | **no** — the seam is wired, the ledger carries none |
 | spend per productive decision | per agent | partly — the ledger's own cost fields |
 | build drift | a branch | **no** — the world does not commit to the canon yet |
+
+## The yields: a wait the world chose is not a stall
+
+The world writes a `drift.yield` event every time it stands aside — the
+box's admission rule (`may_act`: keep 25 GB free), or a drift pause —
+naming the bots it told to wait (`agent-world/reflex/.../service.py`).
+The folding honours it: **a gap with a yield inside it is not stall
+evidence**, and a window an agent spent standing aside has its idle
+excused. What is left is the silence nobody explained. The numbers are
+in `docs/lab/exp-drift-pause.md`: the negative control 5 of 12 → 3 of
+12 on the same thresholds, the holdout 6/6 unchanged.
+
+## The pause, wired to action
+
+`pause.py` turns one window of the detector's state into §3.5's three
+levels, and carries it out through two doors, neither of which kills
+anything:
+
+* the **pause file** (`drift-pause.json` in the world's runtime) — the
+  world reads it at its admission seam and yields politely: `soft`
+  holds one bot, `tier`/`hard` stand the whole world aside. Every
+  refusal is recorded as a `drift.yield`.
+* the **thor-admit presence file** — `tier` demotes the mapped labels
+  one tier (`live` → `preparation` → `practice` → `study`); `hard`
+  also disables them (no new proposals). Running leases are untouched;
+  a demotion changes what starts next.
+
+An entry lapses when its `until` passes; `tools/drift/enforce.py
+--clear <actor> --enforce` resumes at once. **Dry-run is the default**
+— `enforce.py` computes and logs; `--enforce` writes.
 
 ## The gate, and the one decision it makes
 

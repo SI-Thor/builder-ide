@@ -2232,3 +2232,41 @@ alarm it should keep.
 Decided next — part 2 of the brief: the pause ladder wired to action
 (the pause file the world now reads + the thor-admit presence door),
 dry-run by default, tests for both.
+
+## 2026-11-01 23:05 — drift-pause #3, step 3: the pause ladder wired to action
+
+What was tried — `core/drift/pause.py` (the ladder with a hand on it)
+and `tools/drift/enforce.py` (the operator door). Two doors, neither
+kills: the **pause file** the world reads at its admission seam (soft
+holds one bot, tier/hard stand the world aside; every refusal becomes
+a `drift.yield`), and the **thor-admit presence file** (tier demotes
+the mapped label prefixes one step live→preparation→practice→study;
+hard also disables them; `thor-admit reload` re-reads it). Dry-run is
+the default: `apply()` logs every action prefixed `dry-run:` and
+writes nothing; `--enforce` writes both files atomically. Entries
+carry `until` (default 30 min) and lapse on their own; `--clear
+<actor> --enforce` resumes. The plan comes from the detector's
+**state**, not its fires — an alarm that holds is a pause that holds —
+and the levels are §3.5's rule restated for the state.
+
+What happened — 16 new tests (70 total in tests/drift, 0.42 s): the
+file's round-trip and expiry, the three levels, dry-run writing
+nothing (no file, no edit, no reload), enforce writing both doors
+(live→preparation; hard also disables), the prefix match refusing
+`agent-worldx`, the unmapped-actor and no-matching-entry cases saying
+so instead of pretending. A live dry-run at the hang window (19:45Z)
+names the tier pause and would write the file; an enforce pass on
+throwaway copies demoted a planted `agent-world.night` live→preparation
+and `--clear` undid the pause; the real presence file's sha256 was
+unchanged after all of it. The default label map (world=agent-world)
+matches no presence entry on this box — the world runs outside the
+lease system (exp-drift-detector §2) — so the thor-admit door reports
+"nothing to demote" today and opens with no code change the day the
+world's work registers under `thor-admit presence`. One thing the demo
+made plain: 12:00Z, chosen as a "quiet" window, is in sustained alarm
+(two stall gates latched) — enforcement acts on the state as it is,
+false alarms included, which is exactly why dry-run is the default and
+the TTL short.
+
+Decided next — the lab note (exp-drift-pause.md), the README rows
+already in, then the full suite and the closing commit.
