@@ -52,6 +52,15 @@ impl NetConfig {
         }
     }
 
+    /// The worst-case round trip over the link: up and down, in milliseconds.
+    ///
+    /// The receiver uses this to decide when a resync request has gone unanswered: the
+    /// request, the emitter's wait for its next delivery to that subscriber, and the
+    /// keyframe's way back down.
+    pub fn round_trip_worst_ms(&self) -> f64 {
+        2.0 * (self.delay_max_ms + self.jitter_ms).max(0.0)
+    }
+
     /// The largest one-way delay this configuration can produce, in microticks.
     pub fn max_delay_us(&self) -> u64 {
         let ms = (self.delay_max_ms + self.jitter_ms).max(0.0);
@@ -120,6 +129,11 @@ pub struct Link {
     pub bytes_sent: u64,
     pub bytes_delivered: u64,
     pub reorderings: u64,
+    /// The resync requests the receiver sent, and how many of them were lost.
+    pub requests_sent: u64,
+    pub requests_lost: u64,
+    /// And how many reached the emitter.
+    pub requests_arrived: u64,
 }
 
 impl Link {
@@ -135,6 +149,9 @@ impl Link {
             bytes_sent: 0,
             bytes_delivered: 0,
             reorderings: 0,
+            requests_sent: 0,
+            requests_lost: 0,
+            requests_arrived: 0,
         }
     }
 
@@ -189,7 +206,15 @@ impl Link {
     }
 
     /// A resync request leaves the receiver now and arrives at the emitter after the delay.
+    ///
+    /// It goes over the same link as the data, so it is lost the same way, and the receiver
+    /// cannot tell that it was lost: that is what the receiver's timeout re-request is for.
     pub fn request(&mut self, now_us: u64) {
+        self.requests_sent += 1;
+        if self.is_lost() {
+            self.requests_lost += 1;
+            return;
+        }
         let d = self.draw_delay_us();
         self.requests.push_back(now_us + d);
     }
@@ -202,6 +227,7 @@ impl Link {
                 break;
             }
             self.requests.pop_front();
+            self.requests_arrived += 1;
             arrived = true;
         }
         arrived

@@ -143,7 +143,9 @@ projector resets to it. A lost packet is detected either by the version check or
 changed-set bitmap being about a set the projector does not hold.
 
 The scored run exercises both: four subscribers join late (ticks 900, 1800, 2700, 3000) and six
-packets are dropped on purpose. Both paths recover, and the reconstruction stays exact
+packets are dropped on purpose. Three of the six drops land on a tick where their subscriber was
+due to be served, and those three are the three breaks the loopback's log reports. Both paths
+recover, and the reconstruction stays exact
 afterwards. `late_join_resync_ms` in `RESULT.json` is the worst service time for a
 first delivery — the emitter's work (interest query, delta computation, encoding) plus the
 projector's decode, apply and verification, for the region in question.
@@ -152,9 +154,18 @@ projector's decode, apply and verification, for the region in question.
 request *up* the link; it arrives after the same delay the downlink packets do; the emitter marks
 that subscriber and answers with a keyframe at its next delivery, which then crosses the link
 again. So a resync costs one round trip of delay plus up to one delivery interval, and the
-harness measures it (`resync_recovery_ms_p95`: the median is 32 ms, the p95 108 ms, the worst
-509 ms — the 2 Hz subscriber's interval). The request's bytes are not counted in the bytes
+harness measures it (`resync_recovery_ms_p95`: the median is 34 ms, the p95 103 ms, the worst
+501 ms — the 2 Hz subscriber's interval). The request's bytes are not counted in the bytes
 metric, the way the other entry also excluded them.
+
+**The request is the only trigger.** The emitter cannot see the loss, so it cannot send a
+keyframe until the request has come back up the link; the receiver is the only one that knows
+of the gap. The receiver asks once per break — the packets behind a break cannot be used
+either, and asking for each of them would put a request per unusable packet on the uplink. If
+the request is lost, or the keyframe that answers it is lost, the receiver asks again after a
+timeout: three of its own delivery periods plus the link's worst-case round trip, which is
+long enough that a healthy repair never produces a second request. At 0.5 % loss that timeout
+fired 5 times in 406 breaks; at 2 %, 72 times in 1,496.
 
 ## Round 2: the network
 
@@ -173,7 +184,9 @@ One link per subscriber, in `src/net.rs`:
 * the delay stays below one tick (16.667 ms), so a subscriber's packets never overtake each other
   and the link is FIFO. The harness counts the reorderings rather than assuming them: the measured
   number is **0**;
-* the resync request travels back over the same link, with the same delay.
+* the resync request travels back over the same link, with the same delay, and is lost the
+  same way. The receiver cannot tell that a request was lost; the timeout below is what covers
+  it.
 
 The clock is in **microticks** (1e6 per tick) because the receiver has to know *when* a packet
 arrived to better than a tick — that is what back-dating needs.
@@ -188,28 +201,45 @@ make over a real link.
 
 The same seed, the same 64 subscribers, the same 60 s at 60 Hz.
 
-| run | bytes/s per subscriber (delivered) | bytes/s on the wire | delivery latency p95 | reconstruction errors | resyncs | keyframes |
-|---|---:|---:|---:|---:|---:|---:|
-| the loopback (round 1's conditions) | 5,796 | 5,796 | 0.54 ms | 0 | 3 | 67 |
-| the network, no loss | 5,796 | 5,796 | 13.09 ms | 0 | 3 | 67 |
-| the network, 0.5 % loss | 5,911 | 5,940 | 13.09 ms | 0 | 380 | 492 |
-| the network, 2 % loss | 6,244 | 6,374 | 13.09 ms | 0 | 1,560 | 1,783 |
+| run | bytes/s per subscriber (delivered) | bytes/s on the wire | emitter CPU p95 | delivery latency p95 | reconstruction errors | breaks | keyframes |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| the loopback (round 1's conditions) | 5,796 | 5,796 | 0.58 ms | 0.55 ms | 0 | 3 | 67 |
+| the network, no loss | 5,796 | 5,796 | 0.56 ms | 13.08 ms | 0 | 3 | 67 |
+| the network, 0.5 % loss | 5,903 | 5,932 | 0.56 ms | 13.10 ms | 0 | 406 | 470 |
+| the network, 2 % loss | 6,190 | 6,313 | 0.56 ms | 13.09 ms | 0 | 1,496 | 1,592 |
+
+A *break* is one lost packet that left a projector unable to use the stream; the packets behind
+a break cannot be used either, and they do not count as new breaks. The CPU figure is the
+emitter's own work per tick — the interest query, the delta computation and the encoding — not
+the whole tick, which also carries the harness's verification; `RESULT.json` has both.
+
+**These numbers supersede the first round-2 set.** The first version of this harness told the
+emitter about a gap the moment the projector found it, as if the resync request had already
+arrived up the link — which no real receiver can arrange, since the emitter cannot see the loss
+— and the request that came back later bought a second keyframe for a break that had already
+been repaired. The correction, and what it moved, is in the trail (`NOTES.md`). The loopback did
+not move: the same digest, `0x43e63a399fcc4897`, the same bytes, the same three breaks. The
+network runs did: 5,911 → 5,903 B/s at 0.5 % loss and 6,244 → 6,190 B/s at 2 %, with the median
+recovery going from 32 ms to 34 ms and the breaks from 380 to 406 and from 1,560 to 1,496.
 
 **The delay alone costs nothing.** The bytes are identical to the byte — the stream digest is the
 same — and the reconstruction is exact at every delivery. The delay costs latency: the p95 goes
-from 0.54 ms to 13.09 ms, which is the link's own 13.5 ms worst case plus the receiver's service
+from 0.55 ms to 13.08 ms, which is the link's own 13.5 ms worst case plus the receiver's service
 and the emitter's wait for that subscriber.
 
-**Loss costs bytes, and the cost is the resync.** At 0.5 % the delivered bytes rise 2.0 %; at 2 %
-they rise 7.7 %. The reason is the keyframe: a lost packet leaves the projector one version
+**Loss costs bytes, and the cost is the resync.** At 0.5 % the delivered bytes rise 1.9 %; at 2 %
+they rise 6.8 %. The reason is the keyframe: a lost packet leaves the projector one version
 behind, the version check fires, the projector asks for a keyframe, and the keyframe is the whole
-region in absolute poses (about 1 kB for an average region of 82 objects). 380 lost packets became
-380 keyframes at 0.5 %, and 1,560 at 2 %. A gap-fill repair — sending the missed corrections instead
-of the whole region — would cut that; it is not implemented here.
+region in absolute poses (about 1 kB for an average region of 82 objects). At 0.5 %, 406 packets
+were lost and 406 streams broke; at 2 %, 1,567 packets were lost and 1,496 streams broke (a
+second loss behind an open break is not a new break). Each break costs one keyframe, and the
+packets that arrive behind the break (80 at 0.5 %, 574 at 2 %) are delivered and cannot be
+used. A gap-fill repair — sending the missed corrections instead of the whole region — would cut
+that; it is not implemented here.
 
-The recovery is quick: from the gap to the keyframe's arrival the median is 32 ms and the p95 is
-108 ms; the worst is 509 ms, which is the 2 Hz subscriber's delivery interval (a keyframe can only
-be sent at a delivery, and that subscriber has one every 30 ticks).
+The recovery is quick: from the break to the keyframe's arrival the median is 34 ms and the p95
+is 103 ms; the worst is 501 ms, which is the 2 Hz subscriber's delivery interval (a keyframe can
+only be sent at a delivery, and that subscriber has one every 30 ticks).
 
 ### (a) The back-dating: kept, and it is load-bearing
 
@@ -225,12 +255,12 @@ natural thing to do if you do not think about it, because that is when the data 
 | | reconstruction errors | mirror mismatches | worst error |
 |---|---:|---:|---:|
 | back-dating on, 0.5 % loss | **0** | **0** | 0 mm |
-| back-dating off, 0.5 % loss | 9,169,158 | 9,384,114 | 2,140 mm |
+| back-dating off, 0.5 % loss | 9,145,691 | 9,365,117 | 2,110 mm |
 | back-dating on, 2 % loss | **0** | **0** | 0 mm |
-| back-dating off, 2 % loss | 8,673,717 | 9,109,745 | 900 mm |
+| back-dating off, 2 % loss | 8,610,902 | 9,039,441 | 800 mm |
 
-Without it, essentially every delivery is wrong: 9.17 million of the 9.47 million delivered
-states, with errors of up to 2.14 m. With it, the reconstruction is exact at every delivery
+Without it, essentially every delivery is wrong: 9.15 million of the 9.37 million delivered
+states, with errors of up to 2.11 m. With it, the reconstruction is exact at every delivery
 whatever the link did, and the receiver's held state is **bit-identical to the emitter's mirror** —
 the invariant the resync path depends on.
 
@@ -250,14 +280,15 @@ frustum: M metres of extra range and M metres of extra width at the far plane).
 
 | margin | enters | leaves | change records | delivered states | bytes/s | emitter work p95 |
 |---:|---:|---:|---:|---:|---:|---:|
-| 0 m | 86,786 | 79,353 | 7,346,143 | 9,471,363 | 5,796 | 0.56 ms |
-| 2 m | 85,215 | 77,014 | 8,127,481 | 10,467,187 | 6,328 | 0.67 ms |
-| 8 m | 82,654 | 72,251 | 10,144,140 | 13,037,976 | 7,697 | 0.86 ms |
-| 16 m | 79,891 | 66,716 | 12,556,607 | 16,110,606 | 9,345 | 1.13 ms |
+| 0 m | 86,786 | 79,353 | 7,346,143 | 9,471,363 | 5,796 | 0.58 ms |
+| 2 m | 85,215 | 77,014 | 8,127,481 | 10,467,187 | 6,328 | 0.68 ms |
+| 4 m | 84,269 | 75,323 | 8,833,424 | 11,367,398 | 6,808 | 0.74 ms |
+| 8 m | 82,654 | 72,251 | 10,144,140 | 13,037,976 | 7,697 | 0.91 ms |
+| 16 m | 79,891 | 66,716 | 12,556,607 | 16,110,606 | 9,345 | 1.16 ms |
 
 The hysteresis does what it says: at 8 m it removes 9 % of the leaves. But it costs 33 % more
 bytes, because every object it holds outside the region still costs a change record per delivery,
-and it costs the emitter 54 % more CPU (the membership test runs twice, and the candidate box grows
+and it costs the emitter 56 % more CPU (the membership test runs twice, and the candidate box grows
 by the margin).
 
 **Not kept.** On this world the regions are small (14–30 m) against a dense world (10,000 objects
@@ -323,9 +354,9 @@ The bound, by delivery interval (the intervals the 64 subscribers actually use):
 
 The verification: the harness measures the projection against the truth at every tick, for every
 object every subscriber holds, and checks it against the bound for that object's kind and
-staleness. Over the 60 s run at 2 % loss, **24,713,234 checks and not one over the bound**.
+staleness. Over the 60 s run at 2 % loss, **24,722,598 checks and not one over the bound**.
 
-The worst interpolation of that run was 87.3 m: a fast mover **89 ticks past its last
+The worst interpolation of that run was 84.7 m: a fast mover **89 ticks past its last
 correction** — the packets that should have corrected it were lost, so the staleness ran past
 the delivery interval — and the bound for an 89-tick interval is 267.1 m. The table above is
 therefore the floor of the bound, not its ceiling: a lost packet moves the staleness, and the
@@ -333,7 +364,7 @@ staleness is what the bound is a function of.
 
 The bound is a worst case over the world; what actually happened is much tighter — over the same
 run the median drift was 0 mm for walkers and orbiters and 10 mm for fast movers, with p95s of
-30 mm, 10 mm and 620 mm.
+30 mm, 10 mm and 630 mm.
 
 **Kept**, as a statement rather than a mechanism: it costs nothing, and it turns the tail of the
 prediction-error distribution from an observation into a number the reader can check.
@@ -364,9 +395,12 @@ prediction-error distribution, the gap events, the stream digest).
 * **bytes_per_s_per_subscriber_sent_mean** — the bytes put on the wire, before the link drops
   any. The difference from the delivered figure is what the link lost.
 * **packets_sent / packets_lost / packets_delivered** — the link's own counts.
-* **keyframes / resyncs** — how many keyframes the emitter sent, and how many gaps the
-  projectors found.
-* **resync_recovery_ms_p95** — the time from a gap to the keyframe's arrival.
+* **keyframes / resyncs** — how many keyframes the emitter sent, and how many breaks the
+  projectors found: one break is one lost packet that left a projector unable to use the
+  stream. `resync_requests` is how many requests the projectors sent (more than the breaks when
+  a request was lost and had to be repeated), and `packets_rejected` how many packets arrived
+  behind a break and could not be used.
+* **resync_recovery_ms_p95** — the time from a break to the keyframe's arrival.
 * **mirror_mismatches** — how often the receiver's held state was not bit-identical to the
   emitter's mirror. Zero means the delay never touched the state.
 * **max_reconstruction_error_mm** and **max_state_divergence_mm** — the worst of each.
@@ -448,8 +482,13 @@ down:
 * **The receiver applies a packet when it arrives**, in the same tick it was emitted, because
   the delay is shorter than a tick. The measured latency is therefore the link's delay plus the
   emitter's wait plus the receiver's service, and it is not quantised to a tick.
+* **The resync protocol is modelled, not measured.** The emitter sends a keyframe only when
+  the receiver's request has come back up the link; the request is lost like any other packet;
+  the receiver asks once per break and asks again after a timeout of three of its own delivery
+  periods plus the link's worst-case round trip. A real receiver would also have to decide what
+  to do with the packets that arrive while it is broken — here they are counted and dropped.
 * **The referee is inside the timed region** for the `emitter_cpu_ms_per_tick_*` figures (as in
   round 1) and outside it for `emitter_work_ms_per_tick_*` and for the delivery latency. The
   delivery latency in round 1 was measured with the verification inside the timed region too,
-  so the round-2 figure for the loopback (0.54 ms) is smaller than round 1's (0.67 ms) for
-  that reason alone; the bytes and the errors are identical.
+  so the round-2 figure for the loopback (0.55 ms) is smaller than round 1's (0.67 ms)
+  for that reason alone; the bytes and the errors are identical.

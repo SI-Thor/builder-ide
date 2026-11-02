@@ -4,13 +4,13 @@ network: one-way delay uniform in [2.0, 12.0] ms +/- 1.5 ms jitter, loss 0.00% p
 receiver: back-dating on (anchors at the packet's tick)
 interest regions: exit hysteresis 0 m
 leave list: delta-coded varints
-emitter phases (total over the run): region 373 ms, records 332 ms, encode 453 ms
-world advance:       mean 0.254 ms/tick  p95 0.557 ms/tick
-emission:            mean 0.920 ms/tick  p95 1.376 ms/tick
-emitter tick total:  p50 1.072 ms  p95 1.926 ms  mean 1.174 ms
-emitter's own work:  p50 0.3193 ms  p95 0.5636 ms  (region + records + encode)
-delivery latency (link + decode/apply): p50 7.217 ms  p95 13.085 ms  max 17.212 ms
-subscriber service (decode + apply): p50 7.217 ms  p95 13.085 ms
+emitter phases (total over the run): region 360 ms, records 329 ms, encode 453 ms
+world advance:       mean 0.256 ms/tick  p95 0.565 ms/tick
+emission:            mean 0.906 ms/tick  p95 1.363 ms/tick
+emitter tick total:  p50 1.066 ms  p95 1.925 ms  mean 1.161 ms
+emitter's own work:  p50 0.2930 ms  p95 0.5625 ms  (region + records + encode)
+delivery latency (link + decode/apply): p50 7.212 ms  p95 13.080 ms  max 14.154 ms
+subscriber service (decode + apply): p50 0.005 ms  p95 0.012 ms
 packet decode:       p50 2.3 us  p95 6.5 us
 link: the delay actually drawn was 0.50 - 13.50 ms (configured 0.50 - 13.50 ms), at most 1 packets in flight at once
 packets: 81714 sent, 3 lost (0.00%), 81711 delivered
@@ -20,7 +20,8 @@ byte breakdown (approx): header 8.1%  enter 5.1%  leave 0.7%  changed-set 5.5%  
 objects carried: 86786 enters, 79353 leaves, 7346143 change records (9471363 delivered states)
 reconstruction errors: 0   (max |reconstructed - truth| = 0.005000 m, bound = 0.005000 m per axis; worst reconstruction error 0.0 mm)
 mirror mismatches: 0 (the receiver's held state against the emitter's mirror; worst 0.0 mm)
-resyncs: 3 gap(s), 67 keyframe(s); recovery from the gap to the keyframe's arrival: p50 27.4 ms  p95 57.2 ms  max 57.2 ms
+resyncs: 3 break(s), 3 request(s) sent (0 of them a timeout re-request), 67 keyframe(s); recovery from the break to the keyframe's arrival: p50 27.4 ms  p95 57.2 ms  max 57.2 ms
+packets the receivers could not use, behind a break: 0
 motion-channel prediction between deliveries: p50 0.000000 m  p95 0.030000 m  p99 0.130000 m  max 32.000 m
 the drift budget, by delivery interval (the bound the world's motion parameters give):
   every  1 ticks: orbiter    0.016 m   walker    0.211 m   fast mover    0.211 m
@@ -35,13 +36,13 @@ drift against the budget: 24723279 checks, worst 32000.0 mm, 0 over the bound
   worst over: 
   worst drift of the run: kind Fast id 1478, staleness 29 ticks, bound 30.349 m, speed 42.00 m/s
 motion channel in the subscriber's frame: mean apparent speed 4.776 m/s, max 51.534 m/s, 100.0% of the objects are moving (>5 cm/s)
-late join resync (service time + link): [0.9814520000000001, 0.94146, 0.952013, 0.924649, 0.928852, 0.917548, 0.899551, 0.90108, 0.884184, 0.8665590000000001, 0.895367, 0.850747, 0.847646, 0.8311590000000001, 0.839277, 0.8096909999999999, 0.812921, 0.784855, 0.8175049999999999, 0.750638, 0.772172, 0.719822, 0.715256, 0.734429, 0.711036, 0.683115, 0.676414, 0.661499, 0.6683859999999999, 0.64355, 0.6525390000000001, 0.632385, 0.619323, 0.630377, 0.6134820000000001, 0.5857110000000001, 0.598549, 0.558698, 0.555494, 0.31881200000000004, 0.32121, 0.27429499999999996, 0.27235, 0.25875, 0.5170020000000001, 0.433511, 0.807572, 0.671424, 0.537072, 0.293374, 0.25573399999999996, 0.24564299999999997, 0.7228020000000001, 0.533879, 0.286561, 0.242116, 0.42329, 0.5139009999999999, 0.453979, 0.46298599999999995, 0.10285899999999999, 0.11941, 0.13431500000000002, 0.125798] ms
+late join resync (service time + link): [1.02728, 0.9868640000000001, 0.997494, 0.970716, 0.972623, 0.963319, 0.9438190000000001, 0.945356, 0.929755, 0.913318, 0.9415870000000001, 0.896542, 0.8936900000000001, 0.876552, 0.884449, 0.854765, 0.858858, 0.831135, 0.8629319999999999, 0.796229, 0.817303, 0.762351, 0.757712, 0.7784890000000001, 0.754869, 0.725323, 0.7217410000000001, 0.707204, 0.714129, 0.6902510000000001, 0.699723, 0.680279, 0.59316, 0.602902, 0.5863459999999999, 0.5803740000000001, 0.593846, 0.554625, 0.551172, 0.318445, 0.320622, 0.272752, 0.27090000000000003, 0.257891, 0.5155150000000001, 0.43085999999999997, 0.794183, 0.6639079999999999, 0.5320779999999999, 0.29905699999999996, 0.261798, 0.24511500000000003, 0.7273419999999999, 0.517829, 0.285373, 0.238559, 0.427119, 0.512792, 0.460516, 0.46779299999999996, 0.102072, 0.118867, 0.132136, 0.127432] ms
   tick 793 sub 17: bitmap base mismatch -> keyframe requested
   tick 1031 sub 24: bitmap base mismatch -> keyframe requested
   tick 2741 sub 36: bitmap base mismatch -> keyframe requested
-stream digest (fnv1a over all delivered bytes): 0x43e63a399fcc4897
+stream digest (fnv1a over the bytes the emitter produced, the lost ones included): 0x43e63a399fcc4897
 
-id  shape  path    rate  region  deliveries  keyframes  resyncs  bytes/s   camera
+id  shape  path    rate  region  deliveries  keyframes  breaks  bytes/s   camera
  0  sphere  circle   60 Hz    101        3600         1        0   18555.8  shared
  1  frustum  circle   30 Hz     59        1800         1        0    3795.8  shared
  2  sphere  circle   30 Hz    237        1800         1        0   11194.0  shared

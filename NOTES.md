@@ -583,3 +583,75 @@ millisecond, because the box was busier.
 The scored run (`bench.sh`) still reproduces round 1's digest on the Thor: `0x43e63a399fcc4897`,
 5,796.311 B/s sent, 5,796.043 delivered, p95 16,643.067 B/s, 0 reconstruction errors, 0 mirror
 mismatches, 0 interpolations over the drift budget.
+## 2026-11-01 16:30 — the resync path, corrected: the request is the only trigger
+
+What was wrong: the round-2 harness told the emitter about a gap the moment the projector
+found it. `resync_pending[si] = true` sat in `src/bench.rs`, next to the
+`links[si].request(...)` that was supposed to carry the news up the link — so the emitter
+sent its keyframe one delivery interval after the *detection*, not after the request came
+back. No real receiver can arrange that: the emitter cannot see the loss, so it cannot know
+of the gap until the request has travelled back up the link. It also double-counted — the
+request that arrived later set the flag again and bought a second keyframe for a break that
+had already been repaired (about 48 of them per 0.5 % run).
+
+What changed:
+
+- the emitter's keyframe is triggered only by a request that has arrived
+  (`links[si].request_arrived(...)`); nothing else sets the flag;
+- the receiver keeps its own state (`Rx` in `src/bench.rs`): a *broken* flag, when it noticed
+  the break, when it last asked, how many breaks and requests it have gone through;
+- the receiver asks **once per break**. The packets behind a break cannot be used either, and
+  asking for each of them would put a request per unusable packet on the uplink;
+- the uplink request is **lost like any other packet** now, and the receiver cannot tell, so
+  it asks again after a timeout: three of its own delivery periods plus the link's
+  worst-case round trip. That is long enough that a healthy repair never produces a second
+  request;
+- three numbers came with it: the requests sent, the packets rejected behind a break, and the
+  retries (the timeout firing). And two corrections to the log: "subscriber service" was
+  printing the delivery latency instead of the decode-and-apply time it claims to be, and the
+  stream digest was labelled as a hash of the delivered bytes when it is a hash of the bytes
+  the emitter produced (the lost ones included).
+
+**Superseded.** The first round-2 numbers, committed in `1da02a9` and `140b839`, were taken
+with that shortcut: 5,911 B/s per subscriber and 380 resyncs at 0.5 % loss, 6,244 B/s and
+1,560 resyncs at 2 %, with a median recovery of 32 ms and a p95 of 108 ms. The table below
+replaces them.
+
+What happened (the Thor, aarch64, `thor-admit run --tier live --peak 2G`, the matrix 15
+runs, peak RSS 377 MB):
+
+| run | bytes/s | on the wire | emitter CPU p95 | latency p95 | errors | breaks | keyframes |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| the loopback | 5,796 | 5,796 | 0.58 ms | 0.55 ms | 0 | 3 | 67 |
+| 2–12 ms, no loss | 5,796 | 5,796 | 0.56 ms | 13.08 ms | 0 | 3 | 67 |
+| 2–12 ms, 0.5 % loss | 5,903 | 5,932 | 0.56 ms | 13.10 ms | 0 | 406 | 470 |
+| 2–12 ms, 2 % loss | 6,190 | 6,313 | 0.56 ms | 13.09 ms | 0 | 1,496 | 1,592 |
+
+The loopback did not move: the same digest (`0x43e63a399fcc4897`), the same bytes, the same
+three breaks and 67 keyframes. With no delay the request reaches the emitter before its next
+delivery anyway, so the shortcut never showed there. The network runs did: the keyframe now
+costs a round trip. At 0.5 %: 411 requests for 406 breaks (5 of them the timeout firing),
+the recovery from the break to the keyframe's arrival is 34 ms at the median and 103 ms at
+p95, the worst 501 ms (the 2 Hz subscriber's interval), and 80 packets arrived behind a
+break and could not be used. At 2 %: 1,568 requests for 1,496 breaks (72 timeouts), the
+recovery 34.5 ms / 206 ms, the worst 807 ms, and 574 packets rejected. The bar holds: 0
+reconstruction errors and 0 mirror mismatches at both loss rates, and the drift budget's
+24,722,598 checks at 2 % still have not one over the bound.
+
+Box state: the Thor was unreachable from 15:45 and came back at 16:25 after a reboot (the
+same Wi-Fi trouble that hit it earlier today), so these numbers are from a box that was 4
+minutes up: load average 6.13 during the matrix, 84 G free of 122 G, 106 G free on disk,
+14 cores, two leases active (one was another seat's).
+
+Decided: keep the correction, and keep the numbers that go with it — the resync path now
+measures what a receiver can actually ask for. The four carried-over ideas are unchanged by
+this: the back-dating is kept (it is load-bearing: without it 9,145,691 of the 9,365,117
+delivered states are wrong, up to 2,110 mm), the exit hysteresis is not kept (it removes 9 %
+of the leaves and costs 33 % of the bytes and 56 % of the emitter's CPU), the 2-byte evicts
+are not kept (the delta-coded leave list is already at or below two bytes), and the drift
+budget is kept as a stated bound.
+
+What was not verified: the link is still a model, not a socket — the delay and the loss are
+drawn from a distribution, the loss is memoryless, and the packets of one subscriber never
+reorder. Nothing here says what a real congested link does to the resync path, and the
+uplink request bytes are still excluded from the bytes metric.

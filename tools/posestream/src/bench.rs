@@ -59,6 +59,10 @@ pub struct Report {
     pub packets_delivered: u64,
     pub keyframes: u64,
     pub resyncs: u64,
+    /// The resync requests the receivers sent, and how many were timeout re-requests.
+    pub resync_requests: u64,
+    /// The packets the receivers could not use, behind a break.
+    pub packets_rejected: u64,
     pub mirror_mismatches: u64,
     pub max_state_error_mm: f64,
     pub max_reconstruction_error_mm: f64,
@@ -155,6 +159,69 @@ fn snapshot(em: &Emitter, si: usize) -> Snapshot {
     Snapshot { ids, truth, mirror_pos, mirror_vel, mirror_anchor }
 }
 
+/// The receiver's side of the resync protocol.
+///
+/// The receiver is the only one that knows of a gap: the emitter cannot see the loss, so it
+/// cannot send a keyframe until the receiver's request has travelled back up the link. The
+/// receiver asks once per break — the packets that follow a break cannot be used either, and
+/// asking again for each of them would flood the uplink — and asks again after a timeout if
+/// its request, or the keyframe that answers it, was lost.
+#[derive(Clone, Copy, Debug, Default)]
+struct Rx {
+    /// The stream is broken: a packet is missing, so the deltas that follow cannot be used.
+    broken: bool,
+    /// When the break was noticed: the start of the recovery clock.
+    gap_at_us: u64,
+    /// When it last asked the emitter for a keyframe.
+    last_req_us: u64,
+    /// How many requests it has sent.
+    requests: u64,
+    /// How many breaks it has seen.
+    breaks: u64,
+    /// How many packets it could not use.
+    rejected: u64,
+}
+
+impl Rx {
+    fn new() -> Rx {
+        Rx::default()
+    }
+
+    /// The receiver noticed a gap. It asks the emitter for a keyframe once per break.
+    /// Returns true when this is a new break.
+    fn gap(&mut self, arrive_us: u64, link: &mut Link) -> bool {
+        if self.broken {
+            // The same break: the packets behind it are unusable as well.
+            self.rejected += 1;
+            return false;
+        }
+        self.broken = true;
+        self.breaks += 1;
+        self.gap_at_us = arrive_us;
+        self.last_req_us = arrive_us;
+        self.requests += 1;
+        link.request(arrive_us);
+        true
+    }
+
+    /// The receiver is still broken and its request has not been answered: ask again.
+    fn retry(&mut self, now_us: u64, timeout_us: u64, link: &mut Link) -> bool {
+        if !self.broken || now_us.saturating_sub(self.last_req_us) < timeout_us {
+            return false;
+        }
+        self.requests += 1;
+        self.last_req_us = now_us;
+        link.request(now_us);
+        true
+    }
+
+    /// A keyframe arrived and applied: the stream is whole again.
+    fn repaired(&mut self) {
+        self.broken = false;
+        self.gap_at_us = 0;
+    }
+}
+
 /// The index of a kind in the per-kind drift histograms.
 fn kind_index(k: Kind) -> usize {
     match k {
@@ -195,7 +262,6 @@ pub fn run(cfg: &Config) -> Report {
     let mut bytes_sent = vec![0u64; n];
     let mut deliveries = vec![0u64; n];
     let mut keys = vec![0u64; n];
-    let mut resyncs = vec![0u64; n];
     let mut objects_seen = vec![0u64; n];
 
     let mut tick_ms: Vec<f64> = Vec::with_capacity(cfg.ticks as usize);
@@ -248,6 +314,8 @@ pub fn run(cfg: &Config) -> Report {
     let mut gap_events: Vec<String> = Vec::new();
     let mut recovery_ms: Vec<f64> = Vec::new();
     let mut keyframes: u64 = 0;
+    // The resync requests the receivers sent again after the timeout.
+    let mut req_retries: u64 = 0;
     let mut packets_sent: u64 = 0;
     let mut packets_lost: u64 = 0;
     let mut packets_delivered: u64 = 0;
@@ -267,9 +335,21 @@ pub fn run(cfg: &Config) -> Report {
         }
     }
 
+    // The emitter's side of the resync protocol: a request has come back up the link and a
+    // keyframe is owed. Nothing else sets this — the emitter cannot know of a gap until
+    // the receiver's request has arrived.
     let mut resync_pending = vec![false; n];
-    // when each subscriber's gap was detected, so the recovery can be timed
-    let mut gap_at_us = vec![0u64; n];
+    // The receiver's side: what it knows, and when it asked.
+    let mut rx: Vec<Rx> = (0..n).map(|_| Rx::new()).collect();
+    // How long the receiver waits before asking again: three of its own delivery periods
+    // plus the link's worst-case round trip. That is long enough for the first request to
+    // have been answered, so a healthy repair does not produce a second request.
+    let resend_us: Vec<u64> = (0..n)
+        .map(|si| {
+            let interval_ms = em.subs[si].interval as f64 * (TICK_US as f64 / MICROTICKS_PER_MS);
+            (3.0 * (interval_ms + cfg.net.round_trip_worst_ms()) * MICROTICKS_PER_MS) as u64
+        })
+        .collect();
     let mut digest: u64 = 0xcbf2_9ce4_8422_2325; // FNV-1a
     let mut arrivals: Vec<InFlight> = Vec::with_capacity(256);
 
@@ -284,7 +364,9 @@ pub fn run(cfg: &Config) -> Report {
             if !em.due(si, tick) {
                 continue;
             }
-            // has the receiver's resync request reached the emitter?
+            // Has the receiver's resync request reached the emitter? The request travels
+            // back up the link, so the emitter learns of the gap late — as late as a real
+            // receiver can make it learn.
             if links[si].request_arrived(tick as u64 * TICK_US) {
                 resync_pending[si] = true;
             }
@@ -395,6 +477,11 @@ pub fn run(cfg: &Config) -> Report {
 
         // ---- the receivers apply what has arrived ----
         for si in 0..n {
+            // If the receiver is still broken and its request has not been answered, it
+            // asks again. The request may have been lost, or the keyframe that answered it.
+            if rx[si].retry(tick as u64 * TICK_US, resend_us[si], &mut links[si]) {
+                req_retries += 1;
+            }
             // the link's occupancy, before this tick's arrivals are taken off it
             let inflight = links[si].inflight();
             if inflight > max_inflight {
@@ -413,15 +500,14 @@ pub fn run(cfg: &Config) -> Report {
                     Ok(p) => p,
                     Err(wire::WireError::Gap) => {
                         // The projector cannot use this packet (its state does not match the
-                        // packet's base version): ask the emitter for a keyframe.
-                        resync_pending[si] = true;
-                        resyncs[si] += 1;
-                        gap_at_us[si] = pkt.arrive_us;
-                        links[si].request(pkt.arrive_us);
-                        gap_events.push(format!(
-                            "tick {} sub {}: bitmap base mismatch -> keyframe requested",
-                            pkt.tick, si
-                        ));
+                        // packet's base version). The receiver asks the emitter for a
+                        // keyframe; the emitter sends one when the request arrives.
+                        if rx[si].gap(pkt.arrive_us, &mut links[si]) {
+                            gap_events.push(format!(
+                                "tick {} sub {}: bitmap base mismatch -> keyframe requested",
+                                pkt.tick, si
+                            ));
+                        }
                         continue;
                     }
                     Err(e) => {
@@ -515,15 +601,13 @@ pub fn run(cfg: &Config) -> Report {
                         }
                     }
                     Err(ApplyError::Gap { held, offered }) => {
-                        // A dropped packet: ask the emitter for a keyframe.
-                        resync_pending[si] = true;
-                        resyncs[si] += 1;
-                        gap_at_us[si] = pkt.arrive_us;
-                        links[si].request(pkt.arrive_us);
-                        gap_events.push(format!(
-                            "tick {} sub {}: gap (held v{}, offered v{}) -> keyframe requested",
-                            pkt.tick, si, held, offered
-                        ));
+                        // A dropped packet: the receiver asks the emitter for a keyframe.
+                        if rx[si].gap(pkt.arrive_us, &mut links[si]) {
+                            gap_events.push(format!(
+                                "tick {} sub {}: gap (held v{}, offered v{}) -> keyframe requested",
+                                pkt.tick, si, held, offered
+                            ));
+                        }
                         continue;
                     }
                 }
@@ -536,7 +620,7 @@ pub fn run(cfg: &Config) -> Report {
                 let service_ms = t_applied.duration_since(t_dec).as_secs_f64() * 1000.0;
                 let total_ms = pkt.emit_wait_ms + delay_ms + service_ms;
                 lat.push(total_ms);
-                service_lat.push(total_ms);
+                service_lat.push(service_ms);
 
                 if was_started == false {
                     // The late-join figure, in the same terms as round 1: the emitter's
@@ -545,13 +629,14 @@ pub fn run(cfg: &Config) -> Report {
                     late_join_ms.push(t_checked.duration_since(pkt.build_start).as_secs_f64() * 1000.0);
                     late_join_e2e.push(total_ms);
                 }
-                // the recovery time of a resync, from the gap to the keyframe's arrival
-                if gap_at_us[si] != 0 && pkt2.flags & wire::FLAG_KEYFRAME != 0 {
-                    let r = (pkt.arrive_us as f64 - gap_at_us[si] as f64) / MICROTICKS_PER_MS;
+                // the recovery time of a resync, from the break to the arrival of the
+                // keyframe that repairs it
+                if rx[si].broken && pkt2.flags & wire::FLAG_KEYFRAME != 0 {
+                    let r = (pkt.arrive_us as f64 - rx[si].gap_at_us as f64) / MICROTICKS_PER_MS;
                     if r > 0.0 {
                         recovery_ms.push(r);
                     }
-                    gap_at_us[si] = 0;
+                    rx[si].repaired();
                 }
             }
         }
@@ -812,13 +897,20 @@ pub fn run(cfg: &Config) -> Report {
         mirror_mismatches, max_state_error_mm
     ));
     log.push_str(&format!(
-        "resyncs: {} gap(s), {} keyframe(s); recovery from the gap to the keyframe's arrival: \
+        "resyncs: {} break(s), {} request(s) sent ({} of them a timeout re-request), {} keyframe(s); \
+         recovery from the break to the keyframe's arrival: \
          p50 {:.1} ms  p95 {:.1} ms  max {:.1} ms\n",
-        resyncs.iter().sum::<u64>(),
+        rx.iter().map(|r| r.breaks).sum::<u64>(),
+        rx.iter().map(|r| r.requests).sum::<u64>(),
+        req_retries,
         keyframes,
         percentile(&sorted_recovery, 0.50),
         resync_recovery_ms_p95,
         sorted_recovery.last().copied().unwrap_or(0.0)
+    ));
+    log.push_str(&format!(
+        "packets the receivers could not use, behind a break: {}\n",
+        rx.iter().map(|r| r.rejected).sum::<u64>()
     ));
     log.push_str(&format!(
         "motion-channel prediction between deliveries: p50 {:.6} m  p95 {:.6} m  p99 {:.6} m  max {:.3} m\n",
@@ -865,9 +957,12 @@ pub fn run(cfg: &Config) -> Report {
     for e in &error_notes {
         log.push_str(&format!("  ERROR {}\n", e));
     }
-    log.push_str(&format!("stream digest (fnv1a over all delivered bytes): {:#018x}\n", digest));
+    log.push_str(&format!(
+        "stream digest (fnv1a over the bytes the emitter produced, the lost ones included): {:#018x}\n",
+        digest
+    ));
     log.push('\n');
-    log.push_str("id  shape  path    rate  region  deliveries  keyframes  resyncs  bytes/s   camera\n");
+    log.push_str("id  shape  path    rate  region  deliveries  keyframes  breaks  bytes/s   camera\n");
     for si in 0..n {
         let s = &em.subs[si];
         let shape = if s.shape == Shape::Sphere { "sphere" } else { "frustum" };
@@ -886,7 +981,7 @@ pub fn run(cfg: &Config) -> Report {
             em.state[si].set.len(),
             deliveries[si],
             keys[si],
-            resyncs[si],
+            rx[si].breaks,
             per_sub_bytes[si],
             group
         ));
@@ -909,7 +1004,10 @@ pub fn run(cfg: &Config) -> Report {
          back-dates: it anchors each correction at the tick the correction was computed for, so \
          the held state is the emitter's truth at that tick whatever the link did, and the \
          reconstruction is checked against the truth at the packet's tick, not at the tick the \
-         packet arrived. {} delivered states were compared against the ground truth and {} \
+         packet arrived. A resync request travels back up the link: the emitter sends a keyframe \
+         only when the request has arrived, and the receiver asks once per break and asks again \
+         after a timeout if the request or the keyframe that answered it was lost. {} delivered \
+         states were compared against the ground truth and {} \
          mismatched; {} mirror mismatches.",
         cfg.net.describe(),
         objects_seen.iter().sum::<u64>(),
@@ -934,7 +1032,9 @@ pub fn run(cfg: &Config) -> Report {
         packets_lost,
         packets_delivered,
         keyframes,
-        resyncs: resyncs.iter().sum(),
+        resyncs: rx.iter().map(|r| r.breaks).sum(),
+        resync_requests: rx.iter().map(|r| r.requests).sum(),
+        packets_rejected: rx.iter().map(|r| r.rejected).sum(),
         mirror_mismatches,
         max_state_error_mm,
         max_reconstruction_error_mm,
@@ -962,6 +1062,7 @@ pub fn write_result(path: &str, r: &Report, team: &str, cfg: &Config) -> std::io
          \"network\": \"{}\",\n  \
          \"packets_sent\": {},\n  \"packets_lost\": {},\n  \"packets_delivered\": {},\n  \
          \"keyframes\": {},\n  \"resyncs\": {},\n  \
+         \"resync_requests\": {},\n  \"packets_rejected\": {},\n  \
          \"resync_recovery_ms_p95\": {:.4},\n  \
          \"mirror_mismatches\": {},\n  \
          \"max_reconstruction_error_mm\": {:.3},\n  \
@@ -990,6 +1091,8 @@ pub fn write_result(path: &str, r: &Report, team: &str, cfg: &Config) -> std::io
         r.packets_delivered,
         r.keyframes,
         r.resyncs,
+        r.resync_requests,
+        r.packets_rejected,
         r.resync_recovery_ms_p95,
         r.mirror_mismatches,
         r.max_reconstruction_error_mm,
@@ -1001,4 +1104,60 @@ pub fn write_result(path: &str, r: &Report, team: &str, cfg: &Config) -> std::io
         r.notes.replace('"', "'")
     );
     std::fs::write(path, json)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The emitter cannot know of a gap until the receiver's request has travelled back
+    /// up the link. This is the property the harness rests on: the keyframe is triggered
+    /// by the request that came back, never by the receiver's detection.
+    #[test]
+    fn the_request_is_the_only_trigger() {
+        let cfg = NetConfig::standard(0.0);
+        let mut link = Link::new(cfg, 3);
+        let sent = 1_000_000u64;
+        assert!(!link.request_arrived(sent), "nothing has been asked for yet");
+        link.request(sent);
+        assert!(
+            !link.request_arrived(sent + 1),
+            "the request is still on the way: the emitter knows nothing"
+        );
+        // the request arrives after the link's delay, and then the emitter knows
+        assert!(link.request_arrived(sent + 20_000_000));
+    }
+
+    /// The receiver asks once per break. The packets behind a break cannot be used
+    /// either, and asking for each of them would put a request per unusable packet on
+    /// the uplink.
+    #[test]
+    fn the_receiver_asks_once_per_break() {
+        let cfg = NetConfig::standard(0.0);
+        let mut link = Link::new(cfg, 5);
+        let mut rx = Rx::new();
+        assert!(rx.gap(1_000, &mut link), "the first gap is a new break");
+        assert!(!rx.gap(2_000, &mut link), "the second gap is the same break");
+        assert_eq!(rx.breaks, 1);
+        assert_eq!(rx.requests, 1);
+        assert_eq!(rx.rejected, 1);
+        assert_eq!(link.requests_sent, 1);
+    }
+
+    /// A broken receiver asks again after the timeout, and stops once it is repaired.
+    #[test]
+    fn the_receiver_asks_again_after_the_timeout() {
+        let cfg = NetConfig::standard(0.0);
+        let mut link = Link::new(cfg, 9);
+        let mut rx = Rx::new();
+        rx.gap(1_000, &mut link);
+        let timeout = 50_000u64;
+        assert!(!rx.retry(10_000, timeout, &mut link), "too early to ask again");
+        assert!(rx.retry(1_000 + timeout, timeout, &mut link), "the request was lost");
+        assert_eq!(rx.requests, 2);
+        // a keyframe arrives: the stream is whole again, and there is nothing to ask for
+        rx.repaired();
+        assert!(!rx.broken);
+        assert!(!rx.retry(1_000 + 10 * timeout, timeout, &mut link));
+    }
 }

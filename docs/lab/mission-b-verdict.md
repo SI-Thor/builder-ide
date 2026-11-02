@@ -44,20 +44,32 @@ contributed, on its own. Same seed, same 64 subscribers, same 60 s at 60 Hz. The
 model of the link, and the full numbers are in `tools/posestream/README.md`; the runs are in
 `tools/posestream/runs/` and the matrix is `tools/posestream/netbench.sh`.
 
-| | bytes/s per subscriber | on the wire | delivery latency p95 | reconstruction errors | resyncs |
-|---|---:|---:|---:|---:|---:|
-| the loopback (round 1's conditions) | 5,796 | 5,796 | 0.54 ms | 0 | 3 |
-| 2–12 ms, no loss | 5,796 | 5,796 | 13.09 ms | 0 | 3 |
-| 2–12 ms, 0.5 % loss | 5,911 | 5,940 | 13.09 ms | 0 | 380 |
-| 2–12 ms, 2 % loss | 6,244 | 6,374 | 13.09 ms | 0 | 1,560 |
+| | bytes/s per subscriber | on the wire | emitter CPU p95 | delivery latency p95 | reconstruction errors | breaks | keyframes |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| the loopback (round 1's conditions) | 5,796 | 5,796 | 0.58 ms | 0.55 ms | 0 | 3 | 67 |
+| 2–12 ms, no loss | 5,796 | 5,796 | 0.56 ms | 13.08 ms | 0 | 3 | 67 |
+| 2–12 ms, 0.5 % loss | 5,903 | 5,932 | 0.56 ms | 13.10 ms | 0 | 406 | 470 |
+| 2–12 ms, 2 % loss | 6,190 | 6,313 | 0.56 ms | 13.09 ms | 0 | 1,496 | 1,592 |
 
 **The delay costs latency and nothing else.** The bytes are identical to the byte — the stream
 digest is unchanged from round 1 — and the reconstruction is exact at every delivery. **Loss
-costs bytes**: 2.0 % at 0.5 % loss, 7.7 % at 2 %, and the cost is the resync. Every lost packet
-is one gap, and every gap is one keyframe of the whole region in absolute poses (~1 kB for an
-average region of 82 objects). The recovery from a gap to the keyframe's arrival is 32 ms at the
-median and 108 ms at p95; the worst is 509 ms, which is the 2 Hz subscriber's delivery interval,
-because a keyframe can only be sent at a delivery.
+costs bytes**: 1.9 % at 0.5 % loss, 6.8 % at 2 %, and the cost is the resync. Every lost packet
+that breaks a stream is one gap, and every gap is one keyframe of the whole region in absolute
+poses (~1 kB for an average region of 82 objects). At 0.5 %, 406 packets were lost and 406
+streams broke; at 2 %, 1,567 packets were lost and 1,496 streams broke. The recovery from the
+break to the keyframe's
+arrival is 34 ms at the median and 103 ms at p95; the worst is 501 ms, which is the 2 Hz
+subscriber's delivery interval, because a keyframe can only be sent at a delivery.
+
+**The resync path was corrected before these numbers were taken.** The first version of the
+harness told the emitter about a gap the moment the projector found it, as if the resync request
+had already come back up the link — something no real receiver can do, since the emitter cannot
+see the loss. The emitter now sends its keyframe only when the receiver's request has arrived;
+the receiver asks once per break and asks again after a timeout if the request, or the keyframe
+that answered it, was lost. The loopback did not move (the same digest, the same bytes, the same
+three breaks): with no delay the request reaches the emitter before its next delivery anyway.
+The network runs did move, because there the request costs a round trip, and the numbers above
+are the corrected ones.
 
 **The four ideas, each measured on its own:**
 
@@ -65,17 +77,17 @@ because a keyframe can only be sent at a delivery.
    receiver anchors each correction at the tick the correction was *computed for*, not the tick
    it arrived at. With the back-dating: 0 reconstruction errors, and the receiver's held state is
    bit-identical to the emitter's mirror. Without it (the receiver anchors at the arrival):
-   **9,169,158 reconstruction errors** out of 9,471,363 delivered states, with errors up to
-   2,140 mm — essentially every delivery is wrong. The mechanism: anchoring at the arrival adds
+   **9,145,691 reconstruction errors** out of 9,365,117 delivered states, with errors up to
+   2,110 mm — essentially every delivery is wrong. The mechanism: anchoring at the arrival adds
    the motion between the correction's tick and the arrival to the correction's base, and then
    adds it again when it extrapolates. Anchoring at the correction's tick makes the base and the
    anchor agree with the emitter's, so the receiver's state *is* the emitter's truth at that tick.
 2. **Exit hysteresis (8 m) — measured, and not kept.** It removes 9 % of the leaves (79,353 →
    72,251 over the run), but it holds objects outside the region and those cost a change record
-   each: **+33 % bytes** (5,796 → 7,697) and +57 % emitter CPU. The margin was swept (0, 2, 4, 8,
-   16 m) and the cost rises with it. On this world the regions are small (14–30 m) against a
-   dense world (10,000 objects in 200 m × 200 m × 120 m); zcode's were 80–180 m in a 1200 m arena,
-   which is the regime where the idea pays.
+   each: **+33 % bytes** (5,796 → 7,697) and +56 % emitter CPU. The margin was swept (0,
+   2, 4, 8, 16 m) and the cost rises with it. On this world the regions are small (14–30 m)
+   against a dense world (10,000 objects in 200 m × 200 m × 120 m); zcode's were 80–180 m in a
+   1200 m arena, which is the regime where the idea pays.
 3. **2-byte evicts — measured, and not kept.** The leave list is delta-coded varints, already at
    or below 2 bytes per object; the fixed 16-bit id costs 2 B/s per subscriber more (5,796 →
    5,798, 0.04 %).
@@ -83,8 +95,8 @@ because a keyframe can only be sent at a delivery.
    extrapolates with the motion channel, and how far that can be from the truth follows from the
    world's own motion parameters, per kind of object. The bound and its derivation are in the
    README; the harness checks every interpolation against it: over the 60 s run at 2 % loss,
-   24,713,234 checks and **not one over the bound**. The worst interpolation of that run was
-   87.3 m — a fast mover 89 ticks past its last correction, because the packets that should
+   24,722,598 checks and **not one over the bound**. The worst interpolation of that run was
+   84.7 m — a fast mover 89 ticks past its last correction, because the packets that should
    have corrected it were lost — and the bound for a 89-tick interval is 267.1 m.
 
 **What this world does not give the other entry's argument.** That entry built its world with a
@@ -102,7 +114,7 @@ as a stated bound (the drift budget).
 
 What is left, in the order it would pay:
 
-* **gap-fill resync.** At 2 % loss the keyframes are 7.7 % of the bytes. A repair that sends
+* **gap-fill resync.** At 2 % loss the keyframes are 6.8 % of the bytes. A repair that sends
   the missed corrections instead of the whole region would cut that, and the drift budget is
   what says how far a missed correction can be.
 * **a real link.** The delay and the loss are drawn from a distribution; a deployment would
