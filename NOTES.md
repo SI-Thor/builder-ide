@@ -4003,3 +4003,57 @@ drops with both verdicts on one row, disagreement keeps, a silent wire
 to render keeps the prop. The full dry run passes and its morning holds
 `decisions.ledger` (2 rows: 1 local, 1 refusal) and
 `critic.ghost_policy: second_look`.
+
+
+## 2026-11-02 08:10 — night-v6, task 3: the export that lands — it was the materials, not the triangles
+
+**The brief's guess, corrected.** The brief offered two cheaper paths —
+"decimate first, or export only kept props". Both were premised on the
+export's cost being the 11 M evaluated triangles. Measured on this box,
+that premise is wrong, and the correction is on the record:
+
+1. **The probe of night-v5's own scene.blend** (110 mesh objects, 2,899,618
+   base polygons): 91 % of the base polygons are three
+   `cushion_throw_pillow_rand` objects at 884,736 polygons each, with **no
+   modifiers at all** — and 28 Subdivision Surface modifiers (levels up to
+   6) on the rest. Capping subdivision alone cannot touch the pillows.
+2. **The density curve** (one cushion, alone in a scene, exported with the
+   night's own kwargs): decimated to 5,000 polygons it exports in **36 s**
+   (645 KB); held at 50,000 polygons it ran past **6 minutes** without
+   finishing. The extractor's cost blows up with density, not linearly.
+3. **The stall** — two full-scene runs (cap-only, then cap+decimate-50k)
+   both stopped silent after the small meshes for 15-34 min at 100 % of one
+   core. A py-spy stack dump put the process inside
+   `gltf2_blender_search_node_tree.__search_from_socket` recursing through
+   **Infinigen's procedural material node graphs** — Blender's exporter
+   walks each material's node tree to find textures, and that search, not
+   the triangles, is what made this export cost 115/136/240 minutes on
+   every previous night.
+
+**The cheap path, measured.** `--materials placeholder` (a default
+material; no node-tree search) + `--max-subsurf 0` (the saved cages) +
+`--decimate-over 5000` (a collapse Decimate modifier on every mesh over 5k
+base polygons, sized under it). On night-v5's own scene.blend:
+**source.glb 22,826,792 B in 75.2 s** of export wall (blend open 0.2 s
+warm; 12 objects decimated; 28 subsurf caps; 117 meshes; stats on
+export_stats.json). The three dead runs are kept as the numbers that
+ruled the paths out; the committed exporter
+(docs/lab/night-v6-scripts/export_scene.py) carries each threshold's
+measurement in its --help.
+
+**The trade, said plainly.** The live view's source is now geometry at ≤
+5k polygons per object with placeholder materials — a decimated source,
+recorded as such on its stats. The deltas the seam exists to measure
+(transform edits) are unaffected. If the viewer needs the real materials
+back, the mechanism to attack is named: the node-tree search.
+
+**Box facts found on the way.** This bpy hangs (and once segfaulted) at
+interpreter teardown after long exports/renders, with every file written
+— export_scene.py joins render_prop_views.py in `os._exit(0)` once the
+stats are on disk, or the night's bound waits on a corpse (the final
+measurement run had to be killed by hand at exactly that point).
+
+**Wiring.** run_night.py calls the committed v6 exporter with the
+measured flags; the bound is down from 4 h to **3600 s** (~15× the worst
+measurement — the 3600 s lesson was a bound shorter than the work; the
+work is now 75 s). 20 tests pass (letter, ghost policy, ledger).

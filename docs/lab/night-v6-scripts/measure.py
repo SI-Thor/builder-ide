@@ -7,7 +7,7 @@ The brief asks for five measurements beside the box state:
 * wall time, GPU-minutes against the rail, and lease waits;
 * decisions by rung;
 * props kept and rejected, and why;
-* diffs against run D on each.
+* diffs against the chosen night on each.
 
 This reads a night's `morning.json` and its `ledger.db` and prints all of
 it. Given two nights it prints the diff.
@@ -15,8 +15,8 @@ it. Given two nights it prints the diff.
 Run on the Thor:
 
     PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
-        docs/lab/night-v5-scripts/measure.py \
-        --night artifacts/night-v5 --against ~/lm-wt/night-v4/artifacts/night-v4
+        docs/lab/night-v6-scripts/measure.py \
+        --night artifacts/night-v6 --against ~/lm-wt/night-v5/artifacts/night-v5
 """
 
 from __future__ import annotations
@@ -132,7 +132,7 @@ def diff(here: dict[str, Any], there: dict[str, Any]) -> list[str]:
         if mine == theirs:
             lines.append(f"  {label:22} {fmt.format(theirs)}  (the same)")
         else:
-            lines.append(f"  {label:22} {fmt.format(mine)}  vs run D "
+            lines.append(f"  {label:22} {fmt.format(mine)}  vs night-v5 "
                          f"{fmt.format(theirs)}")
 
     lines.append(f"the diff: {here.get('night')} against {there.get('night')}")

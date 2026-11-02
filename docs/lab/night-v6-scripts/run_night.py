@@ -219,19 +219,39 @@ GPU_POOL_BAR_USED_GB = GPU_POOL_TOTAL_GB - GPU_POOL_NEED_GB
 #: The bar's bound. A night that waits forever is as dead as one that
 #: wedges, so past this the night goes anyway — and the row says so.
 GPU_POOL_WAIT_S = 45 * 60.0
-#: The live view's scene export, bounded. This scene is fixed: the generator
-#: ``room_livingroom_rand`` at seed 42 — 200,606 base triangles, 11,254,482
-#: after subdivision. The *generation* is cheap (20.5 s measured tonight) and
-#: the *glTF export* is not: Blender's exporter walks the 11 M triangles in
-#: Python, on the CPU, with the modifiers applied. Measured on this box for
-#: this exact scene: 115 min (2026-10-31, world-stream-scratch/export2:
-#: 11:56:36 -> 13:52) and 136 min (export1: 11:34 -> 13:51). The runner's
-#: old 3600 s bound was shorter than the work it was given, so the first
-#: attempt of this night was cut at exactly 3600 s with scene.blend written
-#: (145,717,009 B) and no source.glb — the seam could never succeed. The
-#: bound is now 4 h: about twice the worst measurement, and inside the
-#: night's own 4 h wall bar.
-SCENE_EXPORT_TIMEOUT_S = 4 * 3600.0
+#: The live view's scene export, decimated first and bounded. This scene
+#: is fixed: the generator ``room_livingroom_rand`` at seed 42 — 200,606
+#: base triangles, 11,254,482 after subdivision. The *generation* is cheap
+#: (20.5 s measured on night-v5) and the *glTF export* of the full
+#: subdivision is not: Blender's exporter walks the 11 M triangles in
+#: Python, on the CPU, with the modifiers applied — 115 and 136 min
+#: measured 2026-10-31, and 240 min at the 4 h bound on the loaded box of
+#: 2026-11-01, killed still mid-walk with no source.glb. Night-v6 caps
+#: every Subdivision Surface modifier at SCENE_EXPORT_MAX_SUBSURF levels
+#: before the export (the exporter's --max-subsurf, our committed copy at
+#: docs/lab/night-v6-scripts/export_scene.py): the same scene, a fraction
+#: of the evaluated triangles, the cap and counts on export_stats.json.
+#: The numbers: docs/lab/night-v6.md §the live view.
+SCENE_EXPORT_MAX_SUBSURF = 0
+#: The decimation threshold: every mesh object whose base polygons exceed
+#: this gets a collapse Decimate modifier sized to bring it under. The
+#: measured curve on this box (2026-11-02, the v5 scene's own pillows):
+#: one 884,736-polygon cushion at 5,000 exports in 36 s; held at 50,000
+#: it ran past 6 minutes without finishing — the extractor's cost blows
+#: up with density, not linearly.
+SCENE_EXPORT_DECIMATE_OVER = 5_000
+#: Placeholder materials: the stack dump (py-spy) of the stalled export of
+#: 2026-11-02 sits in gltf2_blender_search_node_tree recursing through
+#: Infinigen's procedural material node graphs — the node-tree search, not
+#: the triangles, is what made this export cost 115-240 minutes. A default
+#: material is written instead; the trade is recorded on export_stats.json.
+SCENE_EXPORT_MATERIALS = "placeholder"
+#: The bound: the measured capped export is 75 s warm (from night-v5's own
+#: scene.blend, /tmp/export-v6-final, 2026-11-02) plus the ~21 s
+#: generation and the cold-cache blend save — call it minutes. 1 h is
+#: ~15x the worst measurement: generous against a loaded box, and a night
+#: no longer spends four of its hours dying at this bound.
+SCENE_EXPORT_TIMEOUT_S = 3600.0
 V2_HOME = Path.home() / "lm-wt" / "v2-thor"
 SCRATCH = Path.home() / "lm-wt" / "world-stream-scratch"
 VIEWER = Path.home() / "lm-tools" / "viewer"
@@ -2163,8 +2183,11 @@ def world_stream(wires: list[dict], heavy: Heavy, out: Path) -> dict:
         started = time.monotonic()
         result = run_cmd(
             [V2_HOME / ".venv" / "bin" / "python",
-             SCRATCH / "export_scene.py",
+             REPO / "docs" / "lab" / "night-v6-scripts" / "export_scene.py",
              "--generator", "room_livingroom_rand", "--seed", str(WORLD_SEED),
+             "--max-subsurf", str(SCENE_EXPORT_MAX_SUBSURF),
+             "--decimate-over", str(SCENE_EXPORT_DECIMATE_OVER),
+             "--materials", SCENE_EXPORT_MATERIALS,
              "--outdir", export_dir],
             cwd=SCRATCH, timeout=SCENE_EXPORT_TIMEOUT_S)
     if result.returncode != 0 or not (export_dir / "source.glb").exists():
