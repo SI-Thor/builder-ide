@@ -250,6 +250,11 @@ Mapped onto SLEEP:
 
 ### 2.3 The tiles-to-weights path
 
+> **SUPERSEDED (2026-11-01 19:25) - the map the brief asked for is in
+> section 2.5.** The paragraph below says the file the brief points at does
+> not exist. **That was wrong, and the brief was right.** The text is kept
+> so the mistake is visible.
+
 **A correction to the brief, in writing.** The brief points at
 `docs/design/watching-teachers.md`. **That file does not exist** — not on this
 branch, not on any branch (`git log --all --diff-filter=A -- "*watching-teachers*"`
@@ -299,8 +304,88 @@ document.
 | Prune the transient | retirement | ours, for tiles |
 | Dream: self-generated, gradient-selected, then SFT | feedback packets to the cloud | ours but **external** — a teacher, not a self |
 | Imitation learning with a frozen semantic reward | the three measures (critic / owner / sealed prediction) | analogous, and the choice of one is already our rule |
+| The whole ladder: demonstration -> tile -> weights | `docs/design/watching-teachers.md` | **section 2.5** - the brief's file, and the real tiles-to-weights path |
 
 ---
+
+### 2.5 The tiles-to-weights path - `docs/design/watching-teachers.md`
+
+**The correction, in writing.** At 17:16 I searched the reachable history for
+the file the brief names and found nothing, and wrote in this note that
+`docs/design/watching-teachers.md` did not exist. **It does exist.** The
+commit is `dc99482` - *"design: watching teachers (the screen watcher as a
+student; teaching moments = surprising action + good outcome; demonstration ->
+tile -> weights; retire the teacher skill by skill) and the auto-play stack"* -
+authored and committed at 15:03 AKST, an ancestor of `main` and **not** of the
+`sleep-dreaming` branch, which was cut at `18ec1be`. The same command that
+returned nothing at 17:16 finds it now, so the commit reached this clone's refs
+during this session. The paragraph in section 2.3 is kept, marked superseded,
+so the mistake is on the record. **The brief was right and I was wrong.**
+
+This is also the file that says what "the tiles-to-weights path" means, and it
+is a better target than the retrain loop I mapped onto by mistake: the design
+keeps a lesson **as data, then as a tile, then as weights** - a promotion
+ladder from a demonstration to a skill to the student's own parameters.
+
+The design, in short: the watcher asks each second whether to stay silent or
+speak; turned around, the same machinery asks **is what I just saw worth
+learning?** The student predicts the teacher's next action; when the teacher
+does what the student would not have done *and the outcome is good*, that is a
+teaching moment; the lesson is kept as a demonstration, then as a tile (a
+cloud-written skill admitted **by replay against the recording** - the shadow
+conductor gate), then, **if the skill recurs**, as weights (the student's
+policy fine-tuned on the demonstrations); and when the student predicts the
+teacher reliably for a skill, the teacher is retired for that skill - "silence
+is the measure of trust".
+
+#### SLEEP against the ladder
+
+| watching teachers | SLEEP | what the comparison says |
+|---|---|---|
+| the teacher's recorded episodes (the demonstrations) | the wake phase's input | the teacher's own behaviour is the only signal the student may learn from |
+| **tile**: a cloud-written skill, admitted **by replay against the recording** | **knowledge seeding**: the student reproduces the teacher's distribution on the teacher's own samples, into freshly unlocked parameters | the tile gate is a *check* that the student reproduces the teacher; knowledge seeding is the *write* that makes it reproduce the teacher |
+| **weights**: the student's policy fine-tuned on the demonstrations | the sleep phase's parameter write | this is the write that can overwrite what the student already knew |
+| retire the teacher for that skill | prune the transient expert; the freed capacity is the point | the design's retirement frees *budget*; SLEEP's pruning frees *capacity* |
+| "if it recurs, as weights" | the frequency schedule: consolidate from the fast block to the slow one C^ℓ times | the design has the trigger but not the schedule; SLEEP's chunk lengths are the principled version of it |
+| the measure: student-teacher agreement per skill, over time | the consolidation's own objective | the design already measures what SLEEP optimises - but afterwards, not as a gate on the write |
+
+#### What the toy says about this ladder
+
+The toy is in [`docs/lab/exp-sleep-dreaming.md`](../lab/exp-sleep-dreaming.md);
+three of its findings land on the design directly.
+
+**1. The weights path is the shared substrate, and the shared substrate is
+where the knowledge goes.** The toy says that a frozen head under a plastic
+trunk still loses the old task: put the trunk back and the sleep arm scores
+0.970 on it against the baseline's 0.133. The design's "the student's policy
+fine-tuned on the demonstrations" is **one policy, fine-tuned on many
+demonstrations** - one shared substrate, which is exactly the trunk. If the
+weights path is a single policy, the demonstration of a new skill erases the
+old skills' behaviour, and no consolidation step puts it back. The design's own
+words - *the student's policy* - are where the toy locates the loss.
+
+**2. The tile gate is the right gate, and it is not enough on its own.** A tile
+is admitted by replay against the recording: the new skill must reproduce the
+teacher. The toy says a check that the *new* skill reproduces the teacher says
+nothing about whether the *old* skills survived the write - and the toy also
+says a consolidation step cannot undo the teacher's own interference. The
+design already has the instrument for this (student-teacher agreement per
+skill, over time); the finding is that it has to be a **gate on the weights
+write**, not only a curve looked at afterwards.
+
+**3. The design already keeps the demonstrations, so it already pays replay's
+price.** "The canon keeps the demonstrations and the lessons": the old skill's
+data stays in the training set, which is the replay arm - in the toy, the arm
+that kept the old task (0.997) and paid with the new task's estimate (0.287).
+The concrete question for the design is therefore: **when the policy is
+fine-tuned on all the demonstrations, does the newest skill's behaviour
+survive?** That is measurable from the recordings the design already keeps.
+
+**4. No dreaming here.** SLEEP's second stage has no counterpart in this
+design, because the demonstrations come from real teachers and the tiles are
+written by the cloud, not by the student. The toy's dreaming result (it eroded
+the old task) is a warning about our *other* self-generated loop - the night
+feeding the cloud and the cloud returning new tiles - not about this design.
 
 ## 3. What does not carry over
 

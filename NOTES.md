@@ -585,3 +585,34 @@ and our own log.
 the figures in the paper (numbers not in the HTML text); anything about the
 night pipeline beyond what the toy implies. The toy is one synthetic task with
 8 seeds - the ranges are in the lab note.
+
+## 2026-11-01 19:30 — the brief was right about watching-teachers.md
+
+**A correction to my own note.** At 17:16 I searched the reachable history for
+`docs/design/watching-teachers.md`, found nothing, and wrote in
+`docs/research/sleep.md` that the file did not exist and that the
+tiles-to-weights path the brief meant was `docs/design/tiles.md` section 5.
+**That was wrong, and the brief was right.** The commit is `dc99482` ("design:
+watching teachers ... demonstration -> tile -> weights; retire the teacher
+skill by skill"), authored and committed at 15:03 AKST, an ancestor of `main`
+and **not** of this branch (cut at `18ec1be`). The same command, run now,
+finds it; at 17:16 it found nothing, so the commit reached this clone's refs
+during this session.
+
+The wrong text is kept in the note under **SUPERSEDED**, and the mapping the
+brief asked for is now section 2.5 of the note: the watching-teachers ladder
+(demonstration -> tile -> weights) against SLEEP's (wake -> consolidation ->
+dreaming), with the toy's findings landing on it.
+
+**The one that matters.** The design's weights path is "the student's policy
+fine-tuned on the demonstrations" - **one policy, many demonstrations** - which
+is the toy's trunk: one shared substrate. The toy says a shared plastic
+substrate under frozen parameters is where the old skill's behaviour goes, and
+that no consolidation step puts it back. So the question for the design is:
+when the policy is fine-tuned on all the demonstrations, does the newest
+skill's behaviour survive? Answerable from the recordings the design keeps.
+
+**Decided next.** Nothing in the design is changed here; this is a note and a
+measurement. The measurement to take is on our side: whether the nightly refit
+over a growing log drifts the old contexts' estimates (`core/tiles/ope.py` and
+our own log).

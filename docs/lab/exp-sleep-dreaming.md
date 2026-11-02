@@ -196,6 +196,18 @@ material the system produced itself, and finding the old task eroded. The
 it preserved the old contexts. That is a measurement we could take from the log
 we already keep.
 
+**And what it says about `docs/design/watching-teachers.md`** (the design
+whose tiles-to-weights path the brief names; read in
+[`docs/research/sleep.md`](../research/sleep.md) section 2.5): that design
+keeps a lesson as **data, then as a tile, then as weights** - the student's
+policy fine-tuned on the demonstrations. The toy's first finding lands on it
+directly. **One policy fine-tuned on many demonstrations is one shared
+substrate**, which is the toy's trunk: the demonstration of a new skill can
+erase the old skills' behaviour, and no consolidation step puts it back. If
+the weights path is a single policy, the old skills are the thing at risk -
+and the design already has the instrument (student-teacher agreement per
+skill), which needs to become a gate on the write, not only a curve.
+
 **And one thing SLEEP does that we have not thought about:** the order.
 Consolidate first, then dream. Our night already does the first (the retrain
 is the last thing) and the cloud's new tiles come after, so our order is
