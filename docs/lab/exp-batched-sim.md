@@ -284,9 +284,12 @@ box in this state**, not for an idle Thor.
   for the admission daemon, which stopped granting leases (two model-server
   leases were over their reservations) while the session ended.
 - **The Python reference's observation.** The reference writes the planes one
-  cell at a time in Python, about 1.5 us a cell, so it is 40 times slower
-  than the GPU on the same work; it is only measured where that fits in the
-  budget, and the JSON says which configurations were skipped and why.
+  cell at a time in Python, so it is far slower per cell than either
+  backend; it is measured only where that fits in the budget
+  (`MAX_PYTHON_OBS_CELLS`, 20,000 cells a step), and the JSON says which
+  configurations were skipped and why. A run that measures it at a small
+  batch, where all three devices can be compared on the step *and* the
+  observation, was queued for the admission daemon when the session ended.
 - **The CPU's observation at the bigger configurations.** Above 8 M cells a
   step the script does not measure it, and says so rather than leaving a
   blank.
