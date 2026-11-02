@@ -139,6 +139,9 @@ EVENT_TYPES: frozenset[str] = frozenset(
         # before a mesh prompt, the wedge restart of the render server,
         # and the approved library the prior is fitted with
         "night.gpu_pool_bar", "night.comfy_restart", "night.library",
+        # the night-v6 integration seat: the cloud's second look on a
+        # prop the prior called a ghost (both verdicts on one row)
+        "night.ghost_second_look",
         # questions
         "question.parked", "question.answered", "assumption.recorded",
         # continuity
