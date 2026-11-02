@@ -1,0 +1,309 @@
+{
+ "experiment": "crafter-lab: a scripted Crafter teacher and four students (BC on all frames / BC on teaching moments / PPO / BC+PPO)",
+ "claim_under_test": "the curated student C (BC on teaching moments) reaches full-BC student B's achievement score using far fewer teacher frames",
+ "box": {
+  "time": "2026-11-01T17:39:40",
+  "loadavg": [
+   28.9,
+   20.2,
+   12.4
+  ],
+  "cpu_count": 14
+ },
+ "teacher_dataset": {
+  "id": "crafter-teacher-v0",
+  "episodes": 200,
+  "frames": 51395,
+  "achievements_per_episode_teacher": {
+   "mean": 9.335,
+   "min": 0,
+   "max": 16
+  },
+  "achievement_unlock_rate": {
+   "collect_coal": 0.125,
+   "collect_diamond": 0.0,
+   "collect_drink": 0.965,
+   "collect_iron": 0.0,
+   "collect_sapling": 0.745,
+   "collect_stone": 0.61,
+   "collect_wood": 0.915,
+   "defeat_skeleton": 0.04,
+   "defeat_zombie": 0.83,
+   "eat_cow": 0.84,
+   "eat_plant": 0.0,
+   "make_iron_pickaxe": 0.0,
+   "make_iron_sword": 0.0,
+   "make_stone_pickaxe": 0.0,
+   "make_stone_sword": 0.33,
+   "make_wood_pickaxe": 0.82,
+   "make_wood_sword": 0.855,
+   "place_furnace": 0.08,
+   "place_plant": 0.33,
+   "place_stone": 0.605,
+   "place_table": 0.895,
+   "wake_up": 0.35
+  }
+ },
+ "teacher_baseline_eval_8episodes": {
+  "achievements": 9.625,
+  "return": 8.725000000000001,
+  "steps": 302.875
+ },
+ "teaching_moments": {
+  "frames_flagged_teaching": 3757,
+  "frames_total": 51395,
+  "per_skill": {
+   "collect_coal": 25,
+   "collect_diamond": 0,
+   "collect_drink": 969,
+   "collect_iron": 0,
+   "collect_sapling": 186,
+   "collect_stone": 303,
+   "collect_wood": 817,
+   "defeat_skeleton": 8,
+   "defeat_zombie": 328,
+   "eat_cow": 232,
+   "eat_plant": 0,
+   "make_iron_pickaxe": 0,
+   "make_iron_sword": 0,
+   "make_stone_pickaxe": 0,
+   "make_stone_sword": 66,
+   "make_wood_pickaxe": 164,
+   "make_wood_sword": 171,
+   "place_furnace": 16,
+   "place_plant": 66,
+   "place_stone": 121,
+   "place_table": 180,
+   "wake_up": 105
+  },
+  "definition": "student prediction != teacher action AND the teacher's action advanced an achievement counter on that step"
+ },
+ "students": {
+  "A": {
+   "passes_budget": 524288,
+   "final_achievements": 1.125,
+   "final_return": 0.22500000000000006,
+   "curve": [
+    [
+     0,
+     0.0
+    ],
+    [
+     131072,
+     1.25
+    ],
+    [
+     262144,
+     1.0
+    ],
+    [
+     393216,
+     1.25
+    ],
+    [
+     524288,
+     1.125
+    ]
+   ],
+   "frames_used": null,
+   "agreement_all_frames": 0.1065
+  },
+  "B": {
+   "passes_budget": 524288,
+   "final_achievements": 0.875,
+   "final_return": -0.02500000000000005,
+   "curve": [
+    [
+     0,
+     0.0
+    ],
+    [
+     131072,
+     0.0
+    ],
+    [
+     262144,
+     0.125
+    ],
+    [
+     393216,
+     0.0
+    ],
+    [
+     524288,
+     0.875
+    ]
+   ],
+   "frames_used": 51395,
+   "agreement_all_frames": 0.5085
+  },
+  "Bm": {
+   "passes_budget": 524288,
+   "final_achievements": 2.25,
+   "final_return": 1.35,
+   "curve": [
+    [
+     0,
+     0.0
+    ],
+    [
+     131072,
+     0.0
+    ],
+    [
+     262144,
+     0.0
+    ],
+    [
+     393216,
+     1.5
+    ],
+    [
+     524288,
+     2.25
+    ]
+   ],
+   "frames_used": 3757,
+   "agreement_all_frames": 0.3825
+  },
+  "C": {
+   "passes_budget": 524288,
+   "final_achievements": 1.375,
+   "final_return": 0.475,
+   "curve": [
+    [
+     0,
+     0.0
+    ],
+    [
+     131072,
+     1.25
+    ],
+    [
+     262144,
+     1.0
+    ],
+    [
+     393216,
+     1.25
+    ],
+    [
+     524288,
+     1.375
+    ]
+   ],
+   "frames_used": 3757,
+   "agreement_all_frames": 0.139
+  },
+  "C_half": {
+   "passes_budget": 524288,
+   "final_achievements": 1.25,
+   "final_return": 0.35,
+   "curve": [
+    [
+     0,
+     0.0
+    ],
+    [
+     131072,
+     1.125
+    ],
+    [
+     262144,
+     1.5
+    ],
+    [
+     393216,
+     1.375
+    ],
+    [
+     524288,
+     1.25
+    ]
+   ],
+   "frames_used": 1878,
+   "agreement_all_frames": 0.125
+  },
+  "D": {
+   "passes_budget": 524288,
+   "final_achievements": 1.125,
+   "final_return": 0.22500000000000003,
+   "curve": [
+    [
+     0,
+     0.0
+    ],
+    [
+     131072,
+     1.375
+    ],
+    [
+     262144,
+     1.375
+    ],
+    [
+     393216,
+     1.125
+    ],
+    [
+     524288,
+     1.125
+    ]
+   ],
+   "frames_used": 3757,
+   "agreement_all_frames": 0.145
+  }
+ },
+ "env_steps_per_second": [
+  {
+   "n_envs": 1,
+   "seconds": 15.0,
+   "wall": 15.98,
+   "total_steps": 2652,
+   "sps": 165.9,
+   "sps_per_env": 165.94
+  },
+  {
+   "n_envs": 2,
+   "seconds": 15.0,
+   "wall": 16.32,
+   "total_steps": 5668,
+   "sps": 347.4,
+   "sps_per_env": 173.68
+  },
+  {
+   "n_envs": 4,
+   "seconds": 15.0,
+   "wall": 16.76,
+   "total_steps": 11707,
+   "sps": 698.4,
+   "sps_per_env": 174.59
+  },
+  {
+   "n_envs": 8,
+   "seconds": 15.0,
+   "wall": 16.87,
+   "total_steps": 22161,
+   "sps": 1313.7,
+   "sps_per_env": 164.21
+  },
+  {
+   "n_envs": 14,
+   "seconds": 15.0,
+   "wall": 17.17,
+   "total_steps": 32970,
+   "sps": 1920.3,
+   "sps_per_env": 137.16
+  }
+ ],
+ "learner": {
+  "bc_updates_per_second": 14.27,
+  "bc_passes_per_second": 3653.0
+ },
+ "verdict": {
+  "B_final_achievements": 0.875,
+  "C_final_achievements": 1.375,
+  "frames_ratio_C_over_B": 0.07310049615721374,
+  "note": "see docs/exp-crafter-lab.md for the verdict wording and the limits of what this run establishes"
+ }
+}

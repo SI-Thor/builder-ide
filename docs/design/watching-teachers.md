@@ -34,3 +34,23 @@ The screen watcher (`screen-watcher.md`) asks each second: *stay silent or speak
 - Teacher calls per hour (should fall).
 - Task success with the student alone vs with the teacher (it must not fall).
 - Sample efficiency: lessons needed per skill. Compare learning from teaching moments only (surprise-filtered) against learning from everything.
+
+## Measured, 2026-11-01 (correction)
+
+The first test of the teaching-moment filter (`docs/lab/exp-crafter-lab.md`, Crafter, scripted teacher,
+8 eval seeds, one compute budget) does **not** support the mechanism this note assumed:
+
+| student (behaviour cloning) | frames | achievements |
+|---|---:|---:|
+| all teacher frames | 51,395 | 0.875 |
+| teaching moments (surprise + good outcome) | 3,757 | 1.375 |
+| random frames, same count | 3,757 | **2.25** |
+| PPO alone, 131k steps | – | 1.125 |
+
+The moments beat "all frames", but a random subset of the same size beats the moments: at a fixed
+budget, the gain came from fewer frames (more gradient passes per frame), not from which frames.
+Action agreement with the teacher did not track score either. Until a test at a larger budget, with a
+memoryful student, says otherwise, the ladder's "demonstration" step should keep a random-subset
+control, and score students on per-skill decisive frames, not overall agreement.
+Also see `docs/lab/exp-sleep-dreaming.md`: one policy trained on all demonstrations risks erasing old
+skills (measured next in exp-refit-drift).
