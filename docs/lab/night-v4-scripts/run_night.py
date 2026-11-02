@@ -126,6 +126,15 @@ D1_2B_MODEL = Path.home() / "models" / "d1-2B" / "d1-2B-Q8_0.gguf"
 D1_2B_MMPROJ = Path.home() / "models" / "d1-2B" / "mmproj-d1-2B-Q8_0.gguf"
 LLAMA_SERVER = Path.home() / "llama.cpp-upstream" / "build-up" / "bin" / "llama-server"
 TRELLIS_ROOT = Path.home() / "lm-wt" / "trellis"
+
+#: The TRELLIS.2 environment's ComfyUI, started by the night itself. The
+#: command line and the log are the ones ``trellis/scripts/serve.sh`` uses,
+#: so the evidence lands where the box's other runs put it.
+TRELLIS_VENV_PYTHON = TRELLIS_ROOT / ".venv-e2" / "bin" / "python"
+TRELLIS_COMFY_MAIN = TRELLIS_ROOT / "ComfyUI" / "main.py"
+TRELLIS_EXTRA_PATHS = TRELLIS_ROOT / "extra_model_paths.yaml"
+TRELLIS_LOG = TRELLIS_ROOT / "logs" / "comfy_server.log"
+TRELLIS_PIDFILE = TRELLIS_ROOT / "logs" / "comfy_server.pid"
 COMFY_URL = "http://127.0.0.1:8188"
 HEAVY_LOCK = Path.home() / "lm-wt" / "heavy.lock"
 #: The box's admission daemon (MEMORY-RULE): a lease before the spend, the
@@ -1658,36 +1667,99 @@ def stop_d1(handle: dict) -> None:
     handle["started"] = False
 
 
-def serve_comfy(heavy: Heavy) -> bool:
-    """The TRELLIS.2 environment's ComfyUI, under the heavy lease."""
+def serve_comfy(heavy: Heavy) -> dict:
+    """The TRELLIS.2 environment's ComfyUI, under the heavy lease.
+
+    The night starts the server **itself**, as its own child, and not
+    through ``serve.sh``. That is not a preference: a lease owns the
+    processes of its target and that target's *direct* children
+    (``procscan::usage_for``, ``Target::Process``), and the daemon's guard
+    stops the biggest process that no lease owns when the box loses
+    memory that the leases cannot explain. A server started by a shell
+    script is re-parented to init the moment the script exits, so it
+    belongs to nobody — and on 2026-11-01 at 16:28:28 the guard
+    terminated ComfyUI as a "runaway" (10.5 GB: 2.87 GB resident and
+    7.6 GB on the GPU) in the middle of SDXL sampling, because the
+    night's lease could not say where the memory had gone
+    (``lease_growth_bytes: 0``). Started by the runner, ComfyUI is the
+    runner's child, the lease owns it, and the memory is the lease's.
+    """
     import urllib.request
 
     try:
         with urllib.request.urlopen(f"{COMFY_URL}/system_stats", timeout=2):
-            log("ComfyUI already up")
-            return False
+            log("ComfyUI already answers on :8188 — the night does not own "
+                "it, so the lease cannot account for its memory")
+            return {"started": False, "pid": None, "owned": False}
     except Exception:
         pass
+    for directory in (TRELLIS_ROOT / "logs", TRELLIS_ROOT / "out",
+                      TRELLIS_ROOT / "input"):
+        directory.mkdir(parents=True, exist_ok=True)
     with heavy.hold("start ComfyUI (TRELLIS.2)", check_ram=True):
-        result = run_cmd([TRELLIS_ROOT / "scripts" / "serve.sh", "start",
-                          "--cache-none"])
-        if result.returncode != 0:
-            raise RuntimeError(f"serve.sh start failed: {result.stderr[-400:]}")
-    for _ in range(240):
-        try:
-            with urllib.request.urlopen(f"{COMFY_URL}/system_stats", timeout=2):
-                log("ComfyUI ready")
-                return True
-        except Exception:
-            time.sleep(2)
+        proc = subprocess.Popen(
+            [str(TRELLIS_VENV_PYTHON), str(TRELLIS_COMFY_MAIN),
+             "--listen", "127.0.0.1", "--port", "8188",
+             "--disable-auto-launch",
+             "--extra-model-paths-config", str(TRELLIS_EXTRA_PATHS),
+             "--use-pytorch-cross-attention",
+             "--output-directory", str(TRELLIS_ROOT / "out"),
+             "--input-directory", str(TRELLIS_ROOT / "input"),
+             "--cache-none"],
+            stdout=open(TRELLIS_LOG, "w"), stderr=subprocess.STDOUT,
+        )
+        TRELLIS_PIDFILE.write_text(f"{proc.pid}\n")
+        log(f"ComfyUI started by the night: pid {proc.pid} (log {TRELLIS_LOG})")
+        for _ in range(240):
+            try:
+                with urllib.request.urlopen(f"{COMFY_URL}/system_stats",
+                                            timeout=2):
+                    log("ComfyUI ready")
+                    return {"started": True, "pid": proc.pid, "owned": True}
+            except Exception:
+                if proc.poll() is not None:
+                    raise RuntimeError(
+                        f"ComfyUI died during the load; see {TRELLIS_LOG}")
+                time.sleep(2)
     raise RuntimeError("ComfyUI did not become ready")
 
 
-def stop_comfy(started: bool) -> None:
-    if not started:
+def stop_comfy(handle: dict) -> None:
+    """Stop the ComfyUI the night started, and only that one.
+
+    The night does not stop the box's shared server by name: it stops the
+    pid it started.
+    """
+    if not handle or not handle.get("started"):
         return
-    run_cmd([TRELLIS_ROOT / "scripts" / "serve.sh", "stop"])
-    log("ComfyUI stopped")
+    pid = handle.get("pid")
+    if not pid:
+        return
+    import signal
+
+    try:
+        os.kill(pid, signal.SIGTERM)
+        log(f"ComfyUI stopped (pid {pid})")
+    except ProcessLookupError:
+        pass
+    for _ in range(30):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            break
+        time.sleep(1)
+    else:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    try:
+        if (TRELLIS_PIDFILE.exists()
+                and TRELLIS_PIDFILE.read_text().strip() == str(pid)):
+            TRELLIS_PIDFILE.unlink()
+    except OSError:
+        pass
+    handle["started"] = False
 
 
 # --------------------------------------------------------------- live view ---
@@ -1935,7 +2007,7 @@ def main(argv: list[str] | None = None) -> int:
 
     d1_handle: dict = {}
     delegate_handle: dict = {}
-    comfy_started = False
+    comfy_handle: dict = {}
     big_lease = None
     try:
         # -- services ---------------------------------------------------------
@@ -1951,7 +2023,7 @@ def main(argv: list[str] | None = None) -> int:
                 "the night's heavy phase: ComfyUI, the world's renders, "
                 "the props")
             big_lease.__enter__()
-            comfy_started = serve_comfy(heavy)
+            comfy_handle = serve_comfy(heavy)
             free = ram_free_gb()
             if free < MIN_FREE_GB:
                 raise RuntimeError(
@@ -2063,7 +2135,8 @@ def main(argv: list[str] | None = None) -> int:
             payload={
                 "box": state_before,
                 "services": {"d1": d1_handle.get("port"),
-                             "comfy_started": comfy_started},
+                             "comfy_started": bool(
+                                 comfy_handle.get("started"))},
                 "two_lines": estimate.lines(),
                 "admission": admission_rows(check),
                 "pricing_file": "pricing.json",
@@ -2190,8 +2263,8 @@ def main(argv: list[str] | None = None) -> int:
         phase_row: dict[str, Any] = {"skipped": "dry run"}
         if not args.dry_run:
             log("the heavy phase is over: stopping the heavy services")
-            stop_comfy(comfy_started)
-            comfy_started = False
+            stop_comfy(comfy_handle)
+            comfy_handle = {}
             stop_d1(d1_handle)
             stop_d1(delegate_handle)
             phase_row = heavy.shrink(
@@ -2327,7 +2400,7 @@ def main(argv: list[str] | None = None) -> int:
         log(spoken)
         return 0
     finally:
-        stop_comfy(comfy_started)
+        stop_comfy(comfy_handle)
         stop_d1(d1_handle)
         stop_d1(delegate_handle)
         if big_lease is not None:

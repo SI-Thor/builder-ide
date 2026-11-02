@@ -743,3 +743,56 @@ The sweep also cleared `75.lock`, a leftover from 08:12 that nobody held.
 **What I decided next.** The night runs again with the fix in it. The
 `agent-world` seat's server is left alone: it is their running work, and
 the sweep handles it without touching it.
+
+## 2026-11-01 17:00-17:20 — the 16:26 crash, read from the daemon's own log
+
+The second attempt (16:26:47) died at 16:28:28 with
+`ConnectionRefusedError` to 127.0.0.1:8188, and the ComfyUI log ended in
+the middle of SDXL sampling at step 8 of 30 with no error line. The
+daemon's log says who stopped it:
+
+    {"event":"guard.terminated","pid":9031,"pgid":8541,"name":"python",
+     "command":"…/trellis/ComfyUI/main.py --listen 127.0.0.1 --port 8188 …",
+     "rss_bytes":2875613184,"gpu_bytes":7625244672,"total_bytes":10500857856,
+     "signal":"SIGTERM","signalled":true,"trigger":"runaway"}
+
+and before that, four times in a row,
+`guard.unexplained_drop` with `lost_bytes` 9.0–9.4 GB, `lease_growth_bytes`
+**0** and `window_ms` about 9.5 s. So: the box lost nine gigabytes that no
+lease explained, and the guard stopped the biggest process that no lease
+owned — which was ComfyUI, in the middle of the night's render.
+
+**Why the lease could not explain it.** A lease owns the processes of its
+target and that target's **direct** children
+(`procscan::usage_for`, `Target::Process` — the daemon measures
+`lease.current_rss` and the guard's `lease_growth` with it). The night
+started ComfyUI through `trellis/scripts/serve.sh`, which starts it with
+`nohup … &` and exits: the server is re-parented to init, so it belongs to
+nobody, and the night's lease could not say where the memory had gone.
+
+**What I proved on the box**
+(`docs/lab/night-v4-scripts/test_lease_ownership.py`): a lease's own
+accounting, measured through the daemon's status:
+
+- a child the lease's client starts **directly**: the lease's
+  `current_rss_bytes` grew by **1092 MB** — the lease owns it;
+- the same allocation started through a shell that exits (the `serve.sh`
+  shape): the lease's number did not move — the lease does not own it.
+
+**What I changed.** The night now starts ComfyUI itself, as its own child,
+with the command line and the log `serve.sh` uses
+(`--use-pytorch-cross-attention`, `--cache-none`, the extra model paths),
+and stops the pid it started rather than the box's shared server by name.
+The lease then owns the render server and its memory is the lease's, which
+is what the guard's rule needs.
+
+**What I did not change.** The daemon is another seat's binary and the
+guard is its rule: the guard's thresholds are what they are, and the fix
+that belongs in the tool (a lease that owns its whole family, and not only
+the direct children) is that seat's crate to change. The daemon that is
+running now was started with `--guard-drop 12G --guard-window-secs 120`,
+which is far less eager than the one that killed ComfyUI (a 9 GB loss
+inside a 10 s window), but the night does not rely on that.
+
+**What I decided next.** The night runs again with both fixes in it: the
+lease-lock sweep (`e3e83ce`) and the ComfyUI ownership.
