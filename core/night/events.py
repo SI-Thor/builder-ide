@@ -140,6 +140,14 @@ NIGHT_V4_EVENT_TYPES = frozenset(
      "night.prop_delegate", "night.heavy_phase"}
 )
 
+
+#: The night-v5 integration seat's types: the GPU-pool bar's real waits
+#: before a mesh prompt, the wedge restart of the render server, and
+#: the approved library the prior is fitted with.
+NIGHT_V5_EVENT_TYPES = frozenset(
+    {"night.gpu_pool_bar", "night.comfy_restart", "night.library"}
+)
+
 EVENT_TYPES = (
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -148,6 +156,7 @@ EVENT_TYPES = (
     | VOCABULARY_EVENT_TYPES
     | NIGHT_EVENT_TYPES
     | NIGHT_V4_EVENT_TYPES
+    | NIGHT_V5_EVENT_TYPES
     | DAYTIME_EVENT_TYPES
     | SCHEDULER_EVENT_TYPES
     | CRITIC_EVENT_TYPES

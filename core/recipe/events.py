@@ -17,6 +17,7 @@ __all__ = [
     "JUDGE_EVENT_TYPES",
     "NIGHT_V3_EVENT_TYPES",
     "NIGHT_V4_EVENT_TYPES",
+    "NIGHT_V5_EVENT_TYPES",
 ]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
@@ -139,6 +140,15 @@ NIGHT_V4_EVENT_TYPES = frozenset(
      "night.prop_delegate", "night.heavy_phase"}
 )
 
+
+#: The night-v5 integration seat's types (core/night/events.py carries
+#: the same copy): the GPU-pool bar's real waits before a mesh prompt,
+#: the wedge restart of the render server, and the approved library the
+#: prior is fitted with.
+NIGHT_V5_EVENT_TYPES = frozenset(
+    {"night.gpu_pool_bar", "night.comfy_restart", "night.library"}
+)
+
 EVENT_TYPES = frozenset(
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -159,6 +169,7 @@ EVENT_TYPES = frozenset(
     | JUDGE_EVENT_TYPES
     | NIGHT_V3_EVENT_TYPES
     | NIGHT_V4_EVENT_TYPES
+    | NIGHT_V5_EVENT_TYPES
 )
 
 #: The union of the groups above must be the shared closed set — this copy

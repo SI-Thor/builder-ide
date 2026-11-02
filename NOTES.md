@@ -2004,3 +2004,25 @@ line still points at night-v4's artifacts, as it should).
 
 Decided next: launch the night (one command, all four seams) and the
 finisher beside it, both detached.
+
+## 2026-11-01 21:18-21:24 — the first launch dies in one second: the library row had no type
+
+The night (launched 21:18:12) died immediately: run_night.py appends a
+`night.library` row and the ledger's closed set (core/night/events.py,
+mirrored in core/records.py and core/recipe/events.py) has never heard
+of it — `ValueError: unknown audit event type: 'night.library'`. The
+crashed seat's 20:27 dry run passed because the library path is
+`if not args.dry_run`: the dry run never appends the row. Exactly the
+three v5 types were missing (night.gpu_pool_bar, night.comfy_restart,
+night.library); every other type the runner writes was already
+registered — v4's runner wrote them all in run F.
+
+Fixed by registering NIGHT_V5_EVENT_TYPES in all three copies (the
+asserts pin them equal; core/recipe's pin is what caught the second
+copy). tests/night/test_ledger.py + tests/test_recipe_ledger.py:
+17 passed. The dry run passes (21:22). The failed launch's artifacts
+kept at artifacts/night-v5-crashed-2118, not deleted.
+
+Also: the finisher's own first launch (21:18) never started — its
+output redirect ran before the cd took effect (shell & precedence);
+the relaunch call fixes that.
