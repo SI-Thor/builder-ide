@@ -165,3 +165,54 @@ around without fighting the gate:
 - `gc` has no seat-side enforcement: a seat that does not report its burn is
   recorded as having reported nothing. The stop rule is enforced by the
   ledger refusing the checkpoint, not by the seat obeying it.
+
+## 2026-11-02 10:45 — the state at the end of the seat
+
+Three commits on the Thor (`1f05d30`, `3314410`, `fb5421a`), nothing pushed.
+28 tracked files; about 5000 lines of Rust and Python.
+
+The build is clean and **27 tests pass** (20 unit, 7 integration through the
+binary). `gc verify` walks the committed ledger: **200 rows, chain intact,
+head ff874f427616e95d**. The committed ledger is byte-identical to a fresh
+import of the seed (checked with `cmp`), so the seed and the book agree.
+
+The book, over the seeded history:
+
+- 50 jobs, all closed, all reconstructed; 50 bids; 0 retoolings.
+- crew-time promised 9540 minutes, spent 5184.5, overrun 187.4, penalties 0.
+- goal lines missed 9 of 50; debt outstanding 99 crew-minutes.
+- crew-time measured: 50 wall-clock, 0 token-counted, 0 estimated.
+
+The factors the bids are built from (clean runs only):
+
+| seat | class | n | median | q80 | factor |
+|---|---|---|---|---|---|
+| mcode | build-feature | 5 | 85.8 min | 127.9 min | 1.49 |
+| mcode | lab-experiment | 3 | 33.9 min | 58.7 min | 1.73 |
+| mcode | research-read | 4 | 26.0 min | 66.8 min | 2.57 |
+| zcode | lab-experiment | 3 | 129.7 min | 149.6 min | 1.15 |
+| pi | lab-experiment | 6 | 220.9 min | 253.8 min | 1.15 |
+
+Two of those factors rest on three runs and one on four, so they are thin.
+The report prints the runs behind every factor so the thinness is visible,
+and the confidence drops with the sample.
+
+What is left, and the risks:
+
+- **The promise curve is empty.** Every reconstructed bid is a proxy (the
+  seat's plan allowance), because no historical lane wrote down an estimate.
+  The promise/actual curve in the report stays empty until real jobs run
+  through the ledger. That is fixed by using `gc`, not by more archaeology.
+- **The factors are thin.** Between one and eight clean runs per seat and
+  class. The shrinkage and the confidence both say so; the numbers should
+  still not be trusted as a seat's true rate.
+- **`gc` cannot make a seat report.** The stop rule is enforced by the
+  ledger refusing a checkpoint, which stops an honest seat; it does not stop
+  a seat that simply never calls `gc`.
+- **The job classes are a reading.** One table in
+  `tools/extract-lanes.py`, argue with it there.
+- **`ledger.new.jsonl` is still on the Thor** from the first rebuild
+  attempt. It holds the same rows as `ledger.jsonl` and is gitignored;
+  deleting it needs a hand.
+- **`desk.sh` was not edited.** The three-line change is in
+  `docs/integration.md` for the desk's owner.
