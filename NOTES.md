@@ -1103,3 +1103,37 @@ run, so ~2 h expected.
 **Decided next.** When it finishes: run `_diag_calib.py` and
 `_diag_budget.py` (the calibration table for reading part 2), write section
 7 of `docs/lab/exp-refit-drift.md`, add the missing scripts README, commit.
+
+
+## 2026-11-02 00:40 — run2: nine of twelve runs clean, second crash in per_skill_heads; patched
+
+**What happened.** The full re-run (run2, admitted 22:06) finished the
+`seq`, `seq_replay` and `whole` arms again — the agreement numbers are
+bit-identical to run 1 (training is deterministic; only the env episodes
+differ slightly, as expected) — and then crashed in `per_skill_heads` with
+`KeyError: 'collect_wood'`: `agreement_table` measured every skill through
+`heads[name]`, but the heads are trained one at a time, so later skills have
+no head yet. The end-of-run JSON was lost a second time; the nine summary
+lines survive in `results/watching_teachers.run2.log`.
+
+**What was done.** (1) `agreement_table` now reports `None` ("not measured
+yet") for skills whose head has not been trained; nothing later writes that
+head's output, so that is the honest value, and it is the arm's design
+claim. (2) The JSON is now saved **after every run** (`save_json` inside
+the loop), not only at the end — an interrupted run leaves what it had.
+Both changes compile; the JSON for this run lands in
+`results/watching_teachers_heads.json`. (3) Re-ran only `per_skill_heads`
+× 3 seeds (the other nine runs are the verified records), 
+00:40 under the 2G lease, log `results/watching_teachers.run3.log`.
+
+**The surviving table (9 runs, two agreeing attempts).** newest/old mean/
+overall: seq 0.405/0.388/0.382 vs 0.311/0.320/0.324, 0.330/0.344/0.324
+(env 2.00–2.50); seq_replay 0.417/0.431/0.386 vs 0.424/0.434/0.427,
+0.462/0.456/0.450 (env 1.50–2.50); whole 0.455/0.456/0.459 vs
+0.502/0.496/0.489, 0.510/0.521/0.511 (env 1.75–3.00). So far: seq keeps the
+newest skill only at the price of the old ones; whole lifts everything;
+seq_replay keeps both middling.
+
+**Decided next.** When the heads arm lands: `_diag_calib.py` +
+`_diag_budget.py` (calibration), section 7 of `docs/lab/exp-refit-drift.md`,
+scripts README, commit.

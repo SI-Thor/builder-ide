@@ -248,7 +248,12 @@ def agreement_table(
             out[name] = None
             continue
         if heads is not None:
-            head = heads[name]
+            head = heads.get(name)
+            if head is None:
+                # This skill's head is not trained yet, and by the design
+                # nothing later writes its output. None = not measured.
+                out[name] = None
+                continue
             preds = student.predict_with(head, frames["obs"][mask])
         else:
             preds = student.predict_batch(frames["obs"][mask])
@@ -571,6 +576,33 @@ def main() -> int:
     started = box_state()
     runs: list[dict[str, Any]] = []
     arms = tuple(a.strip() for a in args.arms.split(",") if a.strip())
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    def save_json(runs_: list[dict[str, Any]]) -> None:
+        payload = {
+            "experiment": "watching teachers: one policy, many demonstrations",
+            "when": started.get("time"),
+            "config": {
+                **asdict(config),
+                "arms": arms,
+                "teacher_frames": str(args.frames),
+            },
+            "skills_in_order": order,
+            "skill_demo_counts": {name: counts[name] for name in order},
+            "split": {
+                name: {
+                    "train": int(len(splits[name]["train"])),
+                    "eval": int(len(splits[name]["eval"])),
+                }
+                for name in order
+            },
+            "box_state_before": started,
+            "runs": runs_,
+            "summary": summarise(runs_, order),
+        }
+        out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+
     for arm in arms:
         for seed in range(args.seeds):
             t0 = time.monotonic()
@@ -586,33 +618,10 @@ def main() -> int:
                 f"{run['seconds']:.0f}s",
                 flush=True,
             )
+            save_json(runs)
     finished = box_state()
 
-    payload = {
-        "experiment": "watching teachers: one policy, many demonstrations",
-        "when": started.get("time"),
-        "config": {
-            **asdict(config),
-            "arms": arms,
-            "teacher_frames": str(args.frames),
-        },
-        "skills_in_order": order,
-        "skill_demo_counts": {name: counts[name] for name in order},
-        "split": {
-            name: {
-                "train": int(len(splits[name]["train"])),
-                "eval": int(len(splits[name]["eval"])),
-            }
-            for name in order
-        },
-        "box_state_before": started,
-        "box_state_after": finished,
-        "runs": runs,
-        "summary": summarise(runs, order),
-    }
-    out = Path(args.out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    save_json(runs)
     print(f"\n{len(runs)} runs -> {out}")
     print(format_box_state(finished))
     return 0
