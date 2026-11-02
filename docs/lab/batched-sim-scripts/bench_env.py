@@ -37,7 +37,7 @@ from pathlib import Path
 
 import numpy as np
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
@@ -108,7 +108,15 @@ def time_steps_with_obs(batch, actions, steps: int) -> float:
     return time.perf_counter() - start
 
 
-def bench_one(device: str, batch_size: int, steps: int, reps: int, params: dict) -> dict:
+# The observation is the expensive half: every cell of every world gets a
+# line-of-sight walk. On the CPU that work does not shrink with the batch, so
+# a configuration whose observation is bigger than this is measured for the
+# step only, and the report says so.
+MAX_CPU_OBS_CELLS = 8_000_000
+
+
+def bench_one(device: str, batch_size: int, steps: int, reps: int, params: dict,
+              variant: str = "auto") -> dict:
     batch = make_batch(
         "beacons", num_envs=batch_size, rows=1, device=device, seed=0, params=params
     )
@@ -121,7 +129,15 @@ def bench_one(device: str, batch_size: int, steps: int, reps: int, params: dict)
     # buffer), so it is measured separately and not counted in the median.
     time_steps(batch, actions, min(steps, 64))
     step_times = [time_steps(batch, actions, steps) for _ in range(reps)]
-    obs_times = [time_steps_with_obs(batch, actions, steps) for _ in range(reps)]
+    obs_cells = batch_size * params["world_w"] * params["world_h"]
+    want_obs = variant in ("step_obs", "both")
+    if variant == "auto":
+        want_obs = device == "cuda" or obs_cells <= MAX_CPU_OBS_CELLS
+    obs_times = (
+        [time_steps_with_obs(batch, actions, steps) for _ in range(reps)]
+        if want_obs
+        else []
+    )
 
     def report(times: list[float]) -> dict:
         median = statistics.median(times)
@@ -133,15 +149,22 @@ def bench_one(device: str, batch_size: int, steps: int, reps: int, params: dict)
             "us_per_env_step": 1e6 * median / (batch_size * steps),
         }
 
-    return {
+    entry = {
         "device": device,
         "num_envs": batch_size,
         "steps": steps,
         "reps": reps,
         "params": params,
         "step": report(step_times),
-        "step_obs": report(obs_times),
     }
+    if obs_times:
+        entry["step_obs"] = report(obs_times)
+    else:
+        entry["step_obs"] = {
+            "skipped": f"the observation is {obs_cells} cells a step, over the "
+                       f"{MAX_CPU_OBS_CELLS} this script measures on the CPU",
+        }
+    return entry
 
 
 def require_gpu_room(need_bytes: int) -> None:
@@ -172,6 +195,10 @@ def main() -> int:
     parser.add_argument("--reps", type=int, default=7)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--world", type=int, default=128, help="the world's edge in cells")
+    parser.add_argument("--variant", default="auto",
+                        choices=["auto", "step", "step_obs", "both"],
+                        help="which variants to time; auto skips the observation "
+                             "on the CPU when it is too big to measure")
     parser.add_argument("--out", default="")
     args = parser.parse_args()
 
@@ -191,18 +218,22 @@ def main() -> int:
     for batch_size in args.batches:
         print(f"== batch {batch_size} ({args.device}, {args.world}x{args.world}) ==",
               flush=True)
-        entry = bench_one(args.device, batch_size, args.steps, args.reps, params)
+        entry = bench_one(args.device, batch_size, args.steps, args.reps, params,
+                           args.variant)
         result["results"].append(entry)
         print(
             f"   step      {entry['step']['env_steps_per_s']:>12,.0f} env-steps/s "
             f"({entry['step']['us_per_env_step']:.3f} us/env-step)",
             flush=True,
         )
-        print(
-            f"   step+obs  {entry['step_obs']['env_steps_per_s']:>12,.0f} env-steps/s "
-            f"({entry['step_obs']['us_per_env_step']:.3f} us/env-step)",
-            flush=True,
-        )
+        if "env_steps_per_s" in entry["step_obs"]:
+            print(
+                f"   step+obs  {entry['step_obs']['env_steps_per_s']:>12,.0f} env-steps/s "
+                f"({entry['step_obs']['us_per_env_step']:.3f} us/env-step)",
+                flush=True,
+            )
+        else:
+            print(f"   step+obs  skipped: {entry['step_obs']['skipped']}", flush=True)
     result["box_after"] = box_state()
 
     text = json.dumps(result, indent=2)

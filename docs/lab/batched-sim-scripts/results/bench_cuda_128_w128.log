@@ -1,0 +1,2 @@
+thor-admit: "batched-sim.bench" admitted after 0.000s (peak 3.0G, floor 25.0G)
+== batch 128 (cuda, 128x128) ==

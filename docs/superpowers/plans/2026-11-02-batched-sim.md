@@ -118,81 +118,81 @@ GPU's state bytes and the CPU's state bytes are compared byte-for-byte.
 
 ### Task 1 — toolchain and build environment
 
-- [ ] Install `uv`; create `~/lm-wt/batched-sim/.venv` with `uv venv`; install
+- [x] Install `uv`; create `~/lm-wt/batched-sim/.venv` with `uv venv`; install
   `numpy`, `pytest>=8`, `pybind11` with `uv pip install`.
-- [ ] Verify `python -c "import pybind11; print(pybind11.get_include())"`.
-- [ ] Verify a trivial `nvcc -arch=sm_110` compile of a kernel runs on the GPU.
-- [ ] Commit: `build: the venv and a CUDA smoke check`.
+- [x] Verify `python -c "import pybind11; print(pybind11.get_include())"`.
+- [x] Verify a trivial `nvcc -arch=sm_110` compile of a kernel runs on the GPU.
+- [x] Commit: `build: the venv and a CUDA smoke check`.
 
 ### Task 2 — the general interface (`core/sim/`)
 
-- [ ] `state.h`: `template <class Traits> struct Batch` with the fields from
+- [x] `state.h`: `template <class Traits> struct Batch` with the fields from
   the design doc (`d_states`, `d_terminated`, `d_reward`, `d_legal_mask`,
   `d_obs`) plus `d_worlds` for the static per-round world; `rows` is the
   rollout depth; the obs buffer's row factor is `Traits::kObsHistory`.
-- [ ] `kernels.h`: `SystemTraits`, the `Backend` vtable (reset / step / mask /
+- [x] `kernels.h`: `SystemTraits`, the `Backend` vtable (reset / step / mask /
   obs / terminate), and the registry (`register_system`, `make_backend`).
-- [ ] `bindings.cc`: module `_pysim`; `make_batch(system, num_envs, rows,
+- [x] `bindings.cc`: module `_pysim`; `make_batch(system, num_envs, rows,
   device, seed)` → a `Batch` object with `apply_actions`, `legal_action_mask`,
   `obs`, `reward`, `terminated`, `reset`, `state_bytes`, `world_bytes`.
   Every returned array is **cloned** (the backend reuses its buffers), per the
   design doc's rule.
-- [ ] `__init__.py`: `make_batch(...)` wrapper; numpy in, numpy out; a
+- [x] `__init__.py`: `make_batch(...)` wrapper; numpy in, numpy out; a
   `.torch()` helper that converts with `torch.from_numpy` when torch is
   importable (torch is **not** installed on this box — documented).
-- [ ] `CMakeLists.txt` + `build.sh`; `README.md`.
-- [ ] Commit: `core/sim: the batched-simulator interface`.
+- [x] `CMakeLists.txt` + `build.sh`; `README.md`.
+- [x] Commit: `core/sim: the batched-simulator interface`.
 
 ### Task 3 — the Beacons rules, written once (`rules.cuh`, `worldgen.cuh`)
 
-- [ ] `rules.cuh`: FNV-1a 64, SplitMix64, the grid, the Bresenham LOS, the
+- [x] `rules.cuh`: FNV-1a 64, SplitMix64, the grid, the Bresenham LOS, the
   motor's `axis_step`, the rules tick, the reward, the mask, the obs planes.
   Compiles for host **and** device (`__host__ __device__`).
-- [ ] `worldgen.cuh`: the generator, ported from `world/gen.rs`.
-- [ ] `state.h`: the POD state + traits.
-- [ ] `planes.json`: the manifest (version 1, the six planes, the nine actions).
-- [ ] Commit: `core/sim/systems/beacons: the rules, one source for host and device`.
+- [x] `worldgen.cuh`: the generator, ported from `world/gen.rs`.
+- [x] `state.h`: the POD state + traits.
+- [x] `planes.json`: the manifest (version 1, the six planes, the nine actions).
+- [x] Commit: `core/sim/systems/beacons: the rules, one source for host and device`.
 
 ### Task 4 — the Python reference (`reference.py`)
 
-- [ ] Port the semantics to Python: `Fnv64`, `Rng`, `Grid`, `los.clear`,
+- [x] Port the semantics to Python: `Fnv64`, `Rng`, `Grid`, `los.clear`,
   `worldgen`, the motor, the rules tick, the mask, the obs.
-- [ ] `tests/sim/test_beacons_rules.py`: the reference's own tests — tag stuns
+- [x] `tests/sim/test_beacons_rules.py`: the reference's own tests — tag stuns
   and respawns, a beacon in two squads is held by nobody, the score and the
   win condition, the LOS symmetry, the generator's determinism.
-- [ ] Commit: `core/sim/systems/beacons: the Python reference and its tests`.
+- [x] Commit: `core/sim/systems/beacons: the Python reference and its tests`.
 
 ### Task 5 — the CPU backend and the bindings
 
-- [ ] `host.cc`: the same `rules.cuh`, called per env.
-- [ ] `python.cpp`: registration; `make_batch("beacons", ...)`.
-- [ ] Commit: `core/sim/systems/beacons: the CPU backend`.
+- [x] `host.cc`: the same `rules.cuh`, called per env.
+- [x] `python.cpp`: registration; `make_batch("beacons", ...)`.
+- [x] Commit: `core/sim/systems/beacons: the CPU backend`.
 
 ### Task 6 — the CUDA backend
 
-- [ ] `kernels.cu`: `ResetKernel`, `StepKernel`, `MaskKernel`, `ObsKernel`,
+- [x] `kernels.cu`: `ResetKernel`, `StepKernel`, `MaskKernel`, `ObsKernel`,
   `TerminateKernel` — one thread per env (the mask and obs are one thread per
   env too: the Beacons mask is 9 bits and the obs is a per-env POV).
-- [ ] Commit: `core/sim/systems/beacons: the CUDA backend`.
+- [x] Commit: `core/sim/systems/beacons: the CUDA backend`.
 
 ### Task 7 — the equality gate
 
-- [ ] `tests/sim/test_beacons_equivalence.py`: the same seed and the same
+- [x] `tests/sim/test_beacons_equivalence.py` (the CPU half passes; the CUDA half waits for the GPU pool): the same seed and the same
   action sequence on the Python reference, the CPU backend and the CUDA
   backend; the **state bytes** compared byte-for-byte after every step, over
   several seeds and several worlds.
-- [ ] Also compare the masks and the obs bytes.
-- [ ] Commit: `core/sim: the GPU and the CPU agree byte-for-byte`.
+- [x] Also compare the masks and the obs bytes.
+- [x] Commit: `core/sim: the GPU and the CPU agree byte-for-byte` (CPU half; the CUDA half is guarded by the GPU pool).
 
 ### Task 8 — the measurements
 
-- [ ] `docs/lab/batched-sim-scripts/bench_env.py`: env steps/s at batch 128 /
+- [x] `docs/lab/batched-sim-scripts/bench_env.py`: env steps/s at batch 128 /
   1024 / 4096, the `step` variant and the `step + obs` variant, 7 repetitions
   of 2000 steps, median reported; the box state recorded before and after.
 - [ ] Run it under `thor-admit run --tier live --peak <size> --label
   batched-sim.bench -- ...`, sized against the largest free block.
 - [ ] `docs/lab/exp-batched-sim.md`: the lab note.
-- [ ] `NOTES.md` entries; commit with full messages.
+- [x] `NOTES.md` entries; commit with full messages.
 
 ---
 
@@ -205,3 +205,32 @@ GPU's state bytes and the CPU's state bytes are compared byte-for-byte.
 - Whether the observation is stored per row: the container supports it
   (`Traits::kObsHistory`), and the Beacons system declares it off, because
   200 rows of a 128×128×6-plane observation is 322 GB at batch 4096.
+
+---
+
+## Progress, 2026-11-02
+
+Done and committed:
+
+- Task 1 — the toolchain: `uv`, the repo venv, a `sm_110` kernel that ran.
+- Task 2 — the interface: `state.h`, `kernels.h`, `bindings.cc`, the registry,
+  `CMakeLists.txt`, `build.sh`, `__init__.py`, the README.
+- Task 3 — the rules, once, for the host and the device; the manifest.
+- Task 4 — the Python reference and its 25 rule tests.
+- Task 5 — the CPU backend.
+- Task 6 — the CUDA backend.
+- Task 7 — the equality gate: the **CPU half passes byte for byte** (state,
+  world, mask, observation, reward, 24 steps). The CUDA half is written and
+  runs as soon as the box's GPU pool has room.
+
+Three bugs the gate found, all in the port and all silent: the state size
+was seven bytes short (a heap overflow on every serialisation), the
+north-west move went west only, and the world generator zeroed its own
+dimensions.
+
+Waiting on the box: the GPU pool's largest free block has been between
+125 MB and 197 MB all session (it was 1035 MB at the start), and on the Thor
+a CUDA allocation that does not fit blocks in the kernel rather than
+failing. The measurement script and the CUDA half of the gate are guarded
+by that number, and a detached watcher runs them as soon as the room is
+there.

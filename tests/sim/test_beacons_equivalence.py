@@ -55,7 +55,13 @@ _CUDA_OK = False
 # kernel rather than failing**, and the process ends up in uninterruptible
 # sleep -- where a timeout cannot save it. So the room is checked *before*
 # the CUDA call, and the CUDA half is skipped rather than attempted.
-MIN_GPU_FREE_BLOCK_BYTES = 512 * 1024 * 1024
+# The threshold is low on purpose. The simulator allocates with cudaMalloc,
+# and the thing that wedged on this box was a *managed* allocation
+# (cudaMallocManaged) in a throwaway smoke program: with 184 MB of free
+# block the managed allocation blocked in the kernel, while the simulator's
+# own allocations run at 125 MB. The guard is here to catch a box with no
+# room at all, not to pretend the pool is a clock.
+MIN_GPU_FREE_BLOCK_BYTES = 64 * 1024 * 1024
 
 
 def gpu_free_block_bytes() -> int | None:
@@ -102,6 +108,16 @@ def cuda_available() -> bool:
 
 if cuda_available():
     DEVICES.append("cuda")
+
+
+def test_the_backends_that_ran():
+    """Which backends the gate actually compared.
+
+    A gate that silently skips the GPU is not a gate, so the report says
+    what it compared.
+    """
+    assert "cpu" in DEVICES
+    print(f"the gate compared: {DEVICES}")
 
 
 def action_sequence(seed: int, steps: int, num_envs: int) -> list[list[int]]:
@@ -182,10 +198,11 @@ def test_the_states_agree_byte_for_byte():
     steps = 24
     num_envs = 3
     params = params_for(world)
-    rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
     actions = action_sequence(99, steps, num_envs)
 
     for device in DEVICES:
+        # A fresh reference for every backend: the pass steps it.
+        rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
         batch = make_batch(
             "beacons", num_envs=num_envs, rows=1, device=device, seed=0,
             params={"world_w": world, "world_h": world},
@@ -208,10 +225,10 @@ def test_the_masks_agree():
     steps = 12
     num_envs = 3
     params = params_for(world)
-    rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
     actions = action_sequence(7, steps, num_envs)
 
     for device in DEVICES:
+        rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
         batch = make_batch(
             "beacons", num_envs=num_envs, rows=1, device=device, seed=0,
             params={"world_w": world, "world_h": world},
@@ -234,10 +251,10 @@ def test_the_observations_agree():
     steps = 6
     num_envs = 2
     params = params_for(world)
-    rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
     actions = action_sequence(13, steps, num_envs)
 
     for device in DEVICES:
+        rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
         batch = make_batch(
             "beacons", num_envs=num_envs, rows=1, device=device, seed=0,
             params={"world_w": world, "world_h": world},
@@ -263,10 +280,10 @@ def test_the_rewards_agree():
     steps = 40
     num_envs = 2
     params = params_for(world)
-    rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
     actions = action_sequence(23, steps, num_envs)
 
     for device in DEVICES:
+        rounds = [Round(seed, params) for seed in range(1, num_envs + 1)]
         batch = make_batch(
             "beacons", num_envs=num_envs, rows=1, device=device, seed=0,
             params={"world_w": world, "world_h": world},
