@@ -1,0 +1,49 @@
+{
+  "a": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/base-run1",
+  "b": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/base-lightdim",
+  "tol": 0,
+  "shots": 2,
+  "identical": false,
+  "withinEpsilon": false,
+  "worst": {
+    "shot": "box-detail.png",
+    "changedPct": 92.062,
+    "changedPx": 1908998,
+    "maxDelta": 63,
+    "meanDelta": 20.83,
+    "bbox": {
+      "x": 0,
+      "y": 81,
+      "w": 1920,
+      "h": 999
+    }
+  },
+  "rows": [
+    {
+      "shot": "box-detail.png",
+      "changedPct": 92.062,
+      "changedPx": 1908998,
+      "maxDelta": 63,
+      "meanDelta": 20.83,
+      "bbox": {
+        "x": 0,
+        "y": 81,
+        "w": 1920,
+        "h": 999
+      }
+    },
+    {
+      "shot": "box-wide.png",
+      "changedPct": 88.5384,
+      "changedPx": 1835933,
+      "maxDelta": 60,
+      "meanDelta": 18.226,
+      "bbox": {
+        "x": 0,
+        "y": 114,
+        "w": 1920,
+        "h": 966
+      }
+    }
+  ]
+}

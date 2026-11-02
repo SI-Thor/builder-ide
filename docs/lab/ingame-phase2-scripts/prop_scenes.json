@@ -1,0 +1,322 @@
+{
+  "_comment": [
+    "Scenes derived from our own prop prompts, by hand, one scene per prompt:",
+    "  crate   <- core/cadbakeoff/fixtures/props/crate.build123d.prompt.txt",
+    "  chest   <- core/cadbakeoff/fixtures/props/chest.build123d.prompt.txt",
+    "  lantern <- core/cadbakeoff/fixtures/props/lantern.build123d.prompt.txt",
+    "Our prompts are millimetres, Z up. topview's document is metres, Y up:",
+    "the mapping is (x, y, z)_mm/1000 -> (x, z, y)_m. Each cell of a BODIES",
+    "block becomes one add_primitive box or cylinder sized to the cell's",
+    "extent. The chest's dome is a half-cylinder, which topview's primitive",
+    "vocabulary cannot express: it is approximated by a full cylinder and the",
+    "approximation is recorded in the report. The lantern's bodies hang below",
+    "its static hook block, so every part floats above groundHeight - that is",
+    "deliberate: it is the case where the two vocabularies must disagree."
+  ],
+  "scenes": {
+    "crate": {
+      "prompt": "core/cadbakeoff/fixtures/props/crate.build123d.prompt.txt",
+      "params_mm": {
+        "width": 400,
+        "depth": 300,
+        "height": 250,
+        "plank": 18
+      },
+      "nodes": [
+        {
+          "id": "floor",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.4,
+            "height": 0.018,
+            "depth": 0.3
+          },
+          "position": {
+            "x": 0,
+            "y": 0.009,
+            "z": 0
+          }
+        },
+        {
+          "id": "wall_front",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.4,
+            "height": 0.214,
+            "depth": 0.018
+          },
+          "position": {
+            "x": 0,
+            "y": 0.125,
+            "z": -0.141
+          }
+        },
+        {
+          "id": "wall_back",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.4,
+            "height": 0.214,
+            "depth": 0.018
+          },
+          "position": {
+            "x": 0,
+            "y": 0.125,
+            "z": 0.141
+          }
+        },
+        {
+          "id": "wall_left",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.018,
+            "height": 0.214,
+            "depth": 0.264
+          },
+          "position": {
+            "x": -0.191,
+            "y": 0.125,
+            "z": 0
+          }
+        },
+        {
+          "id": "wall_right",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.018,
+            "height": 0.214,
+            "depth": 0.264
+          },
+          "position": {
+            "x": 0.191,
+            "y": 0.125,
+            "z": 0
+          }
+        },
+        {
+          "id": "lid",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.4,
+            "height": 0.018,
+            "depth": 0.3
+          },
+          "position": {
+            "x": 0,
+            "y": 0.241,
+            "z": 0
+          }
+        }
+      ],
+      "camera": {
+        "id": "cam-main",
+        "fovs": null,
+        "view": {
+          "mode": "world",
+          "position": {
+            "x": 2.2,
+            "y": 2.0,
+            "z": 1.8
+          },
+          "target": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.5
+          }
+        }
+      }
+    },
+    "chest": {
+      "prompt": "core/cadbakeoff/fixtures/props/chest.build123d.prompt.txt",
+      "params_mm": {
+        "width": 600,
+        "depth": 400,
+        "height": 400,
+        "wall": 20,
+        "dome_radius": 200
+      },
+      "nodes": [
+        {
+          "id": "bottom",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.6,
+            "height": 0.02,
+            "depth": 0.4
+          },
+          "position": {
+            "x": 0,
+            "y": 0.01,
+            "z": 0
+          }
+        },
+        {
+          "id": "wall_front",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.6,
+            "height": 0.38,
+            "depth": 0.02
+          },
+          "position": {
+            "x": 0,
+            "y": 0.21,
+            "z": -0.19
+          }
+        },
+        {
+          "id": "wall_back",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.6,
+            "height": 0.38,
+            "depth": 0.02
+          },
+          "position": {
+            "x": 0,
+            "y": 0.21,
+            "z": 0.19
+          }
+        },
+        {
+          "id": "wall_left",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.02,
+            "height": 0.38,
+            "depth": 0.36
+          },
+          "position": {
+            "x": -0.29,
+            "y": 0.21,
+            "z": 0
+          }
+        },
+        {
+          "id": "wall_right",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.02,
+            "height": 0.38,
+            "depth": 0.36
+          },
+          "position": {
+            "x": 0.29,
+            "y": 0.21,
+            "z": 0
+          }
+        },
+        {
+          "id": "dome",
+          "kind": "CylinderGeometry",
+          "parameters": {
+            "radiusTop": 0.2,
+            "radiusBottom": 0.2,
+            "height": 0.6,
+            "radialSegments": 48
+          },
+          "position": {
+            "x": 0,
+            "y": 0.4,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 0,
+            "z": 90
+          },
+          "_approximation": "the prompt's dome is a half-cylinder; topview has no half-cylinder primitive"
+        }
+      ],
+      "camera": {
+        "id": "cam-main",
+        "view": {
+          "mode": "world",
+          "position": {
+            "x": 2.4,
+            "y": 1.8,
+            "z": 1.6
+          },
+          "target": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.6
+          }
+        }
+      }
+    },
+    "lantern": {
+      "prompt": "core/cadbakeoff/fixtures/props/lantern.build123d.prompt.txt",
+      "params_mm": {
+        "lantern_radius": 90,
+        "lantern_height": 240,
+        "base_height": 30,
+        "hang_height": 420,
+        "hook_size": 40
+      },
+      "_deliberate": "the whole prop hangs from its static hook block: nothing touches y=0",
+      "nodes": [
+        {
+          "id": "hook",
+          "kind": "BoxGeometry",
+          "parameters": {
+            "width": 0.04,
+            "height": 0.04,
+            "depth": 0.04
+          },
+          "position": {
+            "x": 0,
+            "y": 0.44,
+            "z": 0
+          }
+        },
+        {
+          "id": "housing",
+          "kind": "CylinderGeometry",
+          "parameters": {
+            "radiusTop": 0.09,
+            "radiusBottom": 0.09,
+            "height": 0.24,
+            "radialSegments": 48
+          },
+          "position": {
+            "x": 0,
+            "y": 0.3,
+            "z": 0
+          }
+        },
+        {
+          "id": "base",
+          "kind": "CylinderGeometry",
+          "parameters": {
+            "radiusTop": 0.099,
+            "radiusBottom": 0.099,
+            "height": 0.03,
+            "radialSegments": 48
+          },
+          "position": {
+            "x": 0,
+            "y": 0.165,
+            "z": 0
+          }
+        }
+      ],
+      "camera": {
+        "id": "cam-main",
+        "view": {
+          "mode": "world",
+          "position": {
+            "x": 2.0,
+            "y": 1.8,
+            "z": 1.9
+          },
+          "target": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 1.05
+          }
+        }
+      }
+    }
+  }
+}

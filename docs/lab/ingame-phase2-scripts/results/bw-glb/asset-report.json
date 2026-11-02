@@ -1,0 +1,58 @@
+{
+ "ok": true,
+ "assetReport": {
+  "models": [
+   {
+    "name": "simready-box_long_a08",
+    "url": "./assets/box_long_a08.glb",
+    "loadMs": 49,
+    "meshes": 1,
+    "triangles": 4924,
+    "boundsMin": [
+     -0.069,
+     -0.154,
+     0
+    ],
+    "boundsMax": [
+     0.088,
+     0.154,
+     0.156
+    ],
+    "bottomOffset": -0.154
+   },
+   {
+    "name": "agent-world-books-room",
+    "url": "./assets/books_room.glb",
+    "loadMs": 610,
+    "meshes": 132,
+    "triangles": 5799560,
+    "boundsMin": [
+     5.761,
+     -0.109,
+     -7.381
+    ],
+    "boundsMax": [
+     14.497,
+     3.501,
+     1.668
+    ],
+    "bottomOffset": -0.109
+   }
+  ],
+  "kit": {
+   "gltfLoader": "three/examples/jsm GLTFLoader (our code)",
+   "placement": "our code"
+  }
+ },
+ "renderInfo": {
+  "calls": 134,
+  "triangles": 5804486,
+  "geometries": 78,
+  "textures": 104
+ },
+ "shots": [
+  "box-wide",
+  "box-detail",
+  "world-wide"
+ ]
+}

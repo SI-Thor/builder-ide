@@ -1,0 +1,34 @@
+{
+  "a": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/base-run1",
+  "b": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/base-run2",
+  "tol": 0,
+  "shots": 2,
+  "identical": true,
+  "withinEpsilon": true,
+  "worst": {
+    "shot": "box-detail.png",
+    "changedPct": 0,
+    "changedPx": 0,
+    "maxDelta": 0,
+    "meanDelta": 0,
+    "bbox": null
+  },
+  "rows": [
+    {
+      "shot": "box-detail.png",
+      "changedPct": 0,
+      "changedPx": 0,
+      "maxDelta": 0,
+      "meanDelta": 0,
+      "bbox": null
+    },
+    {
+      "shot": "box-wide.png",
+      "changedPct": 0,
+      "changedPx": 0,
+      "maxDelta": 0,
+      "meanDelta": 0,
+      "bbox": null
+    }
+  ]
+}

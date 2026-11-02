@@ -1,0 +1,37 @@
+{
+ "port": 8288,
+ "diag": {
+  "three": "string",
+  "hasWebGLRenderer": false,
+  "hooked": false,
+  "ready": true,
+  "info": {
+   "calls": 37937,
+   "triangles": 48832090,
+   "programs": 3,
+   "geometries": 4930,
+   "textures": 78,
+   "drawnFrames": 139,
+   "frames": 225,
+   "locked": false,
+   "tilt": 0,
+   "seam": "webgl-context + orbit-input",
+   "camera": "unreachable (window.__THREE__ is the REVISION string)"
+  },
+  "shots": [
+   "watcher-wide",
+   "watcher-detail",
+   "watcher-tilt"
+  ],
+  "canvases": 1
+ },
+ "logs": [
+  "[info] gate-shim: loaded, tilt=0, seam=webgl-context + orbit-input",
+  "[warning] [.WebGL-0x2400159a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+  "[warning] [.WebGL-0x2400159a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+  "[warning] [.WebGL-0x2400159a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels",
+  "[warning] [.WebGL-0x2400159a00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)",
+  "[log] Using version: 1.21.4",
+  "[info] gate-shim: ready after 3 drawn frames, lockstep=false"
+ ]
+}

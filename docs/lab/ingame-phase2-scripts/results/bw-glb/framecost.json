@@ -1,0 +1,69 @@
+{
+ "ok": true,
+ "port": 5199,
+ "size": "960x540",
+ "framesPerShot": 3,
+ "shotTimeoutMs": 180000,
+ "shots": [
+  {
+   "shot": "box-wide",
+   "applied": true,
+   "renderMs": [
+    0.8,
+    0.3,
+    0.3
+   ],
+   "print": {
+    "calls": 2,
+    "triangles": 4926,
+    "geometries": 78,
+    "textures": 104
+   },
+   "shutterMs": 39,
+   "pngBytes": 8300,
+   "contextLost": null
+  },
+  {
+   "shot": "box-detail",
+   "applied": true,
+   "renderMs": [
+    0.4,
+    0.3,
+    0.1
+   ],
+   "print": {
+    "calls": 2,
+    "triangles": 4926,
+    "geometries": 78,
+    "textures": 104
+   },
+   "shutterMs": 28,
+   "pngBytes": 11893,
+   "contextLost": null
+  },
+  {
+   "shot": "world-wide",
+   "applied": true,
+   "renderMs": [
+    2,
+    0.9,
+    0.6
+   ],
+   "print": {
+    "calls": 134,
+    "triangles": 5804486,
+    "geometries": 78,
+    "textures": 104
+   },
+   "shutterMs": 43,
+   "pngBytes": 54205,
+   "contextLost": null
+  }
+ ],
+ "renderInfoBoot": {
+  "calls": 134,
+  "triangles": 5804486,
+  "geometries": 78,
+  "textures": 104
+ }
+}

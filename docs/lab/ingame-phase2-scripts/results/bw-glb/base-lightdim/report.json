@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "outDir": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/base-lightdim",
+  "size": "1920x1080",
+  "isolated": true,
+  "lockstep": true,
+  "settle": 90,
+  "query": "lightdim=1",
+  "shots": [
+    {
+      "shot": "box-wide",
+      "ok": true,
+      "pixels": {
+        "mean": 20.5,
+        "std": 2.93,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 2,
+        "triangles": 4926,
+        "geometries": 78,
+        "textures": 104
+      },
+      "logs": []
+    },
+    {
+      "shot": "box-detail",
+      "ok": true,
+      "pixels": {
+        "mean": 22.5,
+        "std": 7.24,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 2,
+        "triangles": 4926,
+        "geometries": 78,
+        "textures": 104
+      },
+      "logs": []
+    }
+  ],
+  "errors": []
+}

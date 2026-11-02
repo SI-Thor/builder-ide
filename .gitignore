@@ -106,3 +106,5 @@ docs/lab/voyager-port-scripts/results/pilot-*/
 # The batched simulator's compiled module: it is built by core/sim/build.sh
 # into the package, so the package can import it, and it is not committed.
 core/sim/_pysim*.so
+# tool clones and per-tool node_modules/venvs for the ingame-phase2 runs
+third_party/

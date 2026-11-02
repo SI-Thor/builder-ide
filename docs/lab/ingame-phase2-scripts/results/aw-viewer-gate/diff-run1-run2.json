@@ -1,0 +1,62 @@
+{
+  "a": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/aw-viewer-gate/base-run1",
+  "b": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/aw-viewer-gate/base-run2",
+  "tol": 0,
+  "shots": 3,
+  "identical": false,
+  "withinEpsilon": false,
+  "worst": {
+    "shot": "watcher-tilt.png",
+    "changedPct": 0.3732,
+    "changedPx": 7738,
+    "maxDelta": 224,
+    "meanDelta": 0.117,
+    "bbox": {
+      "x": 187,
+      "y": 240,
+      "w": 1698,
+      "h": 710
+    }
+  },
+  "rows": [
+    {
+      "shot": "watcher-detail.png",
+      "changedPct": 0.3132,
+      "changedPx": 6494,
+      "maxDelta": 224,
+      "meanDelta": 0.117,
+      "bbox": {
+        "x": 0,
+        "y": 526,
+        "w": 1320,
+        "h": 538
+      }
+    },
+    {
+      "shot": "watcher-tilt.png",
+      "changedPct": 0.3732,
+      "changedPx": 7738,
+      "maxDelta": 224,
+      "meanDelta": 0.117,
+      "bbox": {
+        "x": 187,
+        "y": 240,
+        "w": 1698,
+        "h": 710
+      }
+    },
+    {
+      "shot": "watcher-wide.png",
+      "changedPct": 0.0341,
+      "changedPx": 708,
+      "maxDelta": 207,
+      "meanDelta": 0.019,
+      "bbox": {
+        "x": 493,
+        "y": 368,
+        "w": 468,
+        "h": 172
+      }
+    }
+  ]
+}

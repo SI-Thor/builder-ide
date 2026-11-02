@@ -1,0 +1,84 @@
+{
+  "ok": true,
+  "outDir": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/aw-viewer-gate/base-tilt",
+  "size": "1920x1080",
+  "isolated": true,
+  "lockstep": true,
+  "settle": 8,
+  "query": "tilt=1",
+  "shots": [
+    {
+      "shot": "watcher-wide",
+      "ok": true,
+      "pixels": {
+        "mean": 72.2,
+        "std": 33.82,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 380805,
+        "triangles": 427886642,
+        "programs": 3,
+        "geometries": 4665,
+        "textures": 182,
+        "drawnFrames": 1000,
+        "frames": 1055,
+        "locked": true,
+        "tilt": 1,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "logs": []
+    },
+    {
+      "shot": "watcher-detail",
+      "ok": true,
+      "pixels": {
+        "mean": 66.3,
+        "std": 29.43,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 173126,
+        "triangles": 196428916,
+        "programs": 3,
+        "geometries": 4250,
+        "textures": 127,
+        "drawnFrames": 480,
+        "frames": 545,
+        "locked": true,
+        "tilt": 1,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "logs": []
+    },
+    {
+      "shot": "watcher-tilt",
+      "ok": true,
+      "pixels": {
+        "mean": 64.5,
+        "std": 29.09,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 154464,
+        "triangles": 215780138,
+        "programs": 3,
+        "geometries": 4398,
+        "textures": 80,
+        "drawnFrames": 450,
+        "frames": 477,
+        "locked": true,
+        "tilt": 1,
+        "seam": "webgl-context + orbit-input",
+        "camera": "unreachable (window.__THREE__ is the REVISION string)"
+      },
+      "logs": []
+    }
+  ],
+  "errors": []
+}

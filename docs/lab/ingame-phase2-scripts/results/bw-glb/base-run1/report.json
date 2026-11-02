@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "outDir": "/home/caseydigennaro/lm-wt/ingame-phase2/docs/lab/ingame-phase2-scripts/results/bw-glb/base-run1",
+  "size": "1920x1080",
+  "isolated": true,
+  "lockstep": true,
+  "settle": 90,
+  "query": null,
+  "shots": [
+    {
+      "shot": "box-wide",
+      "ok": true,
+      "pixels": {
+        "mean": 38.3,
+        "std": 9.43,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 2,
+        "triangles": 4926,
+        "geometries": 78,
+        "textures": 104
+      },
+      "logs": []
+    },
+    {
+      "shot": "box-detail",
+      "ok": true,
+      "pixels": {
+        "mean": 42.9,
+        "std": 16.29,
+        "blank": false
+      },
+      "contextLost": null,
+      "info": {
+        "calls": 2,
+        "triangles": 4926,
+        "geometries": 78,
+        "textures": 104
+      },
+      "logs": []
+    }
+  ],
+  "errors": []
+}
