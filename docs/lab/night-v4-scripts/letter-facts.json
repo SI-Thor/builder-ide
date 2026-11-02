@@ -1,0 +1,103 @@
+{
+  "night_id": "night-v4",
+  "what": "the night-v4 seat's receipts, transcribed: the pre-run smoke's four seams and the night's first four lines. NOT a night's morning — the night did not run; the Thor hung under it at 15:50.",
+  "receipts": {
+    "smoke": "/tmp/night-v4-smoke (the pre-run smoke's transcript and ledger, on the Thor; the numbers below are transcribed from its output)",
+    "run_log": "artifacts/night-v4/run.log on the Thor (the night's first four lines, transcribed below)"
+  },
+  "wall_minutes": null,
+  "props": {
+    "kept": 0,
+    "winners": [],
+    "note": "the night did not run: the Thor hung at 15:50 while the night's lease was still queued"
+  },
+  "decisions": {
+    "count": 0,
+    "local": 0,
+    "escalated": 0,
+    "surfaced": 0,
+    "note": "no decisions were made: the night never got past its lease"
+  },
+  "judge": {
+    "model": "d1-3B",
+    "order": "canonical",
+    "route_probe": {
+      "steps": 10,
+      "accuracy": 0.4,
+      "decoy_first_accuracy": 0.5714,
+      "truth_first_accuracy": 0.0,
+      "tau": 0.76,
+      "tau_source": "calibrated",
+      "latency_p50_s": 0.055,
+      "note": "ten of the fixed recorder's states, asked on this box in the pre-run smoke; the night's own 240-state probe did not run"
+    }
+  },
+  "critic": {
+    "prior": {
+      "fitted": true,
+      "approved_members": 0,
+      "reference_members": 38,
+      "groups": 22,
+      "largest_group": 7,
+      "ghost_threshold": 0.05,
+      "note": "a group of n cannot score below 0.5/(n+1), so the ghost gate needs ten members in a group and cannot fire on this fit"
+    },
+    "signals": [
+      {
+        "stage": "image",
+        "picture": "crate_s102_00001_.png (the night's own prop picture, from run D's tree)",
+        "fired": ["holes"],
+        "probabilities": {
+          "black_frame": 0.003,
+          "noise_fireflies": 0.031,
+          "missing_object": 0.206,
+          "holes": 0.51,
+          "texture_swap": 0.057,
+          "floating_object": 0.009
+        },
+        "wall_s": 2.391
+      },
+      {
+        "stage": "mesh",
+        "occupied_volume": 0.994439,
+        "signed_volume": 0.912258,
+        "occupied_method": "convex",
+        "note": "the crate, measured in the pre-run probe"
+      },
+      {
+        "stage": "mesh",
+        "occupied_volume": 0.326282,
+        "signed_volume": 0.027029,
+        "occupied_method": "convex",
+        "note": "the lantern: the signed volume is a twelfth of the occupied one"
+      }
+    ]
+  },
+  "memory": {
+    "heavy_peak": "40G",
+    "phase_peak": "8G",
+    "lease_wait_s": 232,
+    "lease_kind": "thor-admit",
+    "note": "the night's lease never came: the box went off the network while it was queued"
+  },
+  "box": {
+    "at_the_start": {
+      "ts": "2026-11-01T15:42:57-09:00",
+      "load1": 18.89,
+      "MemTotal": 122.8,
+      "MemAvailable": 79.1
+    },
+    "at_the_smoke": {
+      "ts": "2026-11-01T15:23:00-09:00",
+      "load1": 19.04,
+      "MemTotal": 122.8,
+      "MemAvailable": 60.3
+    }
+  },
+  "run_log_head": [
+    "[night] 15:42:57 the night begins; box: {'ts': '2026-11-01T15:42:57-09:00', 'load1': 18.89, 'MemTotal': 122.8, 'MemAvailable': 79.1}",
+    "[night] 15:42:58 d1-3B already answers on :8295",
+    "[night] 15:42:58 d1-2B already answers on :8296",
+    "[night] 15:42:58 queueing for a thor-admit lease (night-v4.heavy, peak 40G: the night's heavy phase: ComfyUI, the world's renders, the props)"
+  ]
+}

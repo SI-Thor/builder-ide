@@ -541,3 +541,124 @@ lease was admitted in 0.02 s.
 `docs/lab/night-v4-scripts/run_night.py` (the diff against night-v3 is the
 change and nothing else), the README beside it says how to run it and how long
 it takes, and the smoke's four seams are all green.
+
+---
+
+## 2026-11-01 15:42-15:50 — the night starts, and the box goes off the network
+
+**What I did.** Started the night from the night-v4 worktree:
+
+```
+mkdir -p artifacts/night-v4 && nohup setsid env XLA_PYTHON_CLIENT_PREALLOCATE=false \
+  PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
+  docs/lab/night-v4-scripts/run_night.py --out artifacts/night-v4 \
+  > artifacts/night-v4/run.log 2>&1 &
+```
+
+**What happened.** The night began at 15:42:57 with the box at load1 18.9 and
+79.1 GB free of 122.8 GB. Two lines are worth keeping:
+
+```
+[night] 15:42:58 d1-3B already answers on :8295
+[night] 15:42:58 d1-2B already answers on :8296
+[night] 15:42:58 queueing for a thor-admit lease (night-v4.heavy, peak 40G:
+          the night's heavy phase: ComfyUI, the world's renders, the props)
+```
+
+The two decision servers were **already resident** — they were the ones my
+pre-run smoke had started at 15:32:30 (the smoke's `kill` did not take, and
+llama-server kept running). They are the right models on the right ports with
+the right flags, so the runner found them healthy and reused them
+(`started: false`) instead of starting its own. Their *start* was under the
+smoke's own lease (`night-v4.smoke`, 8 GB), not under the night's heavy
+lease. That is a fact about this run, not a claim about the night.
+
+The heavy lease did not come. The daemon's rule is
+`available − Σ(reserved − current) − peak ≥ floor` (25 GiB), so with the
+box's lab-motion seat holding a 25 GB reservation and 60-79 GB free, a 40 GB
+lease needs about 90 GB free before it is admitted. The night's lease waited
+232 s in the queue behind nothing, with `serve.glide` (58 GB) and
+`crafter-lab.env-setup` (3 GB) queued behind it. Run D waited 914.9 s for the
+same lease, so the wait is the box's business and the ledger records it.
+
+**Then the box went off the network.** At about 15:50 the Thor stopped
+answering: `connect to host 192.168.0.78 port 22: No route to host`, and a
+ping from the desk gave `Destination Host Unreachable`. The rest of the LAN
+is fine (the gateway 192.168.0.1 and the Jetson 192.168.0.50 both answer), so
+it is the machine, not the network.
+
+**What I decided next.** Nothing on the box is reachable, so nothing can be
+committed there until it comes back. The wiring is already committed
+(`night-v4: the wiring, before the run`), the smoke's four seams are green,
+and the run's own artifacts are on the box's disk — if the machine comes back
+with its disk intact, the night's ledger and log are there and the night can
+be judged from what it wrote; if the night process did not survive, the night
+is restarted from the same commit.
+
+---
+
+## 2026-11-01 15:50-16:30 — the Thor hung under the night
+
+**What happened.** The night started at 15:42:57, found the two decision
+servers already resident (the pre-run smoke's, at 15:32:30 — the smoke's
+`kill` did not take), and queued for its `thor-admit` lease: label
+`night-v4.heavy`, peak 40 GB. The lease never came. The daemon's rule is
+`available − Σ(reserved − current) − peak ≥ floor` (25 GiB), so with the
+box's lab-motion seat holding a 25 GB reservation and 60-79 GB free, a 40 GB
+lease needs about 90 GB free. The night's lease waited 232 s with nothing in
+front of it, and `serve.glide` (58 GB) and `crafter-lab.env-setup` (3 GB)
+queued behind it. (Run D waited 914.9 s for the same lease, so the wait is
+the box's business and the ledger records it.)
+
+At about 15:50 the Thor went off the network: `connect to host
+192.168.0.78 port 22: No route to host`, and a ping from the desk gave
+`Destination Host Unreachable`. The rest of the LAN was fine — the gateway
+192.168.0.1 and the Jetson 192.168.0.50 both answered, and a scan of the
+whole /24 for SSH found only the Jetson, so the Thor did not come back with a
+new address. Twice the TCP connection was made and then the SSH banner never
+arrived, which is the signature of a machine whose network stack is alive
+and whose userspace is not.
+
+**What it is.** This is the same failure the Thor had at 10:45 today
+(`docs/lab/incident-2026-11-01-jax-hang.md`): the box drops off the network
+under memory pressure, "unreachable" is not "dead", and it needs a **power
+cycle**. That incident's cause was a lab-motion seat's MJX (JAX) spike
+started outside a lease; the daemon was showing that seat's lease
+(`lab-motion.ppo-matrix-v2`, 25 GB) live when the box went, and the seat's
+notes from the ProArt side still carry its 10:40 entry about the MJX spike.
+That is circumstantial, not a diagnosis — the journal on the box would say,
+and the box is what would say it. My night was queued and idle: it had not
+loaded anything and it had no lease.
+
+**What I did while the box was down.** Everything that does not need it:
+- `docs/lab/night-v4-scripts/measure.py` — the measurement script: wall
+  time, GPU-minutes against the rail, the lease waits, the decisions by
+  rung, the props kept and rejected and why, and the diff against run D.
+  Run D through it: 152.61 min, 25.74 GPU-min against the 60-minute rail,
+  one lease of kind `thor-admit` that waited 914.9 s, five decisions on the
+  local d1-2B and five on Jev (two surfaced), three props kept and fifteen
+  rejected.
+- `docs/lab/night-v4-scripts/write_letter.py` — the letter: at most 150
+  words, one surprise, one open question, both chosen by rule from the
+  night's own measurements. It refuses to write over the limit and prints
+  the count. With `--facts` it writes the letter from the seat's other
+  receipts (the pre-run smoke's transcript and the night's log head, which
+  `letter-facts.json` transcribes and names), for the case where the night
+  itself has not run; with the night's `morning.json` it writes the letter
+  from the morning.
+- `docs/lab/night-v4.md` — the lab record: the facts the change stands on,
+  why the old way failed, what changed, the pre-run measurements, the
+  night's own start and the crash, the measurements that exist beside the
+  box state, the diffs against run D on each of the four things, the
+  letter, what it makes possible, and what was not verified.
+
+**What I decided next.** The wiring is committed and the four seams are
+green, so the night is one command away when the box is back:
+
+    cd ~/lm-wt/night-v4 && nohup setsid env XLA_PYTHON_CLIENT_PREALLOCATE=false \
+      PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
+      docs/lab/night-v4-scripts/run_night.py --out artifacts/night-v4 \
+      > artifacts/night-v4/run.log 2>&1 &
+
+The crashed attempt's artifacts are kept, not deleted: a night that started
+and then lost the box is evidence too.
