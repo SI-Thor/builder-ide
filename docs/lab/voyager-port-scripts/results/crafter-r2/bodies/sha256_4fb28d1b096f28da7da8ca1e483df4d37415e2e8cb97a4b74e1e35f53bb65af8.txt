@@ -1,0 +1,38 @@
+const done = () => (mc.achievements().make_wood_pickaxe || 0) > 0;
+const tryCraft = (n) => {
+  for (let i = 0; i < n && !done(); i++) mc.act('make_wood_pickaxe', 1);
+};
+const trySleep = (n) => {
+  for (let i = 0; i < n && !done(); i++) mc.act('sleep', 1);
+};
+const tryDo = (n) => {
+  for (let i = 0; i < n && !done(); i++) mc.act('do', 1);
+};
+const visit = (dx, dy, fn) => {
+  if (dx < 0) mc.move('left', -dx);
+  else if (dx > 0) mc.move('right', dx);
+  if (dy < 0) mc.move('up', -dy);
+  else if (dy > 0) mc.move('down', dy);
+  fn();
+  if (dx < 0) mc.move('right', -dx);
+  else if (dx > 0) mc.move('left', -dx);
+  if (dy < 0) mc.move('down', -dy);
+  else if (dy > 0) mc.move('up', -dy);
+};
+const spiral = (radius, fn) => {
+  if (fn(0, 0)) return true;
+  for (let r = 1; r <= radius && !done(); r++) {
+    for (let dx = -r; dx <= r && !done(); dx++) {
+      for (let dy = -r; dy <= r && !done(); dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        fn(dx, dy);
+      }
+    }
+  }
+  return done();
+};
+trySleep(8);
+if (!done()) spiral(10, (dx, dy) => visit(dx, dy, () => { tryDo(2); tryCraft(3); }));
+if (!done()) trySleep(8);
+if (!done()) spiral(16, (dx, dy) => visit(dx, dy, () => { tryDo(2); tryCraft(3); }));
+console.log('wood pickaxe: ' + (done() ? 'crafted' : 'not crafted'));

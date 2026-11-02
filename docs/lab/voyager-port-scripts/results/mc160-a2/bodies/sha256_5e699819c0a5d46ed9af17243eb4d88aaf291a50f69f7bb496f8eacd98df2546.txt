@@ -1,0 +1,59 @@
+(async () => {
+  const done = () => mc.count('oak_log').count > 0;
+  if (done()) {
+    console.log('Already have oak_log.');
+    return;
+  }
+
+  const target = { x: -3, y: 66, z: 103 };
+  const spots = [
+    { x: -4, y: 66, z: 103 },
+    { x: -2, y: 66, z: 103 },
+    { x: -3, y: 66, z: 102 },
+    { x: -3, y: 66, z: 104 },
+    { x: -3, y: 67, z: 103 }
+  ];
+
+  const tryGet = async () => {
+    await mc.look_at(target.x, target.y, target.z);
+    const m = await mc.mine_block('oak_log', 64, 1);
+    if (m && m.mined > 0) {
+      await mc.sleep(500);
+      const c = await mc.collect('oak_log', 1, 16);
+      if (c && c.collected > 0) {
+        console.log('Mined and collected oak_log.');
+        return true;
+      }
+    }
+    return done();
+  };
+
+  const near = await mc.move_to_block('oak_log', 128, 120000);
+  if (near && near.block) {
+    target.x = near.block.x;
+    target.y = near.block.y;
+    target.z = near.block.z;
+  }
+  if (await tryGet()) return;
+
+  for (const s of spots) {
+    const r = await mc.move_to(s.x, s.y, s.z, 60000);
+    if (r && r.at) {
+      target.x = r.at.x;
+      target.y = r.at.y;
+      target.z = r.at.z;
+    }
+    if (await tryGet()) return;
+  }
+
+  const direct = await mc.move_to(target.x, target.y, target.z, 120000);
+  if (direct && direct.at) {
+    target.x = direct.at.x;
+    target.y = direct.at.y;
+    target.z = direct.at.z;
+  }
+  if (await tryGet()) return;
+
+  console.log('Failed to collect oak_log.');
+  throw new Error('No oak_log collected.');
+})();

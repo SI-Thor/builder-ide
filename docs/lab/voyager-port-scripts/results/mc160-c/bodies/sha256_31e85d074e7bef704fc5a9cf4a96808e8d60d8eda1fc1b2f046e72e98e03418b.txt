@@ -1,0 +1,10 @@
+const move = mc.move_to_block('oak_log', 128, 120000);
+if (move.why) console.log('move note: ' + move.why);
+const mine = mc.mine_block('oak_log', 64, 1);
+if (mine.problem) throw new Error(String(mine.problem));
+if (mine.mined < 1) throw new Error('oak_log was not mined');
+const collect = mc.collect('oak_log', 1, 64);
+if (collect.problem) throw new Error(String(collect.problem));
+const have = mc.count('oak_log').count;
+if (have < 1) throw new Error('oak_log was not collected');
+console.log('Traveled to oak log, mined ' + mine.mined + ', collected ' + collect.collected + ', have ' + have + '.');

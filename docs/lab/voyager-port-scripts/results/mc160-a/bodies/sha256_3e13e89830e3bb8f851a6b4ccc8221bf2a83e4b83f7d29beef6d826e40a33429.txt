@@ -1,0 +1,75 @@
+(async () => {
+  const logIds = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+  const isLog = (b) => typeof b === 'string' && b.endsWith('_log');
+  const hasWood = async () => {
+    for (const id of logIds) {
+      const r = await mc.count(id);
+      if (r && r.count > 0) return true;
+    }
+    return false;
+  };
+  const collectLogs = async () => {
+    for (const id of logIds) {
+      const c = await mc.collect(id, 64, 64);
+      if (c && c.collected > 0) console.log('collected ' + id + ' ' + c.collected);
+    }
+  };
+  const scanLogs = async (radius) => {
+    const s = await mc.scan(radius);
+    const nearby = s && s.nearby ? s.nearby : {};
+    return Object.keys(nearby).filter(isLog);
+  };
+  const harvest = async (block) => {
+    const approach = await mc.move_to_block(block, 128, 60000);
+    console.log('approach ' + block + ' ' + JSON.stringify(approach && approach.at) + ' ' + (approach && approach.why || ''));
+    if (approach && approach.block) {
+      await mc.look_at(approach.block.x, approach.block.y, approach.block.z);
+    }
+    for (let i = 0; i < 24; i++) {
+      const m = await mc.mine_block(block, 64, 64);
+      console.log('mine ' + block + ' mined=' + (m && m.mined || 0) + ' ' + (m && m.problem || ''));
+      if (!m || !m.mined) break;
+      await collectLogs();
+      if (await hasWood()) return true;
+    }
+    await collectLogs();
+    return await hasWood();
+  };
+  const tryHere = async () => {
+    const found = await scanLogs(160);
+    for (const b of found) {
+      if (await harvest(b)) return true;
+    }
+    return false;
+  };
+  if (await hasWood()) {
+    console.log('already have wood');
+    return;
+  }
+  if (await tryHere()) {
+    console.log('got wood');
+    return;
+  }
+  let x = 37.6;
+  let y = 67;
+  let z = 44.7;
+  const dirs = [[0,-1],[1,0],[0,1],[-1,0],[1,-1],[-1,1],[-1,-1],[1,1]];
+  for (let step = 1; step <= 48; step++) {
+    for (const [dx,dz] of dirs) {
+      const targetX = x + dx * 10;
+      const targetZ = z + dz * 10;
+      const mv = await mc.move_to(targetX, y, targetZ, 20000);
+      if (mv && mv.at) {
+        x = mv.at.x;
+        y = mv.at.y;
+        z = mv.at.z;
+      }
+      console.log('walk to ' + JSON.stringify({x,y,z}) + ' ' + (mv && mv.why || ''));
+      if (await tryHere()) {
+        console.log('got wood');
+        return;
+      }
+    }
+  }
+  throw new Error('no tree found');
+})();

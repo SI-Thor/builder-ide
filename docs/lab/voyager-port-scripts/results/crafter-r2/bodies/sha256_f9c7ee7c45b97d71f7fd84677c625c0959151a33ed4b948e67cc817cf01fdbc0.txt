@@ -1,0 +1,98 @@
+import time
+
+def log(msg):
+    print(msg)
+
+def done():
+    try:
+        a = mc.achievements()
+    except Exception:
+        return False
+    if not a:
+        return False
+    v = a.get("make_wood_pickaxe")
+    return v is True or (isinstance(v, int) and v > 0)
+
+def wood_count():
+    try:
+        inv = mc.inventory()
+    except Exception:
+        inv = None
+    if isinstance(inv, dict):
+        w = inv.get("wood")
+        if isinstance(w, int):
+            return w
+    try:
+        a = mc.achievements()
+    except Exception:
+        return 0
+    if isinstance(a, dict):
+        w = a.get("collect_wood")
+        if isinstance(w, int):
+            return w
+    return 0
+
+def try_craft():
+    if done():
+        return True
+    if wood_count() >= 2:
+        try:
+            mc.act("place_table", 1)
+        except Exception:
+            pass
+        try:
+            mc.act("make_wood_pickaxe", 1)
+        except Exception:
+            pass
+    return done()
+
+def refill_energy():
+    for _ in range(3):
+        if done():
+            return
+        try:
+            mc.act("do", 1)
+        except Exception:
+            pass
+        try:
+            mc.act("sleep", 1)
+        except Exception:
+            pass
+
+def chop_tree_once():
+    if done():
+        return
+    try:
+        mc.move("left", 2)
+    except Exception:
+        pass
+    try:
+        mc.move("up", 1)
+    except Exception:
+        pass
+    for _ in range(2):
+        try:
+            mc.act("do", 5)
+        except Exception:
+            pass
+    try:
+        mc.move("down", 1)
+    except Exception:
+        pass
+    try:
+        mc.move("right", 2)
+    except Exception:
+        pass
+
+log("craft wood pickaxe: start")
+refill_energy()
+for _ in range(6):
+    if done():
+        break
+    chop_tree_once()
+    if try_craft():
+        break
+if done():
+    log("craft wood pickaxe: crafted wood pickaxe")
+else:
+    log("craft wood pickaxe: failed")

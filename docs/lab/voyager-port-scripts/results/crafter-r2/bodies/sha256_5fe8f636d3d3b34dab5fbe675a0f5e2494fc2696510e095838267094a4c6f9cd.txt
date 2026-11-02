@@ -1,0 +1,7 @@
+console.log("collect wood: restore energy, go to tree, chop, pick up");
+mc.act("do", 1);
+mc.move("left", 4);
+mc.move("up", 3);
+mc.act("do", 1);
+mc.act("do", 1);
+console.log("collect wood: done");

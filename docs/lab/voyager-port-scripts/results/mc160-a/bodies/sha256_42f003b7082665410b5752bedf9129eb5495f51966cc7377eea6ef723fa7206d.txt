@@ -1,0 +1,14 @@
+const LOGS=['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+const pos=()=>mc.scan(1).then(()=>mc.move_to(37.6,67,44.7,1000)).then(r=>r&&r.at).catch(()=>null);
+const hasWood=async()=>{for(const id of LOGS){const r=await mc.count(id);if(r&&r.count>0)return true;}return false;};
+const collectLogs=async()=>{for(const id of LOGS){const c=await mc.collect(id,64,64);if(c&&c.collected>0)console.log('collected '+c.collected+' '+id);}};
+const mineLog=async(id,block)=>{if(block){await mc.look_at(block.x,block.y,block.z);}for(let i=0;i<20;i++){const m=await mc.mine_block(id,64,64);if(!m)break;console.log('mine '+id+' mined='+(m.mined||0)+' '+(m.problem||''));if(m.mined>0){await collectLogs();if(await hasWood())return true;}else break;}return false;};
+const tryNearby=async()=>{const s=await mc.scan(120);const nb=(s&&s.nearby)||{};for(const id of LOGS){if(!nb[id])continue;const mv=await mc.move_to_block(id,128,30000);if(mv&&mv.block){if(await mineLog(id,mv.block))return true;}else{console.log('move_to_block failed '+id+' '+(mv&&mv.why||''));}}return false;};
+if(await hasWood()){console.log('already have wood');return;}
+if(await tryNearby()){console.log('got wood');return;}
+let cur=await pos();if(!cur){cur={x:37.6,y:67,z:44.7};}
+const dirs=[[1,0],[0,1],[-1,0],[0,-1],[1,1],[-1,1],[-1,-1],[1,-1]];
+for(let step=1;step<=48;step++){for(const[dx,dz]of dirs){const tx=cur.x+dx*step*12,tz=cur.z+dz*step*12;const mv=await mc.move_to(tx,cur.y,tz,25000);if(mv&&mv.at){cur=mv.at;console.log('moved to '+cur.x+','+cur.y+','+cur.z+' '+(mv.why||''));}if(await tryNearby()){console.log('got wood');return;}await sleep(200);}}
+throw new Error('no tree found');

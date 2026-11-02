@@ -1,0 +1,65 @@
+console.log("start: eat, find table, craft wood pickaxe");
+
+const done = () => Boolean(mc.achievements().get("make_wood_pickaxe"));
+
+const tryCraft = () => {
+  mc.act("make_wood_pickaxe", 1);
+  if (done()) {
+    console.log("wood pickaxe crafted: yes");
+    return true;
+  }
+  return false;
+};
+
+const eat = (times) => {
+  mc.act("do", times);
+};
+
+const search = (dx, dy) => {
+  mc.move("down", dy);
+  mc.move("right", dx);
+  if (tryCraft()) return true;
+  mc.act("do", 1);
+  if (tryCraft()) return true;
+  mc.move("left", dx);
+  mc.move("up", dy);
+  return false;
+};
+
+const searchRadius = (r) => {
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      if (search(dx, dy)) return true;
+    }
+  }
+  return false;
+};
+
+if (tryCraft()) {
+  console.log("wood pickaxe already available: yes");
+} else {
+  eat(9);
+  if (tryCraft()) {
+    console.log("wood pickaxe crafted after eating: yes");
+  } else {
+    mc.act("sleep", 1);
+    if (tryCraft()) {
+      console.log("wood pickaxe crafted after sleep: yes");
+    } else {
+      if (searchRadius(2)) {
+        console.log("wood pickaxe crafted after nearby search: yes");
+      } else if (searchRadius(4)) {
+        console.log("wood pickaxe crafted after wider search: yes");
+      } else {
+        mc.act("sleep", 50);
+        eat(9);
+        if (tryCraft()) {
+          console.log("wood pickaxe crafted after long sleep: yes");
+        } else {
+          console.log("wood pickaxe crafted: no");
+        }
+      }
+    }
+  }
+}

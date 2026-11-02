@@ -1,0 +1,14 @@
+mc.act('sleep', 1)
+mc.move('right', 2)
+mc.move('down', 3)
+mc.act('do', 3)
+for r in range(1, 7):
+    for d in ('right', 'down', 'left', 'up'):
+        mc.move(d, r)
+        mc.act('do', 3)
+        mc.move('left' if d == 'right' else 'right' if d == 'left' else 'up' if d == 'down' else 'down', r)
+mc.move('up', 3)
+mc.move('left', 2)
+mc.move('right', 4)
+mc.act('make_stone_pickaxe', 1)
+print('stone_pickaxe=' + str(1 if mc.achievements().get('make_stone_pickaxe') else 0))

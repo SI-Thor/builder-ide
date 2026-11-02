@@ -1,0 +1,176 @@
+[03:23:36] the run starts: world=crafter hours=4.0 max_steps=200 max_tokens=3000000
+[03:23:36] the roles: planner=XiaomiMiMo/MiMo-V2.6-Pro coder=Qwen/Qwen3.8-27B verifier=Qwen/Qwen3.8-Max
+[03:23:37] the crafter world is open
+[03:24:17] step 1: goal=collect_wood verdict=DENIED truth=False disposition=rejected tokens=5045
+[03:25:01] step 2: goal=collect_wood verdict=DENIED truth=False disposition=rejected tokens=5085
+[03:25:49] step 3: goal=collect_wood verdict=DENIED truth=False disposition=rejected tokens=5128
+[03:26:27] step 4: goal=collect_wood verdict=DENIED truth=False disposition=rejected tokens=5169
+[03:27:25] step 5: goal=collect_wood verdict=CONFIRMED truth=True disposition=admitted tokens=5500
+[03:28:19] step 6: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=6917
+[03:29:15] step 7: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=6947
+[03:31:49] step 8: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=12413
+[03:32:57] step 9: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7641
+[03:34:21] step 10: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7718
+[03:35:51] step 11: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=6784
+[03:37:30] step 12: the world failed: TileRefusal("tile_unknown: 'tile_53379430fece' is not in the library")
+[03:38:39] step 13: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7023
+[03:41:59] step 14: the world failed: TileRefusal("tile_unknown: 'tile_ffc593f7eeee' is not in the library")
+[03:43:21] step 15: the world failed: TileRefusal("tile_unknown: 'tile_f740f4975a06' is not in the library")
+[03:44:46] step 16: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7510
+[03:46:01] step 17: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7268
+[03:49:21] step 18: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8240
+[03:50:57] step 19: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8385
+[03:53:09] step 20: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8313
+[03:54:22] step 21: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7212
+[03:56:30] the episode ends with 4 achievements; a fresh episode begins (number 2)
+[03:56:36] step 22: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7352
+[03:58:05] step 23: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7382
+[04:00:31] step 24: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8041
+[04:02:33] step 25: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8271
+[04:03:47] step 26: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7996
+[04:05:11] step 27: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7510
+[04:06:22] step 28: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8057
+[04:07:18] step 29: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7329
+[04:08:06] step 30: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7455
+[04:08:55] step 31: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7238
+[04:09:43] the episode ends with 2 achievements; a fresh episode begins (number 3)
+[04:09:49] step 32: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7370
+[04:10:47] step 33: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7437
+[04:12:06] the episode ends with 2 achievements; a fresh episode begins (number 4)
+[04:12:11] step 34: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7256
+[04:13:14] step 35: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7541
+[04:14:10] step 36: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7537
+[04:15:26] step 37: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7955
+[04:16:13] step 38: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7537
+[04:17:09] step 39: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7104
+[04:17:53] step 40: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7242
+[04:18:55] step 41: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7697
+[04:20:03] step 42: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8099
+[04:21:17] step 43: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8424
+[04:22:37] step 44: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8786
+[04:23:42] step 45: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8846
+[04:24:55] step 46: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8722
+[04:26:13] step 47: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8053
+[04:28:17] the episode ends with 7 achievements; a fresh episode begins (number 5)
+[04:28:23] step 48: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8645
+[04:29:10] step 49: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7915
+[04:30:04] step 50: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7847
+[04:31:13] step 51: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7698
+[04:32:24] step 52: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7959
+[04:33:55] step 53: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7093
+[04:35:21] step 54: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7036
+[04:36:28] step 55: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7622
+[04:37:50] step 56: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7391
+[04:38:37] the episode ends with 4 achievements; a fresh episode begins (number 6)
+[04:38:42] step 57: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7386
+[04:39:52] step 58: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7709
+[04:40:58] step 59: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7633
+[04:41:44] step 60: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=6829
+[04:43:11] step 61: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8123
+[04:44:14] step 62: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7023
+[04:45:21] step 63: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7832
+[04:48:27] step 64: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=13495
+[04:48:41] step 65: failed (planner_unreadable: no JSON object in the reply [finish_reason='stop'])
+[04:49:30] step 66: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7440
+[04:50:54] step 67: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8096
+[04:52:07] step 68: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7899
+[04:53:15] step 69: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7832
+[04:54:01] step 70: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7223
+[04:54:40] step 71: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7094
+[04:55:49] step 72: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7224
+[04:56:38] step 73: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7495
+[04:57:31] step 74: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7304
+[04:58:35] step 75: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7016
+[04:59:34] step 76: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7493
+[05:00:32] step 77: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7523
+[05:01:37] step 78: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7364
+[05:02:59] step 79: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7890
+[05:04:24] step 80: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8373
+[05:05:17] step 81: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7578
+[05:06:15] step 82: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7889
+[05:07:18] step 83: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7676
+[05:09:16] step 84: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7788
+[05:10:12] step 85: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7536
+[05:11:29] step 86: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8025
+[05:12:42] step 87: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7728
+[05:13:55] step 88: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7610
+[05:15:10] step 89: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7842
+[05:16:58] step 90: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=9703
+[05:19:18] the episode ends with 3 achievements; a fresh episode begins (number 7)
+[05:19:23] step 91: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=13896
+[05:20:37] step 92: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7651
+[05:21:42] step 93: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7908
+[05:22:40] step 94: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7874
+[05:23:35] step 95: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7513
+[05:24:33] step 96: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7020
+[05:26:19] step 97: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7139
+[05:28:07] step 98: goal=make_wood_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7882
+[05:29:34] step 99: goal=make_wood_pickaxe verdict=CONFIRMED truth=True disposition=admitted tokens=7428
+[05:30:44] step 100: goal=collect_stone verdict=DENIED truth=False disposition=rejected tokens=6962
+[05:32:06] step 101: goal=collect_stone verdict=DENIED truth=False disposition=rejected tokens=7564
+[05:33:27] step 102: goal=collect_stone verdict=DENIED truth=False disposition=rejected tokens=7344
+[05:34:44] the episode ends with 8 achievements; a fresh episode begins (number 8)
+[05:34:50] step 103: goal=collect_stone verdict=CONFIRMED truth=True disposition=admitted tokens=7377
+[05:36:24] step 104: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8107
+[05:37:41] step 105: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7744
+[05:39:11] the episode ends with 5 achievements; a fresh episode begins (number 9)
+[05:39:20] step 106: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7568
+[05:41:31] step 107: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7582
+[05:43:22] step 108: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8130
+[05:45:23] step 109: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8246
+[05:47:45] step 110: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7571
+[05:49:05] step 111: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7480
+[05:50:37] step 112: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7138
+[05:51:53] step 113: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7343
+[05:53:19] step 114: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7763
+[05:54:37] the episode ends with 3 achievements; a fresh episode begins (number 10)
+[05:54:42] step 115: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8129
+[05:56:02] step 116: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7620
+[05:57:41] step 117: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8554
+[06:00:13] step 118: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8595
+[06:01:46] step 119: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8386
+[06:03:11] the episode ends with 5 achievements; a fresh episode begins (number 11)
+[06:03:17] step 120: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8586
+[06:07:11] step 121: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=15322
+[06:08:25] the episode ends with 5 achievements; a fresh episode begins (number 12)
+[06:08:31] step 122: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7863
+[06:10:29] step 123: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8571
+[06:14:34] the episode ends with 5 achievements; a fresh episode begins (number 13)
+[06:14:39] step 124: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=9692
+[06:16:14] step 125: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8804
+[06:18:23] the episode ends with 5 achievements; a fresh episode begins (number 14)
+[06:18:28] step 126: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=9120
+[06:20:36] step 127: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8717
+[06:22:27] step 128: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=9238
+[06:26:14] step 129: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=15089
+[06:27:40] step 130: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8041
+[06:29:51] step 131: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8454
+[06:33:17] the episode ends with 1 achievements; a fresh episode begins (number 15)
+[06:33:24] step 132: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=9283
+[06:36:35] step 133: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=15222
+[06:39:15] step 134: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=15222
+[06:39:39] step 135: failed (planner_unreadable: no JSON object in the reply [finish_reason='stop'])
+[06:41:04] step 136: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8282
+[06:43:24] step 137: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8885
+[06:44:49] step 138: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8955
+[06:46:16] step 139: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8418
+[06:47:34] step 140: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8143
+[06:48:45] step 141: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7484
+[06:50:18] step 142: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7968
+[06:51:29] step 143: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8021
+[06:54:22] step 144: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=14179
+[06:56:01] step 145: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8883
+[06:57:46] step 146: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=9257
+[07:01:11] step 147: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=13721
+[07:02:59] step 148: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7219
+[07:04:21] the episode ends with 3 achievements; a fresh episode begins (number 16)
+[07:04:26] step 149: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7470
+[07:07:15] step 150: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7684
+[07:11:01] the episode ends with 4 achievements; a fresh episode begins (number 17)
+[07:11:06] step 151: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=7728
+[07:15:13] step 152: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8255
+[07:17:39] step 153: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8441
+[07:19:50] the episode ends with 5 achievements; a fresh episode begins (number 18)
+[07:19:55] step 154: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=8512
+[07:25:34] step 155: goal=make_stone_pickaxe verdict=DENIED truth=False disposition=rejected tokens=14162
+[07:25:34] the run ends: steps=152 unique_items=10 milestones=['collect_wood', 'make_wood_pickaxe', 'collect_stone'] admitted=3 rejected=150 tokens=1230853

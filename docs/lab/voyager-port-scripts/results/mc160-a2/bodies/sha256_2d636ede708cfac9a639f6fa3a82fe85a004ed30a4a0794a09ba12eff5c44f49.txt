@@ -1,0 +1,49 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+  const hasLog = () => mc.count('oak_log').count > 0;
+
+  if (hasLog()) {
+    console.log('Already holding oak_log.');
+    return;
+  }
+
+  const tryMine = async () => {
+    await mc.look_at(target.x, target.y, target.z);
+    const m = await mc.mine_block('oak_log', 64, 1);
+    if (m && m.mined > 0) {
+      await mc.sleep(500);
+      if (hasLog()) {
+        console.log('Mined and collected oak_log.');
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const r1 = await mc.move_to_block('oak_log', 128, 300000);
+  if (r1 && r1.block) {
+    target.x = r1.block.x;
+    target.y = r1.block.y;
+    target.z = r1.block.z;
+  }
+  if (await tryMine()) return;
+
+  const r2 = await mc.move_to(target.x, target.y, target.z, 300000);
+  if (r2 && r2.at) {
+    target.x = r2.at.x;
+    target.y = r2.at.y;
+    target.z = r2.at.z;
+  }
+  if (await tryMine()) return;
+
+  const r3 = await mc.move_to_block('oak_log', 128, 300000);
+  if (r3 && r3.block) {
+    target.x = r3.block.x;
+    target.y = r3.block.y;
+    target.z = r3.block.z;
+  }
+  if (await tryMine()) return;
+
+  console.log('Failed to collect oak_log.');
+  throw new Error('No oak_log collected.');
+})();

@@ -1,0 +1,44 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+
+  const found = await mc.move_to_block('oak_log', 128, 600000);
+  const pos = found && found.block ? found.block : target;
+  let at = found && found.at ? found.at : { x: 39.6, y: 66, z: 26.7 };
+
+  const tryMine = async () => {
+    await mc.look_at(pos.x, pos.y, pos.z);
+    const mine = await mc.mine_block('oak_log', 64, 1);
+    if (mine && mine.mined > 0) {
+      await mc.sleep(500);
+      const collected = await mc.collect('oak_log', 64, 64);
+      const count = mc.count('oak_log').count;
+      console.log(`Mined ${mine.mined} oak_log, collected ${collected ? collected.collected : 0}; now holding ${count}.`);
+      return count > 0;
+    }
+    return false;
+  };
+
+  if (dist(at, pos) <= 12 && await tryMine()) return;
+
+  const spots = [
+    [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1],
+    [1, 0, 1], [1, 0, -1], [-1, 0, 1], [-1, 0, -1],
+    [0, 1, 0], [0, -1, 0], [1, 1, 0], [-1, 1, 0],
+    [0, 1, 1], [0, 1, -1], [1, 1, 1], [-1, 1, 1]
+  ];
+
+  for (const [dx, dy, dz] of spots) {
+    const moved = await mc.move_to(pos.x + dx, pos.y + dy, pos.z + dz, 120000);
+    if (moved && moved.at) at = moved.at;
+    if (dist(at, pos) <= 12 && await tryMine()) return;
+  }
+
+  const moved = await mc.move_to(pos.x, pos.y, pos.z, 600000);
+  if (moved && moved.at) at = moved.at;
+  if (dist(at, pos) <= 12 && await tryMine()) return;
+
+  const held = mc.count('oak_log').count;
+  console.log(`Failed to collect oak_log; holding ${held}.`);
+  if (held === 0) throw new Error('No oak_log collected.');
+})();

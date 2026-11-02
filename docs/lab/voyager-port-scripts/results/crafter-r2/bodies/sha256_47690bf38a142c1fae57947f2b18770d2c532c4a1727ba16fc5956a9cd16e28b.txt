@@ -1,0 +1,33 @@
+def done():
+    return bool(mc.achievements().get('make_wood_pickaxe', False))
+
+for _ in range(10):
+    if done():
+        break
+    mc.act('do', 1)
+
+if not done():
+    mc.act('make_wood_pickaxe', 1)
+
+if not done():
+    for radius in range(1, 13):
+        if done():
+            break
+        for direction in ['right', 'down', 'left', 'up']:
+            if done():
+                break
+            mc.move(direction, radius)
+            for _ in range(8):
+                if done():
+                    break
+                mc.act('do', 1)
+            if not done():
+                mc.act('make_wood_pickaxe', 1)
+            if not done():
+                mc.move({'right': 'left', 'left': 'right', 'up': 'down', 'down': 'up'}[direction], radius)
+
+if not done():
+    mc.act('place_table', 1)
+    mc.act('make_wood_pickaxe', 1)
+
+print('wood pickaxe: ' + ('crafted' if done() else 'not crafted'))

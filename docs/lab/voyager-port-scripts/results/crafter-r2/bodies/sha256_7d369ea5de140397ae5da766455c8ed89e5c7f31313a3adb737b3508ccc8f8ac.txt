@@ -1,0 +1,43 @@
+const done = () => Boolean(mc.achievements().make_wood_pickaxe);
+const dirs = ['right', 'down', 'left', 'up'];
+const opposite = { right: 'left', left: 'right', up: 'down', down: 'up' };
+
+const eat = (n) => {
+  for (let i = 0; i < n && !done(); i++) {
+    mc.act('do', 1);
+  }
+};
+
+const tryChop = () => {
+  for (let i = 0; i < 6 && !done(); i++) {
+    mc.act('do', 1);
+  }
+};
+
+const tryCraft = () => {
+  mc.act('make_wood_pickaxe', 1);
+};
+
+eat(8);
+tryChop();
+tryCraft();
+
+if (!done()) {
+  for (let r = 1; r <= 12 && !done(); r++) {
+    for (let d = 0; d < 4 && !done(); d++) {
+      const dir = dirs[d];
+      mc.move(dir, r);
+      tryChop();
+      tryCraft();
+      if (done()) break;
+      mc.move(opposite[dir], r);
+    }
+  }
+}
+
+if (!done()) {
+  mc.act('place_table', 1);
+  tryCraft();
+}
+
+console.log('wood pickaxe: ' + (done() ? 'crafted' : 'not crafted'));

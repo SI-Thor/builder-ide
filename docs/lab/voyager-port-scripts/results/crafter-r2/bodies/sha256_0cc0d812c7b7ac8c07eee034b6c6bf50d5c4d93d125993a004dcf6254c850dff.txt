@@ -1,0 +1,43 @@
+print('sleeping to restore energy')
+mc.act('sleep', 1)
+
+try:
+    stone_before = int(mc.achievements().get('collect_stone', 0) or 0)
+except Exception:
+    stone_before = 0
+print('stone before mining: ' + str(stone_before))
+
+dirs = ['right', 'down', 'left', 'up']
+opp = {'right': 'left', 'left': 'right', 'down': 'up', 'up': 'down'}
+
+def stone_count():
+    try:
+        return int(mc.achievements().get('collect_stone', 0) or 0)
+    except Exception:
+        return 0
+
+def sweep(radius):
+    for r in range(1, radius + 1):
+        for d in dirs:
+            mc.move(d, r)
+            mc.act('do', 1)
+            mc.move(opp[d], r)
+
+sweep(4)
+print('stone after first sweep: ' + str(stone_count()))
+
+if stone_count() < 3:
+    sweep(8)
+    print('stone after second sweep: ' + str(stone_count()))
+
+if stone_count() < 3:
+    sweep(12)
+    print('stone after third sweep: ' + str(stone_count()))
+
+print('placing a table to craft at')
+mc.act('place_table', 1)
+print('crafting stone pickaxe')
+mc.act('make_stone_pickaxe', 1)
+
+made = bool(mc.achievements().get('make_stone_pickaxe', False))
+print('stone_pickaxe=' + ('1' if made else '0'))

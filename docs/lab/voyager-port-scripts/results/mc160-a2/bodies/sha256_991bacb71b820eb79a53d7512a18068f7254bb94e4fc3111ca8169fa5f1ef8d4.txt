@@ -1,0 +1,44 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+  const move = await mc.move_to_block('oak_log', 128, 600000);
+  if (move && move.block) {
+    target.x = move.block.x;
+    target.y = move.block.y;
+    target.z = move.block.z;
+  }
+
+  const spots = [
+    { x: target.x - 1, y: target.y, z: target.z },
+    { x: target.x + 1, y: target.y, z: target.z },
+    { x: target.x, y: target.y, z: target.z - 1 },
+    { x: target.x, y: target.y, z: target.z + 1 },
+    { x: target.x - 1, y: target.y, z: target.z - 1 },
+    { x: target.x + 1, y: target.y, z: target.z + 1 },
+    { x: target.x, y: target.y + 1, z: target.z }
+  ];
+
+  let mined = 0;
+  for (const spot of spots) {
+    await mc.move_to(spot.x, spot.y, spot.z, 30000);
+    await mc.look_at(target.x, target.y, target.z);
+    const result = await mc.mine_block('oak_log', 64, 1);
+    if (result && result.mined > 0) {
+      mined += result.mined;
+      break;
+    }
+  }
+
+  if (mined > 0) {
+    await mc.sleep(1000);
+    await mc.collect('oak_log', 1, 64);
+  }
+
+  const count = mc.count('oak_log').count;
+  if (count > 0) {
+    console.log('Collected ' + count + ' oak_log.');
+    return;
+  }
+
+  console.log('Failed to collect oak_log.');
+  throw new Error('No oak_log collected.');
+})();

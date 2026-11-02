@@ -1,0 +1,47 @@
+function done() {
+  return !!mc.achievements().make_wood_pickaxe;
+}
+
+function tryCraft() {
+  if (done()) return true;
+  mc.act("make_wood_pickaxe", 1);
+  return done();
+}
+
+function chopTree() {
+  if (done()) return;
+  mc.act("do", 1);
+  if (done()) return;
+  mc.move("right", 1);
+  mc.act("do", 1);
+  if (done()) return;
+  mc.move("down", 1);
+  mc.act("do", 1);
+  if (done()) return;
+  mc.move("up", 1);
+  mc.act("do", 1);
+  if (done()) return;
+  mc.move("left", 1);
+  mc.act("do", 1);
+}
+
+print("starting wood pickaxe skill");
+
+if (!done()) {
+  tryCraft();
+}
+
+if (!done()) {
+  chopTree();
+}
+
+if (!done()) {
+  tryCraft();
+}
+
+if (!done()) {
+  mc.act("sleep", 1);
+  tryCraft();
+}
+
+print("wood pickaxe crafted: " + (done() ? "yes" : "no"));

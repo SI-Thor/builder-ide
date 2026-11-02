@@ -1,0 +1,10 @@
+const target = { x: 19, y: 79, z: -51 };
+const move = mc.move_to(target.x, target.y + 1, target.z, 30000);
+console.log('moved near oak_log:', move);
+mc.look_at(target.x, target.y, target.z);
+const mine = mc.mine_block('oak_log', 6, 1);
+console.log('mined oak_log:', mine);
+const collect = mc.collect('oak_log', 1, 8);
+console.log('collected oak_log:', collect);
+const have = mc.count('oak_log');
+console.log('wood in inventory:', have.count);

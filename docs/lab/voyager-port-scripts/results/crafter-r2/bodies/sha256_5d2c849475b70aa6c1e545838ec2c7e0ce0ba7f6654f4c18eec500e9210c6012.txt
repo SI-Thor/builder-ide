@@ -1,0 +1,15 @@
+print("sleep, then sweep nearby tiles for stone")
+if not mc.achievements().get("collect_stone"):
+    mc.act("sleep", 1)
+if not mc.achievements().get("collect_stone"):
+    mc.act("do", 1)
+for r in range(1, 29):
+    if mc.achievements().get("collect_stone"):
+        break
+    for d in ("right", "down", "left", "up"):
+        for s in range(1, r + 1):
+            if mc.achievements().get("collect_stone"):
+                break
+            mc.move(d, 1)
+            mc.act("do", 1)
+print("collect_stone:", "yes" if mc.achievements().get("collect_stone") else "no")

@@ -1,0 +1,29 @@
+console.log("wood pickaxe: start");
+var done = function () {
+  return mc.achievements().make_wood_pickaxe === true;
+};
+var craft = function () {
+  if (done()) return true;
+  mc.act("make_wood_pickaxe", 1);
+  return done();
+};
+var eat = function (n) {
+  for (var i = 0; i < n && !done(); i++) {
+    mc.act("do", 1);
+  }
+};
+var sleep = function (n) {
+  for (var i = 0; i < n && !done(); i++) {
+    mc.act("sleep", 1);
+  }
+};
+if (!craft()) {
+  eat(4);
+  if (!craft()) eat(3);
+  if (!craft()) sleep(1);
+  if (!craft()) sleep(1);
+  if (!craft()) eat(4);
+  if (!craft()) eat(3);
+  if (!craft()) sleep(2);
+}
+console.log("wood pickaxe: " + (done() ? "crafted" : "failed"));

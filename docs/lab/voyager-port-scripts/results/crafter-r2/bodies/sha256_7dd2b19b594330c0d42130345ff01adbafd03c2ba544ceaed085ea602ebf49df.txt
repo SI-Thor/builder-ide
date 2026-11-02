@@ -1,0 +1,98 @@
+def ach():
+    return mc.achievements()
+
+def num(v):
+    if isinstance(v, bool):
+        return 1 if v else 0
+    if isinstance(v, (int, float)):
+        return max(0, int(v))
+    return 0
+
+def stone_count():
+    return num(ach().get('collect_stone', 0))
+
+def done():
+    return num(ach().get('make_stone_pickaxe', 0)) > 0
+
+def try_craft():
+    if done():
+        return True
+    mc.act('make_stone_pickaxe', 1)
+    return done()
+
+def sweep_once():
+    if done() or stone_count() >= 3:
+        return
+    mc.act('do', 1)
+
+def sweep_cross():
+    sweep_once()
+    mc.act('move_left', 1)
+    sweep_once()
+    mc.act('move_right', 1)
+    sweep_once()
+    mc.act('move_up', 1)
+    sweep_once()
+    mc.act('move_down', 1)
+    sweep_once()
+
+def sweep_square(r):
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            if done() or stone_count() >= 3:
+                return
+            if dx > 0:
+                mc.move('right', dx)
+            elif dx < 0:
+                mc.move('left', -dx)
+            if dy > 0:
+                mc.move('down', dy)
+            elif dy < 0:
+                mc.move('up', -dy)
+            sweep_once()
+            if dx > 0:
+                mc.move('left', dx)
+            elif dx < 0:
+                mc.move('right', -dx)
+            if dy > 0:
+                mc.move('up', dy)
+            elif dy < 0:
+                mc.move('down', -dy)
+
+def search_table(r):
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            if done():
+                return True
+            if dx > 0:
+                mc.move('right', dx)
+            elif dx < 0:
+                mc.move('left', -dx)
+            if dy > 0:
+                mc.move('down', dy)
+            elif dy < 0:
+                mc.move('up', -dy)
+            if try_craft():
+                return True
+            if dx > 0:
+                mc.move('left', dx)
+            elif dx < 0:
+                mc.move('right', -dx)
+            if dy > 0:
+                mc.move('up', dy)
+            elif dy < 0:
+                mc.move('down', -dy)
+    return False
+
+mc.act('sleep', 1)
+for r in range(0, 12):
+    if done() or stone_count() >= 3:
+        break
+    sweep_square(r)
+
+if not done() and stone_count() >= 1:
+    for r in range(0, 16):
+        if search_table(r):
+            break
+
+print('stone=' + str(stone_count()) + ' stone_pickaxe=' + str(done()))

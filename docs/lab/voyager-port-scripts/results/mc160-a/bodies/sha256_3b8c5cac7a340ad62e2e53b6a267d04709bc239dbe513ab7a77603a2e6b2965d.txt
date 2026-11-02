@@ -1,0 +1,68 @@
+(async () => {
+  const start = { x: 37.6, y: 67, z: 44.7 };
+  const logTypes = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+  const isLog = (b) => typeof b === 'string' && b.endsWith('_log');
+
+  const scanForLog = async (radius) => {
+    const s = await mc.scan(radius);
+    const found = Object.keys(s.nearby || {}).find(isLog);
+    if (found) {
+      console.log('scan found ' + found + ' at radius ' + radius);
+      return found;
+    }
+    return null;
+  };
+
+  const tryMine = async (type) => {
+    for (let i = 0; i < 6; i++) {
+      const m = await mc.mine_block(type, 64, 1);
+      console.log('mine ' + type + ': ' + (m.mined || 0) + ' ' + (m.problem || ''));
+      if (m.mined) {
+        const c = await mc.collect(type, 64, 64);
+        console.log('collected ' + (c.collected || 0) + ' ' + type + ' ' + (c.problem || ''));
+        const h = await mc.count(type);
+        if (h.count > 0) {
+          console.log('goal met: have ' + h.count + ' ' + type);
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const tryMoveAndMine = async (type) => {
+    const approach = await mc.move_to_block(type, 128, 45000);
+    console.log('move_to_block ' + type + ' at ' + JSON.stringify(approach.at) + ' ' + (approach.why || ''));
+    if (approach.block) {
+      await mc.look_at(approach.block.x, approach.block.y, approach.block.z);
+      if (await tryMine(type)) return true;
+    }
+    return false;
+  };
+
+  const tryAllLogs = async () => {
+    for (const t of logTypes) {
+      if (await tryMoveAndMine(t)) return true;
+    }
+    return false;
+  };
+
+  if (await tryAllLogs()) return;
+
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+  for (let ring = 1; ring <= 12; ring++) {
+    for (const [dx, dz] of dirs) {
+      const tx = start.x + dx * ring * 8;
+      const tz = start.z + dz * ring * 8;
+      const mv = await mc.move_to(tx, start.y, tz, 20000);
+      console.log('explore ring ' + ring + ' to ' + JSON.stringify(mv.at) + ' ' + (mv.why || ''));
+      const found = await scanForLog(64);
+      if (found) {
+        if (await tryMoveAndMine(found)) return;
+      }
+      if (await tryAllLogs()) return;
+    }
+  }
+
+  throw new Error('no log found or mined');
+})();

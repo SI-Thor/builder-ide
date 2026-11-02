@@ -1,0 +1,8 @@
+const move = mc.move_to_block('oak_log', 16, 30000);
+console.log('moved to oak_log:', move);
+const mine = mc.mine_block('oak_log', 16, 1);
+console.log('mined oak_log:', mine);
+const collect = mc.collect('oak_log', 64, 16);
+console.log('collected oak_log:', collect);
+const have = mc.count('oak_log');
+console.log('wood in inventory:', have.count);

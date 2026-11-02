@@ -1,0 +1,31 @@
+console.log("start: consume energy, spiral outward, mine stone");
+
+const ach = mc.achievements();
+const stoneDone = ach.get ? ach.get("collect_stone") : ach.collect_stone;
+
+if (!stoneDone) {
+  mc.act("do", 7);
+}
+
+let found = Boolean(stoneDone);
+const maxRadius = 24;
+
+for (let r = 1; r <= maxRadius && !found; r++) {
+  const dirs = [
+    ["right", r],
+    ["down", r],
+    ["left", r],
+    ["up", r]
+  ];
+  for (const [dir, steps] of dirs) {
+    mc.move(dir, steps);
+    mc.act("do", 1);
+    const a = mc.achievements();
+    found = Boolean(a.get ? a.get("collect_stone") : a.collect_stone);
+    if (found) break;
+  }
+}
+
+const finalAch = mc.achievements();
+const finalStone = finalAch.get ? finalAch.get("collect_stone") : finalAch.collect_stone;
+console.log("collect_stone: " + (finalStone ? "yes" : "no"));

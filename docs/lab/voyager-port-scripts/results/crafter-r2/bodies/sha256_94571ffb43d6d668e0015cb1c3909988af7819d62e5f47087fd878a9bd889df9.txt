@@ -1,0 +1,74 @@
+print("sleeping to refill energy")
+mc.act("sleep", 1)
+
+print("sweeping nearby tiles for stone")
+for r in range(0, 65):
+    for dx in range(-r, r + 1):
+        for dy in range(-r, r + 1):
+            if max(abs(dx), abs(dy)) != r:
+                continue
+            if dx > 0:
+                mc.move("right", dx)
+            elif dx < 0:
+                mc.move("left", -dx)
+            if dy > 0:
+                mc.move("down", dy)
+            elif dy < 0:
+                mc.move("up", -dy)
+            mc.act("do", 16)
+            mc.move("left", 1)
+            mc.act("do", 16)
+            mc.move("right", 2)
+            mc.act("do", 16)
+            mc.move("left", 1)
+            mc.move("up", 1)
+            mc.act("do", 16)
+            mc.move("down", 2)
+            mc.act("do", 16)
+            mc.move("up", 1)
+            if dx > 0:
+                mc.move("left", dx)
+            elif dx < 0:
+                mc.move("right", -dx)
+            if dy > 0:
+                mc.move("up", dy)
+            elif dy < 0:
+                mc.move("down", -dy)
+            if mc.achievements().get("collect_stone"):
+                break
+        if mc.achievements().get("collect_stone"):
+            break
+    if mc.achievements().get("collect_stone"):
+        break
+
+print("crafting stone pickaxe")
+for r in range(0, 97):
+    for dx in range(-r, r + 1):
+        for dy in range(-r, r + 1):
+            if max(abs(dx), abs(dy)) != r:
+                continue
+            if dx > 0:
+                mc.move("right", dx)
+            elif dx < 0:
+                mc.move("left", -dx)
+            if dy > 0:
+                mc.move("down", dy)
+            elif dy < 0:
+                mc.move("up", -dy)
+            mc.act("make_stone_pickaxe", 1)
+            if dx > 0:
+                mc.move("left", dx)
+            elif dx < 0:
+                mc.move("right", -dx)
+            if dy > 0:
+                mc.move("up", dy)
+            elif dy < 0:
+                mc.move("down", -dy)
+            if mc.achievements().get("make_stone_pickaxe"):
+                break
+        if mc.achievements().get("make_stone_pickaxe"):
+            break
+    if mc.achievements().get("make_stone_pickaxe"):
+        break
+
+print("stone pickaxe crafted:", bool(mc.achievements().get("make_stone_pickaxe")))

@@ -1,0 +1,63 @@
+const ITEM = 'oak_log';
+const TARGET = { x: 2, y: 71, z: -39 };
+
+function logs() {
+  const r = mc.count(ITEM);
+  return r && typeof r.count === 'number' ? r.count : 0;
+}
+
+function tryBreakAndCollect(maxDistance, mineTries, collectTries) {
+  mc.look_at(TARGET.x + 0.5, TARGET.y + 0.5, TARGET.z + 0.5);
+  mc.sleep(200);
+
+  for (let i = 0; i < mineTries && logs() < 1; i++) {
+    const m = mc.mine_block(ITEM, maxDistance, 1);
+    console.log('mine: ' + JSON.stringify(m));
+    mc.sleep(300);
+  }
+
+  for (let i = 0; i < collectTries && logs() < 1; i++) {
+    const c = mc.collect(ITEM, 1, maxDistance);
+    console.log('collect: ' + JSON.stringify(c));
+    mc.sleep(250);
+  }
+
+  return logs();
+}
+
+let n = logs();
+console.log('start ' + ITEM + ': ' + n);
+
+if (n < 1) {
+  const mv = mc.move_to_block(ITEM, 16, 60000);
+  console.log('move_to_block: ' + JSON.stringify(mv));
+  n = tryBreakAndCollect(8, 10, 10);
+}
+
+if (n < 1) {
+  const mv = mc.move_to(TARGET.x + 0.5, TARGET.y + 0.5, TARGET.z + 0.5, 60000);
+  console.log('move_to: ' + JSON.stringify(mv));
+  n = tryBreakAndCollect(8, 12, 12);
+}
+
+if (n < 1) {
+  const spots = [
+    [3, 71, -39],
+    [1, 71, -39],
+    [2, 71, -38],
+    [2, 71, -40],
+    [3, 71, -38],
+    [1, 71, -38],
+    [3, 71, -40],
+    [1, 71, -40]
+  ];
+
+  for (const s of spots) {
+    if (n >= 1) break;
+    const mv = mc.move_to(s[0] + 0.5, s[1] + 0.5, s[2] + 0.5, 30000);
+    console.log('move_to ' + s.join(',') + ': ' + JSON.stringify(mv));
+    n = tryBreakAndCollect(6, 8, 8);
+  }
+}
+
+console.log('final ' + ITEM + ': ' + n);

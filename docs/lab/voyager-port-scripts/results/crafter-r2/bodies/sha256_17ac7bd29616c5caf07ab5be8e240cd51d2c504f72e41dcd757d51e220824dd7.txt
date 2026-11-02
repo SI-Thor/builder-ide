@@ -1,0 +1,46 @@
+print("wood pickaxe: start")
+
+def done():
+    return mc.achievements().get("make_wood_pickaxe", False) is True
+
+def try_craft():
+    if done():
+        return True
+    mc.act("make_wood_pickaxe", 1)
+    if done():
+        return True
+    mc.act("do", 1)
+    return done()
+
+if try_craft():
+    print("wood pickaxe: already crafted")
+else:
+    mc.move("right", 4)
+    mc.move("up", 3)
+    for _ in range(12):
+        mc.act("do", 1)
+        if done():
+            break
+    mc.move("left", 4)
+    mc.move("down", 3)
+    if try_craft():
+        print("wood pickaxe: crafted")
+    else:
+        probes = [
+            ("left", 1), ("right", 1), ("up", 1), ("down", 1),
+            ("left", 2), ("right", 2), ("up", 2), ("down", 2),
+            ("left", 3), ("right", 3), ("up", 3), ("down", 3),
+            ("left", 4), ("right", 4), ("up", 4), ("down", 4)
+        ]
+        ok = False
+        for direction, steps in probes:
+            mc.move(direction, steps)
+            if try_craft():
+                ok = True
+                break
+            back = {"left": "right", "right": "left", "up": "down", "down": "up"}[direction]
+            mc.move(back, steps)
+        if not ok:
+            mc.act("place_table", 1)
+            ok = try_craft()
+        print("wood pickaxe: " + ("crafted" if ok else "failed"))

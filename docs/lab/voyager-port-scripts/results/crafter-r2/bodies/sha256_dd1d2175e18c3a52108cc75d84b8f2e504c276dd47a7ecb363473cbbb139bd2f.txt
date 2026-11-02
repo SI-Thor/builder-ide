@@ -1,0 +1,47 @@
+print("collect wood and craft wood pickaxe: start")
+
+def done():
+    a = mc.achievements()
+    return bool(a and a.get("make_wood_pickaxe"))
+
+def wood_count():
+    a = mc.achievements()
+    if a and isinstance(a.get("collect_wood"), int):
+        return a["collect_wood"]
+    return 0
+
+def try_craft():
+    if done():
+        return True
+    if wood_count() >= 3:
+        mc.act("place_table", 1)
+        mc.act("make_wood_pickaxe", 1)
+    return done()
+
+def refill_energy():
+    for _ in range(3):
+        if done():
+            return
+        mc.act("sleep", 1)
+
+def collect_wood_once():
+    if done():
+        return
+    mc.move("left", 1)
+    mc.move("up", 1)
+    mc.act("do", 5)
+    mc.move("down", 1)
+    mc.move("right", 1)
+
+refill_energy()
+for _ in range(6):
+    if done():
+        break
+    collect_wood_once()
+    if try_craft():
+        break
+
+if done():
+    print("collect wood and craft wood pickaxe: crafted wood pickaxe")
+else:
+    print("collect wood and craft wood pickaxe: failed")

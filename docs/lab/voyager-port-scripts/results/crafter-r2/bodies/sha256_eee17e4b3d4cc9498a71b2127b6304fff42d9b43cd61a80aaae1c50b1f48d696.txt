@@ -1,0 +1,51 @@
+console.log("wood pickaxe: start");
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const tryCraft = async () => {
+  await mc.act("make_wood_pickaxe", 1);
+  return mc.achievements().make_wood_pickaxe === true;
+};
+const tryTable = async (dir, steps) => {
+  if (steps <= 0) return false;
+  await mc.move(dir, steps);
+  if (await tryCraft()) return true;
+  await mc.act("do", 1);
+  if (await tryCraft()) return true;
+  await mc.act("place_table", 1);
+  if (await tryCraft()) return true;
+  await mc.move(dir === "left" ? "right" : dir === "right" ? "left" : dir === "up" ? "down" : "up", steps);
+  return false;
+};
+const restoreEnergy = async () => {
+  for (let i = 0; i < 8; i++) {
+    await mc.act("sleep", 1);
+    await mc.act("do", 1);
+    if (await tryCraft()) return true;
+  }
+  return false;
+};
+if (await restoreEnergy()) {
+  console.log("wood pickaxe: crafted after energy");
+} else {
+  const dirs = [
+    { dir: "left", steps: 3 },
+    { dir: "up", steps: 2 },
+    { dir: "right", steps: 3 },
+    { dir: "down", steps: 2 },
+    { dir: "left", steps: 4 },
+    { dir: "up", steps: 3 },
+    { dir: "right", steps: 4 },
+    { dir: "down", steps: 3 }
+  ];
+  let done = false;
+  for (const { dir, steps } of dirs) {
+    if (await tryTable(dir, steps)) {
+      done = true;
+      break;
+    }
+  }
+  if (!done) {
+    await mc.act("place_table", 1);
+    done = await tryCraft();
+  }
+  console.log(done ? "wood pickaxe: crafted" : "wood pickaxe: failed");
+}

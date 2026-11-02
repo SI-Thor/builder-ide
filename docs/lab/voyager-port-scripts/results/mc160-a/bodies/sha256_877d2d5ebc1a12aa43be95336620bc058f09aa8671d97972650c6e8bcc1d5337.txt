@@ -1,0 +1,70 @@
+(async () => {
+  const logs = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+  const start = { x: 37.6, y: 67, z: 44.7 };
+
+  const hasWood = async () => {
+    for (const id of logs) {
+      const c = await mc.count(id);
+      if (c && c.count > 0) return true;
+    }
+    return false;
+  };
+
+  const harvest = async (id) => {
+    const approach = await mc.move_to_block(id, 128, 60000);
+    console.log('approach ' + id + ' at ' + JSON.stringify(approach.at) + ' ' + (approach.why || ''));
+    if (approach.block) {
+      await mc.look_at(approach.block.x, approach.block.y, approach.block.z);
+    }
+
+    for (let i = 0; i < 12; i++) {
+      const m = await mc.mine_block(id, 8, 1);
+      console.log('mine ' + id + ' mined=' + (m.mined || 0) + ' ' + (m.problem || ''));
+      if (!m.mined) break;
+
+      const c = await mc.collect(id, 64, 16);
+      console.log('collect ' + id + ' collected=' + (c.collected || 0) + ' ' + (c.problem || ''));
+      if (await hasWood()) {
+        console.log('got wood');
+        return true;
+      }
+    }
+    return false;
+  };
+
+  if (await hasWood()) {
+    console.log('already have wood');
+    return;
+  }
+
+  const initial = await mc.scan(160);
+  const initialLogs = Object.keys(initial.nearby || {}).filter((b) => logs.includes(b));
+  for (const id of initialLogs) {
+    if (await harvest(id)) return;
+  }
+
+  for (const id of logs) {
+    if (await harvest(id)) return;
+  }
+
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+  for (let ring = 1; ring <= 12; ring++) {
+    for (const [dx, dz] of dirs) {
+      const tx = start.x + dx * ring * 12;
+      const tz = start.z + dz * ring * 12;
+      const mv = await mc.move_to(tx, start.y, tz, 20000);
+      console.log('walk to ' + JSON.stringify(mv.at) + ' ' + (mv.why || ''));
+
+      const s = await mc.scan(160);
+      const found = Object.keys(s.nearby || {}).filter((b) => logs.includes(b));
+      for (const id of found) {
+        if (await harvest(id)) return;
+      }
+      for (const id of logs) {
+        if (await harvest(id)) return;
+      }
+    }
+  }
+
+  throw new Error('no wood found');
+})();

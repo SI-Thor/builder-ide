@@ -1,0 +1,63 @@
+const LOG = 'oak_log';
+const TARGET = { x: 16, y: 74, z: -29 };
+const CENTER = { x: TARGET.x + 0.5, y: TARGET.y + 0.5, z: TARGET.z + 0.5 };
+
+function countLog() {
+  const r = mc.count(LOG);
+  return r && typeof r.count === 'number' ? r.count : 0;
+}
+
+function attempt(reach) {
+  mc.look_at(CENTER.x, CENTER.y, CENTER.z);
+  mc.sleep(250);
+  const m = mc.mine_block(LOG, reach, 1);
+  console.log('mine ' + reach + ': ' + JSON.stringify(m));
+  mc.sleep(600);
+  const c = mc.collect(LOG, 1, reach);
+  console.log('collect ' + reach + ': ' + JSON.stringify(c));
+  mc.sleep(250);
+}
+
+console.log('start ' + LOG + ' count: ' + countLog());
+
+if (countLog() === 0) {
+  attempt(64);
+}
+
+if (countLog() === 0) {
+  const mv = mc.move_to_block(LOG, 64, 60000);
+  console.log('move_to_block: ' + JSON.stringify(mv));
+  attempt(16);
+}
+
+if (countLog() === 0) {
+  const spots = [
+    { x: TARGET.x + 1.5, y: TARGET.y + 0.5, z: TARGET.z + 0.5 },
+    { x: TARGET.x - 0.5, y: TARGET.y + 0.5, z: TARGET.z + 0.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y + 0.5, z: TARGET.z + 1.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y + 0.5, z: TARGET.z - 0.5 },
+    { x: TARGET.x + 0.5, y: TARGET.y + 1.5, z: TARGET.z + 0.5 }
+  ];
+  for (const s of spots) {
+    if (countLog() > 0) break;
+    const mv = mc.move_to(s.x, s.y, s.z, 30000);
+    console.log('move_to ' + JSON.stringify(s) + ': ' + JSON.stringify(mv));
+    attempt(16);
+  }
+}
+
+if (countLog() === 0) {
+  mc.look_at(CENTER.x, CENTER.y, CENTER.z);
+  mc.sleep(300);
+  const m = mc.mine_block(LOG, 64, 1);
+  console.log('final mine: ' + JSON.stringify(m));
+  mc.sleep(800);
+  const c = mc.collect(LOG, 1, 64);
+  console.log('final collect: ' + JSON.stringify(c));
+}
+
+const finalCount = countLog();
+console.log('final ' + LOG + ' count: ' + finalCount);
+if (finalCount === 0) {
+  throw new Error('failed to collect ' + LOG);
+}

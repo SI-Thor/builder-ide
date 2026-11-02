@@ -1,0 +1,9 @@
+const LOGS=['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log','crimson_stem','warped_stem'];
+function hasWood(){for(const id of LOGS){if(mc.has(id).has)return true;}return false;}
+function scanLogs(radius){const s=mc.scan(radius);const n=s&&s.nearby?s.nearby:{};const out=[];for(const id of LOGS){if(n[id]>0)out.push(id);}return out;}
+function tryMine(ids){for(const id of ids){const mv=mc.move_to_block(id,128,30000);if(!mv||!mv.block||typeof mv.block.x!=='number')continue;const bx=Math.floor(mv.block.x),by=Math.floor(mv.block.y),bz=Math.floor(mv.block.z);mc.look_at(bx+0.5,by+0.5,bz+0.5);for(let i=0;i<300;i++){if(hasWood())return true;const m=mc.mine_block(id,16,16);if(m&&m.mined>0){mc.collect(id,64,64);if(hasWood())return true;}mc.sleep(20);}}return hasWood();}
+function tryHere(){const ids=scanLogs(160);if(ids.length&&tryMine(ids))return true;return hasWood();}
+function step(x,y,z,dx,dz){const targets=[[x+dx,y,z+dz],[x+dx,y+1,z+dz],[x+dx,y-1,z+dz],[x+dx*0.5,y,z+dz*0.5],[x+dx*0.5,y+1,z+dz*0.5],[x+dx*0.5,y-1,z+dz*0.5]];for(const t of targets){const mv=mc.move_to(t[0],t[1],t[2],15000);if(mv&&mv.at&&typeof mv.at.x==='number')return mv.at;}return null;}
+if(hasWood()){console.log('already have wood');}
+else if(tryHere()){console.log('got wood');}
+else{let x=76.7,y=67,z=47.5;let done=false;const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];for(let r=1;r<=120&&!done;r++){const dist=r*8;for(const [dx,dz] of dirs){if(done)break;const at=step(x,y,z,dx*dist,dz*dist);if(at){x=at.x;y=at.y;z=at.z;}if(tryHere()){console.log('got wood');done=true;break;}}}if(!done){if(tryHere()){console.log('got wood');}else throw new Error('no reachable tree found');}}

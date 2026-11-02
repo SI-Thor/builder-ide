@@ -1,0 +1,7 @@
+console.log("collect wood: start");
+mc.act("sleep", 1);
+mc.move("left", 1);
+mc.move("up", 1);
+mc.act("do", 16);
+mc.act("do", 1);
+console.log("collect wood: finished");

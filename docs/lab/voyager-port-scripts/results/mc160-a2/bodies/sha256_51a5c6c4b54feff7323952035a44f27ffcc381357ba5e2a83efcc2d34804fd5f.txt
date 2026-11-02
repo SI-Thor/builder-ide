@@ -1,0 +1,82 @@
+(async () => {
+  const target = { x: -3, y: 66, z: 103 };
+  let block = null;
+
+  const found = await mc.move_to_block('oak_log', 128, 600000);
+  if (found && found.block && typeof found.block.x === 'number') {
+    block = found.block;
+  } else {
+    block = target;
+  }
+
+  const center = {
+    x: block.x + 0.5,
+    y: block.y + 0.5,
+    z: block.z + 0.5
+  };
+
+  await mc.look_at(center.x, center.y, center.z);
+
+  let mined = 0;
+  for (let i = 0; i < 40 && mined === 0; i++) {
+    const result = await mc.mine_block('oak_log', 64, 1);
+    if (result && result.mined > 0) {
+      mined = result.mined;
+    } else {
+      await mc.sleep(250);
+    }
+  }
+
+  if (mined === 0) {
+    const spots = [
+      { x: block.x + 1, y: block.y, z: block.z },
+      { x: block.x - 1, y: block.y, z: block.z },
+      { x: block.x, y: block.y, z: block.z + 1 },
+      { x: block.x, y: block.y, z: block.z - 1 },
+      { x: block.x, y: block.y + 1, z: block.z },
+      { x: block.x, y: block.y - 1, z: block.z }
+    ];
+
+    for (const spot of spots) {
+      if (mined > 0) break;
+      await mc.move_to(spot.x, spot.y, spot.z, 30000);
+      await mc.look_at(center.x, center.y, center.z);
+      await mc.sleep(250);
+
+      for (let i = 0; i < 20 && mined === 0; i++) {
+        const result = await mc.mine_block('oak_log', 64, 1);
+        if (result && result.mined > 0) {
+          mined = result.mined;
+        } else {
+          await mc.sleep(250);
+        }
+      }
+    }
+  }
+
+  if (mined === 0) {
+    console.log('Could not break the oak log.');
+    throw new Error('oak_log not mined');
+  }
+
+  await mc.sleep(1000);
+
+  let collected = 0;
+  for (let i = 0; i < 60 && collected === 0; i++) {
+    const result = await mc.collect('oak_log', 64, 64);
+    if (result && result.collected > 0) {
+      collected = result.collected;
+    } else {
+      await mc.sleep(250);
+    }
+  }
+
+  const count = mc.count('oak_log').count;
+  if (count > 0) {
+    console.log('Got ' + count + ' oak_log.');
+    return;
+  }
+
+  console.log('Broke the oak log but did not collect it.');
+  throw new Error('oak_log not collected');
+})();

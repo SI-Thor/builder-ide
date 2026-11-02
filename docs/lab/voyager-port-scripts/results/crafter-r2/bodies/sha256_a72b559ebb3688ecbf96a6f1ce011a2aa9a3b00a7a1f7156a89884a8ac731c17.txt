@@ -1,0 +1,39 @@
+console.log('wood pickaxe: start');
+const done = () => Boolean(mc.achievements().make_wood_pickaxe);
+const log = (m) => console.log(m);
+
+if (!done()) {
+  mc.act('do', 1);
+  mc.act('do', 1);
+  mc.act('do', 1);
+}
+
+if (!done()) {
+  mc.move('right', 3);
+  mc.act('do', 1);
+  mc.act('do', 1);
+  mc.act('do', 1);
+}
+
+if (!done()) {
+  mc.move('left', 3);
+  mc.act('make_wood_pickaxe', 1);
+}
+
+if (!done()) {
+  mc.act('place_table', 1);
+  mc.act('make_wood_pickaxe', 1);
+}
+
+if (!done()) {
+  mc.act('move_up', 1);
+  mc.act('make_wood_pickaxe', 1);
+  mc.act('move_down', 1);
+  mc.act('make_wood_pickaxe', 1);
+  mc.act('move_left', 1);
+  mc.act('make_wood_pickaxe', 1);
+  mc.act('move_right', 1);
+  mc.act('make_wood_pickaxe', 1);
+}
+
+log('wood pickaxe: ' + (done() ? 'crafted' : 'failed'));

@@ -1,0 +1,67 @@
+function stoneCount(){
+  var a = mc.achievements();
+  var v = a.collect_stone;
+  if (v === true) return 1;
+  if (typeof v === 'number' && isFinite(v)) return Math.max(0, Math.floor(v));
+  return 0;
+}
+
+function crafted(){
+  return mc.achievements().make_stone_pickaxe === true;
+}
+
+function sweep(){
+  mc.act('do', 1);
+  mc.act('move_left', 1);
+  mc.act('do', 1);
+  mc.act('move_right', 1);
+  mc.act('do', 1);
+  mc.act('move_up', 1);
+  mc.act('do', 1);
+  mc.act('move_down', 1);
+  mc.act('do', 1);
+  mc.act('move_left', 1);
+  mc.act('do', 1);
+  mc.act('move_right', 1);
+  mc.act('do', 1);
+  mc.act('move_up', 1);
+  mc.act('do', 1);
+  mc.act('move_down', 1);
+  mc.act('do', 1);
+}
+
+mc.act('sleep', 1);
+console.log('slept to refill energy');
+
+for (var radius = 1; radius <= 12 && !crafted() && stoneCount() < 3; radius++) {
+  for (var side = 0; side < 4 && !crafted() && stoneCount() < 3; side++) {
+    var pts = [];
+    if (side === 0) {
+      for (var x = -radius; x <= radius; x++) pts.push([x, -radius]);
+    } else if (side === 1) {
+      for (var y = -radius + 1; y <= radius; y++) pts.push([radius, y]);
+    } else if (side === 2) {
+      for (var x2 = radius - 1; x2 >= -radius; x2--) pts.push([x2, radius]);
+    } else {
+      for (var y2 = radius - 1; y2 >= -radius + 1; y2--) pts.push([-radius, y2]);
+    }
+    for (var i = 0; i < pts.length && !crafted() && stoneCount() < 3; i++) {
+      var dx = pts[i][0];
+      var dy = pts[i][1];
+      if (dx > 0) mc.move('right', dx);
+      else if (dx < 0) mc.move('left', -dx);
+      if (dy > 0) mc.move('down', dy);
+      else if (dy < 0) mc.move('up', -dy);
+      sweep();
+      if (dx > 0) mc.move('left', dx);
+      else if (dx < 0) mc.move('right', -dx);
+      if (dy > 0) mc.move('up', dy);
+      else if (dy < 0) mc.move('down', -dy);
+    }
+  }
+}
+
+console.log('stone count:', stoneCount());
+mc.act('place_table', 1);
+mc.act('make_stone_pickaxe', 1);
+console.log('crafted stone pickaxe:', crafted());

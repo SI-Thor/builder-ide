@@ -1,0 +1,49 @@
+(async () => {
+  const log = { x: -3, y: 66, z: 103 };
+  const spots = [
+    { x: -3, y: 66, z: 104 },
+    { x: -3, y: 66, z: 102 },
+    { x: -4, y: 66, z: 103 },
+    { x: -2, y: 66, z: 103 },
+    { x: -3, y: 67, z: 103 }
+  ];
+
+  let reached = false;
+  for (const spot of spots) {
+    const move = await mc.move_to(spot.x, spot.y, spot.z, 600000);
+    if (move && move.at) {
+      reached = true;
+      break;
+    }
+  }
+  if (!reached) {
+    console.log('Could not reach the oak log.');
+    throw new Error('Could not reach the oak log.');
+  }
+
+  await mc.look_at(log.x, log.y, log.z);
+
+  let mined = 0;
+  for (let i = 0; i < 12; i++) {
+    const result = await mc.mine_block('oak_log', 64, 1);
+    if (result && result.mined > 0) {
+      mined += result.mined;
+      break;
+    }
+    await mc.sleep(500);
+  }
+
+  if (mined > 0) {
+    await mc.sleep(500);
+    await mc.collect('oak_log', 1, 64);
+  }
+
+  const count = mc.count('oak_log').count;
+  if (count > 0) {
+    console.log('Broke the oak log and collected ' + count + ' oak_log.');
+    return;
+  }
+
+  console.log('Failed to collect oak_log.');
+  throw new Error('No oak_log collected.');
+})();

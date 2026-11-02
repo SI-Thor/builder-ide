@@ -1,0 +1,57 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+const a0 = mc.achievements();
+const stone0 = Number(a0.collect_stone || 0);
+const wood0 = Number(a0.collect_wood || 0);
+const table0 = Boolean(a0.place_table);
+
+const ring = (r) => {
+  const out = [];
+  for (let x = -r; x <= r; x++) {
+    for (let y = -r; y <= r; y++) {
+      if (Math.max(Math.abs(x), Math.abs(y)) !== r) continue;
+      if (x > 0) for (let i = 0; i < x; i++) out.push("move_right");
+      if (x < 0) for (let i = 0; i < -x; i++) out.push("move_left");
+      if (y > 0) for (let i = 0; i < y; i++) out.push("move_down");
+      if (y < 0) for (let i = 0; i < -y; i++) out.push("move_up");
+      out.push("do");
+      if (y > 0) for (let i = 0; i < y; i++) out.push("move_up");
+      if (y < 0) for (let i = 0; i < -y; i++) out.push("move_down");
+      if (x > 0) for (let i = 0; i < x; i++) out.push("move_left");
+      if (x < 0) for (let i = 0; i < -x; i++) out.push("move_right");
+    }
+  }
+  return out;
+};
+
+const stoneCount = () => Number(mc.achievements().collect_stone || 0);
+const woodCount = () => Number(mc.achievements().collect_wood || 0);
+
+let found = stoneCount() >= 3;
+let ran = 0;
+const limit = 512;
+
+for (let r = 1; r <= 12 && !found && ran < limit; r++) {
+  const seq = ring(r);
+  for (let i = 0; i < seq.length && !found && ran < limit; i++) {
+    mc.act_seq([seq[i]]);
+    ran++;
+    if (stoneCount() >= 3) {
+      found = true;
+      break;
+    }
+    if (woodCount() > wood0) {
+      mc.act("make_wood_pickaxe", 1);
+      wood0 = woodCount();
+    }
+    if (stoneCount() < 3 && !mc.achievements().place_table) {
+      mc.act("place_table", 1);
+    }
+  }
+}
+
+console.log("stone collected: " + stoneCount());
+console.log("table placed: " + Boolean(mc.achievements().place_table));
+mc.act("make_stone_pickaxe", 1);
+console.log("stone pickaxe crafted: " + Boolean(mc.achievements().make_stone_pickaxe));

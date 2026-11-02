@@ -1,0 +1,14 @@
+const target = { x: 25, y: 79, z: -54 };
+const move = mc.move_to_block('jungle_log', 16, 30000);
+console.log('moved to jungle_log:', move);
+mc.look_at(target.x, target.y, target.z);
+let have = 0;
+for (let i = 0; i < 8 && have < 1; i++) {
+  const mine = mc.mine_block('jungle_log', 16, 1);
+  console.log('mine attempt', i + 1, mine);
+  const collect = mc.collect('jungle_log', 1, 16);
+  console.log('collect attempt', i + 1, collect);
+  have = mc.count('jungle_log').count;
+  if (have < 1) mc.sleep(250);
+}
+console.log('jungle_log count:', have);

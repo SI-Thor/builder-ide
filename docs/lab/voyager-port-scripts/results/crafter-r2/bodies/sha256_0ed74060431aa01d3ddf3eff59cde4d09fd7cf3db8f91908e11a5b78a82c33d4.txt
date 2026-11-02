@@ -1,0 +1,20 @@
+print("craft wood pickaxe: start")
+
+def done():
+    a = mc.achievements()
+    v = a.get("make_wood_pickaxe", 0)
+    return bool(v) if not isinstance(v, (int, float)) else v > 0
+
+if not done():
+    mc.move("left", 2)
+    mc.move("up", 1)
+    mc.act("do", 1)
+    mc.move("down", 1)
+    mc.move("right", 2)
+    mc.act("place_table", 1)
+    mc.act("make_wood_pickaxe", 1)
+
+if done():
+    print("craft wood pickaxe: crafted wood pickaxe")
+else:
+    print("craft wood pickaxe: failed")

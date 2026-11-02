@@ -1,0 +1,37 @@
+const done = () => Boolean(mc.achievements()["make_wood_pickaxe"]);
+const log = (m) => console.log(m);
+const act = (a, t) => mc.act(a, t);
+const move = (d, s) => mc.move(d, s);
+
+if (!done()) {
+  for (let i = 0; i < 16 && !done(); i++) {
+    act("do", 1);
+    act("sleep", 1);
+  }
+}
+
+if (!done()) {
+  move("right", 1);
+  move("down", 1);
+  for (let i = 0; i < 32 && !done(); i++) {
+    act("do", 1);
+  }
+  move("up", 1);
+  move("left", 1);
+}
+
+if (!done()) {
+  act("make_wood_pickaxe", 1);
+}
+
+if (!done()) {
+  const dirs = [["left", 1], ["right", 1], ["up", 1], ["down", 1], ["left", 2], ["right", 2], ["up", 2], ["down", 2], ["left", 3], ["right", 3], ["up", 3], ["down", 3]];
+  for (const [d, s] of dirs) {
+    if (done()) break;
+    move(d, s);
+    act("make_wood_pickaxe", 1);
+    move(d === "left" ? "right" : d === "right" ? "left" : d === "up" ? "down" : "up", s);
+  }
+}
+
+log("wood pickaxe crafted: " + (done() ? "yes" : "no"));

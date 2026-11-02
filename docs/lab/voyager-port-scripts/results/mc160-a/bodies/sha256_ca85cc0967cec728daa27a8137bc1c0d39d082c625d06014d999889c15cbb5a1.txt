@@ -1,0 +1,64 @@
+(async () => {
+  const logs = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+  const start = { x: 37.6, y: 67, z: 44.7 };
+
+  const hasWood = async () => {
+    for (const id of logs) {
+      const c = await mc.count(id);
+      if (c && c.count > 0) return true;
+    }
+    return false;
+  };
+
+  const harvest = async (id) => {
+    const approach = await mc.move_to_block(id, 128, 60000);
+    console.log('approach ' + id + ' at ' + JSON.stringify(approach.at) + ' ' + (approach.why || ''));
+    if (approach.block) {
+      await mc.look_at(approach.block.x, approach.block.y, approach.block.z);
+    }
+
+    for (let i = 0; i < 16; i++) {
+      const m = await mc.mine_block(id, 8, 1);
+      console.log('mine ' + id + ' mined=' + (m.mined || 0) + ' ' + (m.problem || ''));
+      if (!m.mined) break;
+
+      const c = await mc.collect(id, 64, 16);
+      console.log('collect ' + id + ' collected=' + (c.collected || 0) + ' ' + (c.problem || ''));
+      if (await hasWood()) {
+        console.log('got wood');
+        return true;
+      }
+    }
+    return false;
+  };
+
+  if (await hasWood()) {
+    console.log('already have wood');
+    return;
+  }
+
+  const initial = await mc.scan(128);
+  const initialLogs = Object.keys(initial.nearby || {}).filter((b) => logs.includes(b));
+  for (const id of initialLogs) {
+    if (await harvest(id)) return;
+  }
+
+  for (let step = 1; step <= 24; step++) {
+    const tx = start.x;
+    const tz = start.z - step * 16;
+    const mv = await mc.move_to(tx, start.y, tz, 20000);
+    console.log('walk north to ' + JSON.stringify(mv.at) + ' ' + (mv.why || ''));
+
+    const s = await mc.scan(128);
+    const found = Object.keys(s.nearby || {}).filter((b) => logs.includes(b));
+    for (const id of found) {
+      if (await harvest(id)) return;
+    }
+
+    for (const id of logs) {
+      if (await harvest(id)) return;
+    }
+  }
+
+  throw new Error('no wood found');
+})();

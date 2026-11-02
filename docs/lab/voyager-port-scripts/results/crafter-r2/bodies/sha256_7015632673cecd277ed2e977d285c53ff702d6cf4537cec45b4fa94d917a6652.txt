@@ -1,0 +1,31 @@
+function log(msg) {
+  try {
+    if (typeof console !== "undefined" && console.log) {
+      console.log(msg);
+    } else if (typeof print !== "undefined") {
+      print(msg);
+    }
+  } catch (e) {}
+}
+
+log("collect wood: start");
+
+let wood = 1;
+let tries = 0;
+
+while (wood < 3 && tries < 8) {
+  tries += 1;
+  mc.act("sleep", 1);
+  mc.move("left", 1);
+  mc.move("up", 1);
+  mc.act("do", 16);
+  mc.act("do", 1);
+  wood = mc.achievements().collect_wood || 0;
+}
+
+if (wood >= 3) {
+  mc.act("make_wood_pickaxe", 1);
+  log("collect wood: crafted wood pickaxe");
+} else {
+  log("collect wood: failed to reach 3 wood");
+}

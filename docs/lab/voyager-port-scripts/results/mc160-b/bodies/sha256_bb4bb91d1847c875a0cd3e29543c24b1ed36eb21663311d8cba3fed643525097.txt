@@ -1,0 +1,49 @@
+const ITEM = 'jungle_log';
+const BLOCK = 'jungle_log';
+const TARGET = { x: 5, y: 67, z: -37 };
+
+function countLogs() {
+  const r = mc.count(ITEM);
+  return r && typeof r.count === 'number' ? r.count : 0;
+}
+
+function attemptMine() {
+  mc.look_at(TARGET.x, TARGET.y, TARGET.z);
+  mc.sleep(250);
+  const mined = mc.mine_block(BLOCK, 32, 1);
+  console.log('mine_block: ' + JSON.stringify(mined));
+  mc.sleep(500);
+  const collected = mc.collect(ITEM, 1, 32);
+  console.log('collect: ' + JSON.stringify(collected));
+  return countLogs();
+}
+
+let logs = countLogs();
+console.log('initial ' + ITEM + ' count: ' + logs);
+
+if (logs < 1) {
+  const moved = mc.move_to_block(BLOCK, 32, 30000);
+  console.log('move_to_block: ' + JSON.stringify(moved));
+  logs = attemptMine();
+}
+
+if (logs < 1) {
+  const spots = [
+    [5, 67, -36],
+    [5, 67, -38],
+    [4, 67, -37],
+    [6, 67, -37],
+    [5, 66, -36],
+    [5, 66, -38],
+    [4, 66, -37],
+    [6, 66, -37]
+  ];
+  for (const spot of spots) {
+    if (logs >= 1) break;
+    const moved = mc.move_to(spot[0], spot[1], spot[2], 15000);
+    console.log('move_to ' + spot.join(',') + ': ' + JSON.stringify(moved));
+    logs = attemptMine();
+  }
+}
+
+console.log('final ' + ITEM + ' count: ' + logs);

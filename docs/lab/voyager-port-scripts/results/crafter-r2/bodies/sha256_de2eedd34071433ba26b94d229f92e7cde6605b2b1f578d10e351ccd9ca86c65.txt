@@ -1,0 +1,63 @@
+console.log("wood pickaxe: start");
+const done = () => mc.achievements().make_wood_pickaxe === true;
+const tryCraft = () => {
+  if (done()) return true;
+  mc.act("make_wood_pickaxe", 1);
+  if (done()) return true;
+  mc.act("do", 1);
+  return done();
+};
+const refill = () => {
+  for (let i = 0; i < 16; i++) {
+    mc.act("do", 1);
+    if (done()) return true;
+    mc.act("sleep", 1);
+    if (done()) return true;
+  }
+  return false;
+};
+const goTree = () => {
+  mc.move("right", 4);
+  mc.move("up", 3);
+};
+const chop = () => {
+  for (let i = 0; i < 12; i++) {
+    mc.act("do", 1);
+    if (done()) return true;
+  }
+  return false;
+};
+if (refill()) {
+  console.log("wood pickaxe: crafted while refilling");
+} else {
+  goTree();
+  if (chop()) {
+    console.log("wood pickaxe: crafted while chopping");
+  } else {
+    const probes = [
+      { dir: "left", steps: 4 },
+      { dir: "down", steps: 3 },
+      { dir: "right", steps: 4 },
+      { dir: "up", steps: 3 },
+      { dir: "left", steps: 8 },
+      { dir: "down", steps: 6 },
+      { dir: "right", steps: 8 },
+      { dir: "up", steps: 6 }
+    ];
+    let ok = false;
+    for (const p of probes) {
+      mc.move(p.dir, p.steps);
+      if (tryCraft()) {
+        ok = true;
+        break;
+      }
+      const back = p.dir === "left" ? "right" : p.dir === "right" ? "left" : p.dir === "up" ? "down" : "up";
+      mc.move(back, p.steps);
+    }
+    if (!ok) {
+      mc.act("place_table", 1);
+      ok = tryCraft();
+    }
+    console.log(ok ? "wood pickaxe: crafted" : "wood pickaxe: failed");
+  }
+}

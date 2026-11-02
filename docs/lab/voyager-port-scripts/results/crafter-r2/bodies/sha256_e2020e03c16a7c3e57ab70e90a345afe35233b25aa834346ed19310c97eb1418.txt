@@ -1,0 +1,27 @@
+console.log("sleep, then spiral outward and do on every tile");
+
+const stoneDone = () => {
+  const a = mc.achievements();
+  return a && a.collect_stone === true;
+};
+
+if (!stoneDone()) {
+  mc.act("sleep", 1);
+}
+
+if (!stoneDone()) {
+  mc.act("do", 1);
+}
+
+const maxRadius = 28;
+for (let r = 1; r <= maxRadius && !stoneDone(); r++) {
+  const dirs = ["right", "down", "left", "up"];
+  for (const dir of dirs) {
+    for (let s = 1; s <= r && !stoneDone(); s++) {
+      mc.move(dir, 1);
+      mc.act("do", 1);
+    }
+  }
+}
+
+console.log("collect_stone: " + (stoneDone() ? "yes" : "no"));

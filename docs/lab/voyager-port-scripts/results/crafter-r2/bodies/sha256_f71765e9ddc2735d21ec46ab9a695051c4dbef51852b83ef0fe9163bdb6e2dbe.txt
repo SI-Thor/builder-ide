@@ -1,0 +1,38 @@
+console.log("wood pickaxe: start");
+var done = function () {
+  return mc.achievements().make_wood_pickaxe === true;
+};
+var tryCraft = function () {
+  if (done()) return true;
+  mc.act("make_wood_pickaxe", 1);
+  return done();
+};
+var restore = function () {
+  if (done()) return;
+  mc.act("do", 4);
+  if (done()) return;
+  mc.act("do", 3);
+  if (done()) return;
+  mc.act("sleep", 1);
+  if (done()) return;
+  mc.act("sleep", 1);
+};
+var flee = function () {
+  if (done()) return;
+  mc.move("right", 1);
+  if (done()) return;
+  mc.move("up", 1);
+  if (done()) return;
+  mc.move("right", 1);
+  if (done()) return;
+  mc.move("up", 1);
+};
+restore();
+if (!tryCraft()) {
+  flee();
+  if (!tryCraft()) {
+    restore();
+    tryCraft();
+  }
+}
+console.log("wood pickaxe: " + (done() ? "crafted" : "failed"));

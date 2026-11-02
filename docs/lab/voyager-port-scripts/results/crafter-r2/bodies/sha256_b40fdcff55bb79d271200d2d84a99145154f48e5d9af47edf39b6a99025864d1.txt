@@ -1,0 +1,34 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+console.log("going to tree");
+mc.move("left", 4);
+mc.move("up", 2);
+console.log("chopping wood");
+mc.act("do", 8);
+console.log("making wood pickaxe");
+mc.act("make_wood_pickaxe", 1);
+console.log("searching nearby tiles for stone");
+let stone = Number(mc.achievements().collect_stone || 0);
+for (let r = 1; r <= 12 && stone < 3; r++) {
+  for (let dx = -r; dx <= r && stone < 3; dx++) {
+    for (let dy = -r; dy <= r && stone < 3; dy++) {
+      if (dx === 0 && dy === 0) continue;
+      if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+      if (dx > 0) mc.move("right", dx);
+      else if (dx < 0) mc.move("left", -dx);
+      if (dy > 0) mc.move("down", dy);
+      else if (dy < 0) mc.move("up", -dy);
+      mc.act("do", 1);
+      stone = Number(mc.achievements().collect_stone || 0);
+      if (dx > 0) mc.move("left", dx);
+      else if (dx < 0) mc.move("right", -dx);
+      if (dy > 0) mc.move("up", dy);
+      else if (dy < 0) mc.move("down", -dy);
+    }
+  }
+}
+console.log("placing table");
+mc.act("place_table", 1);
+console.log("crafting stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+console.log("stone pickaxe crafted: " + String(!!mc.achievements().make_stone_pickaxe));

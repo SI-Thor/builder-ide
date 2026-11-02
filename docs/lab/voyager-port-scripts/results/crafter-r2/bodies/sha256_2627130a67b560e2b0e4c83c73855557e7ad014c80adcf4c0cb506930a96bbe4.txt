@@ -1,0 +1,12 @@
+print("wood pickaxe: start")
+mc.move("left", 3)
+mc.move("up", 2)
+mc.act("do", 64)
+mc.move("down", 2)
+mc.move("right", 3)
+mc.act("place_table", 1)
+mc.act("make_wood_pickaxe", 1)
+if mc.achievements().get("make_wood_pickaxe"):
+    print("wood pickaxe: crafted")
+else:
+    print("wood pickaxe: failed")

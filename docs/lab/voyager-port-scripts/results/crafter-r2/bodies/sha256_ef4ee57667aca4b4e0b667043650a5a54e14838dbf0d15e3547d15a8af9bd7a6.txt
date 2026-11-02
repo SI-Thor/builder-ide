@@ -1,0 +1,50 @@
+function ach() {
+  return mc.achievements() || {};
+}
+function num(v) {
+  if (v === true) return 1;
+  if (v === false || v === null || v === undefined) return 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function stoneCount() {
+  return num(ach().collect_stone);
+}
+function hasStonePickaxe() {
+  return num(ach().make_stone_pickaxe) > 0;
+}
+function sweep(radius) {
+  for (let dx = -radius; dx <= radius; dx++) {
+    for (let dy = -radius; dy <= radius; dy++) {
+      if (dx === 0 && dy === 0) continue;
+      if (dx > 0) mc.move('right', dx);
+      else if (dx < 0) mc.move('left', -dx);
+      if (dy > 0) mc.move('down', dy);
+      else if (dy < 0) mc.move('up', -dy);
+      mc.act('do', 1);
+      if (dy > 0) mc.move('up', dy);
+      else if (dy < 0) mc.move('down', -dy);
+      if (dx > 0) mc.move('left', -dx);
+      else if (dx < 0) mc.move('right', -dx);
+    }
+  }
+}
+console.log('sleeping to refill energy');
+mc.act('sleep', 1);
+console.log('stone before mining: ' + stoneCount());
+let r = 1;
+while (stoneCount() < 3 && r <= 12) {
+  sweep(r);
+  console.log('stone after sweep radius ' + r + ': ' + stoneCount());
+  r += 3;
+}
+console.log('returning to table');
+mc.act('place_table', 1);
+mc.act('make_stone_pickaxe', 1);
+let made = hasStonePickaxe();
+if (!made) {
+  console.log('retrying craft after table');
+  mc.act('make_stone_pickaxe', 1);
+  made = hasStonePickaxe();
+}
+console.log('stone_pickaxe=' + (made ? '1' : '0'));

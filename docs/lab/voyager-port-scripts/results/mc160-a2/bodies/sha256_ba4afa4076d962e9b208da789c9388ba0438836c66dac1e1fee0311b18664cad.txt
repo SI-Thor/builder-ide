@@ -1,0 +1,66 @@
+(async () => {
+  const fallback = { x: -3, y: 66, z: 103 };
+  let block = null;
+
+  const approach = await mc.move_to_block('oak_log', 128, 600000);
+  if (approach && approach.block && typeof approach.block.x === 'number') {
+    block = approach.block;
+  } else if (approach && typeof approach.x === 'number') {
+    block = approach;
+  }
+
+  if (!block) {
+    block = fallback;
+    const direct = await mc.move_to(block.x + 0.5, block.y + 0.5, block.z + 0.5, 600000);
+    if (direct && direct.at) {
+      console.log('Moved directly toward the known oak log.');
+    }
+  }
+
+  const bx = Math.floor(block.x);
+  const by = Math.floor(block.y);
+  const bz = Math.floor(block.z);
+  const center = { x: bx + 0.5, y: by + 0.5, z: bz + 0.5 };
+
+  const spots = [
+    { x: bx + 1, y: by, z: bz },
+    { x: bx - 1, y: by, z: bz },
+    { x: bx, y: by, z: bz + 1 },
+    { x: bx, y: by, z: bz - 1 },
+    { x: bx + 1, y: by, z: bz + 1 },
+    { x: bx - 1, y: by, z: bz - 1 },
+    { x: bx, y: by + 1, z: bz },
+    { x: bx, y: by - 1, z: bz }
+  ];
+
+  for (const spot of spots) {
+    const move = await mc.move_to(spot.x, spot.y, spot.z, 30000);
+    if (move && move.at) {
+      await mc.look_at(center.x, center.y, center.z);
+      const mine = await mc.mine_block('oak_log', 64, 1);
+      if (mine && mine.mined > 0) {
+        console.log('Broke the oak log from an adjacent spot.');
+        break;
+      }
+    }
+  }
+
+  let collected = 0;
+  for (let i = 0; i < 120 && collected === 0; i++) {
+    const r = await mc.collect('oak_log', 64, 64);
+    if (r && r.collected > 0) {
+      collected = r.collected;
+    } else {
+      await mc.sleep(250);
+    }
+  }
+
+  const count = mc.count('oak_log').count;
+  if (count > 0) {
+    console.log('Got ' + count + ' oak_log.');
+    return;
+  }
+
+  console.log('Failed to obtain oak_log.');
+  throw new Error('oak_log not collected');
+})();

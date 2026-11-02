@@ -1,0 +1,18 @@
+mc.act('sleep', 1);
+const dirs = ['right', 'down', 'left', 'up'];
+let stone = 0;
+let last = { x: 32, y: 32 };
+for (let r = 1; r <= 6 && stone < 3; r++) {
+  for (let d = 0; d < 4 && stone < 3; d++) {
+    const dir = dirs[d];
+    mc.move(dir, r);
+    for (let i = 0; i < 3 && stone < 3; i++) {
+      mc.act('do', 1);
+      if (mc.achievements().collect_stone) stone++;
+    }
+    mc.move(dir === 'right' ? 'left' : dir === 'left' ? 'right' : dir === 'down' ? 'up' : 'down', r);
+  }
+}
+mc.move('right', 4);
+mc.act('make_stone_pickaxe', 1);
+console.log('stone_pickaxe=' + (mc.achievements().make_stone_pickaxe ? 1 : 0));

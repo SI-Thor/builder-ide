@@ -1,0 +1,72 @@
+(async () => {
+  const LOGS = ['oak_log','spruce_log','birch_log','jungle_log','acacia_log','dark_oak_log','mangrove_log','cherry_log'];
+  const sx = 37.6, sy = 67, sz = 44.7;
+
+  const hasWood = async () => {
+    for (const id of LOGS) {
+      const r = await mc.count(id);
+      if (r && r.count > 0) return true;
+    }
+    return false;
+  };
+
+  const collectLogs = async () => {
+    for (const id of LOGS) {
+      const c = await mc.collect(id, 64, 64);
+      if (c && c.collected > 0) console.log('collected ' + c.collected + ' ' + id);
+    }
+  };
+
+  const mineNearby = async () => {
+    const s = await mc.scan(160);
+    const nearby = (s && s.nearby) || {};
+    for (const id of LOGS) {
+      if (!nearby[id]) continue;
+      const mv = await mc.move_to_block(id, 128, 30000);
+      if (mv && mv.block) {
+        await mc.look_at(mv.block.x, mv.block.y, mv.block.z);
+        for (let i = 0; i < 12; i++) {
+          const m = await mc.mine_block(id, 64, 64);
+          if (!m) break;
+          console.log('mining ' + id + ' mined=' + (m.mined || 0) + ' ' + (m.problem || ''));
+          if (m.mined > 0) {
+            await collectLogs();
+            if (await hasWood()) return true;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    return false;
+  };
+
+  if (await hasWood()) {
+    console.log('already have wood');
+    return;
+  }
+
+  if (await mineNearby()) {
+    console.log('got wood');
+    return;
+  }
+
+  const dirs = [[1,0],[0,1],[-1,0],[0,-1],[1,1],[-1,1],[-1,-1],[1,-1]];
+
+  for (let step = 1; step <= 40; step++) {
+    for (const [dx, dz] of dirs) {
+      const tx = sx + dx * step * 16;
+      const tz = sz + dz * step * 16;
+      const mv = await mc.move_to(tx, sy, tz, 20000);
+      if (mv && mv.at) {
+        console.log('moved to ' + mv.at.x + ',' + mv.at.y + ',' + mv.at.z + ' ' + (mv.why || ''));
+      }
+      if (await mineNearby()) {
+        console.log('got wood');
+        return;
+      }
+    }
+  }
+
+  throw new Error('no tree found');
+})();

@@ -1,0 +1,53 @@
+console.log("sleeping");
+mc.act("sleep", 1);
+
+const before = mc.achievements();
+const woodBefore = before.collect_wood || 0;
+const stoneBefore = before.collect_stone || 0;
+
+const ring = (r) => {
+  const out = [];
+  for (let x = -r; x <= r; x++) {
+    for (let y = -r; y <= r; y++) {
+      if (Math.max(Math.abs(x), Math.abs(y)) !== r) continue;
+      const dx = x;
+      const dy = y;
+      if (dx > 0) for (let i = 0; i < dx; i++) out.push("move_right");
+      if (dx < 0) for (let i = 0; i < -dx; i++) out.push("move_left");
+      if (dy > 0) for (let i = 0; i < dy; i++) out.push("move_down");
+      if (dy < 0) for (let i = 0; i < -dy; i++) out.push("move_up");
+      out.push("do");
+      if (dy > 0) for (let i = 0; i < dy; i++) out.push("move_up");
+      if (dy < 0) for (let i = 0; i < -dy; i++) out.push("move_down");
+      if (dx > 0) for (let i = 0; i < dx; i++) out.push("move_left");
+      if (dx < 0) for (let i = 0; i < -dx; i++) out.push("move_right");
+    }
+  }
+  return out;
+};
+
+const search = (radius, limit) => {
+  let ran = 0;
+  for (let r = 1; r <= radius && ran < limit; r++) {
+    const seq = ring(r);
+    for (let i = 0; i < seq.length && ran < limit; i++) {
+      mc.act_seq([seq[i]]);
+      ran++;
+      const a = mc.achievements();
+      if ((a.collect_wood || 0) > woodBefore && (a.collect_stone || 0) > stoneBefore) return true;
+    }
+  }
+  return false;
+};
+
+console.log("searching for wood and stone");
+search(12, 512);
+
+console.log("placing table");
+mc.act("place_table", 1);
+
+console.log("crafting stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+
+const after = mc.achievements();
+console.log("stone pickaxe crafted: " + Boolean(after.make_stone_pickaxe));

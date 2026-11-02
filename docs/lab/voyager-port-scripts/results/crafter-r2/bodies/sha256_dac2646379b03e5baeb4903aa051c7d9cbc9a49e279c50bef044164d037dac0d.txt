@@ -1,0 +1,78 @@
+def ach():
+    return mc.achievements()
+
+def stone_count():
+    v = ach().get('collect_stone', 0)
+    if isinstance(v, bool):
+        return 1 if v else 0
+    if isinstance(v, (int, float)):
+        return int(v)
+    return 0
+
+def crafted():
+    return bool(ach().get('make_stone_pickaxe', False))
+
+def sweep_once():
+    mc.act('do', 1)
+    mc.act('move_left', 1)
+    mc.act('do', 1)
+    mc.act('move_right', 1)
+    mc.act('do', 1)
+    mc.act('move_up', 1)
+    mc.act('do', 1)
+    mc.act('move_down', 1)
+    mc.act('do', 1)
+    mc.act('move_left', 1)
+    mc.act('do', 1)
+    mc.act('move_right', 1)
+    mc.act('do', 1)
+    mc.act('move_up', 1)
+    mc.act('do', 1)
+    mc.act('move_down', 1)
+    mc.act('do', 1)
+
+mc.act('sleep', 1)
+print('slept to refill energy')
+
+if not crafted() and stone_count() < 3:
+    for radius in range(1, 9):
+        if crafted() or stone_count() >= 3:
+            break
+        for side in range(4):
+            if crafted() or stone_count() >= 3:
+                break
+            if side == 0:
+                pts = [(x, -radius) for x in range(-radius, radius + 1)]
+            elif side == 1:
+                pts = [(radius, y) for y in range(-radius + 1, radius + 1)]
+            elif side == 2:
+                pts = [(x, radius) for x in range(radius - 1, -radius - 1, -1)]
+            else:
+                pts = [(-radius, y) for y in range(radius - 1, -radius + 1, -1)]
+            for dx, dy in pts:
+                if crafted() or stone_count() >= 3:
+                    break
+                if dx > 0:
+                    mc.move('right', dx)
+                elif dx < 0:
+                    mc.move('left', -dx)
+                if dy > 0:
+                    mc.move('down', dy)
+                elif dy < 0:
+                    mc.move('up', -dy)
+                sweep_once()
+                if dx > 0:
+                    mc.move('left', dx)
+                elif dx < 0:
+                    mc.move('right', -dx)
+                if dy > 0:
+                    mc.move('up', dy)
+                elif dy < 0:
+                    mc.move('down', -dy)
+
+print('stone count:', stone_count())
+
+mc.act('place_table', 1)
+print('ensured crafting table')
+mc.act('make_stone_pickaxe', 1)
+print('crafted stone pickaxe:', crafted())

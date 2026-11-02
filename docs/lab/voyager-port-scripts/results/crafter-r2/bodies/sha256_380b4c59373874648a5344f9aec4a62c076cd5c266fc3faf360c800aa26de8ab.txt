@@ -1,0 +1,26 @@
+console.log("starting stone pickaxe chain");
+mc.act("sleep", 1);
+mc.act("make_wood_pickaxe", 1);
+const need = 3;
+let got = Number(mc.achievements().collect_stone || 0);
+const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]];
+for (let r = 1; r <= 12 && got < need; r++) {
+  for (const [dx, dy] of dirs) {
+    for (let s = 1; s <= r && got < need; s++) {
+      const x = dx * s;
+      const y = dy * s;
+      if (x > 0) mc.move("right", x);
+      else if (x < 0) mc.move("left", -x);
+      if (y > 0) mc.move("down", y);
+      else if (y < 0) mc.move("up", -y);
+      mc.act("do", 1);
+      got = Number(mc.achievements().collect_stone || 0);
+      if (x > 0) mc.move("left", x);
+      else if (x < 0) mc.move("right", -x);
+      if (y > 0) mc.move("up", y);
+      else if (y < 0) mc.move("down", -y);
+    }
+  }
+}
+mc.act("make_stone_pickaxe", 1);
+console.log("stone pickaxe crafted: " + Boolean(mc.achievements().make_stone_pickaxe));

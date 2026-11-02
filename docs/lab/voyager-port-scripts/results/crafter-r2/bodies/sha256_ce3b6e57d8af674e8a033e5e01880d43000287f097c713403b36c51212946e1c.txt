@@ -1,0 +1,56 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+const made = () => !!mc.achievements().make_stone_pickaxe;
+
+if (made()) {
+  console.log("stone pickaxe already crafted");
+} else {
+  console.log("sweeping nearby tiles for stone");
+  let found = false;
+  for (let r = 1; r <= 12 && !found; r++) {
+    for (let dx = -r; dx <= r && !found; dx++) {
+      for (let dy = -r; dy <= r && !found; dy++) {
+        if (dx === 0 && dy === 0) continue;
+        if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+        if (dx > 0) mc.move("right", dx);
+        else if (dx < 0) mc.move("left", -dx);
+        if (dy > 0) mc.move("down", dy);
+        else if (dy < 0) mc.move("up", -dy);
+        mc.act("do", 1);
+        if (dx > 0) mc.move("left", dx);
+        else if (dx < 0) mc.move("right", -dx);
+        if (dy > 0) mc.move("up", dy);
+        else if (dy < 0) mc.move("down", -dy);
+      }
+    }
+  }
+
+  console.log("trying to craft stone pickaxe");
+  if (!made()) {
+    mc.act("make_stone_pickaxe", 1);
+  }
+
+  if (!made()) {
+    console.log("searching nearby tiles for crafting table");
+    for (let r = 1; r <= 12 && !made(); r++) {
+      for (let dx = -r; dx <= r && !made(); dx++) {
+        for (let dy = -r; dy <= r && !made(); dy++) {
+          if (dx === 0 && dy === 0) continue;
+          if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+          if (dx > 0) mc.move("right", dx);
+          else if (dx < 0) mc.move("left", -dx);
+          if (dy > 0) mc.move("down", dy);
+          else if (dy < 0) mc.move("up", -dy);
+          mc.act("make_stone_pickaxe", 1);
+          if (dx > 0) mc.move("left", dx);
+          else if (dx < 0) mc.move("right", -dx);
+          if (dy > 0) mc.move("up", dy);
+          else if (dy < 0) mc.move("down", -dy);
+        }
+      }
+    }
+  }
+}
+
+console.log("stone pickaxe crafted:", !!mc.achievements().make_stone_pickaxe);

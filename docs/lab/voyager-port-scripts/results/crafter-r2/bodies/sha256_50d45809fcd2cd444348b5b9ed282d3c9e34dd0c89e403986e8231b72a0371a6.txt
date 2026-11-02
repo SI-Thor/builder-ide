@@ -1,0 +1,18 @@
+const log = (m) => console.log(m);
+
+log("Starting collect wood");
+
+// Restore energy from 0 using an energy item.
+mc.act("do", 1);
+
+// Walk to the nearest tree: 4 left, then 3 up.
+mc.move("left", 4);
+mc.move("up", 3);
+
+// Face the tree and chop it down.
+mc.act("do", 1);
+
+// Pick up the wood that drops.
+mc.act("do", 1);
+
+log("Finished collect wood");

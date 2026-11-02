@@ -1,0 +1,54 @@
+function crafted() {
+  const a = mc.achievements();
+  return Boolean(a && a.make_wood_pickaxe);
+}
+
+function tryCraft() {
+  if (crafted()) return true;
+  mc.act('make_wood_pickaxe', 1);
+  return crafted();
+}
+
+function tryChopHere() {
+  if (crafted()) return true;
+  mc.act('do', 1);
+  mc.act('do', 1);
+  return tryCraft();
+}
+
+function tryRestore() {
+  if (crafted()) return true;
+  mc.act('sleep', 1);
+  mc.act('do', 1);
+  return tryCraft();
+}
+
+if (!tryCraft()) {
+  tryRestore();
+}
+
+if (!crafted()) {
+  mc.move('right', 4);
+}
+
+if (!crafted()) {
+  tryChopHere();
+}
+
+if (!crafted()) {
+  mc.move('left', 4);
+}
+
+if (!crafted()) {
+  tryRestore();
+}
+
+if (!crafted()) {
+  mc.move('right', 4);
+}
+
+if (!crafted()) {
+  tryChopHere();
+}
+
+console.log('wood pickaxe: ' + (crafted() ? 'crafted' : 'not crafted'));

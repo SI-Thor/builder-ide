@@ -1,0 +1,35 @@
+print("refilling energy")
+mc.act("sleep", 1)
+
+print("moving to tree")
+mc.act_seq(["move_left", "move_down", "move_down"])
+
+print("chopping tree for wood")
+for _ in range(3):
+    mc.act("do", 1)
+
+print("sweeping nearby tiles for stone")
+for _ in range(64):
+    mc.act("do", 1)
+    mc.act("move_left", 1)
+    mc.act("do", 1)
+    mc.act("move_right", 1)
+    mc.act("move_right", 1)
+    mc.act("do", 1)
+    mc.act("move_left", 1)
+    mc.act("move_left", 1)
+    mc.act("do", 1)
+    mc.act("move_up", 1)
+    mc.act("do", 1)
+    mc.act("move_down", 1)
+    mc.act("move_down", 1)
+    mc.act("do", 1)
+    mc.act("move_up", 1)
+    mc.act("move_up", 1)
+
+print("placing table")
+mc.act("place_table", 1)
+
+print("crafting stone pickaxe")
+mc.act("make_stone_pickaxe", 1)
+print("done")

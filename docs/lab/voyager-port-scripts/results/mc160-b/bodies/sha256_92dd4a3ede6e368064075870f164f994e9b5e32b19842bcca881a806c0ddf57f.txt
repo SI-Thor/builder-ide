@@ -1,0 +1,59 @@
+const BLOCK = 'jungle_log';
+const ITEM = 'jungle_log';
+const target = { x: 12, y: 69, z: -38 };
+
+function logCount() {
+  const c = mc.count(ITEM);
+  return c && typeof c.count === 'number' ? c.count : 0;
+}
+
+function tryMine() {
+  mc.look_at(target.x, target.y, target.z);
+  mc.sleep(250);
+  const mined = mc.mine_block(BLOCK, 8, 1);
+  console.log('mine_block: ' + JSON.stringify(mined));
+  mc.sleep(500);
+  const collected = mc.collect(ITEM, 1, 8);
+  console.log('collect: ' + JSON.stringify(collected));
+  return logCount();
+}
+
+let logs = logCount();
+console.log('initial ' + ITEM + ' count: ' + logs);
+
+if (logs < 1) {
+  const moved = mc.move_to_block(BLOCK, 16, 30000);
+  console.log('move_to_block: ' + JSON.stringify(moved));
+  mc.sleep(250);
+  logs = tryMine();
+}
+
+if (logs < 1) {
+  const near = mc.move_to(target.x - 1, target.y + 1, target.z, 15000);
+  console.log('move_to west: ' + JSON.stringify(near));
+  mc.sleep(250);
+  logs = tryMine();
+}
+
+if (logs < 1) {
+  const near2 = mc.move_to(target.x + 1, target.y + 1, target.z, 15000);
+  console.log('move_to east: ' + JSON.stringify(near2));
+  mc.sleep(250);
+  logs = tryMine();
+}
+
+if (logs < 1) {
+  const near3 = mc.move_to(target.x, target.y + 1, target.z - 1, 15000);
+  console.log('move_to north: ' + JSON.stringify(near3));
+  mc.sleep(250);
+  logs = tryMine();
+}
+
+if (logs < 1) {
+  const near4 = mc.move_to(target.x, target.y + 1, target.z + 1, 15000);
+  console.log('move_to south: ' + JSON.stringify(near4));
+  mc.sleep(250);
+  logs = tryMine();
+}
+
+console.log('final ' + ITEM + ' count: ' + logs);

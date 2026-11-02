@@ -1,0 +1,43 @@
+console.log("start: chop nearby tree, then craft wood pickaxe");
+const crafted = () => Boolean(mc.achievements().get("make_wood_pickaxe"));
+const chop = (n) => { mc.act("do", n); };
+const tryCraft = () => { mc.act("make_wood_pickaxe", 1); return crafted(); };
+
+if (tryCraft()) {
+  console.log("wood pickaxe crafted: yes (already possible)");
+} else {
+  mc.move("left", 1);
+  mc.move("up", 2);
+  chop(8);
+  if (tryCraft()) {
+    console.log("wood pickaxe crafted: yes (after left 1, up 2)");
+  } else {
+    mc.move("down", 2);
+    mc.move("right", 1);
+    mc.move("up", 1);
+    mc.move("left", 2);
+    chop(8);
+    if (tryCraft()) {
+      console.log("wood pickaxe crafted: yes (after up 1, left 2)");
+    } else {
+      mc.move("right", 2);
+      mc.move("down", 1);
+      mc.move("left", 1);
+      mc.move("up", 1);
+      chop(8);
+      if (tryCraft()) {
+        console.log("wood pickaxe crafted: yes (after diagonal approach)");
+      } else {
+        mc.act("sleep", 1);
+        mc.move("left", 1);
+        mc.move("up", 2);
+        chop(8);
+        if (tryCraft()) {
+          console.log("wood pickaxe crafted: yes (after sleep and left 1, up 2)");
+        } else {
+          console.log("wood pickaxe crafted: no");
+        }
+      }
+    }
+  }
+}

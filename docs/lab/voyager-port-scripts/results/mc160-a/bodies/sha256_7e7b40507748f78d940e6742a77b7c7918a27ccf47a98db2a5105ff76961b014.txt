@@ -1,0 +1,52 @@
+(async () => {
+  const start = { x: 39.5, y: 67, z: 41.5 };
+  const isLog = (b) => typeof b === 'string' && b.endsWith('_log');
+  const findLog = (nearby) => Object.keys(nearby || {}).find(isLog);
+
+  let logBlock = null;
+  let foundAt = null;
+
+  const checkHere = async (radius) => {
+    const scan = await mc.scan(radius);
+    const block = findLog(scan.nearby);
+    if (block) {
+      logBlock = block;
+      foundAt = scan.nearby ? Object.keys(scan.nearby).length : 0;
+      return true;
+    }
+    return false;
+  };
+
+  if (await checkHere(160)) {
+    console.log('found ' + logBlock + ' without moving');
+  } else {
+    const offsets = [];
+    for (let r = 8; r <= 128; r += 8) {
+      offsets.push([r, 0], [-r, 0], [0, r], [0, -r], [r, r], [r, -r], [-r, r], [-r, -r]);
+    }
+
+    for (const [dx, dz] of offsets) {
+      const target = { x: start.x + dx, y: start.y, z: start.z + dz };
+      const move = await mc.move_to(target.x, target.y, target.z, 15000);
+      console.log('moved to ' + JSON.stringify(move.at) + ' ' + (move.why || ''));
+      if (await checkHere(64)) {
+        console.log('found ' + logBlock + ' after moving');
+        break;
+      }
+    }
+  }
+
+  if (!logBlock) {
+    console.log('no log block found while exploring outward');
+    return;
+  }
+
+  const approach = await mc.move_to_block(logBlock, 128, 30000);
+  console.log('approached ' + logBlock + ' at ' + JSON.stringify(approach.at) + ' ' + (approach.why || ''));
+
+  const mine = await mc.mine_block(logBlock, 16, 64);
+  console.log('mined ' + (mine.mined || 0) + ' ' + logBlock + ' ' + (mine.problem || ''));
+
+  const collect = await mc.collect(logBlock, 64, 16);
+  console.log('collected ' + (collect.collected || 0) + ' ' + logBlock + '; have ' + (collect.have || 0) + ' ' + (collect.problem || ''));
+})();

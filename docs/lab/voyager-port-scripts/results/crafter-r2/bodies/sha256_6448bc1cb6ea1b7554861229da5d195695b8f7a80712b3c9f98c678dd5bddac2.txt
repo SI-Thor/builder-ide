@@ -1,0 +1,44 @@
+console.log("wood pickaxe: start");
+
+function done() {
+  return mc.achievements().make_wood_pickaxe === true;
+}
+
+function tryCraft() {
+  if (done()) return true;
+  mc.act("make_wood_pickaxe", 1);
+  return done();
+}
+
+function refillEnergy() {
+  for (let i = 0; i < 30 && !done(); i++) {
+    mc.act("do", 1);
+    if (i % 5 === 4) mc.act("sleep", 1);
+  }
+}
+
+function searchTableAndCraft() {
+  if (tryCraft()) return true;
+  for (let r = 1; r <= 24; r++) {
+    for (let dx = -r; dx <= r; dx++) {
+      for (let dy = -r; dy <= r; dy++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        if (tryCraft()) return true;
+        if (dx !== 0) mc.move(dx > 0 ? "right" : "left", Math.abs(dx));
+        if (dy !== 0) mc.move(dy > 0 ? "down" : "up", Math.abs(dy));
+        if (tryCraft()) return true;
+        if (dy !== 0) mc.move(dy > 0 ? "up" : "down", Math.abs(dy));
+        if (dx !== 0) mc.move(dx > 0 ? "left" : "right", Math.abs(dx));
+        if (tryCraft()) return true;
+      }
+    }
+  }
+  return done();
+}
+
+refillEnergy();
+if (!searchTableAndCraft()) {
+  refillEnergy();
+  searchTableAndCraft();
+}
+console.log("wood pickaxe: " + (done() ? "crafted" : "failed"));

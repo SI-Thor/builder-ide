@@ -1,0 +1,19 @@
+def crafted():
+    a = mc.achievements()
+    return bool(a and a.get("make_wood_pickaxe"))
+
+if not crafted():
+    mc.act("sleep", 1)
+    mc.move("right", 4)
+    for _ in range(8):
+        if crafted():
+            break
+        mc.act("do", 1)
+    mc.move("left", 4)
+    mc.act("make_wood_pickaxe", 1)
+
+if not crafted():
+    mc.act("sleep", 1)
+    mc.act("make_wood_pickaxe", 1)
+
+print("wood pickaxe:", "crafted" if crafted() else "not crafted")

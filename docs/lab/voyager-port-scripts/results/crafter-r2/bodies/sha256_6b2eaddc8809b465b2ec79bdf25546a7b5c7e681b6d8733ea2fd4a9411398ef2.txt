@@ -1,0 +1,48 @@
+console.log('sleeping to restore energy');
+mc.act('sleep', 1);
+
+let stone = 0;
+try { stone = Number(mc.achievements().collect_stone) || 0; } catch (e) { stone = 0; }
+console.log('stone before mining: ' + stone);
+
+const dirs = ['right', 'down', 'left', 'up'];
+const opp = { right: 'left', left: 'right', down: 'up', up: 'down' };
+
+function tryMineAtTile() {
+  mc.act('do', 1);
+}
+
+function mineRadius(radius) {
+  for (let r = 1; r <= radius; r++) {
+    for (const d of dirs) {
+      mc.move(d, r);
+      tryMineAtTile();
+      mc.move(opp[d], r);
+    }
+  }
+}
+
+mineRadius(4);
+
+let after = 0;
+try { after = Number(mc.achievements().collect_stone) || 0; } catch (e) { after = 0; }
+console.log('stone after first sweep: ' + after);
+
+if (after < 3) {
+  mineRadius(8);
+  try { after = Number(mc.achievements().collect_stone) || 0; } catch (e) { after = 0; }
+  console.log('stone after second sweep: ' + after);
+}
+
+if (after < 3) {
+  mineRadius(12);
+  try { after = Number(mc.achievements().collect_stone) || 0; } catch (e) { after = 0; }
+  console.log('stone after third sweep: ' + after);
+}
+
+console.log('placing a table to craft at');
+mc.act('place_table', 1);
+mc.act('make_stone_pickaxe', 1);
+
+const made = Boolean(mc.achievements().make_stone_pickaxe);
+console.log('stone_pickaxe=' + (made ? 1 : 0));

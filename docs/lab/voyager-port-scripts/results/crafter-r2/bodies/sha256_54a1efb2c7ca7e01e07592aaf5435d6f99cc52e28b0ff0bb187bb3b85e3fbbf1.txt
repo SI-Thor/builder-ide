@@ -1,0 +1,28 @@
+const done=()=>Boolean(mc.achievements()["make_wood_pickaxe"]);
+const log=(m)=>console.log(m);
+const act=(a,t)=>mc.act(a,t);
+const move=(d,s)=>mc.move(d,s);
+
+if(!done()){
+  act("sleep",1);
+  move("right",1);
+  move("down",1);
+  act("do",1);
+  act("do",1);
+  act("make_wood_pickaxe",1);
+}
+
+if(!done()){
+  const dirs=["down","right","up","left"];
+  for(let r=1;r<=24&&!done();r++){
+    for(let k=0;k<4&&!done();k++){
+      const d=dirs[k];
+      for(let s=0;s<r&&!done();s++){
+        move(d,1);
+        act("make_wood_pickaxe",1);
+      }
+    }
+  }
+}
+
+log("wood pickaxe crafted: "+(done()?"yes":"no"));

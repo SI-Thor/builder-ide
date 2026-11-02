@@ -1,0 +1,65 @@
+console.log("sleeping to refill energy");
+mc.act("sleep", 1);
+
+let stoneSeen = !!mc.achievements().collect_stone;
+let stoneTries = 0;
+const maxStoneTries = 512;
+
+for (let r = 1; r <= 24 && stoneTries < maxStoneTries; r++) {
+  for (let dx = -r; dx <= r && stoneTries < maxStoneTries; dx++) {
+    for (let dy = -r; dy <= r && stoneTries < maxStoneTries; dy++) {
+      if (dx === 0 && dy === 0) continue;
+      if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+
+      if (dx > 0) mc.move("right", dx);
+      else if (dx < 0) mc.move("left", -dx);
+      if (dy > 0) mc.move("down", dy);
+      else if (dy < 0) mc.move("up", -dy);
+
+      mc.act("do", 1);
+      stoneTries++;
+
+      if (dx > 0) mc.move("left", dx);
+      else if (dx < 0) mc.move("right", -dx);
+      if (dy > 0) mc.move("up", dy);
+      else if (dy < 0) mc.move("down", -dy);
+
+      if (mc.achievements().collect_stone && !stoneSeen) {
+        stoneSeen = true;
+        console.log("stone found while sweeping");
+      }
+    }
+  }
+}
+
+console.log("attempting to craft stone pickaxe");
+mc.act("make_stone_pickaxe", 1);
+
+const crafted = !!mc.achievements().make_stone_pickaxe;
+console.log("stone pickaxe crafted: " + crafted);
+if (!crafted) {
+  console.log("crafting failed; checking nearby table positions");
+  for (let r = 1; r <= 16 && !crafted; r++) {
+    for (let dx = -r; dx <= r && !crafted; dx++) {
+      for (let dy = -r; dy <= r && !crafted; dy++) {
+        if (dx === 0 && dy === 0) continue;
+        if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+
+        if (dx > 0) mc.move("right", dx);
+        else if (dx < 0) mc.move("left", -dx);
+        if (dy > 0) mc.move("down", dy);
+        else if (dy < 0) mc.move("up", -dy);
+
+        mc.act("make_stone_pickaxe", 1);
+        crafted = !!mc.achievements().make_stone_pickaxe;
+
+        if (dx > 0) mc.move("left", dx);
+        else if (dx < 0) mc.move("right", -dx);
+        if (dy > 0) mc.move("up", dy);
+        else if (dy < 0) mc.move("down", -dy);
+      }
+    }
+  }
+}
+
+console.log("final stone pickaxe status: " + crafted);

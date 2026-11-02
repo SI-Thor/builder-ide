@@ -1,0 +1,64 @@
+def stone_count():
+    v = mc.achievements().get('collect_stone', 0)
+    if v is True:
+        return 1
+    if isinstance(v, (int, float)) and v == v:
+        return max(0, int(v))
+    return 0
+
+def done():
+    return mc.achievements().get('make_stone_pickaxe') is True
+
+def sweep():
+    mc.act('do', 1)
+    mc.act('move_left', 1)
+    mc.act('do', 1)
+    mc.act('move_right', 1)
+    mc.act('do', 1)
+    mc.act('move_up', 1)
+    mc.act('do', 1)
+    mc.act('move_down', 1)
+    mc.act('do', 1)
+
+mc.act('sleep', 1)
+console.log('slept to refill energy')
+
+for radius in range(1, 13):
+    if done() or stone_count() >= 3:
+        break
+    for side in range(4):
+        if done() or stone_count() >= 3:
+            break
+        if side == 0:
+            pts = [(x, -radius) for x in range(-radius, radius + 1)]
+        elif side == 1:
+            pts = [(radius, y) for y in range(-radius + 1, radius + 1)]
+        elif side == 2:
+            pts = [(x, radius) for x in range(radius - 1, -radius - 1, -1)]
+        else:
+            pts = [(-radius, y) for y in range(radius - 1, -radius + 1, -1)]
+        for dx, dy in pts:
+            if done() or stone_count() >= 3:
+                break
+            if dx > 0:
+                mc.move('right', dx)
+            elif dx < 0:
+                mc.move('left', -dx)
+            if dy > 0:
+                mc.move('down', dy)
+            elif dy < 0:
+                mc.move('up', -dy)
+            sweep()
+            if dx > 0:
+                mc.move('left', dx)
+            elif dx < 0:
+                mc.move('right', -dx)
+            if dy > 0:
+                mc.move('up', dy)
+            elif dy < 0:
+                mc.move('down', -dy)
+
+mc.act('place_table', 1)
+mc.act('make_stone_pickaxe', 1)
+console.log('stone count:', stone_count())
+console.log('crafted stone pickaxe:', done())

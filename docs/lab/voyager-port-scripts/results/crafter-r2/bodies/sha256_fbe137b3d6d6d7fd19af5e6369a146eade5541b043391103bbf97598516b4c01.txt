@@ -1,0 +1,40 @@
+function num(v){return typeof v==='number'?v:(v?1:0);}
+function stoneCount(){return num(mc.achievements().collect_stone);}
+function woodCount(){return num(mc.achievements().collect_wood);}
+function crafted(){return !!mc.achievements().make_stone_pickaxe;}
+function eatIfLow(){
+  const f=num(mc.achievements().food);
+  if(f<3){mc.act('do',1);mc.act('noop',1);}
+}
+function sleepIfLow(){
+  const e=num(mc.achievements().energy);
+  if(e<3){mc.act('sleep',1);}
+}
+sleepIfLow();
+eatIfLow();
+console.log('slept and ate if needed');
+mc.move('right',2);
+mc.move('down',2);
+mc.act('do',3);
+console.log('gathered wood near tree');
+for(let r=0;r<=10 && stoneCount()<3;r++){
+  const pts=[];
+  for(let dx=-r;dx<=r;dx++)for(let dy=-r;dy<=r;dy++)if(Math.max(Math.abs(dx),Math.abs(dy))===r)pts.push([dx,dy]);
+  for(const [dx,dy] of pts){
+    if(dx>0)mc.move('right',dx);else if(dx<0)mc.move('left',-dx);
+    if(dy>0)mc.move('down',dy);else if(dy<0)mc.move('up',-dy);
+    mc.act('do',1);
+    mc.act('move_left',1);mc.act('do',1);
+    mc.act('move_right',1);mc.act('do',1);
+    mc.act('move_up',1);mc.act('do',1);
+    mc.act('move_down',1);mc.act('do',1);
+    if(dx>0)mc.move('left',dx);else if(dx<0)mc.move('right',-dx);
+    if(dy>0)mc.move('up',dy);else if(dy<0)mc.move('down',-dy);
+    if(stoneCount()>=3)break;
+  }
+}
+console.log('stone count:',stoneCount());
+mc.act('place_table',1);
+console.log('placed table');
+mc.act('make_stone_pickaxe',1);
+console.log('crafted stone pickaxe:',crafted());

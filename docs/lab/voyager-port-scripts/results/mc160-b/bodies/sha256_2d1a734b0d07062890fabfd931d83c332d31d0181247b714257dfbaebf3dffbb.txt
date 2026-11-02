@@ -1,0 +1,38 @@
+const ITEM = 'jungle_log';
+const BLOCK = 'jungle_log';
+let target = { x: 12, y: 69, z: -43 };
+
+const moved = mc.move_to_block(BLOCK, 16, 30000);
+console.log('move_to_block: ' + JSON.stringify(moved));
+if (moved && moved.block && typeof moved.block.x === 'number' && typeof moved.block.y === 'number' && typeof moved.block.z === 'number') {
+  target = { x: moved.block.x, y: moved.block.y, z: moved.block.z };
+}
+
+function tryBreakAndCollect() {
+  mc.look_at(target.x + 0.5, target.y + 0.5, target.z + 0.5);
+  mc.sleep(250);
+  const mined = mc.mine_block(BLOCK, 16, 1);
+  console.log('mine_block: ' + JSON.stringify(mined));
+  mc.sleep(500);
+  const collected = mc.collect(ITEM, 1, 16);
+  console.log('collect: ' + JSON.stringify(collected));
+  return collected && typeof collected.collected === 'number' ? collected.collected : 0;
+}
+
+let got = 0;
+for (let i = 0; i < 4 && got < 1; i++) {
+  got += tryBreakAndCollect();
+  const count = mc.count(ITEM);
+  if (count && typeof count.count === 'number') {
+    got = count.count;
+  }
+  if (got >= 1) {
+    break;
+  }
+  const near = mc.move_to(target.x + 0.5, target.y + 1, target.z + 0.5, 10000);
+  console.log('move_to: ' + JSON.stringify(near));
+  mc.sleep(250);
+}
+
+const final = mc.count(ITEM);
+console.log('jungle_log count: ' + (final && typeof final.count === 'number' ? final.count : 0));

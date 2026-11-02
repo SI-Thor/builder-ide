@@ -1,0 +1,44 @@
+print('wood pickaxe: start')
+
+def done():
+    return bool(mc.achievements().get('make_wood_pickaxe'))
+
+if not done():
+    mc.move('right', 3)
+    mc.act('do', 3)
+
+if not done():
+    mc.move('left', 3)
+    mc.act('make_wood_pickaxe', 1)
+
+if not done():
+    for d in ['up', 'down', 'left', 'right']:
+        if done():
+            break
+        mc.move(d, 1)
+        mc.act('make_wood_pickaxe', 1)
+        if d == 'up':
+            mc.move('down', 1)
+        elif d == 'down':
+            mc.move('up', 1)
+        elif d == 'left':
+            mc.move('right', 1)
+        else:
+            mc.move('left', 1)
+
+if not done():
+    for d in ['up', 'down', 'left', 'right']:
+        if done():
+            break
+        mc.move(d, 2)
+        mc.act('make_wood_pickaxe', 1)
+        if d == 'up':
+            mc.move('down', 2)
+        elif d == 'down':
+            mc.move('up', 2)
+        elif d == 'left':
+            mc.move('right', 2)
+        else:
+            mc.move('left', 2)
+
+print('wood pickaxe: ' + ('crafted' if done() else 'failed'))

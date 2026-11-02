@@ -1,0 +1,42 @@
+print("sleeping to refill energy")
+mc.act("sleep", 1)
+
+def stone_count():
+    v = mc.achievements().get("collect_stone", 0)
+    if v is True:
+        return 1
+    if v is False:
+        return 0
+    try:
+        return int(v)
+    except Exception:
+        return 0
+
+print("sweeping nearby tiles for stone")
+for radius in range(1, 13):
+    if stone_count() >= 3:
+        break
+    for _ in range(radius):
+        if stone_count() >= 3:
+            break
+        mc.move("right", 1)
+        mc.act("do", 1)
+    for _ in range(radius):
+        if stone_count() >= 3:
+            break
+        mc.move("down", 1)
+        mc.act("do", 1)
+    for _ in range(radius):
+        if stone_count() >= 3:
+            break
+        mc.move("left", 1)
+        mc.act("do", 1)
+    for _ in range(radius):
+        if stone_count() >= 3:
+            break
+        mc.move("up", 1)
+        mc.act("do", 1)
+
+print("crafting stone pickaxe")
+mc.act("make_stone_pickaxe", 1)
+print("done")
