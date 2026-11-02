@@ -159,16 +159,43 @@ class ComfyClient:
         return body.get(prompt_id) if isinstance(body, dict) else None
 
     async def wait_for(self, prompt_id: str) -> dict:
-        """Wait for a prompt to finish, and return its history entry."""
+        """Wait for a prompt to finish, and return its history entry.
+
+        A server that is busy, or that another seat's script has just
+        restarted under the night, refuses the connection for a while.
+        That is a wait, not a death: the loop keeps asking while the
+        refusals last, and the error that finally comes says how many
+        there were.
+        """
+        import asyncio
+
+        import aiohttp
+
         deadline = time.monotonic() + self.timeout
+        # How long a refusal is a wait. Long enough to ride out a busy or
+        # restarting server, short enough that a night does not sit on a
+        # dead one for an hour.
+        patience = min(self.timeout, 120.0)
+        refused = 0
         while time.monotonic() < deadline:
-            entry = await self.history(prompt_id)
+            try:
+                entry = await self.history(prompt_id)
+            except (aiohttp.ClientError, OSError):
+                refused += 1
+                if refused * 1.0 > patience:
+                    raise ComfyError(
+                        f"prompt {prompt_id}: the server refused the "
+                        f"connection {refused} times over {patience:.0f} s"
+                    ) from None
+                await asyncio.sleep(1.0)
+                continue
             if entry is not None:
                 return entry
-            import asyncio
-
             await asyncio.sleep(1.0)
-        raise ComfyError(f"prompt {prompt_id} did not finish within {self.timeout:.0f}s")
+        raise ComfyError(
+            f"prompt {prompt_id} did not finish within {self.timeout:.0f}s"
+            + (f" ({refused} refused connections)" if refused else "")
+        )
 
     # -- the whole round trip ----------------------------------------------
 
