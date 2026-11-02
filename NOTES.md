@@ -1908,3 +1908,18 @@ Casey (adapter+cable first) and the ranked v2 plan (walk the triangles,
 TRELLIS arm, Windows/Godot client, VLM judge, stream+Autopilot, free-text
 prompts) are in docs/lab/exp-vibe-sandbox.md and
 docs/research/vibe-sandbox.md §2-4.
+
+## 2026-11-01 21:15 — post-crash check (next seat): lane already complete, nothing to resume
+
+The ProArt's WSL crashed at ~21:12 and killed the previous seat just after
+its last commit. This seat verified the state before touching anything:
+HEAD 5712aa4 is the §C report; the working tree is clean with no untracked
+files; NOTES.md's final entry (20:35-21:10) is committed inside HEAD, so
+nothing dangles. `pgrep -af` shows no vibe-sandbox process and `thor-admit
+status` lists no vibe-sandbox lease — the three active leases
+(serve.qwen3-vl-8b, refit-drift.exp2, voyager-port.mc) belong to other
+lanes and were left alone. §A (claims table, 1fdb875), §B (the thin slice,
+6e0cc22, plus room commits 89476c0/b9a5d2b/4868718/0fadfba/0aa9be2) and §C
+(the report, 5712aa4) are all done. Nothing was re-run and no v2 item was
+started (desk brief: no new rounds on my own); the v2 plan stays ranked in
+docs/research/vibe-sandbox.md §4. Lane closed.
