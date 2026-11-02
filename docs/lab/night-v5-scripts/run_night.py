@@ -688,11 +688,34 @@ class Heavy:
 
 def run_cmd(argv: Sequence[str], *, cwd: Path | None = None,
             env: dict | None = None, timeout: float = 3600.0) -> subprocess.CompletedProcess:
+    """Run a command and hand back its result.
+
+    A command that runs out of time is a **result**, not a crash. Before
+    this, the live view's export timeout took the whole night down with it:
+    at 23:44:15 on 2026-11-01 the export hit its 3600 s bound, the
+    ``TimeoutExpired`` went unhandled, the night died on the traceback and
+    wrote no morning, no report and no letter — 78 minutes of job wall and
+    a full ledger with nothing folded out of them. A stage that cannot
+    finish must leave a gap the night records and carries on past.
+    """
     log("$ " + " ".join(str(a) for a in argv[:8]) + (" ..." if len(argv) > 8 else ""))
-    return subprocess.run(
-        [str(a) for a in argv], cwd=cwd, env=env, timeout=timeout,
-        check=False, capture_output=True, text=True,
-    )
+    try:
+        return subprocess.run(
+            [str(a) for a in argv], cwd=cwd, env=env, timeout=timeout,
+            check=False, capture_output=True, text=True,
+        )
+    except subprocess.TimeoutExpired as expired:
+        def _text(value: object) -> str:
+            if isinstance(value, bytes):
+                return value.decode("utf-8", "replace")
+            return "" if value is None else str(value)
+        out = _text(expired.stdout)
+        err = _text(expired.stderr)
+        log(f"the command timed out after {timeout} s; the stage records it "
+            f"and the night carries on")
+        return subprocess.CompletedProcess(
+            [str(a) for a in argv], 124, out,
+            (err + f"\n[the command timed out after {timeout} s]").strip())
 
 
 # --------------------------------------------------------------- the tiles ---

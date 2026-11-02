@@ -2068,3 +2068,42 @@ gap, which is evidence — and keep its artifacts as
 `artifacts/night-v5-cut-2344`. Then run the night again from the one command
 with the bound fixed, so the live view is a seam that runs rather than a gap
 that is written down.
+
+## 2026-11-01 23:44-23:50 — the export bound was not the only bug: a timeout killed the night
+
+**What happened.** The attempt launched at 21:23:21 reached the live view's
+export at 22:44:04 and died at **23:44:15** with an unhandled
+`subprocess.TimeoutExpired`: the export hit its 3600 s bound, the exception
+went up through `run_cmd` and out of `main`, and the night wrote **no
+`morning.json`, no report and no letter**. Its ledger is whole — 459 rows,
+251 `judge.verdict`, 18 `night.prop_delegate`, 24 jobs, 78.0 min of job
+wall, 56.66 GPU-minutes, three `thor-admit` leases — and `measure.py` folded
+what it could out of it, but the morning, which is what the letter is
+written from, never happened. The finisher said so plainly:
+`no such file: .../artifacts/night-v5/morning.json`.
+
+**Why.** `run_cmd` called `subprocess.run(..., timeout=...)` and let the
+exception through. A stage that cannot finish took the whole night with it
+instead of leaving a gap the night records and carries on past. My earlier
+reading of this code — that the export failure would be recorded and the
+night would go on to its morning — was wrong, and the night proved it.
+
+**What I changed.**
+
+1. `run_cmd` catches `subprocess.TimeoutExpired` and returns a result with
+   returncode **124** and the note in stderr, so the stage records the gap.
+   Proved on the box at 23:47:30: `run_cmd(['sleep', '30'], timeout=3)`
+   returns 124 after 3.0 s, and the normal path is unchanged.
+2. `launch_night.sh` (new) — a committed launcher that detaches the night
+   and the finisher with the redirections **inside** the script (the
+   finisher's first launch on 2026-11-01 died because the redirect was set
+   up before the cd took effect), refuses to start a second copy of the
+   night, and exports `XLA_PYTHON_CLIENT_PREALLOCATE=false`.
+3. `finish_night.sh` takes `NIGHT` from the environment, default
+   `artifacts/night-v5`.
+
+**What I decided next.** The dead run's artifacts are kept as
+`artifacts/night-v5-cut-2344` — a night with a whole ledger and no morning
+is evidence too — and the night runs again from the one command, with the
+export bound at 4 h and a timeout that is a recorded gap rather than a dead
+night.

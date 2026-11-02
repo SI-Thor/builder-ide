@@ -9,6 +9,7 @@ scripts that write the morning's letter.
 | file | what it is |
 |---|---|
 | `run_night.py` | the night, end to end: one ledger, one runner, every layer real |
+| `launch_night.sh` | launches the night and the finisher beside it, both detached (one ssh, no open connection) |
 | `build_library.py` | the library's approved set: ten measured crates, one kind (built **once**, before the night) |
 | `approved-crate-library.json` | what `build_library.py` wrote; the runner reads it |
 | `measure_llama_gpu.sh` | one llama-server's GPU at rest, under the night's flags and smaller ones (inherited from the stopped seat; superseded by the probe below) |
@@ -46,6 +47,18 @@ for, and nothing else. The diff against
    as a labeled group, so the ghost gate (0.05) can fire on that kind
    (`night.library` row).
 
+Two bounds in the runner are the box's own timings, not guesses:
+
+- **the GPU-pool bar** waits at most 45 minutes per prompt
+  (`GPU_POOL_WAIT_S`), and
+- **the live view's scene export** is bounded at 4 hours
+  (`SCENE_EXPORT_TIMEOUT_S`). The export is Blender's glTF exporter walking
+  this scene's 11,254,482 subdivided triangles in Python on the CPU: the same
+  scene measured 115 min (2026-10-31, `world-stream-scratch/export2`) and
+  136 min (`export1`). The runner's first bound was 3600 s — shorter than the
+  work — so the seam could not succeed on any run; see the commit
+  `bec8973`.
+
 ## How to run it
 
 The library first (once, about 25-40 minutes):
@@ -56,8 +69,9 @@ PYTHONPATH=. ~/lm-wt/propmaker-batch/.venv/bin/python \
     docs/lab/night-v5-scripts/build_library.py
 ```
 
-Then the night (about 2.5-3 hours on a quiet box; `--dry-run` runs the
-whole wiring on the fake engine in about a second):
+Then the night (about 3.5-4 hours on a quiet box — wave 1 is ~80 minutes and
+the live view's scene export is ~2 hours of it; `--dry-run` runs the whole
+wiring on the fake engine in about a second):
 
 ```bash
 cd ~/lm-wt/night-v5
