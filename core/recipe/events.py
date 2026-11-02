@@ -16,6 +16,7 @@ __all__ = [
     "TILE_EVENT_TYPES",
     "JUDGE_EVENT_TYPES",
     "NIGHT_V3_EVENT_TYPES",
+    "NIGHT_V4_EVENT_TYPES",
 ]
 
 WORK_ORDER_EVENT_TYPES = frozenset(
@@ -129,6 +130,15 @@ NIGHT_V3_EVENT_TYPES = frozenset(
      "night.live_view", "night.box_state"}
 )
 
+#: The night-v4 integration seat's types (core/night/events.py carries
+#: the same copy): the routed decoy cell asked on the box, the
+#: plausibility prior's and the delegate's verdicts on the props, and the
+#: heavy lease's phase down when the heavy phase ends.
+NIGHT_V4_EVENT_TYPES = frozenset(
+    {"night.decoy_cell", "night.prop_plausibility",
+     "night.prop_delegate", "night.heavy_phase"}
+)
+
 EVENT_TYPES = frozenset(
     WORK_ORDER_EVENT_TYPES
     | RECIPE_EVENT_TYPES
@@ -148,6 +158,7 @@ EVENT_TYPES = frozenset(
     | TILE_EVENT_TYPES
     | JUDGE_EVENT_TYPES
     | NIGHT_V3_EVENT_TYPES
+    | NIGHT_V4_EVENT_TYPES
 )
 
 #: The union of the groups above must be the shared closed set — this copy

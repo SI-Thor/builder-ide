@@ -1,0 +1,168 @@
+{
+  "night_id": "night-v4",
+  "what": "the night-v4 seat's receipts from the run that reached TRELLIS's mesh stage, transcribed from the night's own ledger and its own log. NOT a night's morning: the run died before it wrote one, so the letter is written from the rows the ledger does hold.",
+  "receipts": {
+    "ledger": "artifacts/night-v4/ledger.db on the Thor \u2014 the night's own rows: 251 judge.verdict rows, 3 night.heavy_lease rows (each carrying the sweep that ran before it), 18 night.prop_delegate rows, the night's own 240-state decoy-cell probe and its prior fit",
+    "run_log": "artifacts/night-v4/run.log on the Thor \u2014 the night's log head, and the line it ended on",
+    "measurements": "artifacts/night-v4/measurements.json on the Thor \u2014 what docs/lab/night-v4-scripts/measure.py reads out of that ledger"
+  },
+  "status_note": "The night itself ran to TRELLIS's mesh stage, where the box's render server stopped answering; its eighteen delegate calls had failed on a picture path, which is now fixed and proved on the crate.",
+  "wall_minutes": 43.4,
+  "props": {
+    "kept": 0,
+    "winners": [],
+    "note": "the night's props were judged \u2014 fourteen variants rejected by the critic \u2014 but the run died in the mesh stage before a winner was confirmed"
+  },
+  "decisions": {
+    "count": 251,
+    "local": 249,
+    "escalated": 4,
+    "surfaced": 0,
+    "note": "the night's own ledger: 251 judge.verdict rows \u2014 245 on the local d1-3B, 4 on Jev, 2 with no author; 181 surfaced, 66 act, 2 escalate",
+    "rungs": {
+      "judge@d1:d1-3B": 245,
+      "judge@jev:jev-latest": 4,
+      "?": 2
+    }
+  },
+  "judge": {
+    "model": "d1-3B",
+    "order": "canonical",
+    "route_probe": {
+      "steps": 240,
+      "accuracy": 0.5208,
+      "decoy_first_accuracy": 0.561,
+      "truth_first_accuracy": 0.5,
+      "tau": 0.76,
+      "tau_source": "calibrated",
+      "latency_p50_s": 0.046,
+      "note": "the night's own 240-state probe, asked on this box's d1-3B at 17:23 \u2014 the same numbers as the published \u00a79.4 run (0.5208, act 59, surfaced 181, 46.5 ms)"
+    }
+  },
+  "critic": {
+    "prior": {
+      "fitted": true,
+      "approved_members": 0,
+      "reference_members": 38,
+      "groups": 22,
+      "largest_group": 7,
+      "ghost_threshold": 0.05,
+      "note": "the night's approved set is empty, so the prior is fitted on the measured real objects alone; a group of n cannot score below 0.5/(n+1), so the ghost gate needs ten members in a group and cannot fire on this fit"
+    },
+    "signals": [
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r1_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s102_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r1_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s103_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r1_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s104_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r2_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s1102_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r2_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s1103_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:crate",
+        "variant_id": "img:crate_r2_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'crate_s1104_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r1_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s203_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r1_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s204_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r1_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s205_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r2_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s1203_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r2_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s1204_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:lantern",
+        "variant_id": "img:lantern_r2_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'lantern_s1205_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r1_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s304_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r1_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s305_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r1_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s306_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r2_v1",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s1304_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r2_v2",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s1305_00004_.png'"
+      },
+      {
+        "stage": "image",
+        "task_id": "img:anvil",
+        "variant_id": "img:anvil_r2_v3",
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'anvil_s1306_00004_.png'"
+      }
+    ]
+  },
+  "memory": {
+    "lease_wait_s": 0.2,
+    "note": "three thor-admit leases, waited 0.0 s / 0.1 s / 0.1 s in total",
+    "leases": 3
+  }
+}

@@ -35,6 +35,7 @@ from core.genbatch.images import ImageError, png_dimensions
 from core.genbatch.licences import licence_for
 from core.genbatch.mesh import measure_mesh
 from core.genbatch.models import ImageResult, PropRequest, PromptRecord, StageKind
+from core.genbatch.occupancy import occupied
 from core.genbatch.repair import RepairResult, repair_mesh
 from core.genbatch.schedule import MESH_MODEL, NightPlan
 from core.genbatch.store import PropStore
@@ -234,6 +235,19 @@ class PropExecutor:
         # open one until those seams are welded (docs/lab/exp-mesh-repair.md).
         repair = repair_mesh(mesh, request.repair)
         report = repair.report.after or measure_mesh(repair.mesh)
+        # What the object **occupies**, not the material in it. The
+        # plausibility prior reads this number (critic-shells), and the
+        # signed volume is the wrong one for a shell: a real mug is a
+        # little ceramic inside a large cylinder. The convex hull is the
+        # measure the shells work chose; it costs about half a second
+        # and 400 MB on a TRELLIS mesh, and it over-estimates a concave
+        # object, which is the safe direction — an object reads as fuller
+        # than it is, and is judged more ordinary rather than less.
+        if report.occupied_volume is None:
+            occ = occupied(repair.mesh, "convex")
+            report.occupied_volume = occ.volume
+            report.occupied_centre = occ.centre
+            report.occupied_method = occ.method
         variant_id = variant.id if variant is not None else f"{task.id}_s{seed}"
         asset = build_asset(
             request=request,

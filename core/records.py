@@ -129,6 +129,12 @@ EVENT_TYPES: frozenset[str] = frozenset(
         # view's compile of the night's recipe changes
         "band.cue", "band.effect", "night.mediator_call", "night.heavy_lease",
         "night.live_view", "night.box_state",
+        # the night-v4 integration seat: the routed decoy cell asked on
+        # this box, the plausibility prior's and the delegate's verdicts on
+        # the props, and the heavy lease's phase down when the heavy phase
+        # ends
+        "night.decoy_cell", "night.prop_plausibility",
+        "night.prop_delegate", "night.heavy_phase",
         # questions
         "question.parked", "question.answered", "assumption.recorded",
         # continuity
