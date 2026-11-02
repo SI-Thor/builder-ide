@@ -87,3 +87,13 @@ What changes in this note:
    contrasts (4-8.5x training cost; unverified for long streams), so the reflex can
    stay memoryless here; and the best clone reached 38 % of the teacher, so keep
    retiring skill by skill rather than expecting full distillation from recordings.
+
+## Measured, 2026-11-02 (round 2 supersedes the 2026-11-01 table above)
+
+`docs/lab/exp-crafter-r2.md` (8 seeds, canonical episodes, single-frame and GRU students, 1x and 3x budget, ProArt RTX 4050):
+round 1's "random beats teaching moments" was a one-seed fluctuation; moments and a same-size random subset are
+indistinguishable, and both beat all frames **only when compute is short**. At 3x budget, all frames win by 1.7-1.9
+achievements and the subsets do not improve at all (they saturate at ~40 presentations per frame). A memoryful student
+changes nothing here. **Rule:** learn from all of a teacher's frames at the largest budget we can afford; subsample
+randomly only when the budget forces it. The teaching-moment filter is not a better selector; keep it, if at all, as a
+cheap way to point a human at what the teacher did that surprised us, not as a training filter.

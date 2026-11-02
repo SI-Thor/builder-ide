@@ -1,0 +1,376 @@
+{
+ "experiment": "crafter-r2: which frames to learn from (round-2 test)",
+ "date": "2026-11-02",
+ "doc": "docs/exp-crafter-r2.md",
+ "runs": 96,
+ "eval": {
+  "seeds": "7100..7107",
+  "episodes": 8,
+  "length_cap": 10000
+ },
+ "teacher_baseline": 8.125,
+ "intervals": "mean +- t(0.975, n-1) * sd / sqrt(n) over the seeds",
+ "table": [
+  {
+   "arm": "memory-all-b1",
+   "student": "memory",
+   "select": "all",
+   "budget": 1,
+   "n_seeds": 8,
+   "frames_used": 51395.0,
+   "frame_passes_compute": 8388608,
+   "untrained": 0.094,
+   "final_achievements": 0.203,
+   "ci95": 0.316,
+   "final_steps": 194.6,
+   "agreement_all": 0.496,
+   "agreement_decisive": 0.135
+  },
+  {
+   "arm": "memory-all-b3",
+   "student": "memory",
+   "select": "all",
+   "budget": 3,
+   "n_seeds": 8,
+   "frames_used": 51395.0,
+   "frame_passes_compute": 25165824,
+   "untrained": 0.141,
+   "final_achievements": 2.969,
+   "ci95": 0.674,
+   "final_steps": 213.2,
+   "agreement_all": 0.94,
+   "agreement_decisive": 0.981
+  },
+  {
+   "arm": "memory-rand-b1",
+   "student": "memory",
+   "select": "rand",
+   "budget": 1,
+   "n_seeds": 8,
+   "frames_used": 3565.2,
+   "frame_passes_compute": 8388608,
+   "untrained": 0.094,
+   "final_achievements": 0.812,
+   "ci95": 0.268,
+   "final_steps": 186.0,
+   "agreement_all": 0.362,
+   "agreement_decisive": 0.248
+  },
+  {
+   "arm": "memory-rand-b3",
+   "student": "memory",
+   "select": "rand",
+   "budget": 3,
+   "n_seeds": 8,
+   "frames_used": 3565.2,
+   "frame_passes_compute": 25165824,
+   "untrained": 0.109,
+   "final_achievements": 1.172,
+   "ci95": 0.33,
+   "final_steps": 185.7,
+   "agreement_all": 0.493,
+   "agreement_decisive": 0.235
+  },
+  {
+   "arm": "memory-teach-b1",
+   "student": "memory",
+   "select": "teach",
+   "budget": 1,
+   "n_seeds": 8,
+   "frames_used": 3565.2,
+   "frame_passes_compute": 8388608,
+   "untrained": 0.109,
+   "final_achievements": 1.203,
+   "ci95": 0.124,
+   "final_steps": 172.9,
+   "agreement_all": 0.161,
+   "agreement_decisive": 0.993
+  },
+  {
+   "arm": "memory-teach-b3",
+   "student": "memory",
+   "select": "teach",
+   "budget": 3,
+   "n_seeds": 8,
+   "frames_used": 3565.2,
+   "frame_passes_compute": 25165824,
+   "untrained": 0.078,
+   "final_achievements": 1.25,
+   "ci95": 0.097,
+   "final_steps": 176.0,
+   "agreement_all": 0.167,
+   "agreement_decisive": 1.0
+  },
+  {
+   "arm": "single-all-b1",
+   "student": "single",
+   "select": "all",
+   "budget": 1,
+   "n_seeds": 8,
+   "frames_used": 51395.0,
+   "frame_passes_compute": 524288,
+   "untrained": 0.391,
+   "final_achievements": 0.438,
+   "ci95": 0.515,
+   "final_steps": 186.1,
+   "agreement_all": 0.456,
+   "agreement_decisive": 0.148
+  },
+  {
+   "arm": "single-all-b3",
+   "student": "single",
+   "select": "all",
+   "budget": 3,
+   "n_seeds": 8,
+   "frames_used": 51395.0,
+   "frame_passes_compute": 1572864,
+   "untrained": 0.422,
+   "final_achievements": 3.094,
+   "ci95": 0.575,
+   "final_steps": 176.7,
+   "agreement_all": 0.832,
+   "agreement_decisive": 0.769
+  },
+  {
+   "arm": "single-rand-b1",
+   "student": "single",
+   "select": "rand",
+   "budget": 1,
+   "n_seeds": 8,
+   "frames_used": 3381.8,
+   "frame_passes_compute": 524288,
+   "untrained": 0.391,
+   "final_achievements": 1.266,
+   "ci95": 0.56,
+   "final_steps": 179.2,
+   "agreement_all": 0.415,
+   "agreement_decisive": 0.213
+  },
+  {
+   "arm": "single-rand-b3",
+   "student": "single",
+   "select": "rand",
+   "budget": 3,
+   "n_seeds": 8,
+   "frames_used": 3381.8,
+   "frame_passes_compute": 1572864,
+   "untrained": 0.406,
+   "final_achievements": 1.281,
+   "ci95": 0.453,
+   "final_steps": 185.0,
+   "agreement_all": 0.484,
+   "agreement_decisive": 0.224
+  },
+  {
+   "arm": "single-teach-b1",
+   "student": "single",
+   "select": "teach",
+   "budget": 1,
+   "n_seeds": 8,
+   "frames_used": 3381.8,
+   "frame_passes_compute": 524288,
+   "untrained": 0.422,
+   "final_achievements": 1.219,
+   "ci95": 0.156,
+   "final_steps": 173.3,
+   "agreement_all": 0.154,
+   "agreement_decisive": 0.989
+  },
+  {
+   "arm": "single-teach-b3",
+   "student": "single",
+   "select": "teach",
+   "budget": 3,
+   "n_seeds": 8,
+   "frames_used": 3381.8,
+   "frame_passes_compute": 1572864,
+   "untrained": 0.406,
+   "final_achievements": 1.219,
+   "ci95": 0.108,
+   "final_steps": 170.8,
+   "agreement_all": 0.163,
+   "agreement_decisive": 0.999
+  }
+ ],
+ "paired_contrasts": [
+  {
+   "kind": "selection",
+   "contrast": "teach - all (single  1)",
+   "mean_diff": 0.781,
+   "ci95": 0.499,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "rand - teach (single  1)",
+   "mean_diff": 0.047,
+   "ci95": 0.556,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "rand - all (single  1)",
+   "mean_diff": 0.828,
+   "ci95": 0.798,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "teach - all (single  3)",
+   "mean_diff": -1.875,
+   "ci95": 0.647,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "rand - teach (single  3)",
+   "mean_diff": 0.062,
+   "ci95": 0.477,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "rand - all (single  3)",
+   "mean_diff": -1.812,
+   "ci95": 0.691,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "teach - all (memory  1)",
+   "mean_diff": 1.0,
+   "ci95": 0.375,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "rand - teach (memory  1)",
+   "mean_diff": -0.391,
+   "ci95": 0.303,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "rand - all (memory  1)",
+   "mean_diff": 0.609,
+   "ci95": 0.377,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "teach - all (memory  3)",
+   "mean_diff": -1.719,
+   "ci95": 0.708,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "rand - teach (memory  3)",
+   "mean_diff": -0.078,
+   "ci95": 0.349,
+   "n_pairs": 8
+  },
+  {
+   "kind": "selection",
+   "contrast": "rand - all (memory  3)",
+   "mean_diff": -1.797,
+   "ci95": 0.583,
+   "n_pairs": 8
+  },
+  {
+   "kind": "budget",
+   "contrast": "b3 - b1 (single all )",
+   "mean_diff": 2.656,
+   "ci95": 0.708,
+   "n_pairs": 8
+  },
+  {
+   "kind": "budget",
+   "contrast": "b3 - b1 (single teach )",
+   "mean_diff": 0.0,
+   "ci95": 0.158,
+   "n_pairs": 8
+  },
+  {
+   "kind": "budget",
+   "contrast": "b3 - b1 (single rand )",
+   "mean_diff": 0.016,
+   "ci95": 0.431,
+   "n_pairs": 8
+  },
+  {
+   "kind": "budget",
+   "contrast": "b3 - b1 (memory all )",
+   "mean_diff": 2.766,
+   "ci95": 0.694,
+   "n_pairs": 8
+  },
+  {
+   "kind": "budget",
+   "contrast": "b3 - b1 (memory teach )",
+   "mean_diff": 0.047,
+   "ci95": 0.111,
+   "n_pairs": 8
+  },
+  {
+   "kind": "budget",
+   "contrast": "b3 - b1 (memory rand )",
+   "mean_diff": 0.359,
+   "ci95": 0.495,
+   "n_pairs": 8
+  },
+  {
+   "kind": "student",
+   "contrast": "memory - single ( all 1)",
+   "mean_diff": -0.234,
+   "ci95": 0.313,
+   "n_pairs": 8
+  },
+  {
+   "kind": "student",
+   "contrast": "memory - single ( all 3)",
+   "mean_diff": -0.125,
+   "ci95": 0.542,
+   "n_pairs": 8
+  },
+  {
+   "kind": "student",
+   "contrast": "memory - single ( teach 1)",
+   "mean_diff": -0.016,
+   "ci95": 0.233,
+   "n_pairs": 8
+  },
+  {
+   "kind": "student",
+   "contrast": "memory - single ( teach 3)",
+   "mean_diff": 0.031,
+   "ci95": 0.122,
+   "n_pairs": 8
+  },
+  {
+   "kind": "student",
+   "contrast": "memory - single ( rand 1)",
+   "mean_diff": -0.453,
+   "ci95": 0.602,
+   "n_pairs": 8
+  },
+  {
+   "kind": "student",
+   "contrast": "memory - single ( rand 3)",
+   "mean_diff": -0.109,
+   "ci95": 0.595,
+   "n_pairs": 8
+  }
+ ],
+ "ground_truth_sha256_of_report": "bad6512ecdd486e399d0ea3bab8a11f41343310e44ce3b1703e9c661c0363fa4",
+ "verification": {
+  "smoke": "tests/smoke.py 15/15 checks pass (see logs)",
+  "benchmark": "results/benchmarks.json",
+  "reproduce": "README.md"
+ },
+ "git": {
+  "commit": "07de1f082de48bcae443a97c0a5b0e5edb8c6813",
+  "lines_of_code": null,
+  "commit_note": "head at report time; it added the report whose sha256 is ground_truth_sha256_of_report"
+ }
+}
