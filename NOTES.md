@@ -2730,3 +2730,57 @@ installed file into `~/lm-ops` needed the operator's already-approved
 installed and verified byte-identical to `tools/seat-watch/seatwatch.py`.
 The ProArt's memory is the standing risk on this seat: 8.5 GB available with
 9 tmux windows live, and the swap is still at zero.
+
+## 2026-11-02 06:20-07:05Z — return-ux seat opened: the state found, the merge, the build
+
+What was tried — read the Thor brief in full (return-ux branch, clean at
+the drift-pause merge e1ecfcb; no prior work on the screen), the CONTINUE
+note (no detached process of ours: pgrep found only other lanes' — qwen3-vl
+server 890 M, refit-drift exp2 1.2 G, voyager-port's MC 1.5 G; 101.3 G free
+of 122.8 G), then vibecode-in-world §4, dsmc.md, omniagent.md on main, and
+the ledger itself: 95.7 k rows over 25.6 h, four kinds, seven actors.
+
+What happened — merged main in (fast-forward to da36bf3), which lands
+core/rewind, so the rewind panel calls the real thing; core/precedent is
+still lane-only, so the stub carries its exact interface. Built
+tools/return_screen/ (stdlib server :8131, read-only fold, letter, ask,
+rewind preview, precedent stub, vanilla page in the five-beat order) and
+11 tests in a uv venv (pydantic + pytest + the fastapi/httpx the shared
+conftest imports).
+
+Decided next — the browser check before any doc, because the unit tests
+cannot see the page.
+
+## 2026-11-02 06:40-07:00Z — the browser check caught what the tests could not; the per-episode correction
+
+What was tried — verify.mjs (Playwright, headless Chromium on the Thor):
+sections, four interactions, phone width, console capture.
+
+What happened — two real bugs: the page appended "Z" to timestamps that
+already carried it, so every timeline coordinate was NaN and the click
+handler died before a rewind point could be set (the unit tests never
+parse a date); and with 421 marks in a 25 h window a click always landed
+on a mark, so "click empty space" could never set the point — any click
+now sets the point and reads the nearest mark. Deleting state under the
+running server 500'd the precedent read once; the store now re-touches a
+vanished file. And a fact changed under us mid-run: the judge's refusal
+episode (02:44:06Z→06:19:38Z, 6,327 refusals) ended on its own at 06:19Z,
+dropping the whole-window refusal rate to 39 % — the seed rule first
+asked nothing (window diluted), then, rewritten per-episode, asked four
+questions at once (a nag); final rule: one question, the latest ≥ 50 %
+episode the absence overlapped, rated by the overlap (559/1,077 = 52 %),
+never re-asked once ruled.
+
+What happened (final pass) — ok: true; zero console errors, zero page
+errors, zero phone overflow; 445 marks in the whole-ledger window; the
+ask box pulled 4,522 of 95,621 rows (4.73 %) to answer "what did Kite
+play in the last 3 hours?"; the rewind preview at seq 62,554 keeping
+Kite/tile.played: 12,849 kept, 20,290 left behind with reasons; the
+precedent asked once and answered inline; 12 screenshots committed.
+
+Decided next — the lab note (docs/lab/exp-return-ux.md, Round 10 row in
+the lab README), the closing commits, and the server left running on
+:8131 for Casey. What is left and risky: the letter has not been read by
+Casey (dsmc's calibration); the rewind preview stops at the selection
+(this world has no canon commits — the cherry-pick proof is the
+rewind-select lane's); the precedent seam is a stub until its lane lands.

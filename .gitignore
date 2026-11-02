@@ -62,3 +62,10 @@ tools/posestream/target/
 # The autopilot study clone (READ-ONLY research copy; never built)
 third_party/
 node_modules
+
+# The return screen: its venv, its runtime state and its detached
+# server files are the running box, not sources.
+tools/return_screen/.venv/
+tools/return_screen/state/
+tools/return_screen/server.log
+tools/return_screen/server.pid
