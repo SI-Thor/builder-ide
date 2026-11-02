@@ -63,6 +63,7 @@ impl Acceptance {
         }
     }
 
+    #[allow(dead_code)]
     pub fn to_json(&self) -> Json {
         let mut o = Json::obj();
         o.set("kind", Json::s(self.kind.clone()));
@@ -81,6 +82,9 @@ impl Acceptance {
 }
 
 #[derive(Clone, Debug)]
+// The record keeps fields the report does not print yet; they are part of
+// what the ledger holds and are not dead weight.
+#[allow(dead_code)]
 pub struct Bid {
     pub id: String,
     pub job_id: String,
@@ -131,6 +135,7 @@ impl Bid {
         }
     }
 
+    #[allow(dead_code)]
     pub fn to_json(&self) -> Json {
         let mut o = Json::obj();
         o.set("id", Json::s(self.id.clone()));
@@ -166,6 +171,9 @@ impl Bid {
 }
 
 #[derive(Clone, Debug)]
+// The record keeps fields the report does not print yet; they are part of
+// what the ledger holds and are not dead weight.
+#[allow(dead_code)]
 pub struct Checkpoint {
     pub crew_used_min: f64,
     pub burn: f64,
@@ -180,6 +188,9 @@ pub struct Checkpoint {
 }
 
 #[derive(Clone, Debug)]
+// The record keeps fields the report does not print yet; they are part of
+// what the ledger holds and are not dead weight.
+#[allow(dead_code)]
 pub struct ChangeOrder {
     pub seq: u32,
     pub reason: String,
@@ -189,6 +200,9 @@ pub struct ChangeOrder {
 }
 
 #[derive(Clone, Debug)]
+// The record keeps fields the report does not print yet; they are part of
+// what the ledger holds and are not dead weight.
+#[allow(dead_code)]
 pub struct CloseRec {
     pub accepted: bool,
     pub actual_crew_min: f64,
@@ -209,6 +223,9 @@ pub struct CloseRec {
 }
 
 #[derive(Clone, Debug)]
+// The record keeps fields the report does not print yet; they are part of
+// what the ledger holds and are not dead weight.
+#[allow(dead_code)]
 pub struct Retool {
     pub sub: String,
     pub class: String,
@@ -218,6 +235,9 @@ pub struct Retool {
 }
 
 #[derive(Clone, Debug)]
+// The record keeps fields the report does not print yet; they are part of
+// what the ledger holds and are not dead weight.
+#[allow(dead_code)]
 pub struct Job {
     pub id: String,
     pub title: String,
@@ -302,10 +322,6 @@ impl State {
 
     pub fn job_mut(&mut self, id: &str) -> Option<&mut Job> {
         self.jobs.iter_mut().find(|j| j.id == id)
-    }
-
-    pub fn bid(&self, id: &str) -> Option<&Bid> {
-        self.bids.iter().find(|b| b.id == id)
     }
 
     /// Bids for a job, in ledger order.

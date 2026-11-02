@@ -92,6 +92,7 @@ impl Json {
         }
     }
 
+    #[allow(dead_code)]
     pub fn is_null(&self) -> bool {
         matches!(self, Json::Null)
     }

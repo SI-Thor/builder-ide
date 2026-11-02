@@ -79,7 +79,7 @@ pub fn pairs_of(state: &State) -> Vec<(String, String)> {
 /// The plan allowance a seat worked under, as the median of the proxy bids
 /// in the history. A pi seat has none: it is billed in tokens.
 pub fn plan_allowance(state: &State, sub: &str) -> Option<f64> {
-    let mut seen: Vec<f64> = state
+    let seen: Vec<f64> = state
         .bids
         .iter()
         .filter(|b| b.sub == sub && b.proxy)
@@ -346,6 +346,17 @@ pub fn text_report(state: &State, filter: &ReportFilter) -> String {
          against that window, and the window share is the 'allow' column above. A pi seat reports\n  \
          tokens, so its crew-time is a token count, not minutes, and it forms no pair here.\n",
     );
+
+    // ---- the retoolings ---------------------------------------------------
+    if !state.retools.is_empty() {
+        out.push_str("\nRETOOLINGS\n");
+        for r in &state.retools {
+            out.push_str(&format!(
+                "  {} on '{}' at {}: {} (action: {})\n",
+                r.sub, r.class, r.ts, r.reason, r.action
+            ));
+        }
+    }
 
     // ---- blocked seats ---------------------------------------------------
     let blocked: Vec<String> = pairs_of(state)

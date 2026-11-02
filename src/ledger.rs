@@ -134,6 +134,7 @@ pub fn read(path: &Path) -> Result<Vec<Row>, String> {
 }
 
 /// Verify only; returns the number of rows checked.
+#[allow(dead_code)]
 pub fn verify(path: &Path) -> Result<usize, String> {
     Ok(read(path)?.len())
 }

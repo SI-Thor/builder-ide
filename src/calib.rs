@@ -82,6 +82,7 @@ pub fn actuals_for(state: &State, sub: &str, class: &str, clean_only: bool) -> V
 
 /// The result of calibrating a bid for a seat on a class.
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct Calibration {
     /// The promise: crew-minutes.
     pub crew_min: f64,
@@ -199,6 +200,7 @@ pub fn confidence_for(samples: &[f64], n: usize, scope: &str) -> f64 {
 
 /// A seat's standing on one job class.
 #[derive(Clone, Debug)]
+#[allow(dead_code)]
 pub struct Reputation {
     pub sub: String,
     pub class: String,

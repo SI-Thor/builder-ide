@@ -43,6 +43,7 @@ pub fn format_iso(secs: i64) -> String {
 
 /// Parse "YYYY-MM-DDTHH:MM:SSZ" (also accepts a space separator and a
 /// missing seconds field) into unix seconds.
+#[allow(dead_code)]
 pub fn parse_iso(text: &str) -> Result<i64, String> {
     let t = text.trim();
     if t.len() < 10 {
@@ -66,6 +67,7 @@ pub fn parse_iso(text: &str) -> Result<i64, String> {
 }
 
 /// Days since 1970-01-01 for a civil date (Howard Hinnant's algorithm).
+#[allow(dead_code)]
 pub fn days_from_civil(y: i64, m: u32, d: u32) -> i64 {
     let y = if m <= 2 { y - 1 } else { y };
     let era = if y >= 0 { y } else { y - 399 } / 400;
