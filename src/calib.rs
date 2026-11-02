@@ -208,9 +208,13 @@ pub struct Reputation {
     /// How many of those jobs had a recorded deadline. Lateness can only be
     /// known where there was one.
     pub n_deadline: usize,
+    /// How many closed with the goal-line check inconclusive: the check
+    /// could not run, so the job is neither a hit nor a miss.
+    pub n_inconclusive: usize,
     /// Fraction of finished jobs that were not late.
     pub on_time_rate: f64,
-    /// Fraction of finished jobs that crossed their goal line.
+    /// Fraction of finished jobs that crossed their goal line. Closes that
+    /// could not say are outside the fraction, not inside it as misses.
     pub goal_line_rate: f64,
     /// Fraction of finished jobs that stayed inside the bid.
     pub budget_hit_rate: f64,
@@ -226,6 +230,7 @@ pub struct Reputation {
 pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
     let mut n = 0usize;
     let mut n_deadline = 0usize;
+    let mut n_inconclusive = 0usize;
     let mut on_time = 0usize;
     let mut goal_line = 0usize;
     let mut in_budget = 0usize;
@@ -255,8 +260,12 @@ pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
                 on_time += 1;
             }
         }
-        if close.accepted {
-            goal_line += 1;
+        match close.acceptance_verdict {
+            crate::verdict::Verdict::Pass => goal_line += 1,
+            crate::verdict::Verdict::Fail => {}
+            // The goal-line check could not run: the job is neither a hit
+            // nor a miss, and it leaves the denominator.
+            crate::verdict::Verdict::Inconclusive => n_inconclusive += 1,
         }
         if close.effective_bid_min > 0.0 {
             with_promise += 1;
@@ -270,13 +279,18 @@ pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
     let (on_time_rate, goal_line_rate, budget_hit_rate) = if n == 0 {
         (0.0, 0.0, 0.0)
     } else {
+        let decided = n - n_inconclusive;
         (
             if n_deadline == 0 {
                 0.0
             } else {
                 on_time as f64 / n_deadline as f64
             },
-            goal_line as f64 / n as f64,
+            if decided == 0 {
+                0.0
+            } else {
+                goal_line as f64 / decided as f64
+            },
             if with_promise == 0 {
                 0.0
             } else {
@@ -304,6 +318,7 @@ pub fn reputation(state: &State, sub: &str, class: &str) -> Reputation {
         class: class.to_string(),
         n,
         n_deadline,
+        n_inconclusive,
         on_time_rate,
         goal_line_rate,
         budget_hit_rate,

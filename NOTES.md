@@ -216,3 +216,69 @@ What is left, and the risks:
   deleting it needs a hand.
 - **`desk.sh` was not edited.** The three-line change is in
   `docs/integration.md` for the desk's owner.
+
+## 2026-11-02 19:35 — v2 opened (this seat: zcode on job J051)
+
+- The director opened J051 (gc v2: the scout four gaps) at 19:28Z and awarded
+  it to zcode (bid B052, 140 crew-min, from 1 clean run; B051 by mcode at
+  171 lost on score). The opening state — BRIEF addendum, the scout's
+  `docs/prior-art-scout.md`, the four J051 rows — committed as `7662354`.
+- First checkpoint (row 204): 15 crew-min, 11% of the bid. Box: Thor idle
+  otherwise, 80 GB free disk, no GPU work in this job.
+- The permission gate that stopped the last seat from overwriting files on
+  the Thor has relaxed: `cat >` over `.commitmsg.txt` and full `rsync` of
+  the source tree both went through without a prompt this time. Noted here
+  because the last seat's workaround (rebuild-only ledger) is no longer the
+  only path.
+
+## 2026-11-02 20:05 — the four gaps, built
+
+Four new modules, one binary, still std-only:
+
+- `verdict.rs` — pass / fail / **inconclusive**, everywhere a check runs.
+  Old rows replay with their meaning: `acceptance_passed` bool → pass/fail;
+  no check at all → inconclusive. The goal-line rate in the report now
+  counts pass ÷ closes-that-could-say.
+- `check.rs` — the honest-report check: `gc close` re-runs the acceptance
+  command itself (`sh -c`, output discarded, 600 s timeout), reads the exit
+  code, and refuses `--accepted`/`--failed` on cmd-kind jobs. A metric goal
+  line takes `--metric name=value`. Actuals below the last checkpoint are
+  refused; the metrics gc computes (`crew_used_min`, `burn`,
+  `job_elapsed_min`) cannot be asserted over.
+- `clause.rs` — the clause grammar `<metric> <op> <target> [window W]
+  [penalty P]` on jobs and awards (award overrides by metric). Checked at
+  every checkpoint and at close; a breach at close costs its penalty into
+  the same arithmetic as a late day.
+- `forecast.rs` — spend-rate forecast at every checkpoint: rate since the
+  award, projected spend at the deadline, minutes to the stop line, verdict
+  ok / warn / inconclusive. Warns **before** the 80% line.
+
+Tests: **56 passing** (41 unit, 15 through the real binary; v1 was 27).
+First run had one failure — my own test arithmetic (2880 min past a 1440
+deadline is 2 days, not 1); fixed the test, not the code. Build warning-free.
+
+## 2026-11-02 20:10 — the fixed clock was not where the comment said
+
+The demo's forecast said "no job-time has passed since the award" at every
+checkpoint. The forecast was right: `GC_NOW=1793640000` is
+**2026-11-02T17:20:00Z**, not 10:40:00Z as the inherited v1 comment (and my
+first demo) claimed — my demo timestamps were *before* the award, so elapsed
+time was negative and the forecast refused to project. Corrected the demo
+and the comment. Lesson recorded: the forecast refusing to speak on a
+negative clock is the behaviour working as designed.
+
+Also: a checkpoint seconds after the award produced a rate of 720
+crew-min/job-min — honest math on noise. The forecast now stays quiet until
+at least a minute of job-time has passed (says "noise" in the note).
+
+## 2026-11-02 20:15 — the demo and the five-minute run, for real
+
+- `./examples/demo.sh` end to end: clauses in the contract, the goal line
+  actually failing at checkpoints while the carpet is not down, FORECAST
+  WARNING at 40% burn, STOP REQUIRED at 81%, a change order lifting it, an
+  honest close (exit 0), and a second job whose lying `--accepted` close is
+  refused.
+- The README's five-minute section was run for real on a scratch git repo
+  on the Thor (a `check.sh` that fails until `fixed.txt` exists); the output
+  in the README is that run, trimmed. The promise curve got its first real
+  pair: 14 actual against a 25-minute prior bid (ratio 0.56).

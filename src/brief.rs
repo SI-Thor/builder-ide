@@ -34,7 +34,33 @@ pub fn brief_block(state: &State, job_id: &str) -> Result<String, String> {
     if !job.acceptance.note.is_empty() {
         out.push_str(&format!("_{}_\n", job.acceptance.note));
     }
+    out.push_str(
+        "_The goal line is not taken on trust: `gc close` runs the acceptance command itself \
+        (or compares the metric, or takes the desk's word on a report-kind job) and records the \
+        verdict — pass, fail, or inconclusive when the check could not run._\n",
+    );
     out.push('\n');
+
+    let clauses = job.clauses_in_force();
+    if !clauses.is_empty() {
+        out.push_str("**The clauses.** Checked at every checkpoint and at close; a breach at close costs its penalty:\n");
+        for c in &clauses {
+            let negotiated = job
+                .award_clauses
+                .iter()
+                .any(|a| a.metric == c.metric);
+            out.push_str(&format!(
+                "- {}{}\n",
+                c.describe(),
+                if negotiated { " *(negotiated at award)*" } else { "" }
+            ));
+        }
+        out.push('\n');
+        out.push_str(
+            "Metric values are reported at the checkpoint (`--metric name=value`); the ones gc \
+             computes itself (`crew_used_min`, `burn`, `job_elapsed_min`) cannot be asserted over.\n\n",
+        );
+    }
 
     out.push_str(&format!(
         "- **Job-time (T-minus):** {} from the award. Past that, the job is late and the penalty starts to run.\n",
@@ -77,6 +103,10 @@ pub fn brief_block(state: &State, job_id: &str) -> Result<String, String> {
     ));
 
     out.push_str(&format!(
+        "- **Forecast:** every checkpoint projects your burn rate to the deadline and prints a warning **before** the stop line. A warning is not a stop; it is the moment to say the job needs re-planning.\n"
+    ));
+
+    out.push_str(&format!(
         "- **Penalty:** {} for every day you are late. Crew-time spent past your bid becomes debt you carry; an underrun repays it.\n",
         fmt_crew(job.penalty_per_day_min)
     ));
@@ -86,7 +116,7 @@ pub fn brief_block(state: &State, job_id: &str) -> Result<String, String> {
     ));
 
     out.push_str(&format!(
-        "- **Ledger:** job {} in `ledger.jsonl`. Report your burn at every milestone with\n  `gc checkpoint --job {} --crew-used-min <minutes>`\n  and close with\n  `gc close --job {} --crew-min <minutes> --accepted`\n  once the goal line passes.\n",
+        "- **Ledger:** job {} in `ledger.jsonl`. Report your burn at every milestone with\n  `gc checkpoint --job {} --crew-used-min <minutes>`\n  and close with\n  `gc close --job {} --crew-min <minutes>`\n  — the goal line is checked at close, so report the work, not the verdict.\n",
         job.id, job.id, job.id
     ));
 

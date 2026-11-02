@@ -25,6 +25,8 @@ pub struct CloseOutcome {
 ///
 /// `current_debt_min` is what the subcontractor already carried on this job
 /// class before this job; an underrun repays that debt, never more.
+/// `clause_penalty_min` is what breached contract clauses cost (already
+/// computed from the clause records); it lands on top of the late penalty.
 pub fn close_outcome(
     job: &Job,
     bid: Option<&Bid>,
@@ -33,6 +35,7 @@ pub fn close_outcome(
     late_days_override: Option<f64>,
     current_debt_min: f64,
     accepted: bool,
+    clause_penalty_min: f64,
 ) -> CloseOutcome {
     let effective_bid_min = job.effective_bid_min(bid);
     let effective_deadline_min = job.effective_deadline_min();
@@ -63,7 +66,7 @@ pub fn close_outcome(
         late_days * job.penalty_per_day_min
     } else {
         0.0
-    };
+    } + clause_penalty_min.max(0.0);
 
     // An underrun repays debt, but only a job that actually delivered: work
     // that did not cross its goal line earns no credit.
@@ -109,6 +112,9 @@ mod tests {
             budget_min: 240.0,
             penalty_per_day_min: 30.0,
             stop_ratio: 0.8,
+            clauses: Vec::new(),
+            award_clauses: Vec::new(),
+            award_ts: "2026-11-02T10:00:00Z".to_string(),
             created_ts: "2026-11-02T10:00:00Z".to_string(),
             reconstructed: false,
             source: String::new(),
@@ -141,7 +147,7 @@ mod tests {
 
     #[test]
     fn an_overrun_becomes_debt() {
-        let out = close_outcome(&job(), Some(&bid(120.0)), 150.0, 120.0, None, 0.0, true);
+        let out = close_outcome(&job(), Some(&bid(120.0)), 150.0, 120.0, None, 0.0, true, 0.0);
         assert_eq!(out.overrun_min, 30.0);
         assert_eq!(out.penalty_min, 0.0);
         assert_eq!(out.debt_delta_min, 30.0);
@@ -151,26 +157,34 @@ mod tests {
     #[test]
     fn late_days_cost_a_penalty() {
         // 2 days past a 1440-minute allowance.
-        let out = close_outcome(&job(), Some(&bid(120.0)), 100.0, 1440.0 + 2880.0, None, 0.0, true);
+        let out = close_outcome(&job(), Some(&bid(120.0)), 100.0, 1440.0 + 2880.0, None, 0.0, true, 0.0);
         assert_eq!(out.late_days, 2.0);
         assert_eq!(out.penalty_min, 60.0);
         assert_eq!(out.debt_delta_min, 60.0);
     }
 
     #[test]
+    fn a_breached_clause_costs_its_penalty_on_top() {
+        // One day late (30) plus a clause breach (45): 75 of penalty.
+        let out = close_outcome(&job(), Some(&bid(120.0)), 100.0, 1440.0 + 1440.0, None, 0.0, true, 45.0);
+        assert_eq!(out.penalty_min, 75.0);
+        assert_eq!(out.debt_delta_min, 75.0);
+    }
+
+    #[test]
     fn an_underrun_repays_debt_but_no_more() {
-        let out = close_outcome(&job(), Some(&bid(120.0)), 100.0, 100.0, None, 45.0, true);
+        let out = close_outcome(&job(), Some(&bid(120.0)), 100.0, 100.0, None, 45.0, true, 0.0);
         assert_eq!(out.repayment_min, 20.0);
         assert_eq!(out.debt_delta_min, -20.0);
 
-        let out2 = close_outcome(&job(), Some(&bid(120.0)), 100.0, 100.0, None, 5.0, true);
+        let out2 = close_outcome(&job(), Some(&bid(120.0)), 100.0, 100.0, None, 5.0, true, 0.0);
         assert_eq!(out2.repayment_min, 5.0);
         assert_eq!(out2.debt_delta_min, -5.0);
     }
 
     #[test]
     fn work_that_did_not_land_earns_no_credit() {
-        let out = close_outcome(&job(), Some(&bid(120.0)), 100.0, 100.0, None, 45.0, false);
+        let out = close_outcome(&job(), Some(&bid(120.0)), 100.0, 100.0, None, 45.0, false, 0.0);
         assert_eq!(out.repayment_min, 0.0);
         assert_eq!(out.debt_delta_min, 0.0);
     }
@@ -181,7 +195,7 @@ mod tests {
         let mut j = job();
         j.budget_min = 0.0;
         j.deadline_min = 0.0;
-        let out = close_outcome(&j, None, 400.0, 400.0, None, 0.0, true);
+        let out = close_outcome(&j, None, 400.0, 400.0, None, 0.0, true, 0.0);
         assert_eq!(out.overrun_min, 0.0);
         assert_eq!(out.penalty_min, 0.0);
         assert_eq!(out.debt_delta_min, 0.0);
@@ -198,7 +212,7 @@ mod tests {
             add_job_min: 600.0,
             ts: "2026-11-02T11:00:00Z".to_string(),
         });
-        let out = close_outcome(&j, Some(&bid(120.0)), 150.0, 150.0, None, 0.0, true);
+        let out = close_outcome(&j, Some(&bid(120.0)), 150.0, 150.0, None, 0.0, true, 0.0);
         assert_eq!(out.effective_bid_min, 180.0);
         assert_eq!(out.overrun_min, 0.0);
     }

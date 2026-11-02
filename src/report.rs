@@ -148,13 +148,18 @@ pub fn text_report(state: &State, filter: &ReportFilter) -> String {
         } else {
             format!("{:.0}%", rep.on_time_rate * 100.0)
         };
+        let goal_line = if rep.n - rep.n_inconclusive == 0 {
+            "n/a".to_string()
+        } else {
+            format!("{:.0}%", rep.goal_line_rate * 100.0)
+        };
         out.push_str(&format!(
-            "{:<14} {:<22} {:>3} {:>6} {:>8.0}% {:>8.0}% {:>6.0} {:>10} {:>9}  {}\n",
+            "{:<14} {:<22} {:>3} {:>6} {:>8} {:>8.0}% {:>6.0} {:>10} {:>9}  {}\n",
             sub,
             class,
             rep.n,
             on_time,
-            rep.goal_line_rate * 100.0,
+            goal_line,
             rep.budget_hit_rate * 100.0,
             rep.score,
             fmt_min(rep.debt_min),
@@ -279,19 +284,24 @@ pub fn text_report(state: &State, filter: &ReportFilter) -> String {
     let mut spent = 0.0;
     let mut penalties = 0.0;
     let mut overrun = 0.0;
+    let mut clause_penalties = 0.0;
     let mut late_jobs = 0usize;
     let mut missed = 0usize;
+    let mut inconclusive = 0usize;
     for job in &closed {
         if let Some(c) = &job.close {
             promised += c.effective_bid_min;
             spent += c.actual_crew_min;
             penalties += c.penalty_min;
             overrun += c.overrun_min;
+            clause_penalties += c.clause_penalty_min;
             if c.late_days > 0.0 {
                 late_jobs += 1;
             }
-            if !c.accepted {
-                missed += 1;
+            match c.acceptance_verdict {
+                crate::verdict::Verdict::Fail => missed += 1,
+                crate::verdict::Verdict::Inconclusive => inconclusive += 1,
+                crate::verdict::Verdict::Pass => {}
             }
         }
     }
@@ -304,18 +314,20 @@ pub fn text_report(state: &State, filter: &ReportFilter) -> String {
 
     out.push_str("\nTHE BOOK\n");
     out.push_str(&format!(
-        "  crew-time promised {}   spent {}   overrun {}   penalties {}\n",
+        "  crew-time promised {}   spent {}   overrun {}   penalties {} ({} of them from breached clauses)\n",
         fmt_min(promised),
         fmt_min(spent),
         fmt_min(overrun),
-        fmt_min(penalties)
+        fmt_min(penalties),
+        fmt_min(clause_penalties)
     ));
     out.push_str(&format!(
-        "  jobs late {} of {}   goal lines missed {} of {}   debt outstanding {} crew-minutes\n",
+        "  jobs late {} of {}   goal lines missed {} of {}   closed inconclusive {}   debt outstanding {} crew-minutes\n",
         late_jobs,
         closed.len(),
         missed,
-        closed.len(),
+        closed.len() - inconclusive,
+        inconclusive,
         fmt_min(debt_total)
     ));
 
@@ -406,6 +418,7 @@ pub fn json_report(state: &State, filter: &ReportFilter) -> Json {
         o.set("jobs", Json::n(rep.n as f64));
         o.set("on_time_rate", Json::n(rep.on_time_rate));
         o.set("goal_line_rate", Json::n(rep.goal_line_rate));
+        o.set("goal_line_inconclusive", Json::n(rep.n_inconclusive as f64));
         o.set("budget_hit_rate", Json::n(rep.budget_hit_rate));
         o.set("reputation", Json::n(rep.score));
         o.set("debt_min", Json::n(rep.debt_min));

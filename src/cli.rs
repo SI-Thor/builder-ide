@@ -39,6 +39,16 @@ impl Args {
             .and_then(|(_, v)| v.as_deref())
     }
 
+    /// Every value given for a repeatable flag, in order. A flag with no
+    /// value (`--clause` alone) is skipped: it has nothing to say.
+    pub fn get_all(&self, key: &str) -> Vec<&str> {
+        self.flags
+            .iter()
+            .filter(|(k, _)| k == key)
+            .filter_map(|(_, v)| v.as_deref())
+            .collect()
+    }
+
     pub fn has(&self, key: &str) -> bool {
         self.flags.iter().any(|(k, _)| k == key)
     }

@@ -283,6 +283,9 @@ pub fn import(ledger_path: &Path, file: &Path) -> Result<SeedSummary, String> {
             budget_min: allowance,
             penalty_per_day_min: lane.f64_at("penalty_per_day_min").unwrap_or(30.0),
             stop_ratio: 0.8,
+            clauses: Vec::new(),
+            award_clauses: Vec::new(),
+            award_ts: start.clone(),
             created_ts: start.clone(),
             reconstructed: true,
             source: format!("lane:{}", name),
@@ -318,6 +321,7 @@ pub fn import(ledger_path: &Path, file: &Path) -> Result<SeedSummary, String> {
             lane.f64_at("late_days"),
             debt_before,
             accepted,
+            0.0,
         );
         debts.insert(debt_key, debt_before + outcome.debt_delta_min);
 

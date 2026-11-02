@@ -8,7 +8,10 @@
 mod accounting;
 mod brief;
 mod calib;
+mod check;
+mod clause;
 mod cli;
+mod forecast;
 mod json;
 mod ledger;
 mod model;
@@ -16,6 +19,7 @@ mod report;
 mod seed;
 mod sha256;
 mod time;
+mod verdict;
 
 use cli::Args;
 use json::Json;
@@ -83,15 +87,19 @@ gc — the general contractor's book
                 [--accept-cmd CMD | --accept-metric NAME --accept-at N]
                 --deadline-min M --budget-min B
                 [--penalty-per-day-min P] [--stop-ratio R]
+                [--clause \"metric <= target [window W] [penalty P]\" ...]
   job list       [--class C] [--status S]
   bid            --job J --sub S [--crew-min X] [--job-min Y]
                 [--confidence C] [--milestones \"a|b|c\"] [--submit]
   award          --job J (--bid B | --auto) [--rationale R]
-  checkpoint     --job J --crew-used-min X [--milestones-done N] [--note N]
-                [--acceptance-passed]
+                [--clause \"metric <= target [window W] [penalty P]\" ...]
+  checkpoint     --job J --crew-used-min X [--check auto|pass|fail|inconclusive]
+                [--metric name=value ...] [--milestones-done N] [--note N]
+                [--check-timeout-sec S]
   close          --job J --crew-min X [--job-min Y] [--late-days N]
-                [--accepted | --failed] [--method wall|tokens|estimated]
-                [--tokens N] [--goal-line TEXT]
+                [--metric name=value ...] [--method wall|tokens|estimated]
+                [--tokens N] [--goal-line TEXT] [--check-timeout-sec S]
+                [--accepted | --failed]        (report-kind jobs only)
   change-order   --job J --reason R [--add-crew-min X] [--add-job-min Y]
   cancel         --job J --reason R
   retool         --sub S --class C --reason R --action A
@@ -99,6 +107,14 @@ gc — the general contractor's book
   brief          --job J
   verify
   seed import    --file FILE [--rebuild]
+
+The goal line is not taken on trust. A job whose acceptance is a command is
+closed by gc running that command itself and reading the exit code; a metric
+acceptance is compared to the value reported with --metric. A check that
+could not run is recorded inconclusive — never failed.
+
+Every checkpoint prints a spend-rate forecast, so a burn heading for the
+stop line is visible before it gets there.
 
 Every writing command takes --at ISO8601 to fix the timestamp (or set GC_NOW
 to unix seconds), which is how the ledger stays byte-for-byte reproducible."
@@ -115,6 +131,213 @@ fn now(args: &Args) -> String {
 fn load(ledger_path: &PathBuf) -> Result<model::State, String> {
     let rows = ledger::read(ledger_path)?;
     Ok(model::replay(&rows))
+}
+
+// ------------------------------------------------------------- checks -----
+
+/// Parse the repeatable `--metric name=value` flags into (name, value)
+/// pairs. A name given twice keeps the last value.
+fn metric_flags(args: &Args) -> Result<Vec<(String, f64)>, String> {
+    let mut out: Vec<(String, f64)> = Vec::new();
+    for m in args.get_all("metric") {
+        let (name, value) = m
+            .split_once('=')
+            .ok_or_else(|| format!("--metric '{}' wants name=value", m))?;
+        let v: f64 = value
+            .trim()
+            .parse()
+            .map_err(|_| format!("--metric '{}': the value must be a number", m))?;
+        let name = name.trim().to_string();
+        if let Some(slot) = out.iter_mut().find(|(n, _)| *n == name) {
+            slot.1 = v;
+        } else {
+            out.push((name, v));
+        }
+    }
+    Ok(out)
+}
+
+/// The metrics gc computes itself at a checkpoint or a close. A number the
+/// ledger can recompute is never taken on assertion, so these win over a
+/// supplied metric of the same name.
+fn builtin_metrics(
+    crew_used_min: f64,
+    effective_bid_min: f64,
+    job_elapsed_min: Option<f64>,
+) -> Vec<(String, f64)> {
+    let mut out = vec![("crew_used_min".to_string(), crew_used_min)];
+    if effective_bid_min > 0.0 {
+        out.push(("burn".to_string(), crew_used_min / effective_bid_min));
+    }
+    if let Some(e) = job_elapsed_min {
+        out.push(("job_elapsed_min".to_string(), e));
+    }
+    out
+}
+
+/// Builtins first, then the supplied metrics that do not collide.
+fn merged_metrics(
+    builtins: Vec<(String, f64)>,
+    supplied: Vec<(String, f64)>,
+) -> Vec<(String, f64)> {
+    let mut out = builtins;
+    for (name, value) in supplied {
+        if !out.iter().any(|(n, _)| *n == name) {
+            out.push((name, value));
+        }
+    }
+    out
+}
+
+/// Check every clause in force against the metrics of this moment. Clauses
+/// whose window has passed (or has not placed them in time) are not checked;
+/// a clause whose metric has no value is inconclusive, not breached.
+fn check_clauses(
+    clauses: &[clause::Clause],
+    metrics: &[(String, f64)],
+    job_elapsed_min: Option<f64>,
+) -> Vec<model::ClauseResult> {
+    clauses
+        .iter()
+        .filter(|c| c.in_force_at(job_elapsed_min))
+        .map(|c| model::ClauseResult {
+            metric: c.metric.clone(),
+            verdict: c.evaluate(metrics.iter().find(|(n, _)| n == &c.metric).map(|(_, v)| *v)),
+            value: metrics
+                .iter()
+                .find(|(n, _)| n == &c.metric)
+                .map(|(_, v)| *v),
+            penalty_min: c.penalty_min,
+        })
+        .collect()
+}
+
+/// Decide the goal-line check for a checkpoint. `--check auto` (the
+/// default) runs the acceptance command or compares the metric itself;
+/// `pass`/`fail` are a human's word and only count on a report-kind job —
+/// a command or a metric decides for itself, and saying otherwise would be
+/// exactly the blank check this program exists to avoid.
+fn resolve_check(
+    args: &Args,
+    job: &model::Job,
+    metrics: &[(String, f64)],
+    timeout_sec: u64,
+) -> Result<check::CheckResult, String> {
+    if args.has("acceptance-passed") {
+        return Err(
+            "--acceptance-passed is gone: checks are three-valued now. Let --check auto run \
+             the goal line, or pass --check pass|fail on a report-kind job, or --check \
+             inconclusive when the check could not run."
+                .to_string(),
+        );
+    }
+    let requested = args.get("check").unwrap_or("auto");
+    match requested {
+        "auto" => Ok(match job.acceptance.kind.as_str() {
+            "cmd" => check::run_cmd(&job.acceptance.cmd, timeout_sec),
+            "metric" => metric_check(job, metrics),
+            _ => check::CheckResult::cannot(
+                "none",
+                "no machine-checkable acceptance test was written down",
+            ),
+        }),
+        "inconclusive" => Ok(check::CheckResult::cannot(
+            "human",
+            "the check could not be run at this moment",
+        )),
+        word @ ("pass" | "fail") => {
+            if job.acceptance.kind == "report" {
+                Ok(check::CheckResult::human(word == "pass"))
+            } else {
+                Err(format!(
+                    "--check {} states an outcome the goal line decides for itself: job {}'s \
+                     acceptance is {}-kind, so it is run (or measured) here, not said. \
+                     --check inconclusive records that it could not run.",
+                    word,
+                    job.id,
+                    job.acceptance.kind
+                ))
+            }
+        }
+        other => Err(format!(
+            "--check wants auto, pass, fail or inconclusive, not '{}'",
+            other
+        )),
+    }
+}
+
+fn metric_check(job: &model::Job, metrics: &[(String, f64)]) -> check::CheckResult {
+    let value = metrics
+        .iter()
+        .find(|(n, _)| n == &job.acceptance.metric)
+        .map(|(_, v)| *v);
+    check::CheckResult::metric(job.acceptance.threshold, value)
+}
+
+fn check_timeout_sec(args: &Args) -> Result<u64, String> {
+    Ok(args.num("check-timeout-sec")?.unwrap_or(600.0).max(1.0) as u64)
+}
+
+fn check_json(c: &check::CheckResult) -> Json {
+    let mut o = Json::obj();
+    o.set("verdict", Json::s(c.verdict.as_str()));
+    o.set("by", Json::s(c.by.clone()));
+    o.set(
+        "exit_code",
+        match c.exit_code {
+            Some(e) => Json::n(e as f64),
+            None => Json::Null,
+        },
+    );
+    o.set("note", Json::s(c.note.clone()));
+    o
+}
+
+fn metrics_json(metrics: &[(String, f64)]) -> Json {
+    let mut arr = Json::arr();
+    for (name, value) in metrics {
+        let mut m = Json::obj();
+        m.set("name", Json::s(name.clone()));
+        m.set("value", Json::n(*value));
+        arr.push(m);
+    }
+    arr
+}
+
+fn clauses_json(results: &[model::ClauseResult]) -> Json {
+    let mut arr = Json::arr();
+    for r in results {
+        arr.push(r.to_json());
+    }
+    arr
+}
+
+fn forecast_json(f: &forecast::Forecast) -> Json {
+    let mut o = Json::obj();
+    o.set(
+        "rate_per_job_min",
+        match f.rate_per_job_min {
+            Some(v) => Json::n(v),
+            None => Json::Null,
+        },
+    );
+    o.set(
+        "projected_crew_at_deadline",
+        match f.projected_crew_at_deadline {
+            Some(v) => Json::n(v),
+            None => Json::Null,
+        },
+    );
+    o.set(
+        "minutes_to_stop_line",
+        match f.minutes_to_stop_line {
+            Some(v) => Json::n(v),
+            None => Json::Null,
+        },
+    );
+    o.set("verdict", Json::s(f.verdict.as_str()));
+    o.set("note", Json::s(f.note.clone()));
+    o
 }
 
 // ---------------------------------------------------------------- job -----
@@ -194,6 +417,13 @@ fn job_new(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     }
 
     let id = state.next_job_id();
+    let mut clauses = Json::arr();
+    let mut clause_count = 0usize;
+    for text in args.get_all("clause") {
+        let c = clause::parse(text)?;
+        clauses.push(c.to_json());
+        clause_count += 1;
+    }
     let mut body = Json::obj();
     body.set("id", Json::s(id.clone()));
     body.set("title", Json::s(title));
@@ -208,6 +438,7 @@ fn job_new(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         Json::n(args.num("penalty-per-day-min")?.unwrap_or(30.0)),
     );
     body.set("stop_ratio", Json::n(args.num("stop-ratio")?.unwrap_or(0.8)));
+    body.set("clauses", clauses);
     body.set("reconstructed", Json::b(false));
     body.set("source", Json::s(args.get("source").unwrap_or("gc job new").to_string()));
 
@@ -225,6 +456,9 @@ fn job_new(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         estimate_min as i64,
         budget_min as i64
     );
+    if clause_count > 0 {
+        println!("{} clause{} in the contract", clause_count, if clause_count == 1 { "" } else { "s" });
+    }
     println!("row {} written (hash {})", row.seq, &row.hash[..12]);
     Ok(())
 }
@@ -437,6 +671,16 @@ fn cmd_award(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         .fold(f64::INFINITY, f64::min);
     let (score, cost_score, ontime, fit) = calib::award_score(&state, &job.class, &chosen, min_crew);
 
+    // Clauses the award negotiates on top of the job's own, overriding by
+    // metric name.
+    let mut negotiated = Json::arr();
+    let mut negotiated_count = 0usize;
+    for text in args.get_all("clause") {
+        let c = clause::parse(text)?;
+        negotiated.push(c.to_json());
+        negotiated_count += 1;
+    }
+
     let mut body = Json::obj();
     body.set("job_id", Json::s(job.id.clone()));
     body.set("bid_id", Json::s(chosen.id.clone()));
@@ -445,6 +689,7 @@ fn cmd_award(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     body.set("cost_score", Json::n(cost_score));
     body.set("on_time_probability", Json::n(ontime));
     body.set("fit", Json::n(fit));
+    body.set("clauses", negotiated);
     body.set(
         "rationale",
         Json::s(
@@ -458,6 +703,13 @@ fn cmd_award(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         "awarded {} to {} (bid {}): score {:.3} = 0.40*cost {:.3} + 0.40*on-time {:.3} + 0.20*fit {:.3}",
         job.id, chosen.sub, chosen.id, score, cost_score, ontime, fit
     );
+    if negotiated_count > 0 {
+        println!(
+            "{} clause{} negotiated at award (overriding the job's own by metric name)",
+            negotiated_count,
+            if negotiated_count == 1 { "" } else { "s" }
+        );
+    }
     if let Some(c) = chosen.crew_min {
         if c > job.budget_min {
             eprintln!(
@@ -540,10 +792,30 @@ fn cmd_checkpoint(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
             job.id
         ));
     }
+    let now_ts = now(args);
     let burn = used / effective_bid;
-    let acceptance_passed = args.has("acceptance-passed");
+    let elapsed = job.job_elapsed_min_at(&now_ts);
+
+    // The metrics of this moment: what gc computes, then what the seat
+    // reported where the name does not collide.
+    let metrics = merged_metrics(
+        builtin_metrics(used, effective_bid, elapsed),
+        metric_flags(args)?,
+    );
+
+    let check = resolve_check(args, &job, &metrics, check_timeout_sec(args)?)?;
+    let clauses = check_clauses(&job.clauses_in_force(), &metrics, elapsed);
     let stop_ratio = job.stop_ratio;
-    let stop_required = burn >= stop_ratio && !acceptance_passed;
+    let stop_required = burn >= stop_ratio && check.verdict != verdict::Verdict::Pass;
+
+    let fc = forecast::at_checkpoint(
+        &job.award_ts,
+        &now_ts,
+        used,
+        effective_bid,
+        stop_ratio,
+        job.effective_deadline_min(),
+    );
 
     let mut body = Json::obj();
     body.set("job_id", Json::s(job.id.clone()));
@@ -555,9 +827,12 @@ fn cmd_checkpoint(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     );
     body.set("note", Json::s(args.get("note").unwrap_or("")));
     body.set("stop_required", Json::b(stop_required));
-    body.set("acceptance_passed", Json::b(acceptance_passed));
+    body.set("check", check_json(&check));
+    body.set("metrics", metrics_json(&metrics));
+    body.set("clauses", clauses_json(&clauses));
+    body.set("forecast", forecast_json(&fc));
 
-    let row = ledger::append(ledger_path, &now(args), "checkpoint", body)?;
+    let row = ledger::append(ledger_path, &now_ts, "checkpoint", body)?;
     println!(
         "checkpoint on {}: {} crew-min used of {} ({:.0}% of the bid)",
         job.id,
@@ -565,6 +840,34 @@ fn cmd_checkpoint(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         effective_bid,
         burn * 100.0
     );
+    println!(
+        "goal line: {} ({})",
+        check.verdict.as_str(),
+        describe_check(&check)
+    );
+    for c in &clauses {
+        if c.verdict != verdict::Verdict::Inconclusive || c.value.is_some() {
+            println!(
+                "clause {}: {} ({})",
+                c.metric,
+                c.verdict.as_str(),
+                match c.value {
+                    Some(v) => format!("{:.3}", v),
+                    None => "no value".to_string(),
+                }
+            );
+        } else {
+            println!("clause {}: inconclusive (no value reported)", c.metric);
+        }
+    }
+    println!("forecast: {}", fc.note);
+    if fc.verdict == forecast::ForecastVerdict::Warn {
+        println!(
+            "FORECAST WARNING: the stop line ({:.0}% of the bid) is reached before the deadline at this rate — \
+             this is a warning, not a stop; re-plan while there is job-time left",
+            stop_ratio * 100.0
+        );
+    }
     if stop_required {
         println!(
             "STOP REQUIRED: the goal line has not passed at {:.0}% of the bid ({:.0}% of the allowance). \
@@ -575,6 +878,23 @@ fn cmd_checkpoint(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     }
     println!("row {} written (hash {})", row.seq, &row.hash[..12]);
     Ok(())
+}
+
+/// How a check was decided, in one short line.
+fn describe_check(c: &check::CheckResult) -> String {
+    let mut s = match c.by.as_str() {
+        "gc" => match c.exit_code {
+            Some(code) => format!("command re-run by gc, exit {}", code),
+            None => "command re-run by gc".to_string(),
+        },
+        "metric" => "the reported metric against its threshold".to_string(),
+        "human" => "a human's judgement".to_string(),
+        _ => "no check ran".to_string(),
+    };
+    if !c.note.is_empty() {
+        s.push_str(&format!(" — {}", c.note));
+    }
+    s
 }
 
 // -------------------------------------------------------------- close -----
@@ -595,11 +915,19 @@ fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
 
     let actual_crew = args.need_num("crew-min")?;
     let actual_job = args.num("job-min")?.unwrap_or(actual_crew);
-    let accepted = if args.has("failed") {
-        false
-    } else {
-        args.has("accepted")
-    };
+
+    // Honest actuals, part one: the close cannot report less crew-time than
+    // a checkpoint already wrote to the ledger. The floor is recomputable;
+    // the ceiling is not, so it is not checked.
+    if let Some(cp) = job.checkpoints.last() {
+        if actual_crew < cp.crew_used_min - 1e-9 {
+            return Err(format!(
+                "job {} cannot close on {} crew-minutes: checkpoint at {} already reported {}",
+                job.id, actual_crew, cp.ts, cp.crew_used_min
+            ));
+        }
+    }
+
     let method = args.get("method").unwrap_or("wall").to_string();
     if !["wall", "tokens", "estimated"].contains(&method.as_str()) {
         return Err(format!(
@@ -608,8 +936,64 @@ fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         ));
     }
     let tokens = args.num("tokens")?.map(|t| t as u64);
+    let now_ts = now(args);
 
     let bid = job.awarded_bid(&state.bids);
+    let effective_bid = job.effective_bid_min(bid);
+    let elapsed = job.job_elapsed_min_at(&now_ts);
+    let metrics = merged_metrics(
+        builtin_metrics(actual_crew, effective_bid, elapsed),
+        metric_flags(args)?,
+    );
+
+    // Honest actuals, part two: the goal line is decided here, not reported.
+    // A command-kind acceptance is re-run and its exit code read; a metric
+    // kind is compared against the reported value; only a report-kind job —
+    // no machine check was ever written down — takes a human's --accepted
+    // or --failed.
+    let check = if job.acceptance.kind == "report" {
+        match (args.has("accepted"), args.has("failed")) {
+            (true, false) => check::CheckResult::human(true),
+            (false, true) => check::CheckResult::human(false),
+            (false, false) => {
+                return Err(format!(
+                    "job {} has a report-kind goal line: state the outcome with --accepted or \
+                     --failed, or --check inconclusive when it could not be judged",
+                    job.id
+                ))
+            }
+            (true, true) => {
+                return Err("pick one: --accepted or --failed".to_string());
+            }
+        }
+    } else {
+        if args.has("accepted") || args.has("failed") {
+            return Err(format!(
+                "the goal line of job {} is {}-kind: gc decides it at close by {} — \
+                 --accepted/--failed are for report-kind jobs only",
+                job.id,
+                job.acceptance.kind,
+                if job.acceptance.kind == "cmd" {
+                    "re-running the acceptance command"
+                } else {
+                    "comparing the metric against its threshold"
+                }
+            ));
+        }
+        match job.acceptance.kind.as_str() {
+            "cmd" => check::run_cmd(&job.acceptance.cmd, check_timeout_sec(args)?),
+            _ => metric_check(&job, &metrics),
+        }
+    };
+    let accepted = check.verdict == verdict::Verdict::Pass;
+
+    let clauses = check_clauses(&job.clauses_in_force(), &metrics, elapsed);
+    let clause_penalty: f64 = clauses
+        .iter()
+        .filter(|c| c.verdict == verdict::Verdict::Fail)
+        .map(|c| c.penalty_min)
+        .sum();
+
     let debt_before = state.debt_min(&job.awarded_sub, &job.class);
     let outcome = accounting::close_outcome(
         &job,
@@ -619,17 +1003,22 @@ fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         args.num("late-days")?,
         debt_before,
         accepted,
+        clause_penalty,
     );
 
     let mut body = Json::obj();
     body.set("job_id", Json::s(job.id.clone()));
     body.set("accepted", Json::b(accepted));
+    body.set("acceptance_verdict", Json::s(check.verdict.as_str()));
+    body.set("check", check_json(&check));
     body.set("actual_crew_min", Json::n(actual_crew));
     body.set("actual_job_min", Json::n(actual_job));
     body.set("late_days", Json::n(outcome.late_days));
     body.set("effective_bid_min", Json::n(outcome.effective_bid_min));
     body.set("overrun_min", Json::n(outcome.overrun_min));
     body.set("penalty_min", Json::n(outcome.penalty_min));
+    body.set("clause_penalty_min", Json::n(clause_penalty));
+    body.set("clauses", clauses_json(&clauses));
     body.set("repayment_min", Json::n(outcome.repayment_min));
     body.set("debt_delta_min", Json::n(outcome.debt_delta_min));
     body.set("method", Json::s(method.clone()));
@@ -642,7 +1031,7 @@ fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     );
     body.set("reconstructed", Json::b(false));
 
-    let row = ledger::append(ledger_path, &now(args), "close", body)?;
+    let row = ledger::append(ledger_path, &now_ts, "close", body)?;
     println!(
         "closed {}: {} crew-min against a promise of {}, overrun {}, penalty {}, debt {:+}",
         job.id,
@@ -652,8 +1041,30 @@ fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         outcome.penalty_min,
         outcome.debt_delta_min
     );
+    println!(
+        "goal line: {} ({})",
+        check.verdict.as_str(),
+        describe_check(&check)
+    );
+    for c in &clauses {
+        if c.verdict == verdict::Verdict::Fail {
+            println!(
+                "clause {} breached: {} — penalty {} crew-min",
+                c.metric,
+                c.value.map(|v| format!("{:.3}", v)).unwrap_or_default(),
+                c.penalty_min
+            );
+        }
+    }
     if !accepted {
-        println!("the goal line did not pass: no repayment credit, and the record says so");
+        println!(
+            "the goal line did not pass{}: no repayment credit, and the record says so",
+            if check.verdict == verdict::Verdict::Inconclusive {
+                " (the check could not run)"
+            } else {
+                ""
+            }
+        );
     }
     println!("row {} written (hash {})", row.seq, &row.hash[..12]);
     Ok(())
