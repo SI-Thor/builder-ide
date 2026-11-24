@@ -24,7 +24,10 @@ const DEFAULTS = {
   version: process.env.AW_MINECRAFT_VERSION || '26.1',
   reflexHost: process.env.AW_REFLEX_HOST || '127.0.0.1',
   reflexPort: Number(process.env.AW_REFLEX_PORT || 8110),
-  logFile: process.env.AW_BOT_LOG || '/home/caseydigennaro/lm-wt/agent-world/runtime/logs/bots.jsonl',
+  // The world's runtime tree, found from this file's own location. The
+  // world moved into builder-ide, so the old absolute path on the Thor
+  // is gone; the directory below is the same one the runtimes live in.
+  logFile: process.env.AW_BOT_LOG || path.join(__dirname, '..', '..', 'runtime', 'logs', 'bots.jsonl'),
   tickMs: Number(process.env.AW_TICK_MS || 2000),
   // What the world believes a person placed. Outside the repo on
   // purpose: it is the world's memory of whose build is whose, not a

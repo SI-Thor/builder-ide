@@ -58,8 +58,12 @@ from agent_world_gym.student import (  # noqa: E402
 
 sys.path.insert(0, str(REPO / "reflex"))
 from agent_world_reflex.library import SkillLibrary  # noqa: E402
+from agent_world_reflex.paths import ledger_path  # noqa: E402
 
-DEFAULT_LEDGER = Path.home() / "lm-wt" / "agent-world" / "runtime" / "world-ledger.sqlite3"
+#: The world's log of record. It moved with the world: it used to be a
+#: fixed path on the Thor (``~/lm-wt/agent-world/runtime/...``) and it is
+#: now the world's own runtime tree, found from the package.
+DEFAULT_LEDGER = ledger_path()
 DEFAULT_SKILLS = REPO / "runtime" / "skills"
 DEFAULT_DATASETS = REPO / "runtime" / "datasets"
 DEFAULT_REPORTS = REPO / "runtime" / "reports"

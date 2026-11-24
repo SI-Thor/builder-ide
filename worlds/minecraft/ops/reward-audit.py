@@ -76,8 +76,14 @@ def load_families(skills_dir: Path) -> dict[str, str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--ledger", default="runtime/world-ledger.sqlite3")
-    ap.add_argument("--skills-dir", default="runtime/skills")
+    ap.add_argument(
+        "--ledger",
+        default=str(Path(__file__).resolve().parents[1] / "runtime" / "world-ledger.sqlite3"),
+    )
+    ap.add_argument(
+        "--skills-dir",
+        default=str(Path(__file__).resolve().parents[1] / "runtime" / "skills"),
+    )
     ap.add_argument("--windows", default="0.5,6,all")
     args = ap.parse_args()
 

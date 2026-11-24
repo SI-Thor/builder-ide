@@ -40,7 +40,22 @@ import sys
 import time
 from pathlib import Path
 
-HOME = Path(os.environ.get("AW_DRIFT_HOME", str(Path.home() / "lm-wt" / "drift-pause")))
+def _builder_ide_root() -> Path:
+    """Where builder-ide lives.
+
+    The drift detector is builder-ide's own seat now (``core/drift/``),
+    so the default is the builder-ide root that holds this package — found
+    by walking up until a directory with ``core/`` appears. The old
+    sibling checkout (``~/lm-wt/drift-pause``) is still honoured when
+    ``AW_DRIFT_HOME`` names it.
+    """
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "core" / "__init__.py").is_file():
+            return parent
+    return Path.home() / "src" / "builder-ide"
+
+
+HOME = Path(os.environ.get("AW_DRIFT_HOME", str(_builder_ide_root())))
 sys.path.insert(0, str(HOME))
 
 from core.drift.config import DriftConfig, GateSpec  # noqa: E402
@@ -50,23 +65,19 @@ from core.drift.ledger import build_series  # noqa: E402
 from core.drift.pause import PauseFile  # noqa: E402
 
 CALIBRATION = HOME / "docs" / "lab" / "drift-pause-dataset" / "calibration.json"
+#: The world's runtime tree. It moved with the world: it used to be a
+#: fixed path on the Thor (``~/lm-wt/agent-world/runtime``), and it is now
+#: the world's own directory, found from this file's location.
+RUNTIME = Path(__file__).resolve().parents[1] / "runtime"
+
 LEDGER = Path(
-    os.environ.get(
-        "AW_LEDGER",
-        str(Path.home() / "lm-wt" / "agent-world" / "runtime" / "world-ledger.sqlite3"),
-    )
+    os.environ.get("AW_LEDGER", str(RUNTIME / "world-ledger.sqlite3"))
 )
 PAUSE_FILE = Path(
-    os.environ.get(
-        "AW_DRIFT_PAUSE",
-        str(Path.home() / "lm-wt" / "agent-world" / "runtime" / "drift-pause.json"),
-    )
+    os.environ.get("AW_DRIFT_PAUSE", str(RUNTIME / "drift-pause.json"))
 )
 LOG = Path(
-    os.environ.get(
-        "AW_DRIFT_WATCH_LOG",
-        str(Path.home() / "lm-wt" / "agent-world" / "runtime" / "logs" / "drift-watch.log"),
-    )
+    os.environ.get("AW_DRIFT_WATCH_LOG", str(RUNTIME / "logs" / "drift-watch.log"))
 )
 TTL_SECONDS = float(os.environ.get("AW_DRIFT_TTL", "1800"))
 

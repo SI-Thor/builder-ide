@@ -72,7 +72,12 @@ include = ["core*", "builder_usd*", "thor_admit*", "mcsnap*"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-testpaths = ["tests"]
+# "tests" is builder-ide's own suite. "worlds/minecraft/tests" is the
+# Minecraft world's — its script-style checks (run by its conftest, see
+# worlds/minecraft/tests/conftest.py) and the seam's checks.
+# "worlds/minecraft/gym/tests" is the gym's: it needs gymnasium, minari
+# and jax, which ride as extras on the venv.
+testpaths = ["tests", "worlds/minecraft/tests", "worlds/minecraft/gym/tests"]
 # "." keeps the seat packages importable as `core.*`; "core/usd/src" is the
 # USD backbone's own root, so one pytest run covers every seat without
 # touching any seat's own pyproject; "tools/thor-admit/python" is the

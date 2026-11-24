@@ -12,8 +12,11 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# The world's runtime tree, and the gym's own corner of it (the gym used
+# to be its own repository with its own runtime/).
 RUNTIME="$REPO/runtime"
-LOG_DIR="$RUNTIME/logs"
+GYM_RUNTIME="$RUNTIME/gym"
+LOG_DIR="$GYM_RUNTIME/logs"
 LOG="$LOG_DIR/gym-bridge.log"
 
 GYM_HOST="${AW_GYM_HOST:-127.0.0.1}"
@@ -21,7 +24,9 @@ GYM_PORT="${AW_GYM_PORT:-25630}"
 BRIDGE_PORT="${AW_GYM_BRIDGE_PORT:-25640}"
 BOT_NAME="${AW_GYM_BOT:-Pupil}"
 BOT_ROLE="${AW_GYM_ROLE:-gatherer}"
-NODE="${AW_NODE:-$HOME/lm-wt/agent-world/runtime/node/bin/node}"
+# The node runtime lives in the world's own runtime tree. It moved with
+# the world: it used to be a fixed path on the Thor.
+NODE="${AW_NODE:-$RUNTIME/node/bin/node}"
 
 say()  { printf '\033[1m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!!\033[0m %s\n' "$*" >&2; }

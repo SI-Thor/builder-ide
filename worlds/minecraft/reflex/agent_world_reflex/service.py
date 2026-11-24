@@ -32,6 +32,7 @@ from .chooser import Chooser, Refusal
 from .decision import DecisionModel, make_choice_question
 from .library import SkillLibrary
 from .models import PlayRecord
+from .paths import pause_file
 
 #: The lease the world takes on the box. Heavy work holds this lock, one
 #: at a time (the stopgap from the 13:22 OOM). The world takes it for the
@@ -103,20 +104,7 @@ def may_act() -> tuple[bool, str]:
 #: "cheap to undo" — and a missing file, an unreadable file or a
 #: malformed one means **no pause**: the world never invents a pause
 #: out of a read error.
-PAUSE_FILE = Path(
-    os.environ.get(
-        "AW_DRIFT_PAUSE",
-        str(
-            Path(
-                os.environ.get(
-                    "AW_RUNTIME",
-                    str(Path.home() / "lm-wt" / "agent-world" / "runtime"),
-                )
-            ).expanduser()
-            / "drift-pause.json"
-        ),
-    )
-)
+PAUSE_FILE = pause_file()
 
 
 def drift_pauses() -> dict[str, dict[str, Any]]:

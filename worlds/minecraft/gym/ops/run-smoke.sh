@@ -13,6 +13,17 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# The python that runs the smoke. The gym used to have its own venv at
+# the root of its own repository; it is now the world's runtime venv,
+# with the old path and the system python as fallbacks.
+PY="${AW_GYM_PYTHON:-}"
+if [ -z "$PY" ]; then
+  for candidate in "$REPO/runtime/venv/bin/python" "$REPO/.venv/bin/python"; do
+    if [ -x "$candidate" ]; then PY="$candidate"; break; fi
+  done
+fi
+if [ -z "$PY" ]; then PY="$(command -v python3 || true)"; fi
+[ -n "$PY" ] || { echo "no python for the smoke: install one, or set AW_GYM_PYTHON" >&2; exit 1; }
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
 export MINARI_DATASETS_PATH="${MINARI_DATASETS_PATH:-$REPO/runtime/datasets}"
 
@@ -24,10 +35,10 @@ mkdir -p "$REPO/runtime/logs" "$REPO/runtime/datasets" "$REPO/runtime/reports"
 if [ "${1:-}" = "--detach" ]; then
   shift
   LOG="$REPO/runtime/logs/smoke.log"
-  setsid -f nohup "$REPO/.venv/bin/python" "$REPO/gym/scripts/smoke.py" "$@" \
+  setsid -f nohup "$PY" "$REPO/gym/scripts/smoke.py" "$@" \
     > "$LOG" 2>&1 < /dev/null
   echo "the experiment is running; its log is at $LOG"
   exit 0
 fi
 
-exec "$REPO/.venv/bin/python" "$REPO/gym/scripts/smoke.py" "$@"
+exec "$PY" "$REPO/gym/scripts/smoke.py" "$@"

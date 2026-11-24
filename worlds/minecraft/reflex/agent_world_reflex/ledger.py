@@ -27,7 +27,42 @@ from typing import Any, Iterable, Sequence
 
 from .models import PlayRecord, Skill
 
-__all__ = ["WorldLedger", "builder_ide_root", "ledger_paths"]
+__all__ = ["WorldLedger", "builder_ide_root", "ledger_paths", "core_subject"]
+
+
+def core_subject(entity_id: str, *, kind: str = "tile") -> dict[str, Any]:
+    """The subject shape builder-ide's core store keeps.
+
+    The core store persists a subject as two columns — ``subject_kind``
+    and ``entity_id`` — and **drops every other key**
+    (:meth:`core.store.LedgerStore._append_tx`). The world's own subject
+    shape was ``{"skill": ..., "family": ...}``, so written as it stood
+    the skill id would have been discarded and the row would have come
+    back with an empty subject. The world's skills are builder-ide's
+    tiles (see :mod:`agent_world_reflex.tiles`), so the entity kind is
+    ``tile`` and the entity id is the skill id.
+    """
+    return {"entity_kind": kind, "entity_id": str(entity_id)}
+
+
+def _as_core_subject(subject: dict[str, Any]) -> dict[str, Any]:
+    """Put any subject into the core's shape, without losing its id.
+
+    A subject that already carries ``entity_kind``/``entity_id`` is kept
+    as it is. The world's old shape — ``{"skill": ..., "family": ...}`` —
+    is translated. A subject with neither is refused rather than
+    guessed at: a row with no id cannot be found again.
+    """
+    if "entity_kind" in subject or "entity_id" in subject:
+        return core_subject(subject.get("entity_id", ""), kind=str(subject.get("entity_kind") or "tile"))
+    skill = subject.get("skill")
+    if skill:
+        return core_subject(str(skill))
+    raise ValueError(
+        "the subject carries no id: give it entity_id, or the world's own "
+        f"'skill' key (got {sorted(subject)})"
+    )
+
 
 
 def builder_ide_root() -> Path:
@@ -36,10 +71,20 @@ def builder_ide_root() -> Path:
     The world's reflex is builder-ide's judge (the decision-model seam)
     and builder-ide's ledger (the log of record). The path is a
     parameter with a default, like every other door here.
+
+    The default used to be ``~/src/builder-ide``, because the world was
+    its own repository. The world is now a package **of** builder-ide, so
+    the root is found by walking up from this file until a directory
+    holding ``core/`` appears — which is builder-ide, wherever it is
+    checked out. ``AW_BUILDER_IDE`` still overrides it, for a world that
+    runs against a builder-ide other than the one it sits in.
     """
     configured = os.environ.get("AW_BUILDER_IDE")
     if configured:
-        return Path(configured)
+        return Path(configured).expanduser()
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "core" / "__init__.py").is_file():
+            return parent
     return Path.home() / "src" / "builder-ide"
 
 
@@ -52,9 +97,17 @@ def ledger_paths() -> None:
 
 ledger_paths()
 
+from core.canon import canonical_bytes  # noqa: E402
 from core.night import ledger as _night_ledger  # noqa: E402
 from core.night.ledger import MAX_PAYLOAD_BYTES, SQLiteLedger  # noqa: E402
 from core.records import Actor  # noqa: E402
+
+from .tiles import (  # noqa: E402
+    authored_payload,
+    played_payload,
+    retired_payload,
+    skill_to_tile,
+)
 
 #: The event types the world writes of its own. The log of record has a
 #: closed set (§1.8) and builder-ide's copy of it does not carry these
@@ -86,15 +139,34 @@ class WorldLedger:
     connection **per thread** — the same file, the same WAL, one
     connection each. That is the usual way to share a SQLite database
     between threads, and it keeps the log a single file.
+
+    **Where the log lives is a door.** By default it is the world's own
+    SQLite file, exactly as it was before the move. Pass ``ledger=`` to
+    write somewhere else — the seam
+    (:class:`worlds.minecraft.builder_ide.ledger.CoreStoreLedger`) writes
+    into builder-ide's core store, so the world's decisions are in the
+    log the morning report and the "why" door read.
+
+    The rows are written in builder-ide's vocabulary either way: the
+    subject is ``{"entity_kind", "entity_id"}`` (the core store keeps
+    those two keys and drops the rest), and a ``tile.played`` row carries
+    the core's keys next to the world's own. A row written before this
+    change still reads; a row written after it reads in both.
     """
 
-    def __init__(self, path: Path | str) -> None:
+    def __init__(self, path: Path | str, *, ledger: Any | None = None) -> None:
         self.path = Path(path)
         self._local = threading.local()
         self._write_lock = threading.Lock()
+        # The door this ledger writes through. ``None`` means the world's
+        # own file; anything else is a ledger with the same protocol.
+        self._door = ledger
 
     @property
     def _ledger(self) -> SQLiteLedger:
+        """The world's own file — one connection per thread."""
+        if self._door is not None:
+            return self._door  # type: ignore[return-value]
         connection = getattr(self._local, "ledger", None)
         if connection is None:
             connection = SQLiteLedger(self.path)
@@ -119,12 +191,17 @@ class WorldLedger:
         records its own ``judge.verdict`` rows, and it does not know
         about this world's own event types. So the door is the same door:
         one log, one append, whatever the seat.
+
+        The subject is put into the core's shape on the way in. The core
+        store keeps ``entity_kind`` and ``entity_id`` and drops every
+        other key, so a subject written in the world's old shape
+        (``{"skill": ..., "family": ...}``) would lose its id silently.
         """
         with self._write_lock:
             return self._ledger.append(
                 type=type,
                 actor=actor,
-                subject=subject,
+                subject=_as_core_subject(subject),
                 payload=payload,
                 artifact=artifact,
                 at=at,
@@ -133,57 +210,62 @@ class WorldLedger:
     # -- the writers ----------------------------------------------------------
 
     def authored(self, skill: Skill, *, cost_cents: int = 0) -> None:
+        """A skill enters the library.
+
+        The row is written in builder-ide's tile vocabulary: the subject
+        is the tile's id, and the payload carries the tile's **body** —
+        which is what :func:`core.tiles.library.fold_library` reads a
+        tile back from. The world's own keys stay beside them, so the
+        rows the world wrote before this change read the same way.
+        """
+        tile = skill_to_tile(skill)
         with self._write_lock:
             self._ledger.append(
                 type="tile.authored",
                 actor=Actor(kind="engineer", id=skill.author.model, via="cloud_author"),
-                subject={"skill": skill.id, "family": skill.family, "version": skill.version},
-                payload={
-                    "skill": skill.id,
-                    "family": skill.family,
-                    "version": skill.version,
-                    "role": skill.role,
-                    "title": skill.title,
-                    "kind": skill.kind,
-                    "api": list(skill.api),
-                    "author": skill.author.model,
-                    "provider": skill.author.provider,
-                    "cost_cents": cost_cents,
-                    "prompt_hash": skill.author.prompt_hash,
-                },
+                subject=core_subject(tile.id),
+                payload=authored_payload(tile, cost_cents=cost_cents),
             )
 
     def played(self, record: PlayRecord, *, actor: str = "bot") -> None:
+        """A skill was used, with its outcome and its context.
+
+        The row carries the core's keys next to the world's own, and the
+        ``scope`` the judge calibration pairs this play with.
+        """
+        payload = played_payload(record)
+        if len(canonical_bytes(payload)) > MAX_PAYLOAD_BYTES:
+            # The world's own payload fitted; the core's keys did not
+            # leave room. The row is written in the world's shape rather
+            # than refused: a lost play is worse than a row that reads
+            # in one vocabulary instead of two.
+            payload = record.model_dump(mode="json")
         with self._write_lock:
             self._ledger.append(
                 type="tile.played",
                 actor=Actor(kind="character", id=actor, via="reflex"),
-                subject={"skill": record.skill_id, "family": ""},
-                payload=record.model_dump(mode="json"),
+                subject=core_subject(record.skill_id),
+                payload=payload,
             )
 
     def retired(self, skill: Skill, *, reason: str, plays: int = 0, wins: int = 0) -> None:
+        """A skill leaves the eligible set, with the reason."""
+        tile = skill_to_tile(skill)
         with self._write_lock:
             self._ledger.append(
                 type="tile.retired",
                 actor=Actor(kind="core", id="mediator", via="retire"),
-                subject={"skill": skill.id, "family": skill.family},
-                payload={
-                    "skill": skill.id,
-                    "family": skill.family,
-                    "version": skill.version,
-                    "reason": reason,
-                    "plays": plays,
-                    "wins": wins,
-                },
+                subject=core_subject(tile.id),
+                payload=retired_payload(tile, reason=reason, plays=plays, wins=wins),
             )
 
     def retrained(self, *, summary: dict[str, Any]) -> None:
+        """The chooser was refit from the log."""
         with self._write_lock:
             self._ledger.append(
                 type="tile.retrained",
                 actor=Actor(kind="core", id="chooser", via="refit"),
-                subject={"chooser": summary.get("chooser", "")},
+                subject=core_subject(str(summary.get("chooser") or "chooser"), kind="chooser"),
                 payload={"summary": summary},
             )
 
@@ -202,7 +284,7 @@ class WorldLedger:
             self._ledger.append(
                 type="drift.yield",
                 actor=Actor(kind="core", id="reflex", via="admission"),
-                subject={"yield": "box-busy"},
+                subject=core_subject("box-busy", kind="yield"),
                 payload={"reason": why, "bots": list(bots), "count": len(bots)},
             )
 

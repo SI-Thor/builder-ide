@@ -16,7 +16,17 @@ set -euo pipefail
 
 . "$(dirname "$0")/env.sh"
 
-PY="${AW_DRIFT_PYTHON:-$HOME/lm-wt/core-api/.venv/bin/python}"
+# The drift detector's python. It used to be a fixed path on the Thor
+# (~/lm-wt/core-api/.venv); it is now the repository's own venv when the
+# box has one, and the old path otherwise.
+if [ -z "${AW_DRIFT_PYTHON:-}" ]; then
+  if [ -x "$AW_ROOT/.venv-local/bin/python" ]; then
+    AW_DRIFT_PYTHON="$AW_ROOT/.venv-local/bin/python"
+  else
+    AW_DRIFT_PYTHON="$HOME/lm-wt/core-api/.venv/bin/python"
+  fi
+fi
+PY="$AW_DRIFT_PYTHON"
 WATCH="$AW_ROOT/ops/drift-watch.py"
 LOG="$AW_LOG_DIR/drift-watch.out"
 PIDFILE="$AW_RUNTIME/drift-watch.pid"

@@ -5,8 +5,11 @@
 # world's addresses change, and one file to read when answering "how do
 # I get in?".
 
-# Where the repo is on the Thor.
-AW_ROOT="${AW_ROOT:-$HOME/lm-wt/agent-world}"
+# Where the world is on this box. It used to be a fixed path
+# (~/lm-wt/agent-world), because the world was its own repository; it is
+# now a package of builder-ide, so the root is found from this file's
+# own location and stays right wherever the repository is checked out.
+AW_ROOT="${AW_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 # The runtime tree: not in git, all of it re-creatable.
 AW_RUNTIME="${AW_RUNTIME:-$AW_ROOT/runtime}"
