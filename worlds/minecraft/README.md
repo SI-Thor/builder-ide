@@ -124,6 +124,42 @@ The full description — how a decision is made, how a skill is written
 and retired, what the numbers are, and what the trade-offs are — is in
 [`docs/agent-world.md`](docs/agent-world.md).
 
+## Where it sits in builder-ide
+
+This world used to be its own repository. It is now a package of
+builder-ide, and [`builder_ide/`](builder_ide/README.md) is the seam
+between the two:
+
+- **one ledger.** The world's rows are written through builder-ide's
+  core store, so the Minecraft builders' decisions are in the same log
+  the morning report and the "why" door read. The rows the world wrote
+  before the move still read — nothing migrates them.
+- **a skill is a capability.** The world's 65 seeded scripts (56
+  distinct skills — five are written twice, and a skill is content
+  addressed) are builder-ide's tiles: the same id, the same family, the
+  same words, the same preconditions. See
+  [`agent_world_reflex/tiles.py`](reflex/agent_world_reflex/tiles.py).
+- **the gym is not a `core/sim` system**, and the reasons are written
+  down in [`docs/core-sim-fit.md`](docs/core-sim-fit.md).
+
+The paths moved with the package: they are computed from the package's
+own location now, and every one of them still takes the environment
+variable it always had.
+
+## Running its tests
+
+From the builder-ide root:
+
+```bash
+pytest worlds/minecraft/tests -q     # the world's checks and the seam's
+pytest worlds/minecraft/gym/tests -q  # the gym's checks
+
+cd worlds/minecraft/bots && npm test  # the builders' checks (node:test)
+```
+
+The world's own tests are scripts that print a line per check; the
+conftest in `tests/` runs them under pytest without rewriting them.
+
 ## The trade
 
 **The server runs in offline mode.** The builders need no Minecraft
