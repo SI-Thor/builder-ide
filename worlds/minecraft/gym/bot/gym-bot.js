@@ -72,9 +72,11 @@ const DEFAULTS = {
   bridgePort: Number(process.env.AW_GYM_BRIDGE_PORT || 25640),
   name: process.env.AW_GYM_BOT || 'Pupil',
   role: process.env.AW_GYM_ROLE || 'gatherer',
-  skills: process.env.AW_GYM_SKILLS || path.join(REPO, 'runtime', 'skills'),
+  // The gym's own snapshot of the world's skill library, taken by
+  // gym-world.sh. The live library keeps living; the gym reads its copy.
+  skills: process.env.AW_GYM_SKILLS || path.join(REPO, 'runtime', 'gym', 'skills'),
   logFile:
-    process.env.AW_GYM_LOG || path.join(REPO, 'runtime', 'logs', 'gym-bot.jsonl'),
+    process.env.AW_GYM_LOG || path.join(REPO, 'runtime', 'gym', 'logs', 'gym-bot.jsonl'),
   grid: Number(process.env.AW_GYM_GRID || 0),
 };
 

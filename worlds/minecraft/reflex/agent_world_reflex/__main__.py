@@ -22,11 +22,12 @@ from .library import SkillLibrary, build_skill
 from .ledger import WorldLedger
 from .mediator import Mediator
 from .models import SkillAuthor
+from .paths import ledger_path, runtime_dir, skills_dir
 from .service import ReflexService, serve
 
-RUNTIME = Path(os.environ.get("AW_RUNTIME", str(Path.home() / "lm-wt" / "agent-world" / "runtime")))
-SKILLS_DIR = RUNTIME / "skills"
-LEDGER_PATH = RUNTIME / "world-ledger.sqlite3"
+RUNTIME = runtime_dir()
+SKILLS_DIR = skills_dir()
+LEDGER_PATH = ledger_path()
 SEED_DIR = Path(os.environ.get("AW_SEED_DIR", str(Path(__file__).resolve().parent.parent / "skills" / "seed")))
 
 

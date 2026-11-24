@@ -5,6 +5,9 @@
   "type": "commonjs",
   "description": "agent-world: mineflayer bots for the Paper world on the Thor",
   "license": "MIT",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
   "dependencies": {
     "bedrock-protocol": "^3.59.0",
     "mineflayer": "^4.39.0",

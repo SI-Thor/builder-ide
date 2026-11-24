@@ -24,11 +24,17 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# The world's runtime tree, and the gym's own corner of it. The gym used
+# to be its own repository with its own runtime/; it is now a package of
+# the world, so the two trees would be the same directory and the
+# snapshot below would delete the live world's own skill library before
+# copying it. The gym keeps its own corner.
 RUNTIME="$REPO/runtime"
-SANDBOX="$RUNTIME/mc-sandbox"
-LOG_DIR="$RUNTIME/logs"
+GYM_RUNTIME="$RUNTIME/gym"
+SANDBOX="$GYM_RUNTIME/mc-sandbox"
+LOG_DIR="$GYM_RUNTIME/logs"
 LOG="$LOG_DIR/gym-paper.log"
-PID_FILE="$RUNTIME/gym-world.pid"
+PID_FILE="$GYM_RUNTIME/gym-world.pid"
 
 GYM_PORT="${AW_GYM_PORT:-25630}"
 GYM_SEED="${AW_GYM_SEED:-agent-world-gym}"
@@ -38,7 +44,10 @@ GYM_PEAK="${AW_GYM_PEAK:-3G}"
 
 # The world's own runtime: where the Paper build, the JDK and the live
 # skill library live. The gym copies from here and never writes back.
-SOURCE_RUNTIME="${AW_SOURCE_RUNTIME:-$HOME/lm-wt/agent-world/runtime}"
+# The world's own runtime: where the Paper build, the JDK and the live
+# skill library live. It moved with the world: it used to be a fixed
+# path on the Thor (``~/lm-wt/agent-world/runtime``).
+SOURCE_RUNTIME="${AW_SOURCE_RUNTIME:-$RUNTIME}"
 PAPER_JAR="${AW_PAPER_JAR:-$SOURCE_RUNTIME/dl/paper-26.1.2-74.jar}"
 JDK="${AW_JDK:-$SOURCE_RUNTIME/jdk-25}"
 THOR_ADMIT="${AW_THOR_ADMIT:-$HOME/lm-tools/thor-admit}"
@@ -148,11 +157,11 @@ cmd_setup() {
   # The gym reads its snapshot; the live library keeps living.
   if [ -d "$SOURCE_RUNTIME/skills" ]; then
     say "snapshotting the skill library ($(ls "$SOURCE_RUNTIME/skills" | wc -l) skills)"
-    rm -rf "$RUNTIME/skills"
-    mkdir -p "$RUNTIME/skills"
-    cp -a "$SOURCE_RUNTIME/skills/." "$RUNTIME/skills/"
-    ( cd "$RUNTIME/skills" && sha256sum ./*.json | sha256sum | awk '{print $1}' > ../skills.sha256 )
-    say "the snapshot's fingerprint: $(cat "$RUNTIME/skills.sha256")"
+    rm -rf "$GYM_RUNTIME/skills"
+    mkdir -p "$GYM_RUNTIME/skills"
+    cp -a "$SOURCE_RUNTIME/skills/." "$GYM_RUNTIME/skills/"
+    ( cd "$GYM_RUNTIME/skills" && sha256sum ./*.json | sha256sum | awk '{print $1}' > ../skills.sha256 )
+    say "the snapshot's fingerprint: $(cat "$GYM_RUNTIME/skills.sha256")"
   else
     warn "no skill library at $SOURCE_RUNTIME/skills — the gym will have no options"
   fi
@@ -161,8 +170,7 @@ cmd_setup() {
   # second install would be 269 packages of duplication for nothing.
   if [ ! -e "$REPO/bots/node_modules" ]; then
     say "linking the world's node_modules (mineflayer) into the gym checkout"
-    ln -s "$REPO/../agent-world/bots/node_modules" "$REPO/bots/node_modules" 2>/dev/null \
-      || ln -s "$SOURCE_RUNTIME/../bots/node_modules" "$REPO/bots/node_modules" \
+    ln -s "$REPO/bots/node_modules" "$REPO/bots/node_modules" 2>/dev/null \
       || warn "could not link node_modules; install it with: cd bots && npm install"
   fi
 }
