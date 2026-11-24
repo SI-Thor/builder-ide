@@ -17,12 +17,25 @@ from pathlib import Path
 import pytest
 
 from core.rewind import BevyWorld, keep_from_round, parse
+from core.rewind.bevy import find_lm
 from core.rewind.ledger import read_bevy_header
 
-LM = shutil.which("lm")
+LM = shutil.which(find_lm())
+
+def _has_dump(binary):
+    """Whether this ``lm`` has the ``dump`` subcommand the rewind reads.
+
+    (As of 2026-11-24 no last-mile branch on GitHub carries ``dump``; the
+    build on the Thor did. A laptop build without it skips, not fails.)"""
+    if binary is None:
+        return False
+    import subprocess
+    out = subprocess.run([binary, "--help"], capture_output=True, text=True)
+    return "dump" in (out.stdout + out.stderr)
+
 
 pytestmark = pytest.mark.skipif(
-    LM is None, reason="the lm tool is not on this box"
+    not _has_dump(LM), reason="no lm tool with `dump` on this box"
 )
 
 

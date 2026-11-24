@@ -109,12 +109,18 @@ cd ~/lm-wt/rewind-select
 .venv/bin/python -m pytest tests/rewind -q
 ```
 
-33 tests. The four in `test_bevy.py` need the `lm` tool on the `PATH` and
-are skipped without it:
+33 tests. The four in `test_bevy.py` need last-mile's `lm` tool **with the
+`dump` subcommand** and are skipped without it. last-mile is its own
+repository (SuperInstance/last-mile), not a part of this one; `lm` is found
+as `$LM_BIN`, else `lm` on the `PATH`, else
+`$LAST_MILE_DIR/target/release/lm` (default `~/projects/last-mile`):
 
 ```bash
-export PATH=$HOME/last-mile/target/release:$PATH
+export LM_BIN=$HOME/projects/last-mile/target/release/lm
 ```
+
+As of 2026-11-24 no last-mile branch on GitHub carries `lm dump`; the build
+these tests were written against lived on the Thor.
 
 The environment is `uv venv` + `uv pip install -e ".[dev]"`; the package
 itself needs only `pydantic` (through `core.records`) and the standard

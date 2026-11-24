@@ -27,6 +27,7 @@ the only world that can show it.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
@@ -72,6 +73,27 @@ class DiffResult:
     output: str = ""
 
 
+def find_lm() -> str:
+    """Where the last-mile ``lm`` tool is.
+
+    last-mile is its own repository (it is a whole game, not a seat of this
+    one), so the tool is found from the outside: ``LM_BIN`` if set, then
+    ``lm`` on the ``PATH``, then a release build in a last-mile checkout
+    (``LAST_MILE_DIR``, default ``~/projects/last-mile``). Falls back to the
+    bare name, which ``available()`` then reports as absent.
+    """
+    explicit = os.environ.get("LM_BIN")
+    if explicit:
+        return explicit
+    if shutil.which("lm"):
+        return "lm"
+    checkout = Path(os.environ.get("LAST_MILE_DIR", "~/projects/last-mile")).expanduser()
+    built = checkout / "target" / "release" / "lm"
+    if built.is_file() and os.access(built, os.X_OK):
+        return str(built)
+    return "lm"
+
+
 class BevyWorld:
     """The Bevy world, through its CLI.
 
@@ -79,8 +101,8 @@ class BevyWorld:
     package reads it the way a person would — from the outside.
     """
 
-    def __init__(self, binary: str = "lm") -> None:
-        self.binary = binary
+    def __init__(self, binary: str | None = None) -> None:
+        self.binary = binary or find_lm()
 
     def available(self) -> bool:
         """Whether the tool is on this box."""
