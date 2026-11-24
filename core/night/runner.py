@@ -23,7 +23,7 @@ The rules the runner keeps, in the order it keeps them:
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Callable, Literal, Mapping, Sequence
+from typing import Callable, Literal, Mapping, Protocol, Sequence, runtime_checkable
 
 from core.night.clock import Clock
 from core.night.cost.admission import NightPlan, PlannedJob
@@ -49,7 +49,7 @@ from core.night.queue import TaskQueue
 from core.night.rails import LoadBudget, RailBudget, ThrottleLevel
 from core.night.status import StatusLine, compute_status
 
-__all__ = ["NightRunner"]
+__all__ = ["GcSeam", "NightRunner"]
 
 _DEFAULT_ACTOR = Actor(kind="scheduler", id="night-runner")
 
@@ -69,6 +69,23 @@ def _parse(stamp: str) -> datetime:
 def _plus_minutes(stamp: str, minutes: float) -> str:
     moment = _parse(stamp) + timedelta(minutes=minutes)
     return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+@runtime_checkable
+class GcSeam(Protocol):
+    """The night seat's window onto the general contractor.
+
+    The night knows nothing about gc itself: it asks which contracts a task
+    carries and reports the burn, and the spine side answers. A seam that
+    is absent (or a gc that is not on the box) changes nothing about the
+    night — the runner behaves exactly as it did before gc existed.
+    """
+
+    def contracts_for(self, task_id: str) -> list[dict]:
+        """The open gc contracts for a task: [{"external_id": wo_id, "seat": seat_name}]."""
+
+    def checkpoint(self, *, external_id: str, crew_used_min: float) -> dict | None:
+        """Report the burn; None when gc is unavailable or the call failed."""
 
 
 def _plan_from_tasks(tasks: Sequence[Task]) -> NightPlan:
@@ -114,6 +131,7 @@ class NightRunner:
         critic: Critic | None = None,
         iteration: IterationPolicy | None = None,
         power_meter: PowerMeter | None = None,
+        gc: GcSeam | None = None,
     ) -> None:
         if (critic is None) != (variant_source is None):
             # Half a loop is not a loop: a score with nothing to score, or
@@ -141,6 +159,14 @@ class NightRunner:
         self._iteration = iteration or IterationPolicy()
         self._power_meter = power_meter or RailPowerMeter()
         self._running_job: str | None = None
+        #: The general contractor's seam. None means the night is exactly the
+        #: night it was before gc: no burn is reported and nothing is cut by
+        #: a contractor's stop line.
+        self.gc = gc
+        #: The burn reported to gc so far, per task (wall-minutes).
+        self._gc_burn: dict[str, float] = {}
+        #: The stop line that fired, per task — the reason the cut carries.
+        self._gc_stop: dict[str, str] = {}
 
         self.budget = RailBudget(ceiling=rails)
         self.loads = LoadBudget(caps=self.load_budget)
@@ -568,6 +594,15 @@ class NightRunner:
                 )
                 attempts.append(attempt)
                 round_attempts.append(attempt)
+                if task.id in self._gc_stop:
+                    # gc's stop line fired: the seat must stop and report, so
+                    # the loop does not open another variant on this contract.
+                    stop = {
+                        "reason": "gc stop line",
+                        "detail": self._gc_stop[task.id],
+                        "round": round_no,
+                    }
+                    break
                 if actual.outcome == "kept" and (
                     winner is None or attempt.score > winner.score
                 ):
@@ -679,6 +714,54 @@ class NightRunner:
         }[level]
         return f"the {pct}% bar stopped the loop"
 
+    def _report_gc_burn(self, task: Task, wall_minutes: float) -> str | None:
+        """Report the night's burn to gc; the reason when gc's stop line fires.
+
+        The burn is cumulative per task: gc is told how much crew-time the
+        contract has cost so far, not how much this attempt cost. Nothing
+        here raises — a gc that is absent, broken or slow leaves the night
+        exactly as it was.
+        """
+        if self.gc is None:
+            return None
+        try:
+            burn = self._gc_burn.get(task.id, 0.0) + float(wall_minutes)
+            self._gc_burn[task.id] = burn
+            contracts = self.gc.contracts_for(task.id) or []
+        except Exception:
+            return None
+        for contract in contracts:
+            external_id = contract.get("external_id") if isinstance(contract, dict) else None
+            if not external_id:
+                continue
+            try:
+                body = self.gc.checkpoint(external_id=external_id, crew_used_min=burn)
+            except Exception:
+                continue
+            if body and body.get("stop_required"):
+                reason = self._gc_stop_reason(body, burn)
+                self._gc_stop[task.id] = reason
+                return reason
+        return None
+
+    @staticmethod
+    def _gc_stop_reason(body: dict, burn_min: float) -> str:
+        """Why the attempt was cut, in gc's own numbers.
+
+        ``burn`` is gc's ratio of the used crew-time over the effective bid;
+        the stop line is gc's rule at 80% of the bid — the ratio every
+        contract opened through the bridge carries, because the bridge never
+        asks for another one. Nothing is invented: what gc did not say is
+        left out.
+        """
+        ratio = body.get("burn")
+        if isinstance(ratio, (int, float)) and not isinstance(ratio, bool):
+            line = f"the 80% stop line fired at {float(ratio) * 100.0:.0f}% of the bid"
+        else:
+            line = f"the 80% stop line fired after {burn_min:.0f} min of crew-time"
+        return (f"{line} — the goal line had not passed; the general contractor "
+                f"must re-scope, extend or cancel")
+
     def _run_attempt(
         self,
         task: Task,
@@ -770,6 +853,11 @@ class NightRunner:
             wall_minutes=actual.wall_minutes,
         )
 
+        # The general contractor's view of the burn, asked before the night
+        # spends it: gc holds the seat to its bid and its stop line is a rail
+        # event — the attempt is cut, not crashed.
+        gc_stop = self._report_gc_burn(task, actual_cost.wall_minutes)
+
         # The core keeps ticking the window while the work runs (§3.4).
         if plan.stall_minutes:
             # The batch waited on the lane. The core was alive the whole time,
@@ -791,6 +879,12 @@ class NightRunner:
             # written when the task is settled.
             outcome = "cut"
             actual = actual.model_copy(update={"outcome": "cut"})
+        if gc_stop:
+            # gc's stop line fired: the attempt is cut the way the night cuts
+            # any work — a queue mark with a reason, never an exception. The
+            # reason names gc's own numbers.
+            outcome = "cut"
+            actual = actual.model_copy(update={"outcome": "cut", "reason": gc_stop})
 
         # The critic scores what the attempt produced — the score is what
         # picks the winner, so it is written with the attempt itself.
