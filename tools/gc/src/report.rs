@@ -92,6 +92,48 @@ pub fn plan_allowance(state: &State, sub: &str) -> Option<f64> {
     }
 }
 
+/// The on-time counts behind a seat's `on_time_rate`: how many of the
+/// pair's closes finished inside their recorded deadline, and how many had
+/// a deadline to be late against.
+///
+/// The rule is the one in `calib::reputation`: a job with no recorded
+/// deadline has no lateness to measure, so it stays outside the
+/// denominator, and a close that is not late is on time. The denominator is
+/// `Reputation::n_deadline`; the numerator is counted here so that the
+/// report can say "14 of 18" instead of only a rate.
+fn on_time_counts(state: &State, sub: &str, class: &str) -> (usize, usize) {
+    let mut on_time = 0usize;
+    let mut total = 0usize;
+    for job in &state.jobs {
+        if job.awarded_sub != sub {
+            continue;
+        }
+        if !class.is_empty() && job.class != class {
+            continue;
+        }
+        let close = match &job.close {
+            Some(c) => c,
+            None => continue,
+        };
+        if job.effective_deadline_min() > 0.0 {
+            total += 1;
+            if close.late_days <= 0.0 {
+                on_time += 1;
+            }
+        }
+    }
+    (on_time, total)
+}
+
+/// The number of times a seat was retooled on a job class.
+fn retool_count(state: &State, sub: &str, class: &str) -> usize {
+    state
+        .retools
+        .iter()
+        .filter(|r| r.sub == sub && r.class == class)
+        .count()
+}
+
 /// The text report.
 pub fn text_report(state: &State, filter: &ReportFilter) -> String {
     let mut out = String::new();
@@ -412,11 +454,19 @@ pub fn json_report(state: &State, filter: &ReportFilter) -> Json {
             continue;
         }
         let rep = reputation(state, &sub, &class);
+        let (on_time_jobs, on_time_total) = on_time_counts(state, &sub, &class);
         let mut o = Json::obj();
         o.set("sub", Json::s(sub.clone()));
         o.set("class", Json::s(class.clone()));
         o.set("jobs", Json::n(rep.n as f64));
         o.set("on_time_rate", Json::n(rep.on_time_rate));
+        // The counts behind the rate, so a caller can say "14 of 18" and
+        // not only a fraction. `on_time_known` says whether the rate means
+        // anything at all: with no recorded deadline the rate is 0, and
+        // that 0 is "unknown", never "never on time".
+        o.set("on_time_jobs", Json::n(on_time_jobs as f64));
+        o.set("on_time_total", Json::n(on_time_total as f64));
+        o.set("on_time_known", Json::b(on_time_total > 0));
         o.set("goal_line_rate", Json::n(rep.goal_line_rate));
         o.set("goal_line_inconclusive", Json::n(rep.n_inconclusive as f64));
         o.set("budget_hit_rate", Json::n(rep.budget_hit_rate));
@@ -437,6 +487,7 @@ pub fn json_report(state: &State, filter: &ReportFilter) -> Json {
             },
         );
         o.set("blocked", Json::b(rep.debt_min >= crate::DEEP_DEBT_MIN));
+        o.set("retools", Json::n(retool_count(state, &sub, &class) as f64));
         seats.push(o);
     }
     root.set("seats", seats);

@@ -408,6 +408,22 @@ first; the JSON line comes **last**. The flag may sit anywhere among the
 others. The body is the whole row body, so the ids, the numbers and the
 verdicts are all there.
 
+**`gc report --json`.** Every seat row carries the counts behind its rates,
+so a caller can say "14 of 18 on time" instead of only a fraction:
+
+| field | what it is |
+|---|---|
+| `on_time_jobs` | the closes of that (seat, class) pair that finished inside their recorded deadline |
+| `on_time_total` | the closes of that pair that had a recorded deadline at all |
+| `on_time_known` | `false` when `on_time_total` is 0 |
+| `retools` | the retool events of that (seat, class) pair |
+
+The rule is the one behind `on_time_rate`: a close with no recorded deadline
+has no lateness to measure and stays outside the denominator.
+`on_time_rate` itself is unchanged — where `on_time_total > 0` it is exactly
+`on_time_jobs / on_time_total` — and where `on_time_total` is 0 it is 0 and
+`on_time_known` is `false`: that 0 is "unknown", never "never on time".
+
 ---
 
 ## 13. What is not verified

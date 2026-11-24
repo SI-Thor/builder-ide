@@ -1323,3 +1323,95 @@ fn a_report_kind_close_can_say_it_could_not_be_judged() {
     let err = fails(&dir, &["close", "--job", &job3, "--crew-min", "50", "--accepted"]);
     assert!(err.contains("report-kind jobs only"), "{}", err);
 }
+
+/// The seat row of one (sub, class) pair in a `report --json` payload.
+fn seat_row(report: &J, sub: &str, class: &str) -> J {
+    report
+        .get("seats")
+        .and_then(|s| s.as_arr())
+        .expect("no seats in the report")
+        .iter()
+        .find(|r| {
+            r.get("sub").and_then(|v| v.as_str()) == Some(sub)
+                && r.get("class").and_then(|v| v.as_str()) == Some(class)
+        })
+        .cloned()
+        .unwrap_or_else(|| panic!("no seat row for {} on {}", sub, class))
+}
+
+#[test]
+fn the_report_json_carries_the_on_time_counts_and_the_retools() {
+    let dir = workdir("report-counts");
+
+    let run = |title: &str, late: Option<&str>| {
+        ok(
+            &dir,
+            &[
+                "job", "new", "--title", title, "--class", "build-feature", "--scope", "s",
+                "--accept-cmd", "true", "--estimate-min", "60", "--deadline-min", "1440",
+            ],
+        );
+        let job = last_job(&dir);
+        ok(&dir, &["bid", "--job", &job, "--sub", "zcode", "--crew-min", "60", "--submit"]);
+        ok(&dir, &["award", "--job", &job, "--bid", &bid_id_of(&dir, &job)]);
+        match late {
+            None => ok(&dir, &["close", "--job", &job, "--crew-min", "50"]),
+            Some(days) => ok(
+                &dir,
+                &["close", "--job", &job, "--crew-min", "50", "--late-days", days],
+            ),
+        }
+    };
+
+    // One job inside the deadline, one a day late.
+    run("ontime", None);
+    run("late", Some("1"));
+
+    let report = parse_json(&ok(&dir, &["report", "--json"])).expect("the report is not JSON");
+    let seat = seat_row(&report, "zcode", "build-feature");
+    assert_eq!(seat.get("on_time_jobs").and_then(|v| v.as_f64()), Some(1.0));
+    assert_eq!(seat.get("on_time_total").and_then(|v| v.as_f64()), Some(2.0));
+    assert_eq!(seat.get("on_time_known").and_then(|v| v.as_bool()), Some(true));
+    // The rate is the same number it always was: 1 of 2.
+    assert_eq!(seat.get("on_time_rate").and_then(|v| v.as_f64()), Some(0.5));
+
+    // A seat that has never closed anything has no lateness to measure: the
+    // rate is 0, and the 0 means "unknown", not "never on time".
+    ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t2", "--class", "build-feature", "--scope", "s",
+            "--accept-cmd", "true", "--estimate-min", "60", "--deadline-min", "1440",
+        ],
+    );
+    let other = last_job(&dir);
+    ok(&dir, &["bid", "--job", &other, "--sub", "mcode", "--crew-min", "60", "--submit"]);
+    let report = parse_json(&ok(&dir, &["report", "--json"])).expect("the report is not JSON");
+    let seat = seat_row(&report, "mcode", "build-feature");
+    assert_eq!(seat.get("on_time_jobs").and_then(|v| v.as_f64()), Some(0.0));
+    assert_eq!(seat.get("on_time_total").and_then(|v| v.as_f64()), Some(0.0));
+    assert_eq!(seat.get("on_time_known").and_then(|v| v.as_bool()), Some(false));
+    assert_eq!(seat.get("on_time_rate").and_then(|v| v.as_f64()), Some(0.0));
+
+    // The retoolings are counted on the seat row too.
+    assert_eq!(
+        seat_row(&report, "zcode", "build-feature")
+            .get("retools")
+            .and_then(|v| v.as_f64()),
+        Some(0.0)
+    );
+    ok(
+        &dir,
+        &[
+            "retool", "--sub", "zcode", "--class", "build-feature",
+            "--reason", "the seat quoted 60 and took 150", "--action", "smaller jobs",
+        ],
+    );
+    let report = parse_json(&ok(&dir, &["report", "--json"])).expect("the report is not JSON");
+    assert_eq!(
+        seat_row(&report, "zcode", "build-feature")
+            .get("retools")
+            .and_then(|v| v.as_f64()),
+        Some(1.0)
+    );
+}

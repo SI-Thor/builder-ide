@@ -223,6 +223,19 @@ command-kind or metric-kind job still refuses a stated outcome
 (`--check pass`, `--check fail`, `--accepted`, `--failed`): there the goal
 line decides for itself.
 
+**`gc report --json`** carries the counts behind its rates, so a caller can
+say "14 of 18 on time" instead of only a fraction:
+
+| field | what it is |
+|---|---|
+| `on_time_jobs` | how many of the pair's closes finished inside their recorded deadline |
+| `on_time_total` | how many of the pair's closes had a deadline to be late against |
+| `on_time_known` | `false` when `on_time_total` is 0 — then `on_time_rate` is 0 and means "unknown", never "never on time" |
+| `retools` | how many times the seat was retooled on that class |
+
+`on_time_rate` itself is unchanged: when `on_time_total > 0` it is exactly
+`on_time_jobs / on_time_total`.
+
 ## The ledger
 
 One JSON object per line. Every row carries the hash of the row before it,
