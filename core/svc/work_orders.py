@@ -6,6 +6,7 @@ Multi-event operations (keep/reject, edit-and-refile) run in one store
 batch so an Idempotency-Key covers the whole decision atomically."""
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from ..canon import new_id, now_utc
@@ -25,6 +26,12 @@ from ..models import (
     confirm_line_valid,
 )
 from ..store import LedgerStore
+
+_LOG = logging.getLogger("core.svc.work_orders")
+
+#: The gc class a work order falls back to when it serves no plan goal.
+#: gc does not restrict the class string; this is only a label.
+GC_DEFAULT_CLASS = "build-feature"
 
 
 class WorkOrdersService:
@@ -78,6 +85,7 @@ class WorkOrdersService:
         acceptance: list[dict] | None = None,
         budget: Budget | None = None,
         branch: str | None = None,
+        serves: str | None = None,
         packet_snapshot: dict | None = None,
         packet_artifact: dict | None = None,
     ) -> WorkOrder:
@@ -85,6 +93,7 @@ class WorkOrdersService:
             id=new_id("work_order"), filed_by=filed_by, origin=origin, title=title,
             goal=goal, targets=targets or [], vocabulary_gap=vocabulary_gap,
             acceptance=acceptance or [], budget=budget or Budget(), branch=branch,
+            serves=serves,
         )
         payload: dict[str, Any] = {"work_order": wo.model_dump(mode="json")}
         if packet_snapshot is not None:
@@ -158,11 +167,18 @@ class WorkOrdersService:
     # ------------------------------------------------------------- confirm / cancel
 
     def confirm(self, wo_id: str, actor: Actor, answer: str, *,
-                idem_key: str | None = None, amendments: dict | None = None) -> dict:
+                idem_key: str | None = None, amendments: dict | None = None,
+                seat: str | None = None) -> dict:
         """draft → queued on "go" [Idempotency-Key; budget admitted against
         night rail]. "no" cancels. "edit" cancels this draft and re-files an
         amended order (the spec's table has no draft→compiling arrow, and a
-        wrong compile is cheap to reject — §3.1)."""
+        wrong compile is cheap to reject — §3.1).
+
+        ``seat`` is the builder seat that takes the order, when the caller
+        already knows it: the confirmed order becomes a gc contract and the
+        seat is awarded it. Without a seat the contract is still opened —
+        the seat is hired when the attempt starts.
+        """
         if idem_key is not None:
             cached = self.store.idem_get(idem_key)
             if cached:
@@ -182,6 +198,9 @@ class WorkOrdersService:
                     response_builder=lambda e: self.get(wo_id).model_dump(mode="json"))
             if resp and resp.get("__replay__"):
                 return resp["body"]
+            # builder-ide's own event is written first and is never at the
+            # mercy of gc: the contract is opened after the commit.
+            self._open_gc_contract(self.get(wo_id), seat=seat)
             return self.get(wo_id).model_dump(mode="json")
         if answer == "no":
             return self.cancel(wo_id, actor, idem_key=idem_key)
@@ -196,7 +215,7 @@ class WorkOrdersService:
                     acceptance=(amendments.get("acceptance") if amendments else None)
                     or [a.model_dump() for a in wo.acceptance],
                     budget=wo.budget, vocabulary_gap=wo.vocabulary_gap,
-                    branch=wo.branch,
+                    branch=wo.branch, serves=wo.serves,
                 )
                 # An amendment that does not mention the estimate keeps the
                 # original one: dropping it would make the refiled order
@@ -214,6 +233,104 @@ class WorkOrdersService:
                 )
             return {"refiled": new.id, "work_order": drafted.model_dump(mode="json")}
         raise Refused(f"answer must be go|no|edit, got {answer!r}")
+
+    # ------------------------------------------------------------- the gc contract
+
+    def _gc_bridge(self):
+        """The gc bridge on the core, or None when gc is not here."""
+        return getattr(self.core, "gc", None)
+
+    def _open_gc_contract(self, wo: WorkOrder, *, seat: str | None = None) -> None:
+        """Open the gc contract for a confirmed work order.
+
+        The order becomes gc's job: the order's estimate is the crew-time gc
+        holds the seat to, the per_order rail is the ceiling gc will pay, and
+        the night's rails are the job-time. Everything here is best-effort —
+        the order is already confirmed in builder-ide's own ledger, and a
+        missing or failing gc changes nothing about it.
+        """
+        bridge = self._gc_bridge()
+        if bridge is None:
+            return
+        estimate_min = self._gc_estimate_min(wo)
+        if estimate_min <= 0:
+            _LOG.debug(
+                "work order %s carries no estimate: there is nothing to hold a "
+                "seat to, so no gc contract is opened for it", wo.id)
+            return
+        job_class = self._gc_job_class(wo)
+        budget_min = float(wo.budget.per_order.wall_minutes) or estimate_min
+        deadline_min = self._gc_deadline_min(wo) or budget_min
+        scope = f"{wo.goal or wo.title}\n\n(gc class: {job_class})"
+        job_id = bridge.open_job(
+            external_id=wo.id, title=wo.title, scope=scope, job_class=job_class,
+            estimate_min=estimate_min, budget_min=budget_min,
+            deadline_min=deadline_min, accept_cmd=self._gc_accept_cmd(wo),
+        )
+        if job_id is None:
+            return
+        self._award_gc_contract(wo, seat=seat)
+
+    def _award_gc_contract(self, wo: WorkOrder, *, seat: str | None = None) -> None:
+        """Hire the seat: the bid and the award. Idempotent — gc keeps the
+        first award, so calling it again changes nothing."""
+        bridge = self._gc_bridge()
+        if bridge is None:
+            return
+        the_seat = seat or self._gc_seat(wo)
+        if not the_seat:
+            return
+        bridge.award(external_id=wo.id, seat=the_seat)
+
+    def _gc_estimate_min(self, wo: WorkOrder) -> float:
+        """The crew-time gc holds the seat to: the order's two price lines."""
+        if not wo.estimate:
+            return 0.0
+        return (float(wo.estimate.build_verify.wall_minutes)
+                + float(wo.estimate.generate_test.wall_minutes))
+
+    def _gc_deadline_min(self, wo: WorkOrder) -> float:
+        """The job-time: the night's rails when the order names a night that
+        exists, else nothing — the ceiling stands in."""
+        night = wo.budget.night
+        if not night:
+            return 0.0
+        row = self.store.get_row("nights", {"id": night})
+        if row is None:
+            return 0.0
+        rails = Rail(**(row["payload"].get("rails") or {}))
+        return float(rails.wall_minutes)
+
+    def _gc_job_class(self, wo: WorkOrder) -> str:
+        """The class: the serving task's kind, else the default.
+
+        gc does not restrict the class string. The derivation is written into
+        the job's scope, so gc's ledger says where the class came from.
+        """
+        if wo.serves:
+            row = self.store.get_row("tasks", {"id": wo.serves})
+            if row is not None:
+                kind = (row["payload"] or {}).get("kind")
+                if isinstance(kind, str) and kind.strip():
+                    return kind.strip()
+        return GC_DEFAULT_CLASS
+
+    def _gc_accept_cmd(self, wo: WorkOrder) -> str | None:
+        """The goal line: a test-suite check that carries a command. Without
+        one the job is report-kind — gc takes builder-ide's own word."""
+        for check in wo.acceptance:
+            if check.kind != "test_suite":
+                continue
+            cmd = (check.spec or {}).get("cmd")
+            if isinstance(cmd, str) and cmd.strip():
+                return cmd.strip()
+        return None
+
+    def _gc_seat(self, wo: WorkOrder) -> str:
+        """The seat: the order's latest attempt's engineer, if any."""
+        if wo.attempts:
+            return wo.attempts[-1].engineer or ""
+        return ""
 
     def _admit_against_night_rail(self, wo: WorkOrder) -> None:
         night = wo.budget.night
@@ -293,6 +410,9 @@ class WorkOrdersService:
             {"from_state": wo.state, "attempt": attempt.model_dump(mode="json")},
         )
         self.store.append(ev)
+        # The seat is known now: the contract is awarded to it. gc's award is
+        # idempotent, so a contract that already has its seat is left alone.
+        self._award_gc_contract(self.get(wo_id), seat=engineer)
         return attempt
 
     def deliver(self, wo_id: str, deliverable: dict) -> WorkOrder:
@@ -575,6 +695,8 @@ class WorkOrdersService:
         )
         self.store.append(ev)
         if night:
-            from .nights import NightsService
+            # The graduated thresholds live on the budget service (§5.5); the
+            # night service does not answer them.
+            from .budget import BudgetService
 
-            NightsService(self.core, self.core.settings).check_thresholds(night)
+            BudgetService(self.core).check_thresholds(night)
