@@ -45,6 +45,10 @@ class ReportBuilder:
         tally = PredictionsService(self.core).tally()
         three = self._three_number_line(night_id, bdoc)
         away = self._while_you_were_away(night_id)
+        # The night's contracts are closed before the morning renders: the
+        # night is judged when it is over, and gc holds the three-valued
+        # verdict the work ended on.
+        gc = self._gc_section(night_id)
 
         doc = {
             "night": night.model_dump(mode="json"),
@@ -62,12 +66,83 @@ class ReportBuilder:
             "three_number_line": three,
             "the_box": self._the_box(night),
             "while_you_were_away": away,
+            "gc": gc,
         }
         return {
             "doc": doc,
             "json_bytes": canonical_bytes(doc),
             "text_bytes": self.render_text(doc).encode("utf-8"),
         }
+
+    # ------------------------------------------------------------- the gc section
+
+    #: The work order states that are over: their contracts can be closed.
+    TERMINAL_ORDER_STATES = ("landed", "kept", "failed", "rejected", "cancelled")
+
+    #: The three-valued verdict, from the order's state. "cancelled" is
+    #: inconclusive: nobody judged the work, so nobody passes or fails it.
+    GC_VERDICTS = {
+        "landed": "pass",
+        "kept": "pass",
+        "failed": "fail",
+        "rejected": "fail",
+        "cancelled": "inconclusive",
+    }
+
+    def _gc_section(self, night_id: str) -> dict:
+        """The night's gc contracts: closed, and the reputation read back.
+
+        With no gc on the box the section is empty — a builder-ide without a
+        general contractor still has a morning.
+        """
+        from .gc_night import reputation_rows
+
+        bridge = getattr(self.core, "gc", None)
+        if bridge is None or not bridge.enabled:
+            return {"contracts": [], "reputation": []}
+        contracts = self._close_gc_contracts(night_id, bridge)
+        return {"contracts": contracts, "reputation": reputation_rows(self.core)}
+
+    def _close_gc_contracts(self, night_id: str, bridge) -> list[dict]:
+        """Close this night's contracts and say what each one ended on.
+
+        The close carries the order's actual crew-minutes and its own
+        verdict; gc's own answer comes back in the close body, and the job
+        id is what ties the two ledgers together.
+        """
+        out: list[dict] = []
+        for row in self.store.scan("work_orders"):
+            state = row.get("state")
+            if state not in self.TERMINAL_ORDER_STATES:
+                continue
+            payload = row.get("payload") or {}
+            if (payload.get("budget") or {}).get("night") != night_id:
+                continue
+            wo_id = row.get("id") or payload.get("id")
+            verdict = self.GC_VERDICTS[state]
+            crew_min = float((payload.get("spend_so_far") or {}).get("wall_minutes") or 0.0)
+            goal_line = payload.get("confirm_line") or payload.get("goal") or ""
+            seat = ""
+            attempts = payload.get("attempts") or []
+            if attempts:
+                seat = attempts[-1].get("engineer") or ""
+            body = bridge.close(
+                external_id=wo_id, crew_min=crew_min, verdict=verdict,
+                goal_line=goal_line,
+            )
+            job_id = None
+            if isinstance(body, dict):
+                job_id = body.get("job_id")
+            if not job_id:
+                job_id = bridge.job_id_for(wo_id)
+            out.append({
+                "work_order": wo_id,
+                "job": job_id,
+                "seat": seat,
+                "verdict": verdict,
+                "crew_min": crew_min,
+            })
+        return out
 
     # ------------------------------------------------------------- sections
 
