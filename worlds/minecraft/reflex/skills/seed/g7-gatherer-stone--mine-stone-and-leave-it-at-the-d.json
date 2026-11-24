@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const stone = find_block({ names: ['stone', 'andesite', 'diorite', 'granite'], max_distance: 24 });\nif (!stone) {\n  const here = position();\n  await move_to(here.x + 12, here.y, here.z + 12);\n  return { done: false, detail: 'no stone here; walking on' };\n}\nconst dug = await dig(stone.x, stone.y, stone.z);\nif (!dug.ok) {\n  return { done: false, detail: dug.detail };\n}\nfor (const name of ['cobblestone', 'stone', 'andesite', 'diorite', 'granite']) {\n  if (inventory_count(name) > 0) {\n    await leave_at_depot(name, 1);\n    break;\n  }\n}\nreturn { done: true, detail: 'mined stone and left it at the depot' };",
+  "family": "gatherer.stone",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_broken",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 7,
+    "origin": "seed",
+    "why": "the spawn slope grows spruce and cherry, not oak: generation 6 left whatever log it mined under the wrong name, built only with cobblestone or oak, and stood still where the ground had nothing"
+  },
+  "role": "gatherer",
+  "title": "mine stone and leave it at the depot"
+}

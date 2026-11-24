@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const log = find_block({ name: 'oak_log', max_distance: 32 });\nif (!log) {\n  return { done: false, detail: 'no oak log within 32 blocks' };\n}\nawait dig(log.x, log.y, log.z);\nconst opened = await open_chest();\nif (!opened.ok) {\n  return { done: false, detail: opened.detail };\n}\nconst put = await deposit('oak_log', 1);\nif (!put.ok) {\n  return { done: false, detail: put.detail };\n}\nreturn { done: true, detail: 'mined an oak log and put it in the chest' };",
+  "family": "gatherer.wood",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "item": "oak_log",
+    "kind": "inventory_delta",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 2,
+    "origin": "seed"
+  },
+  "role": "gatherer",
+  "title": "chop the nearest oak log and stock the chest"
+}

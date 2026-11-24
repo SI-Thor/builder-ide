@@ -1,0 +1,7 @@
+# By running the Minecraft server you agree to the Minecraft EULA:
+#   https://aka.ms/MinecraftEULA
+#
+# Casey accepted Mojang's EULA for this world on 2026-10-31, so this file
+# says true. The server itself needs no licence; each human client needs
+# its own copy of the game and its own acceptance.
+eula=true

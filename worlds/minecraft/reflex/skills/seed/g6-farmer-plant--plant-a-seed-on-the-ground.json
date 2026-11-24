@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "if (inventory_count('wheat_seeds') < 1) {\n  return { done: false, detail: 'no seeds to plant' };\n}\nconst ground = find_block({ names: ['grass_block', 'dirt', 'farmland'], max_distance: 8 });\nif (!ground) {\n  return { done: false, detail: 'no ground to plant on' };\n}\nconst put = await place('wheat_seeds', ground.x, ground.y + 1, ground.z);\nif (!put.ok) {\n  return { done: false, detail: put.detail };\n}\nreturn { done: true, detail: 'planted a seed' };",
+  "family": "farmer.plant",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_placed",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 6,
+    "origin": "seed",
+    "why": "the predictions of the earlier generations did not match what the skills actually did: a skill that mines and then leaves the item at the depot can never win an inventory_delta, and a wall laid where the builder happens to stand is not a shared build"
+  },
+  "role": "farmer",
+  "title": "plant a seed on the ground"
+}

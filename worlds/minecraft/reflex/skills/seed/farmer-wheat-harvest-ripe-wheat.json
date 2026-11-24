@@ -1,0 +1,22 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const wheat = find_block({ name: 'wheat', max_distance: 24 });\nif (!wheat) {\n  return { done: false, detail: 'no wheat within 24 blocks' };\n}\nawait dig(wheat.x, wheat.y, wheat.z);\nreturn { done: true, detail: 'harvested wheat' };",
+  "family": "farmer.wheat",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "item": "wheat",
+    "kind": "inventory_delta",
+    "min": 1
+  },
+  "provenance": {
+    "origin": "seed"
+  },
+  "role": "farmer",
+  "title": "harvest ripe wheat"
+}

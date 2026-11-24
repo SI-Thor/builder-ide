@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>agent-world — the 3D view</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: dark; }
+  html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+  canvas { height: 100%; width: 100%; font-size: 0; margin: 0; padding: 0; display: block; }
+
+  /* The strip that says how the world is being drawn. It sits over the
+     canvas: the drawing itself is prismarine-viewer's, untouched. */
+  #strip {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
+    padding: 8px 14px; font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: linear-gradient(#121417f2, #121417cc 70%, #12141700);
+    color: #9aa3ad; pointer-events: none;
+  }
+  #strip b { color: #d8d3c8; font-weight: 600; }
+  #strip a { color: #7fb2ff; pointer-events: auto; }
+  #strip .warn { color: #e0b062; }
+  #strip .exact { color: #86c08a; }
+
+  /* The message that appears when the version cannot be drawn at all.
+     The page never goes blank: it says what is wrong and where the
+     world can still be seen. */
+  #cannot {
+    display: none; position: fixed; inset: 0; z-index: 20;
+    background: #121417; color: #d8d3c8; overflow: auto;
+    padding: 40px 24px; text-align: center;
+    font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  #cannot h1 { font-size: 15px; font-weight: 600; letter-spacing: .06em;
+               text-transform: uppercase; color: #9aa3ad; margin: 0 0 12px; }
+  #cannot p { max-width: 46em; margin: 0 auto 14px; color: #cfd3d6; }
+  #cannot a { color: #7fb2ff; }
+  #cannot code { color: #e0b062; }
+</style>
+</head>
+<body>
+<div id="strip">
+  <span><b>agent-world</b></span>
+  <span id="drawing">connecting&hellip;</span>
+  <span><a href="/ascii">the text view</a></span>
+  <span><a href="/voices">the voices</a></span>
+  <span><a href="/status">the status</a></span>
+</div>
+
+<div id="cannot">
+  <h1>the 3D view cannot draw this world</h1>
+  <p id="cannot-why"></p>
+  <p>The world is still running. You can watch it in the text view instead:
+    <a href="/ascii">the text view</a>.</p>
+</div>
+
+<script>
+  // The world's version and the browser's version are not the same, so
+  // the server re-encodes the block states on their way to the page
+  // (see viewer/src/translate.js). The page asks what is being drawn
+  // before it loads the 3D client at all, so a version it cannot draw
+  // gives a message and a link instead of a blank canvas.
+  const strip = document.getElementById('strip');
+  const drawing = document.getElementById('drawing');
+  const cannot = document.getElementById('cannot');
+  const cannotWhy = document.getElementById('cannot-why');
+
+  function showCannot(message) {
+    cannotWhy.textContent = message || 'The version of the world is unknown.';
+    cannot.style.display = 'block';
+  }
+
+  function describe(plan, stats) {
+    if (!plan || !plan.ok) return 'the version is unknown';
+    if (!plan.translated) return 'Minecraft ' + plan.target;
+    let text = 'Minecraft ' + plan.source + ' drawn as ' + plan.target;
+    const standIns = (stats && stats.standIns) || [];
+    const approximations = (stats && stats.approximations) || [];
+    if (standIns.length) {
+      const list = standIns.slice(0, 4)
+        .map((s) => s.from + ' → ' + s.to).join(', ');
+      const more = standIns.length > 4 ? ' and ' + (standIns.length - 4) + ' more' : '';
+      text += ' — ' + standIns.length + ' block' +
+        (standIns.length === 1 ? ' has' : 's have') + ' no ' + plan.target +
+        ' twin (' + list + more + ')';
+    } else if (approximations.length) {
+      text += ' — ' + approximations.length + ' block' +
+        (approximations.length === 1 ? ' is' : 's are') + ' drawn approximately';
+    }
+    return text;
+  }
+
+  async function plan() {
+    const response = await fetch('/view-plan', { cache: 'no-store' });
+    return response.json();
+  }
+
+  async function status() {
+    const response = await fetch('/status', { cache: 'no-store' });
+    return response.json();
+  }
+
+  (async function start() {
+    let viewPlan = null;
+    try {
+      viewPlan = await plan();
+    } catch (err) {
+      showCannot('The viewer did not answer.');
+      return;
+    }
+
+    if (!viewPlan.ok) {
+      drawing.textContent = 'the version cannot be drawn';
+      showCannot(viewPlan.message);
+      return;
+    }
+
+    // Load the 3D client now that the page knows the version can be drawn.
+    const script = document.createElement('script');
+    script.src = 'index.js';
+    document.body.appendChild(script);
+
+    const refresh = async () => {
+      try {
+        const state = await status();
+        drawing.textContent = describe(state.view, state.drawing);
+        drawing.className = state.drawing && state.drawing.exact ? 'exact' : 'warn';
+      } catch (err) {
+        drawing.textContent = 'the view lost the world for a moment';
+      }
+    };
+    await refresh();
+    setInterval(refresh, 2000);
+  })();
+</script>
+</body>
+</html>

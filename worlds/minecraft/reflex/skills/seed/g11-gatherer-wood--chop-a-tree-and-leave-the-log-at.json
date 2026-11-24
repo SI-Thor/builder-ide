@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const log = find_block({ names: [\"oak_log\", \"spruce_log\", \"birch_log\", \"cherry_log\", \"dark_oak_log\"], max_distance: 24 });\nif (!log) {\n  const home = depot();\n  await move_to(home.x + 4, home.y, home.z + 4);\n  return { done: false, detail: 'no tree here; walking home' };\n}\nconst chopped = await dig(log.x, log.y, log.z);\nif (!chopped.ok) {\n  return { done: false, detail: chopped.detail };\n}\nawait leave_at_depot();\nreturn { done: true, detail: 'mined a log and left the bag at the depot' };",
+  "family": "gatherer.wood",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_broken",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 11,
+    "origin": "seed",
+    "why": "the fixed drift walked to wherever was barren and stayed there. The depot sits where the work is, so a builder that finds nothing walks home"
+  },
+  "role": "gatherer",
+  "title": "chop a tree and leave what it gives at the depot"
+}

@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const stone = find_block({ names: ['stone', 'cobblestone', 'andesite', 'diorite'], max_distance: 32 });\nif (!stone) {\n  return { done: false, detail: 'no stone within 32 blocks' };\n}\nawait dig(stone.x, stone.y, stone.z);\nconst opened = await open_chest();\nif (!opened.ok) {\n  return { done: false, detail: opened.detail };\n}\nconst put = await deposit('cobblestone', 1);\nif (!put.ok) {\n  return { done: false, detail: put.detail };\n}\nreturn { done: true, detail: 'mined stone and put it in the chest' };",
+  "family": "gatherer.stone",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "item": "cobblestone",
+    "kind": "inventory_delta",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 2,
+    "origin": "seed"
+  },
+  "role": "gatherer",
+  "title": "mine stone and put it in the chest"
+}

@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const site = depot();\nconst materials = [\"cobblestone\", \"oak_log\", \"spruce_log\", \"birch_log\", \"cherry_log\", \"dark_oak_log\"];\nlet block = null;\nfor (const name of materials) {\n  if (inventory_count(name) >= 1) {\n    block = name;\n    break;\n  }\n}\nif (!block) {\n  const took = await take_from_depot(materials);\n  if (took.ok) {\n    block = took.name;\n  }\n}\nif (!block) {\n  return { done: false, detail: 'nothing to build with' };\n}\nlet laid = 0;\nfor (let i = 2; i < 60 && laid < 4; i++) {\n  if (inventory_count(block) < 1) {\n    break;\n  }\n  const x = site.x + i;\n  const z = site.z;\n  let ground = null;\n  for (let y = site.y + 6; y >= site.y - 12; y--) {\n    const at = block_at(x, y, z);\n    const below = block_at(x, y - 1, z);\n    if (at === 'air' && below !== 'air' && below !== null) {\n      ground = y;\n      break;\n    }\n  }\n  if (ground === null) {\n    continue;\n  }\n  const under = block_at(x, ground - 1, z);\n  if (under === 'cobblestone' || (under !== null && under.endsWith('_log'))) {\n    continue;\n  }\n  const put = await place(block, x, ground, z);\n  if (put.ok) {\n    laid += 1;\n  }\n}\nif (laid < 1) {\n  return { done: false, detail: 'the wall could not grow' };\n}\nreturn { done: true, detail: 'the wall grew by ' + laid };",
+  "family": "builder.wall",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_placed",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 9,
+    "origin": "seed",
+    "why": "the wall asked for its materials one name at a time, and each ask walked the whole depot ring: minutes per play, and the gatherers swept the pile back up before the walk finished. One ask, one ring, whatever the pile holds"
+  },
+  "role": "builder",
+  "title": "grow the wall east of the depot"
+}

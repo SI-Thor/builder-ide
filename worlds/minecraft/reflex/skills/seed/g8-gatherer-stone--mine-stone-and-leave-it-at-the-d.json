@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const stone = find_block({ names: ['stone', 'andesite', 'diorite', 'granite'], max_distance: 24 });\nif (!stone) {\n  const here = position();\n  await move_to(here.x + 12, here.y, here.z + 12);\n  return { done: false, detail: 'no stone here; walking on' };\n}\nconst dug = await dig(stone.x, stone.y, stone.z);\nif (!dug.ok) {\n  return { done: false, detail: dug.detail };\n}\n  const bag = inventory();\n  for (const item of bag) {\n    await leave_at_depot(item.name, item.count);\n  }\nreturn { done: true, detail: 'mined stone and left the bag at the depot' };",
+  "family": "gatherer.stone",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_broken",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 8,
+    "origin": "seed",
+    "why": "a gatherer that deposits one item walks back over the pile on its next trip and carries the depot's whole stock away in its bag. The depot only holds what nobody walks over, so it stays empty and the builder has nothing. Generation 8 leaves everything the gatherer is carrying, every time"
+  },
+  "role": "gatherer",
+  "title": "mine stone and leave what it gives at the depot"
+}

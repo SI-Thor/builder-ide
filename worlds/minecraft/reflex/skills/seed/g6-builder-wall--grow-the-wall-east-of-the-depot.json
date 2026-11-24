@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const site = depot();\nlet block = 'cobblestone';\nif (inventory_count(block) < 1) {\n  const took = await take_from_depot(block);\n  if (!took.ok) {\n    block = 'oak_log';\n  }\n}\nif (inventory_count(block) < 1) {\n  const took = await take_from_depot(block);\n  if (!took.ok) {\n    return { done: false, detail: took.detail };\n  }\n}\nlet laid = 0;\nfor (let i = 2; i < 60 && laid < 4; i++) {\n  if (inventory_count(block) < 1) {\n    break;\n  }\n  const x = site.x + i;\n  const z = site.z;\n  let ground = null;\n  for (let y = site.y + 6; y >= site.y - 12; y--) {\n    const at = block_at(x, y, z);\n    const below = block_at(x, y - 1, z);\n    if (at === 'air' && below !== 'air' && below !== null) {\n      ground = y;\n      break;\n    }\n  }\n  if (ground === null) {\n    continue;\n  }\n  const under = block_at(x, ground - 1, z);\n  if (under === 'cobblestone' || under === 'oak_log') {\n    continue;\n  }\n  const put = await place(block, x, ground, z);\n  if (put.ok) {\n    laid += 1;\n  }\n}\nif (laid < 1) {\n  return { done: false, detail: 'the wall could not grow' };\n}\nreturn { done: true, detail: 'the wall grew by ' + laid };",
+  "family": "builder.wall",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_placed",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 6,
+    "origin": "seed",
+    "why": "the predictions of the earlier generations did not match what the skills actually did: a skill that mines and then leaves the item at the depot can never win an inventory_delta, and a wall laid where the builder happens to stand is not a shared build"
+  },
+  "role": "builder",
+  "title": "grow the wall east of the depot"
+}

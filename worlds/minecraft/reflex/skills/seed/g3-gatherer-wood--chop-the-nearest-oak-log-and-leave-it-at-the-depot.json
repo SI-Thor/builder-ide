@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const log = find_block({ name: 'oak_log', max_distance: 32 });\nif (!log) {\n  return { done: false, detail: 'no oak log within 32 blocks' };\n}\nawait dig(log.x, log.y, log.z);\nconst left = await leave_at_depot('oak_log', 1);\nif (!left.ok) {\n  return { done: false, detail: left.detail };\n}\nreturn { done: true, detail: 'mined an oak log and left it at the depot' };",
+  "family": "gatherer.wood",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "item": "oak_log",
+    "kind": "inventory_delta",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 3,
+    "origin": "seed"
+  },
+  "role": "gatherer",
+  "title": "chop the nearest oak log and leave it at the depot"
+}

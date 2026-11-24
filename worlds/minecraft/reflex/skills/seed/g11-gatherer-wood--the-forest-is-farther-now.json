@@ -1,0 +1,19 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const log = find_block({ names: [\"oak_log\", \"spruce_log\", \"birch_log\", \"cherry_log\", \"dark_oak_log\", \"pale_oak_log\", \"mangrove_log\", \"acacia_log\", \"jungle_log\"], max_distance: 96 });\nif (!log) {\n  const here = position();\n  await move_to(here.x + 24, here.y, here.z + 24);\n  return { done: false, detail: 'no tree within 96; walking on' };\n}\nconst chopped = await dig(log.x, log.y, log.z);\nif (!chopped.ok) {\n  return { done: false, detail: chopped.detail };\n}\nawait leave_at_depot();\nreturn { done: true, detail: 'mined a log and left the bag at the depot' };",
+  "family": "gatherer.wood",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": { "kind": "block_broken", "min": 1 },
+  "provenance": {
+    "why": "the night of 2026-11-01 cleared the forest around the depot: the day's gather-wood command ('gather wood', Casey's playable round) failed honestly at 24 blocks. The trunk is farther now, so the eye is. The walk on failure steps 24 blocks, not 12, to reach new ground sooner.",
+    "seed": "g11"
+  },
+  "role": "gatherer",
+  "title": "chop a tree and leave what it gives at the depot"
+}

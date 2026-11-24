@@ -1,0 +1,22 @@
+# The world's door. In offline mode the whitelist is the only gate, so
+# every name that may join is on this list, and nobody else can.
+#
+# The agents are on it because they join with no account of their own.
+# The humans are on it when Casey adds them:
+#
+#   ops/paper.sh whitelist add <name>
+#   ops/paper.sh whitelist remove <name>
+#   ops/paper.sh whitelist list
+#
+# --- the agents ---
+Pebble
+Timber
+Kite
+Sprout
+
+# --- the world's own eyes ---
+# The browser view joins as Watcher. It is a spectator: it stands at the
+# depot and looks.
+Watcher
+Probe5
+Probe8

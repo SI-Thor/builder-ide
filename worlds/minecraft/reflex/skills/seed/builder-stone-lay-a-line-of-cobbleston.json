@@ -1,0 +1,21 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const here = position();\nif (inventory_count('cobblestone') < 4) {\n  return { done: false, detail: 'not enough cobblestone to lay a line' };\n}\nfor (let i = 0; i < 4; i++) {\n  await place('cobblestone', here.x + i, here.y, here.z);\n}\nreturn { done: true, detail: 'laid four cobblestone' };",
+  "family": "builder.stone",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_placed",
+    "min": 1
+  },
+  "provenance": {
+    "origin": "seed"
+  },
+  "role": "builder",
+  "title": "lay a line of cobblestone"
+}

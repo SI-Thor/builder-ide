@@ -1,0 +1,21 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const here = position();\nawait look_at(here.x + 16, here.y, here.z);\nawait look_at(here.x - 16, here.y, here.z);\nawait look_at(here.x, here.y, here.z + 16);\nawait look_at(here.x, here.y, here.z - 16);\nreturn { done: true, detail: 'looked in four directions' };",
+  "family": "scout.sight",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "none"
+  },
+  "provenance": {
+    "generation": 3,
+    "origin": "seed"
+  },
+  "role": "scout",
+  "title": "survey the ground around"
+}

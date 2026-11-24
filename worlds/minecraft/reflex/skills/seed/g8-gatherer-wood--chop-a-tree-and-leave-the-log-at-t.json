@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const log = find_block({ names: [\"oak_log\", \"spruce_log\", \"birch_log\", \"cherry_log\", \"dark_oak_log\"], max_distance: 24 });\nif (!log) {\n  const here = position();\n  await move_to(here.x + 12, here.y, here.z + 12);\n  return { done: false, detail: 'no tree here; walking on' };\n}\nconst chopped = await dig(log.x, log.y, log.z);\nif (!chopped.ok) {\n  return { done: false, detail: chopped.detail };\n}\n  const bag = inventory();\n  for (const item of bag) {\n    await leave_at_depot(item.name, item.count);\n  }\nreturn { done: true, detail: 'mined a log and left the bag at the depot' };",
+  "family": "gatherer.wood",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_broken",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 8,
+    "origin": "seed",
+    "why": "a gatherer that deposits one item walks back over the pile on its next trip and carries the depot's whole stock away in its bag. The depot only holds what nobody walks over, so it stays empty and the builder has nothing. Generation 8 leaves everything the gatherer is carrying, every time"
+  },
+  "role": "gatherer",
+  "title": "chop a tree and leave what it gives at the depot"
+}

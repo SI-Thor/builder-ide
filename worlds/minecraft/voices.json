@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "what": "one voice per agent: a Paradee reference, and the clone rung 3 makes from it",
+  "reference": {
+    "source": "synthetic: Paradee-8M-v1.2, spoken on the ProArt",
+    "text": "The harbour wall took the tide twice last week, so I would not put more weight on the north span.",
+    "hash_algorithm": "sha256 of the 24 kHz mono WAV",
+    "sample_rate": 24000
+  },
+  "voices": {
+    "af_heart": {
+      "id": "af_heart",
+      "agent": "Ariadne",
+      "paradee_voice": "af_heart",
+      "reference_sha256": "c8ae91777c2218978397e068c5f5ecaf7be337c4a24ae4777e0884e443b266e6",
+      "reference_text": "The harbour wall took the tide twice last week, so I would not put more weight on the north span.",
+      "reference_seconds": 5.65,
+      "rung2_voice": "agent_af_heart",
+      "rung3_voice": "af_heart",
+      "licence": "Apache-2.0 (Paradee-8M-v1.2, sahilmahendrakar/Paradee-8M-v1.2)",
+      "source": "synthetic: Paradee-8M-v1.2 on this machine"
+    },
+    "bf_isabella": {
+      "id": "bf_isabella",
+      "agent": "Isolde",
+      "paradee_voice": "bf_isabella",
+      "reference_sha256": "a9457a4b54f3953561851aef5982abe3a7e3b7a00e61b23de122b8cdc7391983",
+      "reference_text": "The harbour wall took the tide twice last week, so I would not put more weight on the north span.",
+      "reference_seconds": 5.675,
+      "rung2_voice": "agent_bf_isabella",
+      "rung3_voice": "bf_isabella",
+      "licence": "Apache-2.0 (Paradee-8M-v1.2, sahilmahendrakar/Paradee-8M-v1.2)",
+      "source": "synthetic: Paradee-8M-v1.2 on this machine"
+    },
+    "am_puck": {
+      "id": "am_puck",
+      "agent": "Puck",
+      "paradee_voice": "am_puck",
+      "reference_sha256": "b70b02ff905584f345195d18820dc555a1b378c10a9a665ac536fbe1115c7b2d",
+      "reference_text": "The harbour wall took the tide twice last week, so I would not put more weight on the north span.",
+      "reference_seconds": 5.825,
+      "rung2_voice": "agent_am_puck",
+      "rung3_voice": "am_puck",
+      "licence": "Apache-2.0 (Paradee-8M-v1.2, sahilmahendrakar/Paradee-8M-v1.2)",
+      "source": "synthetic: Paradee-8M-v1.2 on this machine"
+    },
+    "bm_fable": {
+      "id": "bm_fable",
+      "agent": "Fable",
+      "paradee_voice": "bm_fable",
+      "reference_sha256": "b7d51412d402e1b83a255b30b18f4d7db21c8050b7e9c50f3f131b8d3aa8d9b4",
+      "reference_text": "The harbour wall took the tide twice last week, so I would not put more weight on the north span.",
+      "reference_seconds": 5.6,
+      "rung2_voice": "agent_bm_fable",
+      "rung3_voice": "bm_fable",
+      "licence": "Apache-2.0 (Paradee-8M-v1.2, sahilmahendrakar/Paradee-8M-v1.2)",
+      "source": "synthetic: Paradee-8M-v1.2 on this machine"
+    }
+  }
+}

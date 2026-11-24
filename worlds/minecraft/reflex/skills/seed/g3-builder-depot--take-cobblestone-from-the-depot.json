@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const took = await take_from_depot('cobblestone');\nif (!took.ok) {\n  return { done: false, detail: 'there is nothing at the depot' };\n}\nreturn { done: true, detail: took.detail };",
+  "family": "builder.depot",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "item": "cobblestone",
+    "kind": "inventory_delta",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 3,
+    "origin": "seed"
+  },
+  "role": "builder",
+  "title": "take cobblestone from the depot"
+}

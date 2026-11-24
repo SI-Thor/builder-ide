@@ -1,0 +1,19 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const stone = find_block({ names: ['stone', 'andesite', 'diorite', 'granite'], max_distance: 48, min_y: 50 });\nif (!stone) {\n  const home = depot();\n  await move_to(home.x + 4, home.y, home.z + 4);\n  return { done: false, detail: 'no surface stone here; walking home' };\n}\nconst dug = await dig(stone.x, stone.y, stone.z);\nif (!dug.ok) {\n  return { done: false, detail: dug.detail };\n}\nawait leave_at_depot();\nreturn { done: true, detail: 'mined surface stone and left the bag at the depot' };",
+  "family": "gatherer.stone",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": { "kind": "block_broken", "min": 1 },
+  "provenance": {
+    "why": "g11 searched 24 blocks at any depth and the nearest stone is down: through the playable round Pebble followed it to bedrock and spent hours stranded at y=0, 72 below the depot (docs/playtest-2026-11-02-playable.md). v14 bounds the search to y>=50 where the hillsides and the quarry rim carry stone, and the api's dig now holds the floor at y=48 for every skill besides.",
+    "seed": "g14"
+  },
+  "role": "gatherer",
+  "title": "mine surface stone (never below y=50) and leave it at the depot"
+}

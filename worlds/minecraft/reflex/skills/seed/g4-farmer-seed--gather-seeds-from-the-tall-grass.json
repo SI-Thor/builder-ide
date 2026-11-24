@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "for (let attempt = 0; attempt < 6; attempt++) {\n  if (inventory_count('wheat_seeds') >= 1) {\n    return { done: true, detail: 'gathered seeds' };\n  }\n  const grass = find_block({ names: ['tall_grass', 'grass'], max_distance: 16 });\n  if (!grass) {\n    return { done: false, detail: 'no tall grass within 16 blocks' };\n  }\n  await dig(grass.x, grass.y, grass.z);\n}\nif (inventory_count('wheat_seeds') >= 1) {\n  return { done: true, detail: 'gathered seeds' };\n}\nreturn { done: false, detail: 'six pieces of grass and no seeds' };",
+  "family": "farmer.seed",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "item": "wheat_seeds",
+    "kind": "inventory_delta",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 4,
+    "origin": "seed"
+  },
+  "role": "farmer",
+  "title": "gather seeds from the tall grass"
+}

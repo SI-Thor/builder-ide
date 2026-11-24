@@ -1,0 +1,19 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "let log = find_block({ names: [\"oak_log\", \"spruce_log\", \"birch_log\", \"cherry_log\", \"dark_oak_log\", \"pale_oak_log\", \"mangrove_log\", \"acacia_log\", \"jungle_log\"], max_distance: 64 });\nlet walked = 0;\nwhile (!log && walked < 4) {\n  const here = position();\n  await move_to(here.x + 36, here.y, here.z + 36);\n  walked += 1;\n  log = find_block({ names: [\"oak_log\", \"spruce_log\", \"birch_log\", \"cherry_log\", \"dark_oak_log\", \"pale_oak_log\", \"mangrove_log\", \"acacia_log\", \"jungle_log\"], max_distance: 64 });\n}\nif (!log) {\n  const home = depot();\n  await move_to(home.x + 4, home.y, home.z + 4);\n  return { done: false, detail: 'no tree in four walks; going home' };\n}\nconst chopped = await dig(log.x, log.y, log.z);\nif (!chopped.ok) {\n  return { done: false, detail: chopped.detail };\n}\nawait leave_at_depot();\nreturn { done: true, detail: 'walked to a tree, mined a log, left the bag at the depot' };",
+  "family": "gatherer.wood",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": { "kind": "block_broken", "min": 1 },
+  "provenance": {
+    "why": "v11 searched 96 blocks from where it stood and the spawn forest was gone; the gather-wood command then failed three honest times in one battery. A gatherer that wants wood must go where wood is: four 36-block walks, searching after each, before it admits there is no tree. The walk direction is fixed (+36,+36) because the sandbox offers no randomness; four walks covers new ground each time from wherever the last one ended.",
+    "seed": "g12"
+  },
+  "role": "gatherer",
+  "title": "walk to the forest, chop a tree, leave what it gives at the depot"
+}

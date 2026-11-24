@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const here = position();\nif (inventory_count('wheat_seeds') < 1) {\n  const grass = find_block({ names: ['tall_grass', 'short_grass'], max_distance: 16 });\n  if (!grass) {\n    return { done: false, detail: 'no grass to gather seeds from' };\n  }\n  const pulled = await dig(grass.x, grass.y, grass.z);\n  if (!pulled.ok) {\n    return { done: false, detail: pulled.detail };\n  }\n}\nif (inventory_count('wheat_seeds') < 1) {\n  return { done: false, detail: 'no seeds to plant' };\n}\nconst put = await place('wheat_seeds', here.x + 1, here.y, here.z);\nif (!put.ok) {\n  return { done: false, detail: put.detail };\n}\nreturn { done: true, detail: 'planted seeds' };",
+  "family": "farmer.plant",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "item": "wheat_seeds",
+    "kind": "inventory_delta",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 5,
+    "origin": "seed"
+  },
+  "role": "farmer",
+  "title": "plant seeds on the ground beside you"
+}

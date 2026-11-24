@@ -1,0 +1,22 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const here = position();\nif (inventory_count('cobblestone') < 4) {\n  const opened = await open_chest();\n  if (!opened.ok) {\n    return { done: false, detail: opened.detail };\n  }\n  const took = await withdraw('cobblestone', 4);\n  if (!took.ok) {\n    return { done: false, detail: took.detail };\n  }\n}\nfor (let i = 0; i < 4; i++) {\n  await place('cobblestone', here.x + i, here.y, here.z);\n}\nreturn { done: true, detail: 'laid four cobblestone' };",
+  "family": "builder.wall",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "block_placed",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 2,
+    "origin": "seed"
+  },
+  "role": "builder",
+  "title": "lay a line of cobblestone"
+}

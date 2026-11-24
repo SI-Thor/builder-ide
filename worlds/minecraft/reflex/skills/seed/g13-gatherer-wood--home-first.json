@@ -1,0 +1,19 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const home = depot();\nawait move_to(home.x + 4, home.y, home.z + 4);\nconst logs = [\"oak_log\", \"spruce_log\", \"birch_log\", \"cherry_log\", \"dark_oak_log\", \"pale_oak_log\", \"mangrove_log\", \"acacia_log\", \"jungle_log\"];\nlet log = find_block({ names: logs, max_distance: 96 });\nlet walked = 0;\nwhile (!log && walked < 3) {\n  await move_to(home.x + 20 * (walked + 1), home.y, home.z + 20 * (walked + 1));\n  walked += 1;\n  log = find_block({ names: logs, max_distance: 96 });\n}\nif (!log) {\n  await move_to(home.x + 4, home.y, home.z + 4);\n  return { done: false, detail: 'no tree near the depot or three walks out; going home' };\n}\nconst chopped = await dig(log.x, log.y, log.z);\nif (!chopped.ok) {\n  return { done: false, detail: chopped.detail };\n}\nawait leave_at_depot();\nreturn { done: true, detail: 'went home, found a tree, mined a log, left the bag at the depot' };",
+  "family": "gatherer.wood",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": { "kind": "block_broken", "min": 1 },
+  "provenance": {
+    "why": "v12 walked +36 from wherever it stood, and where it stood was the quarry: the walks led away from the forest and it failed while trees stood by the depot (WoodSpot, 2026-11-02: oak logs 3-8 blocks from spawn). v13 goes home first and searches there; only then does it walk out, in steps anchored at the depot so each walk covers new ground.",
+    "seed": "g13"
+  },
+  "role": "gatherer",
+  "title": "go home for the forest, chop a tree, leave what it gives at the depot"
+}

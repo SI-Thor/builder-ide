@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>agent-world — the voices</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 18px 20px 30px;
+    background: #121417; color: #d8d3c8;
+    font: 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  h1 { font-size: 14px; font-weight: 600; letter-spacing: .06em;
+       text-transform: uppercase; color: #9aa3ad; margin: 0 0 4px; }
+  .sub { color: #7d8590; font-size: 12px; margin-bottom: 14px; }
+  .sub a { color: #7fb2ff; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+         margin-bottom: 12px; }
+  button, select {
+    background: #0c0e10; color: #d8d3c8; border: 1px solid #2c3138;
+    border-radius: 6px; padding: 7px 12px;
+    font: inherit; cursor: pointer;
+  }
+  button:disabled { color: #565d66; cursor: default; }
+  label { color: #9aa3ad; white-space: nowrap; }
+  #status { color: #7d8590; }
+  #captions {
+    background: #0c0e10; border: 1px solid #23272d; border-radius: 6px;
+    padding: 12px 14px; min-height: 120px; max-height: 46vh; overflow-y: auto;
+  }
+  .line { padding: 2px 0; }
+  .line .bot { color: #7fb2ff; }
+  .line.said { color: #d8d3c8; }
+  .line.quiet { color: #565d66; }
+  .line small { color: #6e7681; margin-left: 8px; }
+  #numbers { margin-top: 12px; color: #6e7681; font-size: 11.5px; }
+  #numbers span { margin-right: 14px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<h1>agent-world — the voices</h1>
+<div class="sub">
+  The builders, narrated. Each agent has one fixed voice; the engine runs
+  in this page, and nothing is sent anywhere.
+  <a href="/">the 3D view</a> &middot; <a href="/ascii">the text view</a> &middot; <a href="/status">the status</a>
+</div>
+<div class="row">
+  <button id="start">start the voices</button>
+  <label>follow
+    <select id="follow">
+      <option value="">everyone</option>
+      <option value="Pebble">Pebble (gatherer)</option>
+      <option value="Timber">Timber (builder)</option>
+      <option value="Kite">Kite (scout)</option>
+      <option value="Sprout">Sprout (farmer)</option>
+    </select>
+  </label>
+  <label><input type="checkbox" id="mute"> mute</label>
+  <span id="status">the engine is not loaded</span>
+</div>
+<div id="captions"><div class="line quiet">the captions will appear here</div></div>
+<div id="numbers">
+  <span id="n-model">model: not loaded</span>
+  <span id="n-queue">queue: 0</span>
+  <span id="n-ttfa">time to first audio: —</span>
+  <span id="n-spoken">spoken: 0</span>
+</div>
+<script type="module">
+  // The voices, from the agents' own log. The feed (/events) carries
+  // decisions, outcomes, and the builders' own spoken lines — a human's
+  // chat or voice is never in it, so there is nothing here that must
+  // not be spoken (the kids' privacy rule).
+
+  // One fixed voice per agent, four agents, four voices.
+  const VOICES = {
+    Pebble: 'af_heart',
+    Timber: 'am_puck',
+    Kite: 'bm_fable',
+    Sprout: 'bf_isabella',
+  };
+
+  // How each family's win is said. A survey that only looked around is
+  // not narrated: silence is part of the rate limit.
+  const PHRASES = {
+    'gatherer.wood': 'chopped a tree for the depot.',
+    'gatherer.stone': 'mined stone for the depot.',
+    'gatherer.fuel': 'made planks for the wall.',
+    'builder.wall': 'grew the wall.',
+    'builder.pillar': 'raised a pillar.',
+    'builder.stone': 'raised a pillar.',
+    'builder.depot': 'took stone from the depot.',
+    'farmer.ground': 'broke new ground.',
+    'farmer.plant': 'planted a seed.',
+    'farmer.seed': 'gathered seeds.',
+    'farmer.wheat': 'harvested the wheat.',
+    'scout.ground': 'walked the boundary.',
+  };
+
+  // The rate limit: a voice in the room, not a babble. At most one line
+  // every GAP_MS, at most QUEUE_MAX waiting, and the oldest line is the
+  // one dropped when the room is full.
+  const GAP_MS = 4000;
+  const QUEUE_MAX = 3;
+
+  const startButton = document.getElementById('start');
+  const followSelect = document.getElementById('follow');
+  const muteBox = document.getElementById('mute');
+  const statusEl = document.getElementById('status');
+  const captions = document.getElementById('captions');
+  const nModel = document.getElementById('n-model');
+  const nQueue = document.getElementById('n-queue');
+  const nTtfa = document.getElementById('n-ttfa');
+  const nSpoken = document.getElementById('n-spoken');
+
+  let tts = null;
+  let audioCtx = null;
+  let spoken = 0;
+  const ttfaSamples = [];
+
+  function caption(bot, text, said) {
+    const line = document.createElement('div');
+    line.className = 'line ' + (said ? 'said' : 'quiet');
+    const when = new Date().toISOString().slice(11, 19);
+    line.textContent = text;
+    const small = document.createElement('small');
+    small.textContent = when + (said ? '' : ' (not voiced)');
+    line.append(small);
+    captions.prepend(line);
+    while (captions.children.length > 40) captions.lastChild.remove();
+  }
+
+  // --- the engine ------------------------------------------------------------
+
+  async function startEngine() {
+    startButton.disabled = true;
+    statusEl.textContent = 'loading the voice model (92 MB, once; then the browser keeps it)';
+    // The library fetches its model from the model hub by name. This is a
+    // LAN page: the fetch is redirected to the viewer's own mirror of the
+    // same files, so after the first load the page works with no internet.
+    const REMOTE = 'https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main/';
+    const LOCAL = '/paradee/models/onnx-community/Kokoro-82M-v1.0-ONNX/';
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = async (input, init) => {
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (typeof input === 'string' && url.startsWith(REMOTE)) {
+        return nativeFetch(LOCAL + url.slice(REMOTE.length), init);
+      }
+      return nativeFetch(input, init);
+    };
+    try {
+      const { KokoroTTS, env } = await import('/vendor/kokoro/kokoro.web.js');
+      env.wasmPaths = '/vendor/transformers/';
+      tts = await KokoroTTS.from_pretrained('onnx-community/Kokoro-82M-v1.0-ONNX', {
+        dtype: 'q8',
+        device: 'wasm',
+      });
+      audioCtx = new AudioContext();
+      await audioCtx.resume();
+      const names = Object.values(VOICES).join(', ');
+      nModel.textContent = 'model: kokoro-82M int8 (wasm), voices ' + names;
+      statusEl.textContent = 'the voices are ready';
+      startButton.textContent = 'the voices are on';
+    } catch (err) {
+      statusEl.textContent = 'the engine did not load: ' + (err.message || err);
+      startButton.disabled = false;
+      startButton.textContent = 'try again';
+    }
+  }
+  startButton.addEventListener('click', startEngine);
+
+  async function speak(bot, text, enqueuedAt) {
+    if (!tts || !audioCtx) return;
+    const voice = VOICES[bot] || 'af_heart';
+    const made = await tts.generate(text, { voice });
+    const buffer = audioCtx.createBuffer(1, made.audio.length, made.sampling_rate);
+    buffer.copyToChannel(made.audio, 0);
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start();
+    const ttfa = Math.round(performance.now() - enqueuedAt);
+    ttfaSamples.push(ttfa);
+    if (ttfaSamples.length > 10) ttfaSamples.shift();
+    const median = ttfaSamples.slice().sort((a, b) => a - b)[Math.floor(ttfaSamples.length / 2)];
+    nTtfa.textContent = `time to first audio: ${ttfa} ms (median ${median} ms)`;
+    spoken += 1;
+    nSpoken.textContent = 'spoken: ' + spoken;
+    await new Promise((resolve) => {
+      source.onended = resolve;
+    });
+  }
+
+  // --- the queue --------------------------------------------------------------
+
+  const queue = [];
+  let speaking = false;
+
+  function enqueue(bot, text) {
+    const follow = followSelect.value;
+    // Follow mode: the followed agent is voiced, and the wall — the one
+    // build every hand is in — is a world event, so it is voiced too.
+    if (follow && bot !== follow && !text.includes('the wall')) {
+      caption(bot, text, false);
+      return;
+    }
+    queue.push({ bot, text, at: performance.now() });
+    if (queue.length > QUEUE_MAX) queue.splice(0, queue.length - QUEUE_MAX);
+    nQueue.textContent = 'queue: ' + queue.length;
+    drain();
+  }
+
+  let lastSpokeAt = 0;
+  async function drain() {
+    if (speaking || muteBox.checked || !tts || !queue.length) return;
+    const wait = GAP_MS - (Date.now() - lastSpokeAt);
+    if (wait > 0) {
+      setTimeout(drain, wait);
+      return;
+    }
+    const item = queue.shift();
+    nQueue.textContent = 'queue: ' + queue.length;
+    speaking = true;
+    lastSpokeAt = Date.now();
+    caption(item.bot, item.text, true);
+    try {
+      await speak(item.bot, item.text, item.at);
+    } catch (err) {
+      statusEl.textContent = 'a line was not spoken: ' + (err.message || err);
+    }
+    speaking = false;
+    drain();
+  }
+
+  // --- the feed ---------------------------------------------------------------
+
+  let after = '';
+
+  function lineFor(event) {
+    // A builder's own spoken line — its greeting, its answer to a
+    // person, its word about its work — is said as it stands, in that
+    // builder's voice.
+    if (event.kind === 'say') return `${event.bot}: ${event.text}`;
+    if (event.result !== 'win') return null;
+    if (event.family === 'scout.sight') return null;
+    const phrase = PHRASES[event.family];
+    if (phrase) return `${event.bot} ${phrase}`;
+    if (event.title) return `${event.bot}: ${event.title}.`;
+    return null;
+  }
+
+  async function poll() {
+    try {
+      const url = '/events?limit=25' + (after ? '&after=' + encodeURIComponent(after) : '');
+      const response = await fetch(url, { cache: 'no-store' });
+      const body = await response.json();
+      for (const event of body.events || []) {
+        after = after < event.at ? event.at : after;
+        const line = lineFor(event);
+        if (!line) continue;
+        enqueue(event.bot, line);
+      }
+    } catch (err) {
+      // The feed will be back; the captions say nothing on purpose.
+    }
+  }
+  poll();
+  setInterval(poll, 3000);
+</script>
+</body>
+</html>

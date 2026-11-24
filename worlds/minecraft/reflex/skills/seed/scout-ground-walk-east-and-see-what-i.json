@@ -1,0 +1,21 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const here = position();\nawait move_to(here.x + 24, here.y, here.z);\nreturn { done: true, detail: 'walked 24 blocks east' };",
+  "family": "scout.ground",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "kind": "moved_to",
+    "min": 20
+  },
+  "provenance": {
+    "origin": "seed"
+  },
+  "role": "scout",
+  "title": "walk east and see what is there"
+}

@@ -1,0 +1,59 @@
+# agent-world — Paper server.properties (Minecraft Java)
+#
+# Rendered by ops/paper.sh from ops/world/server.properties.template.
+# Every value here has a reason; the reasons are in docs/agent-world.md.
+
+# --- the door ---------------------------------------------------------------
+# The world binds to the Thor's LAN address, never 0.0.0.0: it is reachable
+# from the house and not from anything the router exposes.
+server-ip=@IP@
+server-port=25565
+
+# Mojang's accounts are not used. offline-mode is what lets the bots join
+# without an account each, and it is the trade-off Casey chose for a
+# LAN-only world: anyone on the LAN can claim a name, so the whitelist is
+# the gate that matters.
+online-mode=false
+
+# The whitelist is the door. A name that is not on it cannot join.
+white-list=true
+enforce-whitelist=true
+
+# The server shows up in the LAN server list, so a tablet finds it by name.
+enable-status=true
+enable-query=false
+motd=agent-world
+
+# --- the world --------------------------------------------------------------
+# A fixed seed: the same world every time, so a builder's plan survives a
+# restart and the family can be told "the world is where you left it".
+level-name=world
+level-seed=@SEED@
+level-type=minecraft\:normal
+generate-structures=true
+
+# Peaceful and no PvP: this is a world for a family and for agents that
+# are learning, not a survival challenge.
+difficulty=peaceful
+spawn-monsters=false
+pvp=false
+gamemode=survival
+allow-flight=false
+spawn-protection=0
+max-players=24
+
+# --- the budget -------------------------------------------------------------
+# The view distance is the biggest lever on a CPU-bound server: every
+# loaded chunk is ticked and every player is sent it.
+view-distance=8
+simulation-distance=6
+network-compression-threshold=256
+sync-chunk-writes=false
+player-idle-timeout=0
+
+# --- the switches -----------------------------------------------------------
+enable-command-block=false
+enable-jmx-monitoring=false
+use-native-transport=true
+op-permission-level=4
+rate-limit=0

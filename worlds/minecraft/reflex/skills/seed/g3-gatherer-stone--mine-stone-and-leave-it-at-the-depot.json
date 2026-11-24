@@ -1,0 +1,23 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const stone = find_block({ names: ['stone', 'cobblestone', 'andesite', 'diorite'], max_distance: 32 });\nif (!stone) {\n  return { done: false, detail: 'no stone within 32 blocks' };\n}\nawait dig(stone.x, stone.y, stone.z);\nconst left = await leave_at_depot('cobblestone', 1);\nif (!left.ok) {\n  return { done: false, detail: left.detail };\n}\nreturn { done: true, detail: 'mined stone and left it at the depot' };",
+  "family": "gatherer.stone",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": {
+    "item": "cobblestone",
+    "kind": "inventory_delta",
+    "min": 1
+  },
+  "provenance": {
+    "generation": 3,
+    "origin": "seed"
+  },
+  "role": "gatherer",
+  "title": "mine stone and leave it at the depot"
+}

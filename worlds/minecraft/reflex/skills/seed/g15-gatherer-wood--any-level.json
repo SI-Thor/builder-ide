@@ -1,0 +1,19 @@
+{
+  "author": {
+    "cost_cents": 0,
+    "model": "seed",
+    "prompt_hash": "seed",
+    "provider": "seed"
+  },
+  "body": "const logs = [\"oak_log\", \"spruce_log\", \"birch_log\", \"cherry_log\", \"dark_oak_log\", \"pale_oak_log\", \"mangrove_log\", \"acacia_log\", \"jungle_log\"];\nconst home = depot();\nawait move_to(home.x + 4, home.y, home.z + 4);\nlet log = find_block({ names: logs, max_distance: 96, any_level: true });\nlet walked = 0;\nwhile (!log && walked < 3) {\n  await move_to(home.x + 20 * (walked + 1), home.y, home.z + 20 * (walked + 1));\n  walked += 1;\n  log = find_block({ names: logs, max_distance: 96, any_level: true });\n}\nif (!log) {\n  await move_to(home.x + 4, home.y, home.z + 4);\n  return { done: false, detail: 'no tree near the depot or three walks out; going home' };\n}\nconst chopped = await dig(log.x, log.y, log.z);\nif (!chopped.ok) {\n  return { done: false, detail: chopped.detail };\n}\nawait leave_at_depot();\nreturn { done: true, detail: 'went home, found a tree at its own level, mined a log, left the bag at the depot' };",
+  "family": "gatherer.wood",
+  "kind": "behaviour",
+  "preconditions": [],
+  "predict": { "kind": "block_broken", "min": 1 },
+  "provenance": {
+    "why": "v13 searched from the depot at the gatherer's own level, and the trees that stand there are two spruces on a hill: their trunks begin ~8 blocks above the depot floor, so a level-bound search found nothing while 506 spruce log blocks stood within 96 (probe-wood.js, 2026-11-02, after a first probe that read 'no wood' by scanning before its chunks settled — both lessons in this seed). v15 searches any level; dig's own guard still holds the y=48 floor.",
+    "seed": "g15"
+  },
+  "role": "gatherer",
+  "title": "go home, find a tree at any level, chop a log, leave it at the depot"
+}

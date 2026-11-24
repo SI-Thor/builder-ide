@@ -1,0 +1,16 @@
+{
+  "name": "agent-world-bots",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "description": "agent-world: mineflayer bots for the Paper world on the Thor",
+  "license": "MIT",
+  "dependencies": {
+    "bedrock-protocol": "^3.59.0",
+    "mineflayer": "^4.39.0",
+    "mineflayer-pathfinder": "^2.4.5"
+  },
+  "allowScripts": {
+    "raknet-native@1.2.3": true
+  }
+}
