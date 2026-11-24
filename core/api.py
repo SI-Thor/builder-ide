@@ -404,6 +404,24 @@ def create_app(settings: Settings | None = None, *, core: Core | None = None,
             reason_code=body.reason_code,
         )
 
+    # ------------------------------------------------------------- gc
+
+    @app.get("/v1/gc/reputation", tags=["gc"])
+    def gc_reputation(seat: str | None = None,
+                      job_class: str | None = Query(default=None, alias="class"),
+                      principal: Principal = Depends(require(OWNER, PANEL, CHARACTER))):
+        """A builder's gc record: on time, inside the bid, retools, debt.
+
+        The numbers are gc's own, read out of gc's report — never
+        recomputed here. ``?seat=`` narrows to one seat, ``?class=`` to one
+        class. With no gc on the box the answer is an empty list, not an
+        error: the morning still has to render.
+        """
+        from .svc.gc_night import reputation_rows
+
+        rows = reputation_rows(core, seat=seat, job_class=job_class)
+        return {"reputation": rows, "count": len(rows)}
+
     # ------------------------------------------------------------- questions
 
     @app.post("/v1/questions", tags=["questions"])
