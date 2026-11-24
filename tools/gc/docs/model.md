@@ -17,6 +17,7 @@ Written by the general contractor.
 | field | what it is |
 |---|---|
 | `id` | `J001`, `J002`, ... in the order the jobs were written |
+| `external_id` | the caller's own id of the job — a builder-ide work order, a ticket; empty when nobody said |
 | `title`, `scope` | what was asked, in words |
 | `class` | `lab-experiment`, `merge-fix`, `research-read`, `build-feature`, `long-run-babysit` |
 | `acceptance` | the goal line: a command that must exit 0, or a named metric with a threshold |
@@ -300,6 +301,17 @@ cannot assert what a command or a measurement decides. The verdict, who
 decided it (`gc`, `metric`, `human`), the exit code when there was one, and
 the reason when the check could not run are all in the close row.
 
+**The inconclusive close of a report-kind job.** A report-kind job has no
+machine-checkable goal line, so the desk's word is the check — and the desk
+sometimes cannot tell. `gc close --check inconclusive` records exactly that:
+the close stands, `accepted` is `false`, `acceptance_verdict` is
+`inconclusive`, and the job is neither a hit nor a miss in the reports
+(§8). The refusal to say anything at all stays: a close with no outcome
+given is still an error, because "could not tell" must be said out loud.
+`--check pass`/`--check fail` on a cmd- or metric-kind job are refused for
+the same reason `--accepted`/`--failed` are: the goal line decides for
+itself there.
+
 Actuals get the same treatment where they are recomputable:
 
 - a close cannot report **less** crew-time than the job's last checkpoint
@@ -378,7 +390,27 @@ measurement.
 
 ---
 
-## 12. What is not verified
+## 12. The machine contract
+
+`gc` is read by a night cycle over a pipe as well as by a person at the
+desk. Three things make that reading possible, and none of them changes what
+the program means.
+
+**`--external-id`.** `gc job new --external-id ID` writes the caller's own id
+of the job into the `job.new` row. The mapping between the caller's work
+order and gc's job is then in the ledger — recomputable, not remembered. The
+field is always present; it is the empty string when nobody said.
+
+**`--json`.** On `job new`, `bid`, `award`, `checkpoint` and `close`, one line
+of JSON is printed on stdout: the body of the row that was just written, the
+same bytes the ledger holds. The human-readable lines are unchanged and come
+first; the JSON line comes **last**. The flag may sit anywhere among the
+others. The body is the whole row body, so the ids, the numbers and the
+verdicts are all there.
+
+---
+
+## 13. What is not verified
 
 - The job classes of the 50 reconstructed lanes are a reading of what each
   lane was asked to do. `tools/extract-lanes.py` holds that reading in one

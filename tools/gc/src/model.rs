@@ -314,6 +314,9 @@ pub struct Retool {
 #[allow(dead_code)]
 pub struct Job {
     pub id: String,
+    /// The caller's own id of this job — a builder-ide work order, a ticket.
+    /// Empty when nobody said; gc's own id is always there.
+    pub external_id: String,
     pub title: String,
     pub scope: String,
     pub class: String,
@@ -477,6 +480,7 @@ pub fn replay(rows: &[Row]) -> State {
             "job.new" => {
                 let job = Job {
                     id: row.body.str_at("id").unwrap_or("").to_string(),
+                    external_id: row.body.str_at("external_id").unwrap_or("").to_string(),
                     title: row.body.str_at("title").unwrap_or("").to_string(),
                     scope: row.body.str_at("scope").unwrap_or("").to_string(),
                     class: row.body.str_at("class").unwrap_or("").to_string(),

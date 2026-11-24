@@ -97,6 +97,7 @@ mod tests {
     fn job() -> Job {
         Job {
             id: "J001".to_string(),
+            external_id: String::new(),
             title: "t".to_string(),
             scope: "s".to_string(),
             class: "lab-experiment".to_string(),

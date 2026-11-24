@@ -268,6 +268,7 @@ pub fn import(ledger_path: &Path, file: &Path) -> Result<SeedSummary, String> {
         // code, not by a second set of rules.
         let job = Job {
             id: job_id.clone(),
+            external_id: String::new(),
             title: lane.str_at("title").unwrap_or(&name).to_string(),
             scope: lane.str_at("scope").unwrap_or("").to_string(),
             class: class.clone(),

@@ -133,7 +133,7 @@ seed/              the track record, rebuilt from the real lanes of 2026-11-01..
 tools/             the script that rebuilds the seed
 docs/              the model, the prior art, the integration, the seed method
 examples/demo.sh   a worked run, end to end (clauses, stop, honest close)
-tests/             56 tests (41 unit, 15 through the real binary)
+tests/             61 tests (41 unit, 20 through the real binary)
 ```
 
 ## Getting it running
@@ -143,7 +143,7 @@ default PATH):
 
 ```bash
 cargo build --release
-cargo test                       # 56 tests
+cargo test                       # 61 tests
 ./target/release/gc report       # the book, over the seeded history
 ./examples/demo.sh               # a worked run in a scratch directory
 ```
@@ -160,14 +160,17 @@ The ledger in the repo is the seeded history: 50 real lanes from
 ```
 gc job new        --title T --class C --scope S --accept-cmd CMD
                   --estimate-min M --deadline-min M [--budget-min M]
+                  [--external-id ID] [--json]
                   [--clause "metric <= target [window W] [penalty P]" ...]
 gc job list
-gc bid            --job J --sub S [--crew-min X] [--confidence C] [--submit]
-gc award          --job J (--bid B | --auto) [--clause ...]
+gc bid            --job J --sub S [--crew-min X] [--confidence C] [--submit] [--json]
+gc award          --job J (--bid B | --auto) [--clause ...] [--json]
 gc checkpoint     --job J --crew-used-min X [--check auto|pass|fail|inconclusive]
-                  [--metric name=value ...] [--check-timeout-sec S]
+                  [--metric name=value ...] [--check-timeout-sec S] [--json]
 gc close          --job J --crew-min X [--metric name=value ...]
-                  [--accepted|--failed]        (report-kind jobs only)
+                  [--accepted|--failed|--check inconclusive]
+                                                  (report-kind jobs only)
+                  [--json]
 gc change-order   --job J --reason R [--add-crew-min X] [--add-job-min Y]
 gc cancel         --job J --reason R
 gc retool         --sub S --class C --reason R --action A
@@ -180,6 +183,45 @@ gc seed import    --file FILE [--rebuild]
 Every writing command takes `--at ISO8601`, or `GC_NOW` in unix seconds, to
 fix the clock. With a fixed clock the same commands write byte-identical
 bytes.
+
+## The machine contract
+
+The night cycle reads `gc` over a pipe, not by eye. Three things make that
+possible, and none of them changes what the program means.
+
+**`--external-id`** keys a gc job to a caller of its own — a builder-ide
+work order, a ticket. It is written into the `job.new` row, so the mapping
+is in the ledger and not in anybody's memory:
+
+```console
+$ gc job new --title t --class build-feature --scope s \
+      --external-id WO-42 --estimate-min 60 --deadline-min 1440
+```
+
+The field is always there; it is the empty string when nobody said.
+
+**`--json`** on `job new`, `bid`, `award`, `checkpoint` and `close` prints
+**one line of JSON** on stdout: the body of the row that was just written.
+The human-readable lines stay exactly as they were and the JSON line comes
+**last**, so the same command serves the desk and the pipe:
+
+```console
+$ gc job new --title t --class build-feature --scope s \
+      --accept-cmd true --estimate-min 60 --deadline-min 1440 --json
+J001 — t [build-feature] goal line: `true` exits 0 — job-time 1440 min, GC estimate 60 min, ceiling 90 min
+row 0 written (hash 4557a529f8de)
+{"id":"J001","external_id":"","title":"t",...,"clauses":[],"reconstructed":false,"source":"gc job new"}
+```
+
+The flag may sit anywhere among the other flags.
+
+**`gc close --check inconclusive`** is what a report-kind job says when the
+outcome could not be judged — the goal line was never machine-checkable, and
+the desk cannot tell either. It is recorded as `inconclusive`: the close
+stands, it earns no credit, and it counts as neither a hit nor a miss. A
+command-kind or metric-kind job still refuses a stated outcome
+(`--check pass`, `--check fail`, `--accepted`, `--failed`): there the goal
+line decides for itself.
 
 ## The ledger
 
