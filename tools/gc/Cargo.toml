@@ -1,0 +1,15 @@
+[package]
+name = "gc"
+version = "0.1.0"
+edition = "2021"
+description = "general-contractor: a ledger for subcontracting agent seats to jobs"
+license = "MIT"
+
+# v1 is std only: no dependencies, no crates.io, no network at build time.
+
+[[bin]]
+name = "gc"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 2
