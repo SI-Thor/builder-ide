@@ -842,3 +842,576 @@ fn ledger_row_of(dir: &Path, kind: &str) -> String {
     }
     panic!("no {} row", kind);
 }
+
+// ------------------------------------------- the bridge's machine contract --
+
+/// A tiny JSON reader, just enough for the assertions below. gc prints
+/// canonical JSON — one line, no spaces — so this stays small.
+#[derive(Clone, Debug, PartialEq)]
+enum J {
+    Null,
+    Bool(bool),
+    Num(f64),
+    Str(String),
+    Arr(Vec<J>),
+    Obj(Vec<(String, J)>),
+}
+
+impl J {
+    fn get(&self, key: &str) -> Option<&J> {
+        match self {
+            J::Obj(items) => items.iter().find(|(k, _)| k == key).map(|(_, v)| v),
+            _ => None,
+        }
+    }
+
+    /// A nested field: `at(&["check", "verdict"])`.
+    fn at(&self, path: &[&str]) -> Option<&J> {
+        let mut cur = self;
+        for key in path {
+            cur = cur.get(key)?;
+        }
+        Some(cur)
+    }
+
+    fn as_str(&self) -> Option<&str> {
+        match self {
+            J::Str(s) => Some(s.as_str()),
+            _ => None,
+        }
+    }
+
+    fn as_f64(&self) -> Option<f64> {
+        match self {
+            J::Num(n) => Some(*n),
+            _ => None,
+        }
+    }
+
+    fn as_bool(&self) -> Option<bool> {
+        match self {
+            J::Bool(b) => Some(*b),
+            _ => None,
+        }
+    }
+
+    fn as_arr(&self) -> Option<&Vec<J>> {
+        match self {
+            J::Arr(a) => Some(a),
+            _ => None,
+        }
+    }
+}
+
+fn parse_json(text: &str) -> Result<J, String> {
+    let b = text.as_bytes();
+    let mut i = 0usize;
+    let v = json_value(b, &mut i)?;
+    json_skip_ws(b, &mut i);
+    if i != b.len() {
+        return Err(format!("trailing text at byte {}", i));
+    }
+    Ok(v)
+}
+
+fn json_skip_ws(b: &[u8], i: &mut usize) {
+    while *i < b.len() && (b[*i] as char).is_ascii_whitespace() {
+        *i += 1;
+    }
+}
+
+fn json_value(b: &[u8], i: &mut usize) -> Result<J, String> {
+    json_skip_ws(b, i);
+    match b.get(*i) {
+        None => Err("unexpected end of input".to_string()),
+        Some(b'{') => json_object(b, i),
+        Some(b'[') => json_array(b, i),
+        Some(b'"') => Ok(J::Str(json_string(b, i)?)),
+        Some(b't') => {
+            json_expect(b, i, "true")?;
+            Ok(J::Bool(true))
+        }
+        Some(b'f') => {
+            json_expect(b, i, "false")?;
+            Ok(J::Bool(false))
+        }
+        Some(b'n') => {
+            json_expect(b, i, "null")?;
+            Ok(J::Null)
+        }
+        Some(_) => json_number(b, i),
+    }
+}
+
+fn json_expect(b: &[u8], i: &mut usize, word: &str) -> Result<(), String> {
+    if b[*i..].starts_with(word.as_bytes()) {
+        *i += word.len();
+        Ok(())
+    } else {
+        Err(format!("expected '{}' at byte {}", word, i))
+    }
+}
+
+fn json_object(b: &[u8], i: &mut usize) -> Result<J, String> {
+    *i += 1; // '{'
+    let mut items: Vec<(String, J)> = Vec::new();
+    json_skip_ws(b, i);
+    if b.get(*i) == Some(&b'}') {
+        *i += 1;
+        return Ok(J::Obj(items));
+    }
+    loop {
+        json_skip_ws(b, i);
+        let key = json_string(b, i)?;
+        json_skip_ws(b, i);
+        if b.get(*i) != Some(&b':') {
+            return Err(format!("expected ':' at byte {}", i));
+        }
+        *i += 1;
+        let val = json_value(b, i)?;
+        items.push((key, val));
+        json_skip_ws(b, i);
+        match b.get(*i) {
+            Some(b',') => *i += 1,
+            Some(b'}') => {
+                *i += 1;
+                return Ok(J::Obj(items));
+            }
+            _ => return Err(format!("expected ',' or '}}' at byte {}", i)),
+        }
+    }
+}
+
+fn json_array(b: &[u8], i: &mut usize) -> Result<J, String> {
+    *i += 1; // '['
+    let mut items: Vec<J> = Vec::new();
+    json_skip_ws(b, i);
+    if b.get(*i) == Some(&b']') {
+        *i += 1;
+        return Ok(J::Arr(items));
+    }
+    loop {
+        let val = json_value(b, i)?;
+        items.push(val);
+        json_skip_ws(b, i);
+        match b.get(*i) {
+            Some(b',') => *i += 1,
+            Some(b']') => {
+                *i += 1;
+                return Ok(J::Arr(items));
+            }
+            _ => return Err(format!("expected ',' or ']' at byte {}", i)),
+        }
+    }
+}
+
+fn json_string(b: &[u8], i: &mut usize) -> Result<String, String> {
+    if b.get(*i) != Some(&b'"') {
+        return Err(format!("expected a string at byte {}", i));
+    }
+    *i += 1;
+    let mut out = String::new();
+    loop {
+        let c = match b.get(*i) {
+            Some(c) => *c,
+            None => return Err("unterminated string".to_string()),
+        };
+        *i += 1;
+        match c {
+            b'"' => return Ok(out),
+            b'\\' => {
+                let e = match b.get(*i) {
+                    Some(e) => *e,
+                    None => return Err("unterminated escape".to_string()),
+                };
+                *i += 1;
+                match e {
+                    b'"' => out.push('"'),
+                    b'\\' => out.push('\\'),
+                    b'/' => out.push('/'),
+                    b'b' => out.push('\u{08}'),
+                    b'f' => out.push('\u{0c}'),
+                    b'n' => out.push('\n'),
+                    b'r' => out.push('\r'),
+                    b't' => out.push('\t'),
+                    b'u' => {
+                        let hex = std::str::from_utf8(&b[*i..*i + 4])
+                            .map_err(|_| "bad \\u escape".to_string())?;
+                        let cp = u32::from_str_radix(hex, 16)
+                            .map_err(|_| "bad \\u escape".to_string())?;
+                        *i += 4;
+                        out.push(char::from_u32(cp).unwrap_or('\u{fffd}'));
+                    }
+                    _ => return Err(format!("bad escape at byte {}", i)),
+                }
+            }
+            _ => {
+                // Collect the UTF-8 sequence.
+                let start = *i - 1;
+                let len = if c < 0x80 {
+                    1
+                } else if c >> 5 == 0b110 {
+                    2
+                } else if c >> 4 == 0b1110 {
+                    3
+                } else {
+                    4
+                };
+                *i = start + len;
+                out.push_str(
+                    std::str::from_utf8(&b[start..*i]).map_err(|_| "bad utf-8".to_string())?,
+                );
+            }
+        }
+    }
+}
+
+fn json_number(b: &[u8], i: &mut usize) -> Result<J, String> {
+    let start = *i;
+    while let Some(c) = b.get(*i) {
+        if c.is_ascii_digit() || matches!(c, b'.' | b'e' | b'E' | b'-' | b'+') {
+            *i += 1;
+        } else {
+            break;
+        }
+    }
+    let s = std::str::from_utf8(&b[start..*i]).map_err(|_| "bad number".to_string())?;
+    s.parse::<f64>()
+        .map(J::Num)
+        .map_err(|_| format!("bad number '{}'", s))
+}
+
+/// The JSON line gc printed last — the row body it wrote.
+fn json_line(out: &str) -> J {
+    let line = out
+        .lines()
+        .filter(|l| l.trim_start().starts_with('{'))
+        .last()
+        .expect("no JSON line on stdout");
+    parse_json(line.trim())
+        .unwrap_or_else(|e| panic!("the JSON line does not parse ({}): {}", e, line))
+}
+
+#[test]
+fn the_external_id_is_stored_in_the_job_row() {
+    let dir = workdir("external-id");
+
+    ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t", "--class", "build-feature", "--scope", "s",
+            "--external-id", "WO-42", "--estimate-min", "60", "--deadline-min", "1440",
+        ],
+    );
+    let row = ledger_row_of(&dir, "job.new");
+    assert!(
+        row.contains("\"external_id\":\"WO-42\""),
+        "the job row must carry the caller's own id:\n{}",
+        row
+    );
+
+    // A job nobody keyed is keyed by nothing: the field is there, empty.
+    ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t2", "--class", "build-feature", "--scope", "s",
+            "--estimate-min", "60", "--deadline-min", "1440",
+        ],
+    );
+    let row = ledger_row_of(&dir, "job.new");
+    assert!(
+        row.contains("\"external_id\":\"\""),
+        "an unkeyed job still has the field, empty:\n{}",
+        row
+    );
+}
+
+#[test]
+fn the_json_flag_prints_the_row_body_of_every_writing_command() {
+    let dir = workdir("json-flag");
+
+    // The job: the row body, with the ids and the numbers.
+    let out = ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t", "--class", "build-feature", "--scope", "s",
+            "--accept-cmd", "true", "--estimate-min", "60", "--deadline-min", "1440",
+            "--external-id", "WO-7", "--json",
+        ],
+    );
+    let job = json_line(&out);
+    assert_eq!(job.get("id").and_then(|v| v.as_str()), Some("J001"));
+    assert_eq!(job.get("external_id").and_then(|v| v.as_str()), Some("WO-7"));
+    assert_eq!(job.get("title").and_then(|v| v.as_str()), Some("t"));
+    assert_eq!(job.get("scope").and_then(|v| v.as_str()), Some("s"));
+    assert_eq!(job.get("class").and_then(|v| v.as_str()), Some("build-feature"));
+    assert_eq!(
+        job.at(&["acceptance", "kind"]).and_then(|v| v.as_str()),
+        Some("cmd")
+    );
+    assert_eq!(job.get("deadline_min").and_then(|v| v.as_f64()), Some(1440.0));
+    assert_eq!(job.get("estimate_min").and_then(|v| v.as_f64()), Some(60.0));
+    assert_eq!(job.get("budget_min").and_then(|v| v.as_f64()), Some(90.0));
+    assert_eq!(job.get("stop_ratio").and_then(|v| v.as_f64()), Some(0.8));
+    assert!(job.get("clauses").and_then(|v| v.as_arr()).is_some());
+
+    // The bid.
+    let out = ok(
+        &dir,
+        &[
+            "bid", "--job", "J001", "--sub", "zcode", "--crew-min", "60", "--submit", "--json",
+        ],
+    );
+    let bid = json_line(&out);
+    assert_eq!(bid.get("id").and_then(|v| v.as_str()), Some("B001"));
+    assert_eq!(bid.get("job_id").and_then(|v| v.as_str()), Some("J001"));
+    assert_eq!(bid.get("sub").and_then(|v| v.as_str()), Some("zcode"));
+    assert_eq!(bid.get("crew_min").and_then(|v| v.as_f64()), Some(60.0));
+    assert_eq!(bid.get("job_min").and_then(|v| v.as_f64()), Some(60.0));
+    assert_eq!(bid.get("confidence").and_then(|v| v.as_f64()), Some(0.5));
+    assert_eq!(bid.get("computed").and_then(|v| v.as_bool()), Some(false));
+    assert!(bid.get("basis").and_then(|v| v.as_str()).is_some());
+
+    // The award.
+    let out = ok(&dir, &["award", "--job", "J001", "--bid", "B001", "--json"]);
+    let award = json_line(&out);
+    assert_eq!(award.get("job_id").and_then(|v| v.as_str()), Some("J001"));
+    assert_eq!(award.get("bid_id").and_then(|v| v.as_str()), Some("B001"));
+    assert_eq!(award.get("sub").and_then(|v| v.as_str()), Some("zcode"));
+    assert!(award.get("score").and_then(|v| v.as_f64()).is_some());
+
+    // The checkpoint: the burn, the stop demand and the check.
+    let out = ok(
+        &dir,
+        &["checkpoint", "--job", "J001", "--crew-used-min", "30", "--json"],
+    );
+    let cp = json_line(&out);
+    assert_eq!(cp.get("job_id").and_then(|v| v.as_str()), Some("J001"));
+    assert_eq!(cp.get("crew_used_min").and_then(|v| v.as_f64()), Some(30.0));
+    assert_eq!(cp.get("burn").and_then(|v| v.as_f64()), Some(0.5));
+    assert_eq!(cp.get("stop_required").and_then(|v| v.as_bool()), Some(false));
+    assert_eq!(
+        cp.at(&["check", "verdict"]).and_then(|v| v.as_str()),
+        Some("pass")
+    );
+    assert!(cp.get("metrics").and_then(|v| v.as_arr()).is_some());
+    assert!(cp.get("clauses").and_then(|v| v.as_arr()).is_some());
+    assert_eq!(
+        cp.at(&["forecast", "verdict"]).and_then(|v| v.as_str()),
+        Some("inconclusive")
+    );
+
+    // The close: the money and the verdict.
+    let out = ok(&dir, &["close", "--job", "J001", "--crew-min", "50", "--json"]);
+    let close = json_line(&out);
+    assert_eq!(close.get("job_id").and_then(|v| v.as_str()), Some("J001"));
+    assert_eq!(close.get("accepted").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        close.get("acceptance_verdict").and_then(|v| v.as_str()),
+        Some("pass")
+    );
+    assert_eq!(close.get("actual_crew_min").and_then(|v| v.as_f64()), Some(50.0));
+    assert_eq!(close.get("actual_job_min").and_then(|v| v.as_f64()), Some(50.0));
+    assert_eq!(close.get("late_days").and_then(|v| v.as_f64()), Some(0.0));
+    assert_eq!(
+        close.get("effective_bid_min").and_then(|v| v.as_f64()),
+        Some(60.0)
+    );
+    assert_eq!(close.get("overrun_min").and_then(|v| v.as_f64()), Some(0.0));
+    assert_eq!(close.get("penalty_min").and_then(|v| v.as_f64()), Some(0.0));
+    assert_eq!(close.get("debt_delta_min").and_then(|v| v.as_f64()), Some(0.0));
+    assert_eq!(close.get("method").and_then(|v| v.as_str()), Some("wall"));
+    assert_eq!(
+        close.at(&["check", "verdict"]).and_then(|v| v.as_str()),
+        Some("pass")
+    );
+}
+
+#[test]
+fn the_json_line_is_added_after_the_human_lines() {
+    let dir = workdir("json-last");
+    let out = ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t", "--class", "build-feature", "--scope", "s",
+            "--estimate-min", "60", "--deadline-min", "1440", "--json",
+        ],
+    );
+    let lines: Vec<&str> = out.lines().filter(|l| !l.trim().is_empty()).collect();
+    let last = lines.last().expect("no output");
+    assert!(
+        last.starts_with('{') && parse_json(last).is_ok(),
+        "the JSON line must come last on stdout:\n{}",
+        out
+    );
+    // The prose is still there: --json adds a line, it does not replace them.
+    assert!(out.contains("row 0 written"), "{}", out);
+    assert!(out.contains("goal line"), "{}", out);
+}
+
+#[test]
+fn a_report_kind_close_can_say_it_could_not_be_judged() {
+    let dir = workdir("close-inconclusive");
+
+    // A job with no machine-checkable goal line: the desk's word is the check.
+    ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t", "--class", "research-read", "--scope", "s",
+            "--estimate-min", "60", "--deadline-min", "1440",
+        ],
+    );
+    let job = last_job(&dir);
+    ok(&dir, &["bid", "--job", &job, "--sub", "zcode", "--crew-min", "60", "--submit"]);
+    ok(&dir, &["award", "--job", &job, "--bid", &bid_id_of(&dir, &job)]);
+
+    // Nothing to say yet: the close must be told the outcome.
+    let err = fails(&dir, &["close", "--job", &job, "--crew-min", "50"]);
+    assert!(err.contains("state the outcome"), "{}", err);
+
+    // "I could not tell" is a verdict of its own — not a failure.
+    let out = ok(
+        &dir,
+        &["close", "--job", &job, "--crew-min", "50", "--check", "inconclusive", "--json"],
+    );
+    let close = json_line(&out);
+    assert_eq!(
+        close.get("acceptance_verdict").and_then(|v| v.as_str()),
+        Some("inconclusive")
+    );
+    assert_eq!(close.get("accepted").and_then(|v| v.as_bool()), Some(false));
+    assert_eq!(
+        close.at(&["check", "verdict"]).and_then(|v| v.as_str()),
+        Some("inconclusive")
+    );
+
+    // The desk's word still closes a job.
+    ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t2", "--class", "research-read", "--scope", "s",
+            "--estimate-min", "60", "--deadline-min", "1440",
+        ],
+    );
+    let job2 = last_job(&dir);
+    ok(&dir, &["bid", "--job", &job2, "--sub", "zcode", "--crew-min", "60", "--submit"]);
+    ok(&dir, &["award", "--job", &job2, "--bid", &bid_id_of(&dir, &job2)]);
+    let out = ok(
+        &dir,
+        &["close", "--job", &job2, "--crew-min", "50", "--accepted", "--json"],
+    );
+    let close = json_line(&out);
+    assert_eq!(
+        close.get("acceptance_verdict").and_then(|v| v.as_str()),
+        Some("pass")
+    );
+    assert_eq!(close.get("accepted").and_then(|v| v.as_bool()), Some(true));
+
+    // A machine-checkable goal line still refuses a stated outcome.
+    ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t3", "--class", "research-read", "--scope", "s",
+            "--accept-cmd", "true", "--estimate-min", "60", "--deadline-min", "1440",
+        ],
+    );
+    let job3 = last_job(&dir);
+    ok(&dir, &["bid", "--job", &job3, "--sub", "zcode", "--crew-min", "60", "--submit"]);
+    ok(&dir, &["award", "--job", &job3, "--bid", &bid_id_of(&dir, &job3)]);
+    let err = fails(&dir, &["close", "--job", &job3, "--crew-min", "50", "--check", "pass"]);
+    assert!(err.contains("decides for itself"), "{}", err);
+    let err = fails(&dir, &["close", "--job", &job3, "--crew-min", "50", "--accepted"]);
+    assert!(err.contains("report-kind jobs only"), "{}", err);
+}
+
+/// The seat row of one (sub, class) pair in a `report --json` payload.
+fn seat_row(report: &J, sub: &str, class: &str) -> J {
+    report
+        .get("seats")
+        .and_then(|s| s.as_arr())
+        .expect("no seats in the report")
+        .iter()
+        .find(|r| {
+            r.get("sub").and_then(|v| v.as_str()) == Some(sub)
+                && r.get("class").and_then(|v| v.as_str()) == Some(class)
+        })
+        .cloned()
+        .unwrap_or_else(|| panic!("no seat row for {} on {}", sub, class))
+}
+
+#[test]
+fn the_report_json_carries_the_on_time_counts_and_the_retools() {
+    let dir = workdir("report-counts");
+
+    let run = |title: &str, late: Option<&str>| {
+        ok(
+            &dir,
+            &[
+                "job", "new", "--title", title, "--class", "build-feature", "--scope", "s",
+                "--accept-cmd", "true", "--estimate-min", "60", "--deadline-min", "1440",
+            ],
+        );
+        let job = last_job(&dir);
+        ok(&dir, &["bid", "--job", &job, "--sub", "zcode", "--crew-min", "60", "--submit"]);
+        ok(&dir, &["award", "--job", &job, "--bid", &bid_id_of(&dir, &job)]);
+        match late {
+            None => ok(&dir, &["close", "--job", &job, "--crew-min", "50"]),
+            Some(days) => ok(
+                &dir,
+                &["close", "--job", &job, "--crew-min", "50", "--late-days", days],
+            ),
+        }
+    };
+
+    // One job inside the deadline, one a day late.
+    run("ontime", None);
+    run("late", Some("1"));
+
+    let report = parse_json(&ok(&dir, &["report", "--json"])).expect("the report is not JSON");
+    let seat = seat_row(&report, "zcode", "build-feature");
+    assert_eq!(seat.get("on_time_jobs").and_then(|v| v.as_f64()), Some(1.0));
+    assert_eq!(seat.get("on_time_total").and_then(|v| v.as_f64()), Some(2.0));
+    assert_eq!(seat.get("on_time_known").and_then(|v| v.as_bool()), Some(true));
+    // The rate is the same number it always was: 1 of 2.
+    assert_eq!(seat.get("on_time_rate").and_then(|v| v.as_f64()), Some(0.5));
+
+    // A seat that has never closed anything has no lateness to measure: the
+    // rate is 0, and the 0 means "unknown", not "never on time".
+    ok(
+        &dir,
+        &[
+            "job", "new", "--title", "t2", "--class", "build-feature", "--scope", "s",
+            "--accept-cmd", "true", "--estimate-min", "60", "--deadline-min", "1440",
+        ],
+    );
+    let other = last_job(&dir);
+    ok(&dir, &["bid", "--job", &other, "--sub", "mcode", "--crew-min", "60", "--submit"]);
+    let report = parse_json(&ok(&dir, &["report", "--json"])).expect("the report is not JSON");
+    let seat = seat_row(&report, "mcode", "build-feature");
+    assert_eq!(seat.get("on_time_jobs").and_then(|v| v.as_f64()), Some(0.0));
+    assert_eq!(seat.get("on_time_total").and_then(|v| v.as_f64()), Some(0.0));
+    assert_eq!(seat.get("on_time_known").and_then(|v| v.as_bool()), Some(false));
+    assert_eq!(seat.get("on_time_rate").and_then(|v| v.as_f64()), Some(0.0));
+
+    // The retoolings are counted on the seat row too.
+    assert_eq!(
+        seat_row(&report, "zcode", "build-feature")
+            .get("retools")
+            .and_then(|v| v.as_f64()),
+        Some(0.0)
+    );
+    ok(
+        &dir,
+        &[
+            "retool", "--sub", "zcode", "--class", "build-feature",
+            "--reason", "the seat quoted 60 and took 150", "--action", "smaller jobs",
+        ],
+    );
+    let report = parse_json(&ok(&dir, &["report", "--json"])).expect("the report is not JSON");
+    assert_eq!(
+        seat_row(&report, "zcode", "build-feature")
+            .get("retools")
+            .and_then(|v| v.as_f64()),
+        Some(1.0)
+    );
+}

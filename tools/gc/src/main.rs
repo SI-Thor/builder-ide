@@ -87,19 +87,22 @@ gc — the general contractor's book
                 [--accept-cmd CMD | --accept-metric NAME --accept-at N]
                 --deadline-min M --budget-min B
                 [--penalty-per-day-min P] [--stop-ratio R]
+                [--external-id ID] [--json]
                 [--clause \"metric <= target [window W] [penalty P]\" ...]
   job list       [--class C] [--status S]
   bid            --job J --sub S [--crew-min X] [--job-min Y]
-                [--confidence C] [--milestones \"a|b|c\"] [--submit]
-  award          --job J (--bid B | --auto) [--rationale R]
+                [--confidence C] [--milestones \"a|b|c\"] [--submit] [--json]
+  award          --job J (--bid B | --auto) [--rationale R] [--json]
                 [--clause \"metric <= target [window W] [penalty P]\" ...]
   checkpoint     --job J --crew-used-min X [--check auto|pass|fail|inconclusive]
                 [--metric name=value ...] [--milestones-done N] [--note N]
-                [--check-timeout-sec S]
+                [--check-timeout-sec S] [--json]
   close          --job J --crew-min X [--job-min Y] [--late-days N]
                 [--metric name=value ...] [--method wall|tokens|estimated]
                 [--tokens N] [--goal-line TEXT] [--check-timeout-sec S]
-                [--accepted | --failed]        (report-kind jobs only)
+                [--accepted | --failed | --check inconclusive]
+                                                  (report-kind jobs only)
+                [--json]
   change-order   --job J --reason R [--add-crew-min X] [--add-job-min Y]
   cancel         --job J --reason R
   retool         --sub S --class C --reason R --action A
@@ -112,6 +115,13 @@ The goal line is not taken on trust. A job whose acceptance is a command is
 closed by gc running that command itself and reading the exit code; a metric
 acceptance is compared to the value reported with --metric. A check that
 could not run is recorded inconclusive — never failed.
+
+The writing commands take --json: the row they wrote is printed as one line
+of JSON on stdout, after the human-readable lines. It is the row body
+itself, so a caller can read the ids back without parsing prose.
+`gc job new --external-id ID` records the caller's own id of the job (a
+work order, a ticket) in the row, so gc's job can be found again from
+outside.
 
 Every checkpoint prints a spend-rate forecast, so a burn heading for the
 stop line is visible before it gets there.
@@ -340,6 +350,18 @@ fn forecast_json(f: &forecast::Forecast) -> Json {
     o
 }
 
+/// Print the body of the row that was just written as one line of JSON, for
+/// a caller that reads gc's stdout instead of its ledger.
+///
+/// The line is ADDED after the human-readable ones, never in place of them:
+/// the prose is what a person reads at the desk, and the JSON is what the
+/// night cycle's bridge reads. Same bytes in the row, same bytes here.
+fn print_body_json(args: &Args, body: &Json) {
+    if args.has("json") {
+        println!("{}", body.to_text());
+    }
+}
+
 // ---------------------------------------------------------------- job -----
 
 fn cmd_job(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
@@ -426,6 +448,12 @@ fn job_new(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     }
     let mut body = Json::obj();
     body.set("id", Json::s(id.clone()));
+    // The caller's own id of the job — a builder-ide work order, a ticket.
+    // Empty when nobody said; the row is still a complete row.
+    body.set(
+        "external_id",
+        Json::s(args.get("external-id").unwrap_or("").to_string()),
+    );
     body.set("title", Json::s(title));
     body.set("scope", Json::s(scope));
     body.set("class", Json::s(class));
@@ -442,7 +470,7 @@ fn job_new(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     body.set("reconstructed", Json::b(false));
     body.set("source", Json::s(args.get("source").unwrap_or("gc job new").to_string()));
 
-    let row = ledger::append(ledger_path, &now(args), "job.new", body)?;
+    let row = ledger::append(ledger_path, &now(args), "job.new", body.clone())?;
     println!(
         "{} — {} [{}] goal line: {} — job-time {} min, GC estimate {} min, ceiling {} min",
         id,
@@ -460,6 +488,7 @@ fn job_new(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         println!("{} clause{} in the contract", clause_count, if clause_count == 1 { "" } else { "s" });
     }
     println!("row {} written (hash {})", row.seq, &row.hash[..12]);
+    print_body_json(args, &body);
     Ok(())
 }
 
@@ -535,31 +564,37 @@ fn cmd_bid(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         })
         .unwrap_or_default();
 
+    if args.has("submit") && job.status != JobStatus::Open && job.status != JobStatus::Awarded {
+        return Err(format!(
+            "job {} is {} — it cannot take another bid",
+            job.id,
+            job.status.as_str()
+        ));
+    }
+
+    // The body is built whether or not the bid is written, so that `--json`
+    // says the same thing in a dry run as in a submitted one. The id is
+    // deterministic: it is the next free one, so a dry run's id is the id
+    // the same bid would take.
+    let bid_id = state.next_bid_id();
+    let mut body = Json::obj();
+    body.set("id", Json::s(bid_id.clone()));
+    body.set("job_id", Json::s(job.id.clone()));
+    body.set("sub", Json::s(sub.clone()));
+    body.set("crew_min", Json::n(crew_min));
+    body.set("job_min", Json::n(job_min));
+    body.set("confidence", Json::n(confidence));
+    let mut ms = Json::arr();
+    for m in &milestones {
+        ms.push(Json::s(m.clone()));
+    }
+    body.set("milestones", ms);
+    body.set("computed", Json::b(computed));
+    body.set("proxy", Json::b(false));
+    body.set("basis", Json::s(basis.clone()));
+
     if args.has("submit") {
-        if job.status != JobStatus::Open && job.status != JobStatus::Awarded {
-            return Err(format!(
-                "job {} is {} — it cannot take another bid",
-                job.id,
-                job.status.as_str()
-            ));
-        }
-        let bid_id = state.next_bid_id();
-        let mut body = Json::obj();
-        body.set("id", Json::s(bid_id.clone()));
-        body.set("job_id", Json::s(job.id.clone()));
-        body.set("sub", Json::s(sub.clone()));
-        body.set("crew_min", Json::n(crew_min));
-        body.set("job_min", Json::n(job_min));
-        body.set("confidence", Json::n(confidence));
-        let mut ms = Json::arr();
-        for m in &milestones {
-            ms.push(Json::s(m.clone()));
-        }
-        body.set("milestones", ms);
-        body.set("computed", Json::b(computed));
-        body.set("proxy", Json::b(false));
-        body.set("basis", Json::s(basis.clone()));
-        let row = ledger::append(ledger_path, &now(args), "bid.new", body)?;
+        let row = ledger::append(ledger_path, &now(args), "bid.new", body.clone())?;
         println!(
             "bid {} on {} by {}: {} crew-min, {} job-min, confidence {:.2} ({})",
             bid_id, job.id, sub, crew_min, job_min, confidence, basis
@@ -587,6 +622,7 @@ fn cmd_bid(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         }
         println!("(dry run — pass --submit to write it to the ledger)");
     }
+    print_body_json(args, &body);
     Ok(())
 }
 
@@ -698,7 +734,7 @@ fn cmd_award(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
                 .to_string(),
         ),
     );
-    let row = ledger::append(ledger_path, &now(args), "award", body)?;
+    let row = ledger::append(ledger_path, &now(args), "award", body.clone())?;
     println!(
         "awarded {} to {} (bid {}): score {:.3} = 0.40*cost {:.3} + 0.40*on-time {:.3} + 0.20*fit {:.3}",
         job.id, chosen.sub, chosen.id, score, cost_score, ontime, fit
@@ -719,6 +755,7 @@ fn cmd_award(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         }
     }
     println!("row {} written (hash {})", row.seq, &row.hash[..12]);
+    print_body_json(args, &body);
     Ok(())
 }
 
@@ -832,7 +869,7 @@ fn cmd_checkpoint(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     body.set("clauses", clauses_json(&clauses));
     body.set("forecast", forecast_json(&fc));
 
-    let row = ledger::append(ledger_path, &now_ts, "checkpoint", body)?;
+    let row = ledger::append(ledger_path, &now_ts, "checkpoint", body.clone())?;
     println!(
         "checkpoint on {}: {} crew-min used of {} ({:.0}% of the bid)",
         job.id,
@@ -877,6 +914,7 @@ fn cmd_checkpoint(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         );
     }
     println!("row {} written (hash {})", row.seq, &row.hash[..12]);
+    print_body_json(args, &body);
     Ok(())
 }
 
@@ -898,6 +936,101 @@ fn describe_check(c: &check::CheckResult) -> String {
 }
 
 // -------------------------------------------------------------- close -----
+
+/// The goal-line check at close.
+///
+/// A command-kind or metric-kind job has a machine-checkable goal line, and
+/// gc decides it here — it runs the command or compares the metric. A stated
+/// outcome on such a job is refused: saying "done" is not the same as
+/// proving it.
+///
+/// A report-kind job never had a machine check written down, so the desk's
+/// word is the check: `--accepted`, `--failed`, or `--check inconclusive`
+/// when it could not be judged at all. The third one matters: a night cycle
+/// that cannot tell whether the work landed must be able to say so, and
+/// "could not tell" is not "failed".
+fn resolve_close_check(
+    args: &Args,
+    job: &model::Job,
+    metrics: &[(String, f64)],
+    timeout_sec: u64,
+) -> Result<check::CheckResult, String> {
+    let requested = args.get("check").unwrap_or("auto").to_string();
+    if !["auto", "pass", "fail", "inconclusive"].contains(&requested.as_str()) {
+        return Err(format!(
+            "--check wants auto, pass, fail or inconclusive, not '{}'",
+            requested
+        ));
+    }
+    let accepted = args.has("accepted");
+    let failed = args.has("failed");
+    if accepted && failed {
+        return Err("pick one: --accepted or --failed".to_string());
+    }
+    if (accepted || failed) && requested != "auto" {
+        return Err(format!(
+            "job {}: state the outcome once — --accepted/--failed or --check, not both",
+            job.id
+        ));
+    }
+
+    if job.acceptance.kind == "report" {
+        if accepted {
+            return Ok(check::CheckResult::human(true));
+        }
+        if failed {
+            return Ok(check::CheckResult::human(false));
+        }
+        return match requested.as_str() {
+            "pass" => Ok(check::CheckResult::human(true)),
+            "fail" => Ok(check::CheckResult::human(false)),
+            "inconclusive" => Ok(check::CheckResult::cannot(
+                "human",
+                "the outcome could not be judged",
+            )),
+            _ => Err(format!(
+                "job {} has a report-kind goal line: state the outcome with --accepted or \
+                 --failed, or --check inconclusive when it could not be judged",
+                job.id
+            )),
+        };
+    }
+
+    // A command or a metric decides for itself.
+    if accepted || failed {
+        return Err(format!(
+            "the goal line of job {} is {}-kind: gc decides it at close by {} — \
+             --accepted/--failed are for report-kind jobs only",
+            job.id,
+            job.acceptance.kind,
+            if job.acceptance.kind == "cmd" {
+                "re-running the acceptance command"
+            } else {
+                "comparing the metric against its threshold"
+            }
+        ));
+    }
+    if requested == "pass" || requested == "fail" {
+        return Err(format!(
+            "--check {} states an outcome the goal line decides for itself: job {}'s \
+             acceptance is {}-kind, so it is run (or measured) here, not said. \
+             --check inconclusive records that it could not run.",
+            requested,
+            job.id,
+            job.acceptance.kind
+        ));
+    }
+    if requested == "inconclusive" {
+        return Ok(check::CheckResult::cannot(
+            "human",
+            "the check could not be run at this moment",
+        ));
+    }
+    match job.acceptance.kind.as_str() {
+        "cmd" => Ok(check::run_cmd(&job.acceptance.cmd, timeout_sec)),
+        _ => Ok(metric_check(job, metrics)),
+    }
+}
 
 fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     let state = load(ledger_path)?;
@@ -950,41 +1083,8 @@ fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     // A command-kind acceptance is re-run and its exit code read; a metric
     // kind is compared against the reported value; only a report-kind job —
     // no machine check was ever written down — takes a human's --accepted
-    // or --failed.
-    let check = if job.acceptance.kind == "report" {
-        match (args.has("accepted"), args.has("failed")) {
-            (true, false) => check::CheckResult::human(true),
-            (false, true) => check::CheckResult::human(false),
-            (false, false) => {
-                return Err(format!(
-                    "job {} has a report-kind goal line: state the outcome with --accepted or \
-                     --failed, or --check inconclusive when it could not be judged",
-                    job.id
-                ))
-            }
-            (true, true) => {
-                return Err("pick one: --accepted or --failed".to_string());
-            }
-        }
-    } else {
-        if args.has("accepted") || args.has("failed") {
-            return Err(format!(
-                "the goal line of job {} is {}-kind: gc decides it at close by {} — \
-                 --accepted/--failed are for report-kind jobs only",
-                job.id,
-                job.acceptance.kind,
-                if job.acceptance.kind == "cmd" {
-                    "re-running the acceptance command"
-                } else {
-                    "comparing the metric against its threshold"
-                }
-            ));
-        }
-        match job.acceptance.kind.as_str() {
-            "cmd" => check::run_cmd(&job.acceptance.cmd, check_timeout_sec(args)?),
-            _ => metric_check(&job, &metrics),
-        }
-    };
+    // or --failed, or says it could not be judged at all.
+    let check = resolve_close_check(args, &job, &metrics, check_timeout_sec(args)?)?;
     let accepted = check.verdict == verdict::Verdict::Pass;
 
     let clauses = check_clauses(&job.clauses_in_force(), &metrics, elapsed);
@@ -1031,7 +1131,7 @@ fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
     );
     body.set("reconstructed", Json::b(false));
 
-    let row = ledger::append(ledger_path, &now_ts, "close", body)?;
+    let row = ledger::append(ledger_path, &now_ts, "close", body.clone())?;
     println!(
         "closed {}: {} crew-min against a promise of {}, overrun {}, penalty {}, debt {:+}",
         job.id,
@@ -1067,6 +1167,7 @@ fn cmd_close(args: &Args, ledger_path: &PathBuf) -> Result<(), String> {
         );
     }
     println!("row {} written (hash {})", row.seq, &row.hash[..12]);
+    print_body_json(args, &body);
     Ok(())
 }
 
