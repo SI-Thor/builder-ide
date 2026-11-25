@@ -234,6 +234,25 @@ Branches are pushed as the agents work and reviewed before they merge into
 
 **`main` today: 1,660 tests pass** (3 skipped; the real-engine tests are opt-in).
 
+### Folded in (2026-11-24, branch `fold-in`)
+
+Two former sibling repositories now live here, imported with their full
+history (`git subtree`), and the old repositories are to be archived:
+
+| Path | Was | What it brings | Record |
+|---|---|---|---|
+| `worlds/minecraft/` | [agent-world](https://github.com/SuperInstance/agent-world) | The Minecraft world on the Thor (Paper, four builders, the reflex, the gym, the viewer). Its decisions can write into the core store, so the morning report and "Why?" see them; its ~65 skills load as tiles. Live cut-over on the Thor is pending | [fold report](worlds/minecraft/docs/fold-report-2026-11-24.md) (§5 is the Thor checklist) |
+| `tools/gc/` | [general-contractor](https://github.com/SuperInstance/general-contractor) | Bids, awards, the 80 %-of-bid stop line, three-valued closes, debt and reputation for builders. `core/svc/gc_bridge.py` and `gc_night.py` call the `gc` binary and fail open without it; not yet called from the production night driver | [fold report](docs/fold-report-2026-11-24-gc.md) |
+
+**last-mile stays its own repository** ([SuperInstance/last-mile](https://github.com/SuperInstance/last-mile)):
+it is a whole game, not a seat. `core/rewind` finds its `lm` tool from the
+outside (`LM_BIN`, the `PATH`, or `LAST_MILE_DIR`); `core/sim/systems/beacons`
+is the GPU port of its Beacons rules.
+
+On the laptop the suite runs 2,113 tests green; the 14 failures and
+collection errors that remain are the Thor-only libraries (the CUDA
+simulator, mujoco, USD, the mesh stack).
+
 ### In flight
 
 - **The critic's selection** (week 3, item 18), starting from the calibration table; floating objects are the open class.
